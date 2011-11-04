@@ -136,7 +136,7 @@ class ConfigManager(object):
                 model.register_keys(default)
 
             parser = configparser.ConfigParser()
-            if len(saveconfigname) == 0:
+            if saveconfigname:
                 # save the first filename that is expected to be config
                 # (so save it without comments)
                 raise Exception('Saving config file is not implemented !')
