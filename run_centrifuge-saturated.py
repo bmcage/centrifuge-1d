@@ -27,12 +27,12 @@ import matplotlib.pyplot as plt
 from centrifugeparameters import CentrifugeParameters
 from auxiliaryfunctions   import parse_centrifuge_input
 
-syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2', 'scikits', 'odes', 'sundials'))
+syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 #/scikits/sundials_odes/build//
 #print('syspath: ', syspath)
 #import ida
 
-from common_defs import ResFunction
+from scikits.odes.sundials.common_defs import ResFunction
 
 [inifiles, outputdir, savecfgname] = \
     parse_centrifuge_input(sysargv)
@@ -87,23 +87,20 @@ def main():
                    arange(model.t_start, model.t_end, model.t_step))
     print(model.tspan)
     #try:
-    import ida
+    from scikits.odes.sundials import ida
     #except ImportError:
    #     print('ImportError: Could not load module ''ida''. Exiting...')
    #     return
-    solver = ida.IDA()
-    solver.set_options(resfn=rhs,
-                       compute_initcond='yp0',
-                       first_step=1e-18,
-                       atol=1e-6,rtol=1e-6,
-                       user_data=model)
+    solver = ida.IDA(rhs,
+                     compute_initcond='yp0',
+                     first_step=1e-18,
+                     atol=1e-6,rtol=1e-6,
+                     user_data=model)
     z0  = np.array([model.l0_in, 0])
     zp0 = np.zeros(z0.shape, float)
-    z = solver.run_solver(model.tspan, z0, zp0)
+    _flag, t, z = solver.run_solver(model.tspan, z0, zp0)[:3]
     print(z)
-    z = z[::10, :]
-    tspan = tspan[::10, :]
-    draw_graphs(1, tspan, z[:, 0], z[:, 1])
+    draw_graphs(1, t, z[:, 0], z[:, 1])
 
 if __name__ == "__main__":
     main()
