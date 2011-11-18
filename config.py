@@ -57,7 +57,8 @@ DEFAULT_PARAMETERS = \
                         'porosity': 0.4, 'V': 1.0}, \
               'fluid': {'viscosity': 1.0, 'density': 1.0, \
                         's1_0': 0.1, 's2_0': 0.2, 'pc0': 1.0e5 }, \
-         'centrifuge': {'r0': 30.0, 'L': 10.0, 'l0_in': 2.0, 'l0_out': 4.0}, \
+         'centrifuge': {'r0': 30.0, 'L': 10.0, 'l0_in': 2.0, 'l0_out': 4.0,
+                        'd': 4.0}, \
          'experiment': {'t_start': 0.0, 't_end': 2000.0, 't_step': 200.0, \
                         'omega_start': 0.0, 'omega': 35.0, 'omega_gamma': 0.5}, \
      'discretization': {'inner_points': 80, 'first_point_offset': 80.0, 'dtype': 1, \
