@@ -24,6 +24,7 @@ from numpy import arange
 import numpy as np
 import matplotlib.pyplot as plt
 
+from shared_functions import *
 from centrifugeparameters import CentrifugeParameters
 from auxiliaryfunctions   import parse_centrifuge_input
 
@@ -43,52 +44,34 @@ s2_idx       = -1
 mass_out_idx = -1
 pq_idx       = -1
 
-def draw_graphs(fignum, t, wl_in, wl_out):
+def draw_graphs(fignum, t, y, z, model):
+    h = z[:, first_idx:last_idx+1]
+    u = h2u(h, model.n, model.m, model.gamma)
+    ds = z[:, s2_idx] - z[:, s1_idx]
+    x = np.empty([len(t), len(y)], float)
+    for i in range(len(t)):
+        x[i, :] = z[i, s1_idx] + y * ds[i]
+    print(h)
     plt.figure(fignum)
-    plt.subplot(211)
-    plt.plot(t, wl_in, 'b')
-    plt.xlabel('Time')
-    plt.ylabel('water in inflow chamber')
+    plt.subplot(221)
 
-    plt.subplot(212)
-    plt.plot(t, wl_out, 'k')
-    plt.xlabel('Time')
-    plt.ylabel('water in outflow chamber')
+    plt.plot(x.transpose(), h.transpose(), 'b')
+    plt.xlabel('Rtational axis distance ''r'' [cm]')
+    plt.ylabel('Piezometric head ''h'' [cm]')
+
+    plt.subplot(222)
+    plt.plot(x.transpose(), u.transpose(), 'b')
+    plt.xlabel('Rotational axis distance ''r'' [cm]')
+    plt.ylabel('Relative saturation ''u''')
+
+    plt.subplot(223)
+    plt.plot(t, z[:, mass_out_idx], 'b')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Outspelled water [$cm^3$]')
+    
     plt.show()
 
-def lagrangean_derivative_coefs(dx):
-    """
-    Returns the coeficients for the Lagrangeand derivative of the differences
-    array 'dx'. The first point has a right derivative, last point a left
-    derivative and central difference is for the mid-points.
-    """
-    ldc1 = np.concatenate(([-(2*dx[0]+dx[1])/(dx[0]*(dx[0]+dx[1]))],
-                          -dx[1:]/(dx[:-1]*(dx[:-1]+dx[1:])),
-                          [dx[-1]/(dx[-2]*(dx[-2]+dx[-1]))]))
-    ldc2 = np.concatenate(([dx[0]+dx[1]/(dx[1]*dx[0])],
-                          (dx[1:] - dx[:-1])/dx[:-1]/dx[1:],
-                          [(dx[-1]+dx[-2])/(dx[-2]*dx[-1])]))
-    ldc3 = np.concatenate(([-dx[0]/(dx[1]*(dx[1]+dx[0]))],
-                           dx[:-1]/(dx[1:]*(dx[:-1]+dx[1:])),
-                           [(2*dx[-1]+dx[-2])/(dx[-1]*(dx[-2]+dx[-1]))]))
-
-    return ldc1, ldc2, ldc3
-
-def h2Kh(h, n, m, gamma, Ks):
-    xkh  = np.power( gamma * h, n-1.)
-    xkh2 = np.power(1 + gamma * h * xkh, m/2.)
-    Kh   = Ks/xkh2 * np.power(1-xkh/np.power(xkh2, 2), 2)
-
-    return Kh
-
-def dudh(h, n, m, gamma, Ks):
-    xkh  = np.power(gamma*h, n-1)
-    xkh2 = np.power(1 + gamma*h * xkh, m+1)
-    dudh = - gamma*(n-1) * xkh / xkh2
-
-    return dudh
-        
-class centrifuge_rhs(ResFunction):
+class centrifuge_residual(ResFunction):
          
     def evaluate(self, t, z, zdot, result, model):
         # F(t,h,dh/dt) = porosity * du/dh * dh/dt
@@ -123,8 +106,8 @@ class centrifuge_rhs(ResFunction):
                      + model.ldc3[-1] * h[-1])
 
         q_first = 0.
-        q12 = Kh12 * (dhdr12 / ds - omega2g*(r0 + s1 + ds * model.y12))
-        q_last  = Kh_last * np.minimum(0., dhdr_last/ds - omega2g*(r0 + L))
+        q12 = -Kh12 * (dhdr12 / ds - omega2g*(r0 + s1 + ds * model.y12))
+        q_last  = -Kh_last * np.minimum(0., dhdr_last/ds - omega2g*(r0 + L))
 
         du_dh = dudh(h, n, m, gamma, Ks)
         result[first_idx] = (model.porosity * du_dh[0] * hdot[0]
@@ -133,21 +116,18 @@ class centrifuge_rhs(ResFunction):
         result[first_idx+1:last_idx] = (model.porosity * du_dh[1:-1] * hdot[1:-1]
                              + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
         result[last_idx]  = (model.porosity * du_dh[-1] * hdot[-1]
-                             + 2 / dy[-1] / ds * (q_last - q12[0]))
+                             + 2 / dy[-1] / ds * (q_last - q12[-1]))
 
-        result[mass_in_idx]  = 0.
-        result[mass_out_idx] = -q_last
-        result[s1_idx]  = 0.
-        result[s2_idx]  = 0.
-        result[pq_idx]  = 0.
-
-        # print('dudh = ', du_dh)
-        print('result[1:5] = ', result[:5])
-        print('result[-10:] = ', result[-10:])
+        result[mass_in_idx]  = zdot[mass_in_idx]
+        result[mass_out_idx] = zdot[mass_out_idx]  - q_last
+        result[s1_idx]  = zdot[s1_idx]
+        result[s2_idx]  = zdot[s2_idx]
+        result[pq_idx]  = zdot[pq_idx]
         
         return 0
+
         
-rhs = centrifuge_rhs()     
+residual_fn = centrifuge_residual()     
 
 def main():
     cfgmngr = ConfigManager.get_instance()
@@ -191,25 +171,29 @@ def main():
         return
 
     z0  = np.zeros([z_size, ], float)
-    z0[first_idx:last_idx+1] = -100.
+    z0[first_idx:last_idx+1] = -0.15
+    z0[s2_idx] = model.l
     zp0 = np.zeros([z_size, ], float)
     
-    solver = ida.IDA(rhs,
+    solver = ida.IDA(residual_fn,
                      #compute_initcond='yp0',
-                     first_step=1e-18,
-                     atol=1e-6,rtol=1e-2,
+                     first_step=1e-20,
+                     atol=1e-1,rtol=1e-2,
                      #algebraic_vars_idx=[4],
                      user_data=model)
 
-    print(model.tspan)
-    #    solver.run_solver(model.tspan, z0, zp0)
-    z_ic0  = np.zeros([z_size, ], float)
-    zp_ic0 = np.zeros([z_size, ], float)
+    #print(model.tspan)
+    flag, t, z = solver.run_solver(model.tspan, z0, zp0)[:3]
+    #z_ic0  = np.zeros([z_size, ], float)
+    #zp_ic0 = np.zeros([z_size, ], float)
     
-    solver.init_step(model.tspan[0], z0, zp0, z_ic0, zp_ic0)
-    solver.step(model.tspan[1],z_ic0, zp_ic0)
+    #solver.init_step(model.tspan[0], z0, zp0, z_ic0, zp_ic0)
+    #solver.step(model.tspan[1],z_ic0, zp_ic0)
+    #solver.step(-1.,z_ic0, zp_ic0)
 
-    print(z_ic0, zp_ic0)
+    #print(z_ic0, zp_ic0)
+
+    draw_graphs(1, t, model.y, z, model)
 
 if __name__ == "__main__":
     main()
