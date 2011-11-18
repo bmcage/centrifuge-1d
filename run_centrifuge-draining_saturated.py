@@ -34,8 +34,6 @@ from scikits.odes.sundials.common_defs import ResFunction
 
 [inifiles, outputdir, savecfgname] = parse_centrifuge_input(sysargv)
     
-print('savecfgname: ', savecfgname)
-
 first_idx    = 0
 last_idx     = -1
 mass_in_idx  = -1
@@ -49,24 +47,27 @@ def draw_graphs(fignum, t, y, z, model):
     u = h2u(h, model.n, model.m, model.gamma)
     ds = z[:, s2_idx] - z[:, s1_idx]
     x = np.empty([len(t), len(y)], float)
+    legend_data = []
     for i in range(len(t)):
         x[i, :] = z[i, s1_idx] + y * ds[i]
-    print(h)
+        legend_data.append(str('t = % d' % t[i]))
+
     plt.figure(fignum)
     plt.subplot(221)
 
-    plt.plot(x.transpose(), h.transpose(), 'b')
-    plt.xlabel('Rtational axis distance ''r'' [cm]')
-    plt.ylabel('Piezometric head ''h'' [cm]')
+    plt.plot(x.transpose(), h.transpose(), '.')
+    plt.xlabel('Rtational axis distance ''r'' [$cm$]')
+    plt.ylabel('Piezometric head ''h'' [$cm$]')
 
     plt.subplot(222)
-    plt.plot(x.transpose(), u.transpose(), 'b')
-    plt.xlabel('Rotational axis distance ''r'' [cm]')
+    plt.plot(x.transpose(), u.transpose(), '.')
+    plt.xlabel('Rotational axis distance ''r'' [$cm$]')
     plt.ylabel('Relative saturation ''u''')
+    plt.legend(legend_data, bbox_to_anchor=(1., 1.), loc=2, borderaxespad=0.1)
 
     plt.subplot(223)
-    plt.plot(t, z[:, mass_out_idx], 'b')
-    plt.xlabel('Time [s]')
+    plt.plot(t, z[:, mass_out_idx], '.')
+    plt.xlabel('Time [$s$]')
     plt.ylabel('Outspelled water [$cm^3$]')
     
     plt.show()
@@ -183,16 +184,7 @@ def main():
                      #algebraic_vars_idx=[4],
                      user_data=model)
 
-    #print(model.tspan)
     flag, t, z = solver.run_solver(model.tspan, z0, zp0)[:3]
-    #z_ic0  = np.zeros([z_size, ], float)
-    #zp_ic0 = np.zeros([z_size, ], float)
-    
-    #solver.init_step(model.tspan[0], z0, zp0, z_ic0, zp_ic0)
-    #solver.step(model.tspan[1],z_ic0, zp_ic0)
-    #solver.step(-1.,z_ic0, zp_ic0)
-
-    #print(z_ic0, zp_ic0)
 
     draw_graphs(1, t, model.y, z, model)
 
