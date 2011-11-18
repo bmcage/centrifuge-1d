@@ -150,7 +150,8 @@ def main():
 
     model.register_key('additional', 'm', 1-1/model.n)
     model.register_key('experiment', 'tspan',
-                   arange(model.t_start, model.t_end, model.t_step))
+                       arange(model.t_start, model.t_end + model.t_step / 10.,
+                              model.t_step)) # t_end + t_step/10: assure that also the last value is present in the tspan
     if model.dtype == 1:
         y = np.linspace(0, 1, model.inner_points+2)
     else:
