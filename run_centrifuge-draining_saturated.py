@@ -45,30 +45,47 @@ pq_idx       = -1
 def draw_graphs(fignum, t, y, z, model):
     h = z[:, first_idx:last_idx+1]
     u = h2u(h, model.n, model.m, model.gamma)
-    ds = z[:, s2_idx] - z[:, s1_idx]
+    s1 = z[:, s1_idx]
+    s2 = z[:, s2_idx]
+    ds = s2 - s1
+    mass_in  = z[:, mass_in_idx]
+    mass_out = z[:, mass_out_idx]
     x = np.empty([len(t), len(y)], float)
+
+    GC, RM, MW = characteristics(t, u, mass_in, mass_out, s1, s2, model)
+
     legend_data = []
     for i in range(len(t)):
         x[i, :] = z[i, s1_idx] + y * ds[i]
         legend_data.append(str('t = % d' % t[i]))
 
-    plt.figure(fignum)
-    plt.subplot(221)
+    plt.figure(fignum, figsize=(16, 8.5))
 
+    plt.subplot(321)
     plt.plot(x.transpose(), h.transpose(), '.')
-    plt.xlabel('Rtational axis distance ''r'' [$cm$]')
+    plt.xlabel('Rotational axis distance ''r'' [$cm$]')
     plt.ylabel('Piezometric head ''h'' [$cm$]')
 
-    plt.subplot(222)
+    plt.subplot(322)
     plt.plot(x.transpose(), u.transpose(), '.')
     plt.xlabel('Rotational axis distance ''r'' [$cm$]')
     plt.ylabel('Relative saturation ''u''')
     plt.legend(legend_data, bbox_to_anchor=(1., 1.), loc=2, borderaxespad=0.1)
 
-    plt.subplot(223)
+    plt.subplot(323)
     plt.plot(t, z[:, mass_out_idx], '.')
     plt.xlabel('Time [$s$]')
     plt.ylabel('Outspelled water [$cm^3$]')
+
+    plt.subplot(325)
+    plt.plot(t, GC.transpose(), '.')
+    plt.xlabel('Time [$s$]')
+    plt.ylabel('Gravitational center [$cm$]')
+
+    plt.subplot(326)
+    plt.plot(t, RM.transpose(), '.')
+    plt.xlabel('Time [$s$]')
+    plt.ylabel('Rotational momentum [$kg.m.s^{-1}$]')
     
     plt.show()
 
