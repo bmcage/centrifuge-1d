@@ -58,16 +58,6 @@ def u2h(u, n, m, gamma, h = None):
 
     return h
 
-def water_mass(u, mass_in, mass_out, s1, s2, model):
-    ds = s2 - s1
-    dy = model.dy
-
-    V0 =  (ds/2  * (dy[0]* u[:, 0] + dy[-1]*u[:, -1] + np.sum((dy[:-1] + dy[1:])*u[:, 1:-1], 1)))
-
-    V = model.density * (mass_in + model.porosity*V0 + mass_out)
-
-    return V
-
 def characteristics(t, u, mass_in, mass_out, s1, s2, model):
     porosity = model.porosity
     y  = model.y
@@ -85,9 +75,14 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model):
 
     GC = np.empty(t.shape, float)
     RM = np.empty(t.shape, float)
-    WM = water_mass(u, mass_in, mass_out, s1, s2, model)
 
     P = np.pi * model.d / 4
+
+    # Water mass
+    wm_sat = (ds/2  * (dy[0]* u[:, 0] + dy[-1]*u[:, -1]
+                + np.sum((dy[:-1] + dy[1:])*u[:, 1:-1], 1)))
+
+    WM = model.density * P * (mass_in + model.porosity*wm_sat + mass_out)
 
     for i in range(len(t)):
         # Gravitational center
