@@ -94,7 +94,15 @@ class centrifuge_residual(ResFunction):
     def evaluate(self, t, z, zdot, result, model):
         # F(t,h,dh/dt) = porosity * du/dh * dh/dt
         #                + d[K(h)*(dh/dr - omega^2/g * r)]/dr
+
+        h    =  z[first_idx:last_idx+1]
+
+        if np.any(h > 0): # positive pressure - we want to refine the step
+            return 1
         
+        hdot =  zdot[first_idx:last_idx+1]
+        h12  = (h[1:] + h[:-1]) / 2
+
         omega2g = ((model.omega_start  + (model.omega - model.omega_start)
                                   * (1 - np.exp(-model.omega_gamma*t)))**2 
                                   / model.g)
@@ -108,10 +116,6 @@ class centrifuge_residual(ResFunction):
         gamma = model.gamma
         r0 = model.r0
         L  = model.l
-        
-        h    =  z[first_idx:last_idx+1]
-        hdot =  zdot[first_idx:last_idx+1]
-        h12  = (h[1:] + h[:-1]) / 2
 
         Kh12 = h2Kh(h12, n, m, gamma, Ks)
         Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
