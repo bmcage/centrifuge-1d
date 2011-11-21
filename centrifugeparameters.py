@@ -67,6 +67,6 @@ class CentrifugeParameters:
                 setattr(self, key, float(value))
             else:
                 print ("WARNING: ignoring key with wrong type "
-                       "'%s.%s'" % (name, key))
+                       "'%s.%s'" % (section, key))
 
 
