@@ -146,16 +146,16 @@ def run_direct(draw_graphs_p = False):
                                    defaults = [DEFAULT_PARAMETERS],
                                    saveconfigname = savecfgname)
 
-     model.register_key('experiment', 'tspan',
-                   np.arange(model.t_start, model.t_end, model.t_step))
+    model.register_key('experiment', 'tspan',
+                       np.arange(model.t_start, model.t_end, model.t_step))
      
-     _flag, t, z = direct_saturated_problem(model.ks, model)
+    _flag, t, z = direct_saturated_problem(model)
 
     GC, RM = extract_saturated_characteristics(t, z, model)
     if draw_graphs_p:
         draw_graphs(1, t, z[:, 0], z[:, 1], GC, RM)
    
-    return GC, RM
+    return model, GC, RM
 
 if __name__ == "__main__":
     solve_direct(draw_graphs_p = True)
