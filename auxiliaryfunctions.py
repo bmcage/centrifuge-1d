@@ -1,4 +1,5 @@
-import const, getopt, sys
+import const, getopt, sys, os
+import numpy as np
 
 def parse_centrifuge_input(args):
     """
@@ -37,9 +38,15 @@ def parse_centrifuge_input(args):
 
     return [INIFILES, OUTPUTDIR, SAVECONFIG]
 
+def ensure_dir(f):
+    d = os.path.dirname(f)
+    if not os.path.exists(d):
+        os.makedirs(d)
+
 def save_data(filename, data_dict):
-    numpy.savez(filename, **data_dict)
+    ensure_dir(filename)
+    np.savez(filename, **data_dict)
 
 def load_data(filename):
     npzfile = np.load(filename)
-    return npzfile.files
+    return npzfile
