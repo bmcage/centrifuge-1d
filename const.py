@@ -71,8 +71,8 @@ PYTHONVERSION  = platform.python_version_tuple()
 #
 #-------------------------------------------------------------------------
 
-INIFILE_DEFAULT = 'centrifuge-default.ini'
-INIFILE_DEFAULT_EXT = 'centrifuge-default-extended.ini'
+INIFILE_DEFAULT = 'parameters_default.ini'
+INIFILE_DEFAULT_EXT = 'parameters_default_extended.ini'
 
 #-------------------------------------------------------------------------
 #
