@@ -17,15 +17,12 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from sys import argv as sysargv, path as syspath
-from os.path import join as join_path
-from config import DEFAULT_PARAMETERS, ConfigManager
 import numpy as np
-import matplotlib.pyplot as plt
 
 from centrifugeparameters import CentrifugeParameters
-from auxiliaryfunctions   import parse_centrifuge_input
 
+from os.path import join as join_path
+from sys import argv as sysargv, path as syspath
 syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
 import scikits.odes.sundials.ida as ida
@@ -34,10 +31,11 @@ from scikits.odes.sundials.common_defs import ResFunction
 mass_in_idx  = 0
 mass_out_idx = 1
 
-[inifiles, outputdir, savecfgname] = \
-    parse_centrifuge_input(sysargv)
     
 def draw_graphs(fignum, t, wl_in, wl_out, GC, RM):
+
+    import matplotlib.pyplot as plt
+
     plt.figure(fignum, figsize=(12, 8))
 
     plt.subplot(221)
@@ -122,9 +120,7 @@ def extract_saturated_characteristics(t, z, model):
 
 rhs = centrifuge_rhs()
 
-def direct_saturated_problem(Ks, model):
-
-    model.ks = Ks
+def direct_saturated_problem(model):
 
     solver = ida.IDA(rhs,
                      compute_initcond='yp0',
@@ -137,23 +133,29 @@ def direct_saturated_problem(Ks, model):
 
     return flag, t, z
 
-def solve_direct(draw_graphs_p = False):
+def run_direct(draw_graphs_p = False):
+    from auxiliaryfunctions import parse_centrifuge_input
+    from config import DEFAULT_PARAMETERS, ConfigManager
+   
+    [inifiles, outputdir, savecfgname] =  parse_centrifuge_input(sysargv)
+    
     cfgmngr = ConfigManager.get_instance()
     model   = cfgmngr.read_configs(merge_output_p = True,
                                    preserve_sections_p = False,
                                    filenames = inifiles,
                                    defaults = [DEFAULT_PARAMETERS],
                                    saveconfigname = savecfgname)
-    model.register_key('experiment', 'tspan',
+
+     model.register_key('experiment', 'tspan',
                    np.arange(model.t_start, model.t_end, model.t_step))
+     
+     _flag, t, z = direct_saturated_problem(model.ks, model)
 
-    _flag, t, z = direct_saturated_problem(model.ks, model)
-
+    GC, RM = extract_saturated_characteristics(t, z, model)
     if draw_graphs_p:
-        GC, RM = extract_saturated_characteristics(t, z, model)
         draw_graphs(1, t, z[:, 0], z[:, 1], GC, RM)
-
-    return 0
+   
+    return GC, RM
 
 if __name__ == "__main__":
     solve_direct(draw_graphs_p = True)
