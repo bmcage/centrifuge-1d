@@ -36,3 +36,10 @@ def parse_centrifuge_input(args):
             SAVECONFIG = value
 
     return [INIFILES, OUTPUTDIR, SAVECONFIG]
+
+def save_data(filename, data_dict):
+    numpy.savez(filename, **data_dict)
+
+def load_data(filename):
+    npzfile = np.load(filename)
+    return npzfile.files
