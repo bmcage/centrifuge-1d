@@ -109,3 +109,8 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model):
         RM[i] = omega2g[i] * P * (rm_unsat + rm_sat)
 
     return GC, RM, WM
+
+def find_omega2g(t, model):
+    return (np.power(model.omega_start  + (model.omega - model.omega_start)
+                     *(1 - np.exp(-model.omega_gamma*t)), 2)
+            / model.g)

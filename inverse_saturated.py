@@ -56,7 +56,7 @@ def inverse_saturated_heights(xdata, Ks):
         model.l0_in = heights0[i]
         _flag, t, z = direct_saturated_problem(model)
         h1 = extract_saturated_water_heights(z, model)
-        print(h1)
+        print('%f -> %f' % (h1[0], h1[1]))
         heights[i] = h1[1]
 
     return heights
@@ -69,6 +69,8 @@ def main():
                                    defaults = [DEFAULT_PARAMETERS],
                                    saveconfigname = savecfgname)
     model.register_key('experiment', 'tspan', np.array([]))
+    model.omega_start = model.omega_start / 60
+    model.omega       = model.omega / 60
 
     if not model.inverse_data_filename:
         raise ValueError('Data file for inverse problem not specified !')
@@ -109,7 +111,7 @@ def main():
         h1_inv = inverse_fn(xdata, Ks_inv)
         print('measured value - computed value')
         for i in np.arange(len(heights_0)):
-            print('% f - % f', heights_1[i], h1_inv[i])
+            print('% f - % f' % (heights_1[i], h1_inv[i]))
 
 if __name__ == "__main__":
     main()

@@ -32,6 +32,7 @@ syspath.append(join_path('.', 'odes', 'scikits', 'sundials_odes', 'build', 'lib.
 #import ida
 
 from common_defs import ResFunction
+from shared_functions import find_omega2g
 
 [inifiles, outputdir, savecfgname] = \
     parse_centrifuge_input(sysargv)
@@ -54,9 +55,7 @@ class centrifuge_rhs(ResFunction):
         # porosity * du/dh * dh/dt = -Ks*(dh/dr - omega^2/g*r)
         # F(t,h,dh/dt) = porosity * du/dh * dh/dt + Ks*(dh/dr - omega^2/g * r)
         
-        omega2g = (model.omega  + (model.Omega - model.omega)
-                                  * (1 - exp(-model.Gama*t))).^2 
-                                  / model.g
+        omega2g = find_omega2g(t, model)
 
         result[0] = omega2g * x[0] * (2*model.r0 - result[0])
         return 0
@@ -70,6 +69,8 @@ def main():
                                    filenames = inifiles,
                                    defaults = [DEFAULT_PARAMETERS],
                                    saveconfigname = savecfgname)
+    model.omega_start = model.omega_start / 60
+    model.omega       = model.omega / 60
     
     #first_idx    = 0
     last_idx     = model.inner_points+1

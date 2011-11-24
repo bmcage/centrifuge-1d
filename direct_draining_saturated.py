@@ -24,7 +24,7 @@ from numpy import arange
 import numpy as np
 import matplotlib.pyplot as plt
 
-from shared_functions import *
+from shared_functions import lagrangean_derivative_coefs,  dudh, h2Kh,h2u, characteristics, find_omega2g
 from centrifugeparameters import CentrifugeParameters
 from auxiliaryfunctions   import parse_centrifuge_input
 
@@ -103,9 +103,8 @@ class centrifuge_residual(ResFunction):
         hdot =  zdot[first_idx:last_idx+1]
         h12  = (h[1:] + h[:-1]) / 2
 
-        omega2g = ((model.omega_start  + (model.omega - model.omega_start)
-                                  * (1 - np.exp(-model.omega_gamma*t)))**2 
-                                  / model.g)
+        omega2g = find_omega2g(t, model)
+        
         s2 = model.l
         s1 = 0
         ds = s2 - s1
@@ -158,6 +157,8 @@ def main():
                                    filenames = inifiles,
                                    defaults = [DEFAULT_PARAMETERS],
                                    saveconfigname = savecfgname)
+    model.omega_start = model.omega_start / 60
+    model.omega       = model.omega / 60
     
     global first_idx, last_idx, mass_in_idx, s1_idx, s2_idx, mass_out_idx, pq_idx
     #first_idx    = 0

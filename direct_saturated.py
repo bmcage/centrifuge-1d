@@ -27,6 +27,7 @@ syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
 import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
+from shared_functions import find_omega2g
 
 mass_in_idx  = 0
 mass_out_idx = 1
@@ -100,9 +101,7 @@ def characteristics(t, mass_in, mass_out, model):
 class centrifuge_rhs(ResFunction):
     def evaluate(self, t, x, xdot, result, model):
 
-        omega2g = ((model.omega_start  + (model.omega - model.omega_start)
-                                  * (1 - np.exp(-model.omega_gamma*t)))**2 
-                                  / model.g)
+        omega2g = find_omega2g(t, model)
         L = model.l
         l = x[0]
         q_out = model.ks*omega2g * (l*(2*model.r0 - l)/L + 2*model.r0 + L)
@@ -148,6 +147,8 @@ def run_direct(draw_graphs_p = False):
                                    filenames = inifiles,
                                    defaults = [DEFAULT_PARAMETERS],
                                    saveconfigname = savecfgname)
+    model.omega_start = model.omega_start / 60
+    model.omega       = model.omega / 60
 
     model.register_key('experiment', 'tspan',
                        np.arange(model.t_start, model.t_end, model.t_step))
