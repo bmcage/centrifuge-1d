@@ -61,7 +61,7 @@ DEFAULT_PARAMETERS = \
                         'd': 4.0}, \
          'experiment': {'t_start': 0.0, 't_end': 2000.0, 't_step': 200.0, \
                         'omega_start': 0.0, 'omega': 35.0, 'omega_gamma': 0.5,
-                        'inverse_data_filename': ''}, \
+                        'inverse_data_filename': '', 'inverse_data_type': 0}, \
      'discretization': {'inner_points': 80, 'first_point_offset': 80.0, 'dtype': 1, \
                         'percent_in_saturation': 40.0, \
                         'approximation_type': 5, 'mb_epsilon': 1e-5}}
