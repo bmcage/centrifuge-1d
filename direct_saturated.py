@@ -118,6 +118,9 @@ def extract_saturated_characteristics(t, z, model):
 
     return GC, RM
 
+def extract_saturated_water_heights(z, model):
+    return z[:, mass_in_idx]
+
 rhs = centrifuge_rhs()
 
 def direct_saturated_problem(model):
@@ -127,7 +130,7 @@ def direct_saturated_problem(model):
                      first_step=1e-18,
                      atol=1e-6,rtol=1e-6,
                      user_data=model)
-    z0  = np.array([model.l0_in, 0])
+    z0  = np.array([model.l0_in, 0], float)
     zp0 = np.zeros(z0.shape, float)
     flag, t, z = solver.run_solver(model.tspan, z0, zp0)[:3]
 
