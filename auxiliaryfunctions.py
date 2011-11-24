@@ -47,6 +47,10 @@ def save_data(filename, data_dict):
     ensure_dir(filename)
     np.savez(filename, **data_dict)
 
+def save_data_measured_saturated_heights(filename, t, h1, h2):
+    save_data(filename, {'t': t, 'heights0': np.asarray(h1, float),
+                         'heights1': np.asarray(h2, float)})
+
 def load_data(filename):
     npzfile = np.load(filename)
     return npzfile
