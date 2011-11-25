@@ -104,7 +104,7 @@ def main():
                                data_measured, p0 = Ks_init)
 
     print('Ks initial: ', Ks_init)
-    print('Ks found:   ', Ks_inv)
+    print('Ks found:   ', Ks_inv / 100.) #[cm/s] -> [m/s]
     if model.inverse_data_type == 0:
         print('Ks exact:   ', 2.4e-5)
     elif model.inverse_data_type == 1:
