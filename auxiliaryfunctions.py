@@ -47,9 +47,38 @@ def save_data(filename, data_dict):
     ensure_dir(filename)
     np.savez(filename, **data_dict)
 
-def save_data_measured_saturated_heights(filename, t, h1, h2):
-    save_data(filename, {'t': t, 'heights0': np.asarray(h1, float),
-                         'heights1': np.asarray(h2, float)})
+def ensure_numpy_array(value):
+    try:
+        if (type(value) == float or type(value) == int
+            or type(value) == np.float
+            or type(value) == np.float32
+            or type(value) == np.float64
+            or type(value) == np.float128
+            or type(value) == np.int
+            or type(value) == np.int8
+            or type(value) == np.int16
+            or type(value) == np.int32
+            or type(value) == np.int64):
+
+            return np.asarray([value], float)
+        else:
+            return np.asarray(value, float)
+    except:
+        raise ValueError('af.ensure_numpy_value: value not a number or sequence of numbers: %s' % value)
+
+def save_data_measured_saturated_heights(filename, t, h1, h2, L, omega, porosity):
+    t  = ensure_numpy_array(t)
+    h1 = ensure_numpy_array(h1)
+    h2 = ensure_numpy_array(h2)
+    L  = ensure_numpy_array(L)
+    omega = ensure_numpy_array(omega)
+    porosity = ensure_numpy_array(porosity)
+
+    save_data(filename, {'t': t,
+                         'heights0': h1, 'heights1': h2,
+                         'length': L,
+                         'omega': omega,
+                         'porosity': porosity})
 
 def load_data(filename):
     npzfile = np.load(filename)
