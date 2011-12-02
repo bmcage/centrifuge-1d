@@ -30,7 +30,7 @@ from auxiliaryfunctions   import parse_centrifuge_input
 syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
 from auxiliaryfunctions import load_data
-from direct_saturated import direct_saturated_problem, extract_saturated_characteristics, extract_saturated_water_heights
+from direct_saturated import solve_direct_saturated_problem, extract_saturated_characteristics, extract_saturated_water_heights
 
 mass_in_idx  = 0
 mass_out_idx = 1
@@ -41,7 +41,7 @@ mass_out_idx = 1
 def inverse_saturated_characteristics(model, Ks):
     model.ks = Ks
     print(Ks)
-    _flag, t, z = direct_saturated_problem(model)
+    _flag, t, z = solve_direct_saturated_problem(model)
     GC, RM = extract_saturated_characteristics(t, z, model)
     return np.concatenate((GC, RM))
 
@@ -52,33 +52,22 @@ def inverse_saturated_heights(xdata, Ks):
     print(Ks)
     #print(xdata)
     heights = np.empty(heights0.shape, float)
+    print(heights0)
     for i in np.arange(len(heights0)):
         model.l0_in = heights0[i]
-        _flag, t, z = direct_saturated_problem(model)
+        _flag, t, z = solve_direct_saturated_problem(model)
         h1 = extract_saturated_water_heights(z, model)
         print('%f -> %f' % (h1[0], h1[1]))
         heights[i] = h1[1]
 
     return heights
 
-def main():
-    cfgmngr = ConfigManager.get_instance()
-    model   = cfgmngr.read_configs(merge_output_p = True,
-                                   preserve_sections_p = False,
-                                   filenames = inifiles,
-                                   defaults = [DEFAULT_PARAMETERS],
-                                   saveconfigname = savecfgname)
-    model.register_key('experiment', 'tspan', np.array([]))
-    model.omega_start = model.omega_start / 60
-    model.omega       = model.omega / 60
-
-    if not model.inverse_data_filename:
-        raise ValueError('Data file for inverse problem not specified !')
-
-    data = load_data(model.inverse_data_filename)
+def solve_inverse_saturated(model, measured_data_filename):
+    data = load_data(measured_data_filename)
 
     t_measured    = data['t']
     model.tspan   = t_measured
+
 
     if model.inverse_data_type == 0:
         GC_measured   = data['GC']
@@ -95,9 +84,16 @@ def main():
     else:
         raise ValueError('Unrecognized inverse_data_type: %d'
                          % model.inverse_data_type)
-        
-    data.close()
 
+        sample_length     = data['length']
+        sample_porosity   = data['porosity']
+        centrifuge_omega  = data['omega']
+    
+        data.close()
+
+        model.l           = sample_length[i]
+        model.porosity    = sample_porosity[i]
+        model.omega       = centrifuge_omega[i]
     #print(heights_0.dtype, heights_1.dtype, t_measured.dtype)
     Ks_init = model.ks
     Ks_inv, cov_ks = curve_fit(inverse_fn, xdata,
@@ -113,5 +109,40 @@ def main():
         for i in np.arange(len(heights_0)):
             print('% f - % f' % (heights_1[i], h1_inv[i]))
 
+    return Ks_inv
+
+def run_inverse_saturated():
+    cfgmngr = ConfigManager.get_instance()
+    model   = cfgmngr.read_configs(merge_output_p = True,
+                                   preserve_sections_p = False,
+                                   filenames = inifiles,
+                                   defaults = [DEFAULT_PARAMETERS],
+                                   saveconfigname = savecfgname)
+    model.register_key('experiment', 'tspan', np.array([]))
+    model.omega_start = model.omega_start / 60
+    model.omega       = model.omega / 60
+
+    if not model.inverse_data_filename:
+        raise ValueError('Data file for inverse problem not specified !')
+
+    if isinstance(model.inverse_data_filename, str):
+        data_filenames = [model.inverse_data_filename]
+    elif isinstance(model.inverse_data_filename, (list, tuple)):
+        data_filenames = model.inverse_data_filename
+    else:
+        raise ValueError('Wrong inverse_data_filename: %d'
+                         % model.inverse_data_type)
+
+    Ks_inv = np.empty([len(data_filenames), ],  float)
+    
+    for i in range(len(data_filenames)):
+       
+        Ks_inv[i] = solve_inverse_saturated(model, data_filenames[i])
+
+    print('Ks_inv: ', Ks_inv)
+
+    return Ks_inv
+
+
 if __name__ == "__main__":
-    main()
+    run_inverse_saturated()
