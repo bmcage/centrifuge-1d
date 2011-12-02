@@ -122,7 +122,7 @@ def extract_saturated_water_heights(z, model):
 
 rhs = centrifuge_rhs()
 
-def direct_saturated_problem(model):
+def solve_direct_saturated_problem(model):
 
     solver = ida.IDA(rhs,
                      compute_initcond='yp0',
@@ -153,7 +153,7 @@ def run_direct(draw_graphs_p = False):
     model.register_key('experiment', 'tspan',
                        np.arange(model.t_start, model.t_end, model.t_step))
      
-    _flag, t, z = direct_saturated_problem(model)
+    _flag, t, z = solve_direct_saturated_problem(model)
 
     GC, RM = extract_saturated_characteristics(t, z, model)
     if draw_graphs_p:
@@ -162,4 +162,4 @@ def run_direct(draw_graphs_p = False):
     return model, GC, RM
 
 if __name__ == "__main__":
-    solve_direct(draw_graphs_p = True)
+    run_direct(draw_graphs_p = True)
