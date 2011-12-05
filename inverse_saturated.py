@@ -30,7 +30,10 @@ from auxiliaryfunctions   import parse_centrifuge_input
 syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
 from auxiliaryfunctions import load_data
-from direct_saturated import solve_direct_saturated_problem, extract_saturated_characteristics, extract_saturated_water_heights
+from direct_saturated import (solve_direct_saturated_problem,
+                              solve_direct_saturated_problem_full,
+                              extract_saturated_characteristics,
+                              extract_saturated_water_heights, utilize_model)
 
 mass_in_idx  = 0
 mass_out_idx = 1
@@ -62,6 +65,23 @@ def inverse_saturated_heights(xdata, Ks):
 
     return heights
 
+def inverse_saturated_heights_full(xdata, Ks):
+    model    = xdata[0]
+    heights0 = xdata[1]
+    model.ks = Ks
+    print(Ks)
+    #print(xdata)
+    heights = np.empty(heights0.shape, float)
+
+    for i in np.arange(len(heights0)):
+        model.l0_in = heights0[i]
+        _flag, t, z = solve_direct_saturated_problem_full(model)
+        h1 = extract_saturated_water_heights(z, model)
+        print('%f -> %f' % (h1[0], h1[1]))
+        heights[i] = h1[1]
+
+    return heights
+
 def solve_inverse_saturated(model, measured_data_filename):
     data = load_data(measured_data_filename)
 
@@ -75,12 +95,15 @@ def solve_inverse_saturated(model, measured_data_filename):
         data_measured = np.concatenate((GC_measured, RM_measured))
         xdata         = model
         inverse_fn    = inverse_saturated_characteristics
-    elif model.inverse_data_type == 1:
+    elif model.inverse_data_type == 1 or model.inverse_data_type == 2:
         heights_0     = data['heights0']
         heights_1     = data['heights1']
         data_measured = heights_1
         xdata         = (model, heights_0)
-        inverse_fn    = inverse_saturated_heights
+        if model.inverse_data_type == 1:
+            inverse_fn = inverse_saturated_heights
+        else:
+            inverse_fn = inverse_saturated_heights_full
     else:
         raise ValueError('Unrecognized inverse_data_type: %d'
                          % model.inverse_data_type)
@@ -118,9 +141,8 @@ def run_inverse_saturated():
                                    filenames = inifiles,
                                    defaults = [DEFAULT_PARAMETERS],
                                    saveconfigname = savecfgname)
-    model.register_key('experiment', 'tspan', np.array([]))
-    model.omega_start = model.omega_start / 60
-    model.omega       = model.omega / 60
+
+    model   = utilize_model(model)
 
     if not model.inverse_data_filename:
         raise ValueError('Data file for inverse problem not specified !')
