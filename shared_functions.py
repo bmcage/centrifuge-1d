@@ -110,7 +110,33 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model):
 
     return GC, RM, WM
 
+def f1(t):
+    return 1.7032046506 * np.power(t, 1.233644749)
+def f2(t):
+    return 0.630314472 * np.log(t) + 8.4248850255
+def f3(t):
+    return 0.1332308098 * np.log(t) + 9.5952480661
+
 def find_omega2g(t, model):
-    return (np.power(model.omega_start  + (model.omega - model.omega_start)
-                     *(1 - np.exp(-model.omega_gamma*t)), 2)
-            / model.g)
+    if model.omega == 10:
+        if t > 22:
+            omega = model.omega
+        elif t > 21:
+            omega = (22-t)*f3(t) + (t - 21)*model.omega
+        elif t > 12:
+            omega = f3(t)
+        elif t > 10:
+            omega = (12-t)/2*f2(t) + (t - 10)/2*f3(t)
+        elif t > 5:
+            omega =  f2(t)
+        elif t > 4:
+            omega = (5-t)*f1(t) + (t-4)*f2(t)
+        else:
+            omega = f1(t)
+
+        print('t = ', t, ', omega = ', omega*60)
+            return np.power(omega, 2)/model.g
+    else:
+        return (np.power(model.omega_start  + (model.omega - model.omega_start)
+                         *(1 - np.exp(-model.omega_gamma*t)), 2)
+                / model.g)
