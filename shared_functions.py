@@ -135,7 +135,7 @@ def find_omega2g(t, model):
             omega = f1(t)
 
         print('t = ', t, ', omega = ', omega*60)
-            return np.power(omega, 2)/model.g
+        return np.power(omega, 2)/model.g
     else:
         return (np.power(model.omega_start  + (model.omega - model.omega_start)
                          *(1 - np.exp(-model.omega_gamma*t)), 2)
