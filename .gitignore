@@ -3,6 +3,7 @@
 *~
 \#*\#
 build/*
+data*
 odes*
 *swp
 .emacs*
