@@ -65,10 +65,10 @@ class CentrifugeParameters:
                     type(getattr(self, key_lower)) == float:
                 #convert int automatically to float
                 setattr(self, key, float(value))
-            elif type(value) == list and \
-                type(getattr(self, key_lower)) == str:
+            elif type(value) == list:
+                key_type = type(getattr(self, key_lower))
                 for item in value:
-                    if not (type(item) == str):
+                    if not (type(item) == key_type):
                         print("CentrifugeParameters::WARNING: key has non-string value !"
                               "'%s.%s'" % (section, key))
                         return
