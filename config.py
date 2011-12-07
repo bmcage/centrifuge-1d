@@ -66,6 +66,10 @@ DEFAULT_PARAMETERS = \
                         'percent_in_saturation': 40.0, \
                         'approximation_type': 5, 'mb_epsilon': 1e-5}}
 
+DEFAULT_DATA_PARAMETERS = \
+    {'inverse_data': {'duration': -1.0, 'h0': -1.0, 'h1': -1.0,
+                      'length': -1.0, 'omega': -1.0, 'porosity': -1.0}}
+
 #---------------------------------------------------------------
 #
 # Local functions
@@ -151,7 +155,7 @@ class ConfigManager(object):
             self._parser2model(parser, model)
             return model
         else:
-            raise Exception("Multiple output not implemented")
+            raise Exception("Multiple outputs are not implemented")
 
     def _parser2model(self, parser, model):
         """ 
