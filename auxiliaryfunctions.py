@@ -83,3 +83,76 @@ def save_data_measured_saturated_heights(filename, t, h1, h2, L, omega, porosity
 def load_data(filename):
     npzfile = np.load(filename)
     return npzfile
+
+def apply_functions(fns, **args):
+    """
+    Calls functions in 'fns', each with argument(s) given in 'args'.
+    Functions 'fns' are assumed to be a single function or a LIST of functions
+    and that the arguments 'args' can be modified in place(as no output of fns
+    is stored and the function 'apply_functions' has no return value.
+
+    Functions are evaluated in reversed order, i.e. the last function in 'fns'
+    is applied first and the first in list is applied as the las one.
+
+    See also: compose_functions
+    """
+    if fns:
+        if type(fns) == list:
+            for fn in fns.reverse():
+                fn(**args)
+            fns.reverse()
+        else:
+            fns(**args)
+
+def compose_functions(fns, data):
+    """
+    Calls functions in 'fns', each with argument(s) given in 'args'.
+    Functions 'fns' are assumed to be a single function or a LIST of functions.
+    The next function is called with argument, that is the result of the call
+    of the previous function. The result is returned.
+
+    Functions are evaluated in reversed order, i.e. the last function in 'fns'
+    is applied first and the first in list is applied as the las one.
+
+    See also: apply_functions
+    """
+    if fns:
+        if type(fns) == list:
+            result = data
+            for fn in fns.reverse():
+                result = fn(result)
+            fns.reverse()
+        else:
+            fns(data)
+
+        return result
+
+def load_centrifuge_configs(filenames, post_hook_fns = None):
+    """
+    Loads centrifuge inifiles (filenames - either a file or a list of files)
+    and on the loaded data object calls the post_hook_fn (if set).
+    """
+    from config import ConfigManager, DEFAULT_PARAMETERS
+
+    cm = ConfigManager.get_instance()
+    model   = cfgmngr.read_configs(merge_output_p = True,
+                                   preserve_sections_p = False,
+                                   filenames = inifiles,
+                                   defaults = [DEFAULT_PARAMETERS],
+                                   saveconfigname = '')
+    apply_functions(post_hook_fn, model)
+
+    return model
+
+def load_measured_data(filename, post_hook_fns = None):
+    from config import ConfigManager, DEFAULT_DATA_PARAMETERS
+
+    cm = ConfigManager.get_instance()
+    measured_data = cm.read_configs(merge_output_p = True,
+                                    preserve_sections_p = False,
+                                    filenames = [filename],
+                                    defaults = [DEFAULT_DATA_PARAMETERS],
+                                    saveconfigname = '')
+    apply_functions(post_hook_fns, measured_data)
+
+    return measured_data
