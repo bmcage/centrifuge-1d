@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 # Centrifuge config
 #
@@ -34,7 +35,10 @@ This package implements access to configuration.
 #---------------------------------------------------------------
 import os
 import time
-import configparser
+try:
+  import ConfigParser as configparser
+except:
+  import configparser
 import errno
 from gettext import gettext as _
 

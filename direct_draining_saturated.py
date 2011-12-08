@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2011-12  Pavol Kišon
 # Copyright (C) 2009-12  Benny Malengier
