@@ -19,10 +19,8 @@
 
 import numpy as np
 
-from centrifugeparameters import CentrifugeParameters
-
 from os.path import join as join_path
-from sys import argv as sysargv, path as syspath
+from sys import path as syspath
 syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
 import scikits.odes.sundials.ida as ida
@@ -189,18 +187,12 @@ def utilize_model(model):
     return model
 
 def run_direct(draw_graphs_p = False):
-    from auxiliaryfunctions import parse_centrifuge_input
-    from config import DEFAULT_PARAMETERS, ConfigManager
+    from sys import argv as sysargv
+    from auxiliaryfunctions import (parse_centrifuge_input,
+                                    load_centrifuge_configs)
    
     [inifiles, outputdir, savecfgname] =  parse_centrifuge_input(sysargv)
-    
-    cfgmngr = ConfigManager.get_instance()
-    model   = cfgmngr.read_configs(merge_output_p = True,
-                                   preserve_sections_p = False,
-                                   filenames = inifiles,
-                                   defaults = [DEFAULT_PARAMETERS],
-                                   saveconfigname = savecfgname)
-    model   = utilize_model(model)
+    model = load_centrifuge_configs(inifiles, [utilize_model)
      
     _flag, t, z = solve_direct_saturated_problem(model)
 

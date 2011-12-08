@@ -17,23 +17,16 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from sys import argv as sysargv, path as syspath
+from sys import path as syspath
 from os.path import join as join_path
-from config import DEFAULT_PARAMETERS, ConfigManager
 from numpy import arange
 import numpy as np
 import matplotlib.pyplot as plt
-
-from shared_functions import lagrangean_derivative_coefs,  dudh, h2Kh,h2u, characteristics, find_omega2g
-from centrifugeparameters import CentrifugeParameters
-from auxiliaryfunctions   import parse_centrifuge_input
 
 syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
 from scikits.odes.sundials.common_defs import ResFunction
 
-[inifiles, outputdir, savecfgname] = parse_centrifuge_input(sysargv)
-    
 first_idx    = 0
 last_idx     = -1
 mass_in_idx  = -1
@@ -148,15 +141,12 @@ class centrifuge_residual(ResFunction):
         return 0
 
         
-residual_fn = centrifuge_residual()     
+residual_fn = centrifuge_residual()
 
-def main():
-    cfgmngr = ConfigManager.get_instance()
-    model   = cfgmngr.read_configs(merge_output_p = True,
-                                   preserve_sections_p = False,
-                                   filenames = inifiles,
-                                   defaults = [DEFAULT_PARAMETERS],
-                                   saveconfigname = savecfgname)
+def utilize_model(model):
+    from shared_functions import (lagrangean_derivative_coefs,  dudh, h2Kh,
+                                  h2u, characteristics, find_omega2g)
+    
     model.omega_start = model.omega_start / 60
     model.omega       = model.omega / 60
     
@@ -181,12 +171,22 @@ def main():
         raise NotImplemented('Currently only linear discretization is implemented')
     model.register_key('additional', 'y', y)
     model.register_key('additional', 'y12', (y[1:]+y[:-1])/2.)
+    
     dy = y[1:]-y[:-1]
     model.register_key('additional', 'dy', dy)
+    
     ldc1, ldc2, ldc3 = lagrangean_derivative_coefs(dy)
     model.register_key('additional', 'ldc1', ldc1)
     model.register_key('additional', 'ldc2', ldc2)
     model.register_key('additional', 'ldc3', ldc3)
+
+def run_direct_draining_saturated():
+    from sys import argv as sysargv
+    from auxiliaryfunctions import parse_centrifuge_input
+
+    inifiles = parse_centrifuge_input(sysargv)[0]
+    model = load_centrifuge_configs(inifiles,
+                                    [utilize_model])
 
     try:
         from scikits.odes.sundials import ida
@@ -211,4 +211,4 @@ def main():
     draw_graphs(1, t, model.y, z, model)
 
 if __name__ == "__main__":
-    main()
+    run_direct_draining_saturated()

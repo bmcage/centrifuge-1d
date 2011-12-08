@@ -17,15 +17,12 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 
-from sys import argv as sysargv, path as syspath
+from sys import path as syspath
 from os.path import join as join_path
 from config import DEFAULT_PARAMETERS, ConfigManager
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-
-from centrifugeparameters import CentrifugeParameters
-from auxiliaryfunctions   import parse_centrifuge_input
 
 syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
@@ -33,13 +30,13 @@ from auxiliaryfunctions import load_data
 from direct_saturated import (solve_direct_saturated_problem,
                               solve_direct_saturated_problem_full,
                               extract_saturated_characteristics,
-                              extract_saturated_water_heights, utilize_model)
+                              extract_saturated_water_heights,
+                              utilize_model as utilize_direct_model)
 
 mass_in_idx  = 0
 mass_out_idx = 1
 
-[inifiles, outputdir, savecfgname] = \
-    parse_centrifuge_input(sysargv)
+
 
 def inverse_saturated_characteristics(model, Ks):
     model.ks = Ks
@@ -134,16 +131,7 @@ def solve_inverse_saturated(model, measured_data_filename):
 
     return Ks_inv
 
-def run_inverse_saturated():
-    cfgmngr = ConfigManager.get_instance()
-    model   = cfgmngr.read_configs(merge_output_p = True,
-                                   preserve_sections_p = False,
-                                   filenames = inifiles,
-                                   defaults = [DEFAULT_PARAMETERS],
-                                   saveconfigname = savecfgname)
-
-    model   = utilize_model(model)
-
+def verify_inverse_data(model):
     if not model.inverse_data_filename:
         raise ValueError('Data file for inverse problem not specified !')
 
@@ -155,10 +143,17 @@ def run_inverse_saturated():
         raise ValueError('Wrong inverse_data_filename: %d'
                          % model.inverse_data_type)
 
+def run_inverse_saturated():
+    from sys import argv as sysargv
+    from auxiliaryfunctions import parse_centrifuge_input
+
+    inifiles = parse_centrifuge_input(sysargv)[0]
+    model = load_centrifuge_configs(inifiles,
+                                    [verify_inverse_data, utilize_direct_model])
+
     Ks_inv = np.empty([len(data_filenames), ],  float)
     
     for i in range(len(data_filenames)):
-       
         Ks_inv[i] = solve_inverse_saturated(model, data_filenames[i])
 
     print('Ks_inv: ', Ks_inv)
