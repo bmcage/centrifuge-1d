@@ -177,14 +177,7 @@ def solve_direct_saturated_problem_full(model):
     return flag, t, z
 
 def utilize_model(model):
-    model.omega_start = model.omega_start / 60
-    model.omega       = model.omega / 60
-
-    model.register_key('experiment', 'tspan',
-                       np.arange(model.t_start, model.t_end, model.t_step))
     model.register_key('experiment','water_volume', total_water_volume(model))
-
-    return model
 
 def run_direct(draw_graphs_p = False):
     from sys import argv as sysargv

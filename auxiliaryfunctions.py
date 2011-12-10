@@ -129,6 +129,15 @@ def compose_functions(fns, data):
 
         return result
 
+def adjust_model_default(model):
+    model.omega_start = model.omega_start / 120. / np.pi # omega/(60*(2pi)
+    model.omega       = model.omega / 120. / np.pi
+
+    model.register_key('experiment', 'tspan',
+                       np.arange(model.t_start,
+                                 model.t_end  + model.t_step / 10.,
+                                 model.t_step)) # assure t_end to be present in tspand
+
 def load_centrifuge_configs(inifilenames, post_hook_fns = None):
     """
     Loads centrifuge inifiles (filenames - either a file or a list of files)
@@ -142,6 +151,8 @@ def load_centrifuge_configs(inifilenames, post_hook_fns = None):
                               filenames = inifilenames,
                               defaults = [DEFAULT_PARAMETERS],
                               saveconfigname = '')
+
+    apply_functions(adjust_model_default, model)
     apply_functions(post_hook_fns, model)
 
     return model

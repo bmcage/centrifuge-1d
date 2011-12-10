@@ -20,7 +20,6 @@
 
 from sys import path as syspath
 from os.path import join as join_path
-from numpy import arange
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -163,9 +162,7 @@ def utilize_model(model):
     z_size       = model.inner_points+7 # total length of 'z' array
 
     model.register_key('additional', 'm', 1-1/model.n)
-    model.register_key('experiment', 'tspan',
-                       arange(model.t_start, model.t_end + model.t_step / 10.,
-                              model.t_step)) # t_end + t_step/10: assure that also the last value is present in the tspan
+
     if model.dtype == 1:
         y = np.linspace(0, 1, model.inner_points+2)
     else:
@@ -186,8 +183,8 @@ def run_direct_draining_saturated():
     from auxiliaryfunctions import parse_centrifuge_input
 
     inifiles = parse_centrifuge_input(sysargv)[0]
-    model = load_centrifuge_configs(inifiles,
-                                    [utilize_model])
+    model    = load_centrifuge_configs(inifiles,
+                                       [utilize_model])
 
     try:
         from scikits.odes.sundials import ida
