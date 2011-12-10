@@ -84,7 +84,7 @@ def load_data(filename):
     npzfile = np.load(filename)
     return npzfile
 
-def apply_functions(fns, **args):
+def apply_functions(fns, *args):
     """
     Calls functions in 'fns', each with argument(s) given in 'args'.
     Functions 'fns' are assumed to be a single function or a LIST of functions
@@ -98,11 +98,12 @@ def apply_functions(fns, **args):
     """
     if fns:
         if type(fns) == list:
-            for fn in fns.reverse():
-                fn(**args)
+            fns.reverse()
+            for fn in fns:
+                fn(*args)
             fns.reverse()
         else:
-            fns(**args)
+            fns(*args)
 
 def compose_functions(fns, data):
     """
@@ -119,7 +120,8 @@ def compose_functions(fns, data):
     if fns:
         if type(fns) == list:
             result = data
-            for fn in fns.reverse():
+            fns.reverse()
+            for fn in fns:
                 result = fn(result)
             fns.reverse()
         else:
@@ -127,7 +129,7 @@ def compose_functions(fns, data):
 
         return result
 
-def load_centrifuge_configs(filenames, post_hook_fns = None):
+def load_centrifuge_configs(inifilenames, post_hook_fns = None):
     """
     Loads centrifuge inifiles (filenames - either a file or a list of files)
     and on the loaded data object calls the post_hook_fn (if set).
@@ -135,12 +137,12 @@ def load_centrifuge_configs(filenames, post_hook_fns = None):
     from config import ConfigManager, DEFAULT_PARAMETERS
 
     cm = ConfigManager.get_instance()
-    model   = cfgmngr.read_configs(merge_output_p = True,
-                                   preserve_sections_p = False,
-                                   filenames = inifiles,
-                                   defaults = [DEFAULT_PARAMETERS],
-                                   saveconfigname = '')
-    apply_functions(post_hook_fn, model)
+    model   = cm.read_configs(merge_output_p = True,
+                              preserve_sections_p = False,
+                              filenames = inifilenames,
+                              defaults = [DEFAULT_PARAMETERS],
+                              saveconfigname = '')
+    apply_functions(post_hook_fns, model)
 
     return model
 

@@ -192,7 +192,7 @@ def run_direct(draw_graphs_p = False):
                                     load_centrifuge_configs)
    
     [inifiles, outputdir, savecfgname] =  parse_centrifuge_input(sysargv)
-    model = load_centrifuge_configs(inifiles, [utilize_model)
+    model = load_centrifuge_configs(inifiles, [utilize_model])
      
     _flag, t, z = solve_direct_saturated_problem(model)
 

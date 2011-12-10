@@ -20,14 +20,13 @@
 
 from sys import path as syspath
 from os.path import join as join_path
-from config import DEFAULT_PARAMETERS, ConfigManager
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
 syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
-from auxiliaryfunctions import load_data
+from auxiliaryfunctions import load_measured_data
 from direct_saturated import (solve_direct_saturated_problem,
                               solve_direct_saturated_problem_full,
                               extract_saturated_characteristics,
@@ -51,14 +50,12 @@ def inverse_saturated_heights(xdata, Ks):
     heights0 = xdata[1]
     model.ks = Ks
     print(Ks)
-    #print(xdata)
+
     heights = np.empty(heights0.shape, float)
-    print(heights0)
     for i in np.arange(len(heights0)):
         model.l0_in = heights0[i]
         _flag, t, z = solve_direct_saturated_problem(model)
         h1 = extract_saturated_water_heights(z, model)
-        print('%f -> %f' % (h1[0], h1[1]))
         heights[i] = h1[1]
 
     return heights
@@ -81,34 +78,35 @@ def inverse_saturated_heights_full(xdata, Ks):
     return heights
 
 def solve_inverse_saturated(model, measured_data_filename):
-    data = load_data(measured_data_filename)
+    data = load_measured_data(measured_data_filename)
 
-    t_measured    = data['t']
-    model.tspan   = t_measured
-
+    t_duration    = np.asarray(data.duration, float)
+    model.tspan   = np.array([0, t_duration], float)
 
     if model.inverse_data_type == 0:
+        raise NotImplemented('inverse::characteristics: load characteristics data not implemented !')
         GC_measured   = data['GC']
         RM_measured   = data['RM']
         data_measured = np.concatenate((GC_measured, RM_measured))
         xdata         = model
         inverse_fn    = inverse_saturated_characteristics
     elif model.inverse_data_type == 1 or model.inverse_data_type == 2:
-        heights_0     = data['heights0']
-        heights_1     = data['heights1']
+        heights_0     = np.asarray(data.h0, float)
+        heights_1     = np.asarray(data.h1, float)
         data_measured = heights_1
         xdata         = (model, heights_0)
         if model.inverse_data_type == 1:
             inverse_fn = inverse_saturated_heights
         else:
+            raise NotImplemented('inverse: inverse_data_type =2 (full problem) not implemented')
             inverse_fn = inverse_saturated_heights_full
     else:
         raise ValueError('Unrecognized inverse_data_type: %d'
                          % model.inverse_data_type)
 
-        sample_length     = data['length']
-        sample_porosity   = data['porosity']
-        centrifuge_omega  = data['omega']
+        sample_length     = np.asarray(data.length, float)
+        sample_porosity   = np.asarray(data.porosity, float)
+        centrifuge_omega  = np.asarray(data.omega, float)
     
         data.close()
 
@@ -120,15 +118,15 @@ def solve_inverse_saturated(model, measured_data_filename):
     Ks_inv, cov_ks = curve_fit(inverse_fn, xdata,
                                data_measured, p0 = Ks_init)
 
-    print('Ks initial: ', Ks_init)
-    print('Ks found:   ', Ks_inv / 100.) #[cm/s] -> [m/s]
-    if model.inverse_data_type == 0:
-        print('Ks exact:   ', 2.4e-5)
-    elif model.inverse_data_type == 1:
-        h1_inv = inverse_fn(xdata, Ks_inv)
-        print('measured value - computed value')
-        for i in np.arange(len(heights_0)):
-            print('% f - % f' % (heights_1[i], h1_inv[i]))
+#     print('Ks initial: ', Ks_init)
+#     print('Ks found:   ', Ks_inv / 100.) #[cm/s] -> [m/s]
+#     if model.inverse_data_type == 0:
+#         print('Ks exact:   ', 2.4e-5)
+#     elif model.inverse_data_type == 1:
+#         h1_inv = inverse_fn(xdata, Ks_inv)
+#         print('measured value - computed value')
+#         for i in np.arange(len(heights_0)):
+#             print('% f - % f' % (heights_1[i], h1_inv[i]))
 
     return Ks_inv
 
@@ -146,18 +144,20 @@ def verify_inverse_data(model):
 
 def run_inverse_saturated():
     from sys import argv as sysargv
-    from auxiliaryfunctions import parse_centrifuge_input
+    from auxiliaryfunctions import (parse_centrifuge_input,
+                                    load_centrifuge_configs)
 
     inifiles = parse_centrifuge_input(sysargv)[0]
     model = load_centrifuge_configs(inifiles,
                                     [verify_inverse_data, utilize_direct_model])
 
+    data_filenames = model.inverse_data_filename
     Ks_inv = np.empty([len(data_filenames), ],  float)
     
     for i in range(len(data_filenames)):
         Ks_inv[i] = solve_inverse_saturated(model, data_filenames[i])
 
-    print('Ks_inv: ', Ks_inv)
+    print('Ks_inv: ', Ks_inv / 100)
 
     return Ks_inv
 
