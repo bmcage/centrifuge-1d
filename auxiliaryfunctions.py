@@ -47,7 +47,7 @@ def save_data(filename, data_dict):
     ensure_dir(filename)
     np.savez(filename, **data_dict)
 
-def ensure_numpy_array(value):
+def ensure_numpy_array(value, arraysize_if_single_value = 0):
     try:
         if (type(value) == float or type(value) == int
             or type(value) == np.float
@@ -60,7 +60,10 @@ def ensure_numpy_array(value):
             or type(value) == np.int32
             or type(value) == np.int64):
 
-            return np.asarray([value], float)
+            array    = np.empty([arraysize_if_single_value, ], float)
+            array[:] = value
+
+            return array
         else:
             return np.asarray(value, float)
     except:
@@ -129,14 +132,22 @@ def compose_functions(fns, data):
 
         return result
 
-def adjust_model_default(model):
-    model.omega_start = model.omega_start / 120. / np.pi # omega/(60*(2pi)
-    model.omega       = model.omega / 120. / np.pi
+def adjust_model_default(model, adjust_all = False, adjust_omega = False,
+                         adjust_time = False):
+    if adjust_all or adjust_omega:
+        model.omega_start = model.omega_start * np.pi/ 30. # (2pi)*omega/60
+        model.omega       = model.omega * np.pi/ 30.
 
-    model.register_key('experiment', 'tspan',
-                       np.arange(model.t_start,
-                                 model.t_end  + model.t_step / 10.,
-                                 model.t_step)) # assure t_end to be present in tspand
+    if adjust_all or adjust_time:
+        model.register_key('experiment', 'tspan',
+                           np.arange(model.t_start,
+                                     model.t_end  + model.t_step / 10.,
+                                     model.t_step)) # assure t_end to be present in tspand
+
+def adjust_data_default(data):
+    print('data omega: ', data.omega)
+    data.omega       = data.omega * np.pi/ 30. # (2pi)*omega/60
+    print('data omega: ', data.omega)
 
 def load_centrifuge_configs(inifilenames, post_hook_fns = None):
     """
@@ -152,7 +163,7 @@ def load_centrifuge_configs(inifilenames, post_hook_fns = None):
                               defaults = [DEFAULT_PARAMETERS],
                               saveconfigname = '')
 
-    apply_functions(adjust_model_default, model)
+    adjust_model_default(model, adjust_all = True)
     apply_functions(post_hook_fns, model)
 
     return model
@@ -166,6 +177,8 @@ def load_measured_data(filename, post_hook_fns = None):
                                     filenames = [filename],
                                     defaults = [DEFAULT_DATA_PARAMETERS],
                                     saveconfigname = '')
+
+    adjust_data_default(measured_data)
     apply_functions(post_hook_fns, measured_data)
 
     return measured_data
