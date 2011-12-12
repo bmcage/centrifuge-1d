@@ -31,31 +31,41 @@ mass_in_idx  = 0
 mass_out_idx = 1
 
     
-def draw_graphs(fignum, t, wl_in, wl_out, GC, RM):
+def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
     import matplotlib.pyplot as plt
 
-    plt.figure(fignum, figsize=(12, 8))
+    if (not GC is None) or (not RM is None):
+        rows = 2
+        figheight = 8 
+    else:
+        rows = 1
+        figheight = 4
 
-    plt.subplot(221)
+    plt.figure(fignum, figsize=(12, figheight))
+
+    print(GC, RM)
+    plt.subplot(rows,2,1)
     plt.plot(t, wl_in, 'b')
     plt.xlabel('Time')
     plt.ylabel('Water in inflow chamber [cm]')
 
-    plt.subplot(222)
+    plt.subplot(rows,2,2)
     plt.plot(t, wl_out, 'k')
     plt.xlabel('Time')
     plt.ylabel('Water in outflow chamber [cm]')
 
-    plt.subplot(223)
-    plt.plot(t, wl_in, 'b')
-    plt.xlabel('Time')
-    plt.ylabel('Gravitational center [$cm$]')
+    if not GC is None:
+        plt.subplot(rows,2,3)
+        plt.plot(t, wl_in, 'b')
+        plt.xlabel('Time')
+        plt.ylabel('Gravitational center [$cm$]')
 
-    plt.subplot(224)
-    plt.plot(t, wl_out, 'k')
-    plt.xlabel('Time')
-    plt.ylabel('Rotational momentum [$kg.m.s^{-2}]')
+    if not RM is None:
+        plt.subplot(rows,2,4)
+        plt.plot(t, wl_out, 'k')
+        plt.xlabel('Time')
+        plt.ylabel('Rotational momentum [$kg.m.s^{-2}]')
 
     plt.show()
 
@@ -118,11 +128,12 @@ class direct_saturated_rhs_full(ResFunction):
         l_out  = x[2]
         qt     = model.ks * (omega2g/2. * (2*model.r0 + L) - (hL - h0) / L)
 
-        #print('h0: ', h0, ' hL: ', hL, ', l_in: ', l_in, ', l_out: ', l_out, ', r0: ', model.r0)
-        #print('x: ', x, 'xdot: ', xdot)
-        print('x: ', x)
-        #print('porosity*L: ', L*model.porosity, ', WM: ', model.water_volume,
-        #      'l_in: ', l_in, ', l_out: ', l_out)
+        if model.debugging:
+            #print('h0: ', h0, ' hL: ', hL, ', l_in: ', l_in, ', l_out: ', l_out, ', r0: ', model.r0)
+            #print('x: ', x, 'xdot: ', xdot)
+            print('x: ', x)
+            #print('porosity*L: ', L*model.porosity, ', WM: ', model.water_volume,
+            #      'l_in: ', l_in, ', l_out: ', l_out)
         result[0] = xdot[0] + qt
         result[1] = l_in + l_out + L*model.porosity - model.water_volume
         result[2] = xdot[2] - qt
@@ -189,11 +200,20 @@ def run_direct(draw_graphs_p = False):
      
     _flag, t, z = solve_direct_saturated_problem(model)
 
-    GC, RM = extract_saturated_characteristics(t, z, model)
-    if draw_graphs_p:
-        draw_graphs(1, t, z[:, 0], z[:, 1], GC, RM)
-   
-    return model, GC, RM
+    if model.inverse_data_type == 0:
+        GC, RM = extract_saturated_characteristics(t, z, model)
+        if draw_graphs_p:
+            draw_graphs(1, t, z[:, 0], z[:, 1], GC, RM)
+        return model, GC, RM
+    elif model.inverse_data_type == 1:
+        h1 = extract_saturated_water_heights(z, model)
+        print('t: ', t, 'h1: ', h1)
+        if draw_graphs_p:
+            draw_graphs(1, t, z[:, 0], z[:, 1])
+        
+        return h1
+    else:
+        raise ValueError('direct_saturated::run_direct Unknown data type: ', inverse_data_type)
 
 if __name__ == "__main__":
     run_direct(draw_graphs_p = True)
