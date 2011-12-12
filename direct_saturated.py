@@ -44,7 +44,6 @@ def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
     plt.figure(fignum, figsize=(12, figheight))
 
-    print(GC, RM)
     plt.subplot(rows,2,1)
     plt.plot(t, wl_in, 'b')
     plt.xlabel('Time')
@@ -205,7 +204,8 @@ def run_direct(draw_graphs_p = False):
         return model, GC, RM
     elif model.inverse_data_type == 1:
         h1 = extract_saturated_water_heights(z, model)
-        print('t: ', t, 'h1: ', h1)
+        print('t:  ', t)
+        print('h1: ', h1)
         if draw_graphs_p:
             draw_graphs(1, t, z[:, 0], z[:, 1])
         
