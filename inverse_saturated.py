@@ -40,7 +40,8 @@ mass_out_idx = 1
 
 def inverse_saturated_characteristics(model, Ks):
     model.ks = Ks
-    print(Ks)
+    if model.debugging:
+        print(Ks)
     _flag, t, z = solve_direct_saturated_problem(model)
     GC, RM = extract_saturated_characteristics(t, z, model)
     return np.concatenate((GC, RM))
@@ -49,14 +50,19 @@ def inverse_saturated_heights(xdata, Ks):
     model    = xdata[0]
     heights0 = xdata[1]
     model.ks = Ks
-    print(Ks)
 
     heights = np.empty(heights0.shape, float)
     for i in np.arange(len(heights0)):
         model.l0_in = heights0[i]
         _flag, t, z = solve_direct_saturated_problem(model)
+
         h1 = extract_saturated_water_heights(z, model)
         heights[i] = h1[1]
+
+        if model.debugging:
+            print('t = ', t, ', Ks =  ', Ks, ', h0 = ', model.l0_in,
+                  ', h_found = ', heights[i], ', r0 = ', model.r0,
+                  'omega = ', model.omega, ' flag = ', _flag)
 
     return heights
 
@@ -64,8 +70,7 @@ def inverse_saturated_heights_full(xdata, Ks):
     model    = xdata[0]
     heights0 = xdata[1]
     model.ks = Ks
-    print(Ks)
-    #print(xdata)
+
     heights = np.empty(heights0.shape, float)
 
     for i in np.arange(len(heights0)):
@@ -82,6 +87,8 @@ def solve_inverse_saturated(model, measured_data_filename):
 
     t_duration    = np.asarray(data.duration, float)
     model.tspan   = np.array([0, t_duration], float)
+    model.omega   = data.omega
+    model.l       = data.length
 
     if model.inverse_data_type == 0:
         raise NotImplemented('inverse::characteristics: load characteristics data not implemented !')
@@ -104,29 +111,16 @@ def solve_inverse_saturated(model, measured_data_filename):
         raise ValueError('Unrecognized inverse_data_type: %d'
                          % model.inverse_data_type)
 
-        sample_length     = np.asarray(data.length, float)
-        sample_porosity   = np.asarray(data.porosity, float)
-        centrifuge_omega  = np.asarray(data.omega, float)
-    
-        data.close()
-
-        model.l           = sample_length[i]
-        model.porosity    = sample_porosity[i]
-        model.omega       = centrifuge_omega[i]
-    #print(heights_0.dtype, heights_1.dtype, t_measured.dtype)
     Ks_init = model.ks
+     
     Ks_inv, cov_ks = curve_fit(inverse_fn, xdata,
                                data_measured, p0 = Ks_init)
 
-#     print('Ks initial: ', Ks_init)
-#     print('Ks found:   ', Ks_inv / 100.) #[cm/s] -> [m/s]
-#     if model.inverse_data_type == 0:
-#         print('Ks exact:   ', 2.4e-5)
-#     elif model.inverse_data_type == 1:
-#         h1_inv = inverse_fn(xdata, Ks_inv)
-#         print('measured value - computed value')
-#         for i in np.arange(len(heights_0)):
-#             print('% f - % f' % (heights_1[i], h1_inv[i]))
+    h1_inv = inverse_fn(xdata, Ks_inv)
+    if model.debugging:
+        print('measured value - computed value')
+    for i in np.arange(len(heights_0)):
+        print('% f - % f' % (heights_1[i], h1_inv[i]))
 
     return Ks_inv
 
@@ -152,12 +146,17 @@ def run_inverse_saturated():
                                     [verify_inverse_data, utilize_direct_model])
 
     data_filenames = model.inverse_data_filename
-    Ks_inv = np.empty([len(data_filenames), ],  float)
+    Ks_init = model.ks
+    Ks_inv  = np.empty([len(data_filenames), ],  float)
     
     for i in range(len(data_filenames)):
+        model.ks  = Ks_init
         Ks_inv[i] = solve_inverse_saturated(model, data_filenames[i])
 
-    print('Ks_inv: ', Ks_inv / 100)
+    Ks_inv_disp = Ks_inv / 100
+    print('Ks_inv: ')
+    for Ks_print in Ks_inv_disp:
+        print(Ks_print)
 
     return Ks_inv
 
