@@ -76,10 +76,6 @@ def characteristics(t, mass_in, mass_out, model):
     l0_out = L + model.l0_out
     l_out  = L + model.l0_out - mass_out
 
-    omega2g = (np.power(model.omega_start  + (model.omega - model.omega_start)
-                        * (1 - np.exp(-model.omega_gamma*t)), 2)
-                / model.g)
-
     GC = np.empty(t.shape, float)
     RM = np.empty(t.shape, float)
 
@@ -88,6 +84,8 @@ def characteristics(t, mass_in, mass_out, model):
     WM = P * (mass_in + porosity * L + mass_out)
 
     for i in range(len(t)):
+        omega2g = find_omega2g(t, model)
+        
         # Gravitational center
         gc_sat   = (1/2 * model.density
                     * (porosity * (np.power(r0 + L, 2) - np.power(r0, 2))
@@ -101,7 +99,7 @@ def characteristics(t, mass_in, mass_out, model):
                         + (np.power(r0, 3) - np.power(r0 - mass_in[i], 3))
                         + (np.power(r0 + l0_out, 3) - np.power(r0 + l_out[i], 3))))
 
-        RM[i] = omega2g[i] * P * rm_sat
+        RM[i] = omega2g * P * rm_sat
 
     return GC, RM, WM
 
