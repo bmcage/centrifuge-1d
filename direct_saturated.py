@@ -114,31 +114,6 @@ class direct_saturated_rhs(ResFunction):
         
         return 0
 
-class direct_saturated_rhs_full(ResFunction):
-    def evaluate(self, t, x, xdot, result, model):
-        # x = [l_in, hL, l_out]
-        omega2g = find_omega2g(t, model)
-        L      = model.l
-        l_in   = x[0]
-        h0     = 1/2 * omega2g * l_in * (2*model.r0 - l_in)
-        hL     = x[1]
-        l_out  = x[2]
-        qt     = model.ks * (omega2g/2. * (2*model.r0 + L) - (hL - h0) / L)
-
-        if model.debugging:
-            #print('h0: ', h0, ' hL: ', hL, ', l_in: ', l_in, ', l_out: ', l_out, ', r0: ', model.r0)
-            #print('x: ', x, 'xdot: ', xdot)
-            print('x: ', x)
-            #print('porosity*L: ', L*model.porosity, ', WM: ', model.water_volume,
-            #      'l_in: ', l_in, ', l_out: ', l_out)
-        result[0] = xdot[0] + qt
-        result[1] = l_in + l_out + L*model.porosity - model.water_volume
-        result[2] = xdot[2] - qt
-
-        print('result: ', result)
-
-        return 0
-
 def total_water_volume(model):
     #TODO: we assume that we start with no outspelled water
     return (model.l0_in + model.l * model.porosity)
@@ -152,34 +127,17 @@ def extract_saturated_characteristics(t, z, model):
 def extract_saturated_water_heights(z, model):
     return z[:, mass_in_idx]
 
-rhs      = direct_saturated_rhs()
-rhs_full = direct_saturated_rhs_full()
+direct_saturated_rhs_fn = direct_saturated_rhs()
 
 def solve_direct_saturated_problem(model):
 
-    solver = ida.IDA(rhs,
+    solver = ida.IDA(direct_saturated_rhs_fn,
                      compute_initcond='yp0',
                      first_step=1e-18,
                      atol=1e-6,rtol=1e-6,
                      user_data=model)
     z0  = np.array([model.l0_in, 0], float)
     zp0 = np.zeros(z0.shape, float)
-    flag, t, z = solver.run_solver(model.tspan, z0, zp0)[:3]
-
-    return flag, t, z
-
-def solve_direct_saturated_problem_full(model):
-    model.water_volume = total_water_volume(model)
-
-    solver = ida.IDA(rhs_full,
-                     compute_initcond='yp0',
-                     first_step=1e-18,
-                     atol=1e-6,rtol=1e-6,
-                     algebraic_vars_idx=[1],
-                     user_data=model)
-    z0  = np.array([model.l0_in, 0, 0], float)
-    zp0 = np.zeros(z0.shape, float)
-    #solver.init_step(0, z0, zp0)
     flag, t, z = solver.run_solver(model.tspan, z0, zp0)[:3]
 
     return flag, t, z

@@ -28,7 +28,6 @@ syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
 from auxiliaryfunctions import load_measured_data
 from direct_saturated import (solve_direct_saturated_problem,
-                              solve_direct_saturated_problem_full,
                               extract_saturated_characteristics,
                               extract_saturated_water_heights,
                               utilize_model as utilize_direct_model)
@@ -66,22 +65,6 @@ def inverse_saturated_heights(xdata, Ks):
 
     return heights
 
-def inverse_saturated_heights_full(xdata, Ks):
-    model    = xdata[0]
-    heights0 = xdata[1]
-    model.ks = Ks
-
-    heights = np.empty(heights0.shape, float)
-
-    for i in np.arange(len(heights0)):
-        model.l0_in = heights0[i]
-        _flag, t, z = solve_direct_saturated_problem_full(model)
-        h1 = extract_saturated_water_heights(z, model)
-        print('%f -> %f' % (h1[0], h1[1]))
-        heights[i] = h1[1]
-
-    return heights
-
 def solve_inverse_saturated(model, measured_data_filename):
     data = load_measured_data(measured_data_filename)
 
@@ -97,16 +80,13 @@ def solve_inverse_saturated(model, measured_data_filename):
         data_measured = np.concatenate((GC_measured, RM_measured))
         xdata         = model
         inverse_fn    = inverse_saturated_characteristics
-    elif model.inverse_data_type == 1 or model.inverse_data_type == 2:
+    elif model.inverse_data_type == 1:
         heights_0     = np.asarray(data.h0, float)
         heights_1     = np.asarray(data.h1, float)
         data_measured = heights_1
         xdata         = (model, heights_0)
-        if model.inverse_data_type == 1:
-            inverse_fn = inverse_saturated_heights
-        else:
-            raise NotImplemented('inverse: inverse_data_type =2 (full problem) not implemented')
-            inverse_fn = inverse_saturated_heights_full
+
+        inverse_fn = inverse_saturated_heights
     else:
         raise ValueError('Unrecognized inverse_data_type: %d'
                          % model.inverse_data_type)
