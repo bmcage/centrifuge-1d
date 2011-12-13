@@ -118,25 +118,30 @@ def f3(t):
     return 0.1332308098 * np.log(t) + 9.5952480661
 
 def find_omega2g(t, model):
-    if model.omega == 10:
-        if t > 22:
-            omega = model.omega
-        elif t > 21:
-            omega = (22-t)*f3(t) + (t - 21)*model.omega
-        elif t > 12:
-            omega = f3(t)
-        elif t > 10:
-            omega = (12-t)/2*f2(t) + (t - 10)/2*f3(t)
-        elif t > 5:
-            omega =  f2(t)
-        elif t > 4:
-            omega = (5-t)*f1(t) + (t-4)*f2(t)
-        else:
-            omega = f1(t)
-
-        print('t = ', t, ', omega = ', omega*60)
-        return np.power(omega, 2)/model.g
+    """
+    Model includes the acceleration of the centrifuge based on data
+    for the acceleration to the 600 rpm (i.e. 10 rps) and the scaling
+    to other rotational speeds
+    """
+    if t > 21:
+        omega = 10.
+    elif t > 20:
+        omega = (21-t)/1*f3(t) + (t - 20)/1*10.
+    elif t > 12:
+        omega = f3(t)
+    elif t > 10:
+        omega = (12-t)/2*f2(t) + (t - 10)/2*f3(t)
+    elif t > 4:
+        omega =  f2(t)
+    elif t > 3:
+        omega = (4-t)/1*f1(t) + (t-3)/1*f2(t)
     else:
-        return (np.power(model.omega_start  + (model.omega - model.omega_start)
-                         *(1 - np.exp(-model.omega_gamma*t)), 2)
-                / model.g)
+        omega = f1(t)
+
+    omega = omega/10. * model.omega
+
+    return np.power(omega, 2)/model.g
+    # Previous exponential acceleration:
+    #     return (np.power(model.omega_start  + (model.omega - model.omega_start)
+    #                      *(1 - np.exp(-model.omega_gamma*t)), 2)
+    #             / model.g)
