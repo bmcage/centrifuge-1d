@@ -136,12 +136,12 @@ def run_direct(draw_graphs_p = False):
      
     _flag, t, z = solve_direct_saturated_problem(model)
 
-    if model.inverse_data_type == 0:
+    if model.data_type == 0:
         GC, RM = extract_saturated_characteristics(t, z, model)
         if draw_graphs_p:
             draw_graphs(1, t, z[:, 0], z[:, 1], GC, RM)
         return model, GC, RM
-    elif model.inverse_data_type == 1:
+    elif model.data_type == 1:
         h1 = extract_saturated_water_heights(z, model)
         print('t:  ', t)
         print('h1: ', h1)
@@ -150,7 +150,7 @@ def run_direct(draw_graphs_p = False):
         
         return h1
     else:
-        raise ValueError('direct_saturated::run_direct Unknown data type: ', inverse_data_type)
+        raise ValueError('direct_saturated::run_direct Unknown data type: ', data_type)
 
 if __name__ == "__main__":
     run_direct(draw_graphs_p = True)

@@ -139,15 +139,15 @@ def adjust_model_default(model, adjust_all = False, adjust_omega = False,
         model.omega       = model.omega * np.pi/ 30.
 
     if adjust_all or adjust_time:
+        # we assure that also the last value of tspan is present (and not cut)
         model.register_key('experiment', 'tspan',
                            np.arange(model.t_start,
-                                     model.t_end  + model.t_step / 10.,
-                                     model.t_step)) # assure t_end to be present in tspand
+                                     model.t_end + model.deceleration_duration
+                                                + model.t_step / 10.,
+                                     model.t_step))
 
 def adjust_data_default(data):
-    print('data omega: ', data.omega)
     data.omega       = data.omega * np.pi/ 30. # (2pi)*omega/60
-    print('data omega: ', data.omega)
 
 def load_centrifuge_configs(inifilenames, post_hook_fns = None):
     """
