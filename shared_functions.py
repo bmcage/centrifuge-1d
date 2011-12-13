@@ -119,27 +119,44 @@ def f3(t):
 
 def find_omega2g(t, model):
     """
-    Model includes the acceleration of the centrifuge based on data
-    for the acceleration to the 600 rpm (i.e. 10 rps) and the scaling
-    to other rotational speeds
+    Model includes the acceleration and deceleration of the centrifuge.
+    The acceleration model is based on data measured for the centrifuge
+    that accelerates to the 600 rpm (i.e. 10 rps) - the evolution of rotational
+    speed for other end-speeds is the done by scaling. Deceleration is
+    considered to be linear.
     """
-    if t > 21:
-        omega = 10.
-    elif t > 20:
-        omega = (21-t)/1*f3(t) + (t - 20)/1*10.
-    elif t > 12:
-        omega = f3(t)
-    elif t > 10:
-        omega = (12-t)/2*f2(t) + (t - 10)/2*f3(t)
-    elif t > 4:
-        omega =  f2(t)
-    elif t > 3:
-        omega = (4-t)/1*f1(t) + (t-3)/1*f2(t)
+
+    if t > model.t_end:
+        if model.deceleration_duration > 0.:
+            if t > model.t_end + model.deceleration_duration:
+                omega = model.omega_end
+            else:
+                omega = (model.omega_end
+                         + (model.t_end + model.deceleration_duration - t)
+                           / model.deceleration_duration
+                           * (model.omega - model.omega_end))
+        else:
+            omega = model.omega
     else:
-        omega = f1(t)
+        omega_base = 10.
+        if t > 21.:
+            omega = omega_base.
+        elif t > 20.:
+            omega = (21.-t)*f3(t) + (t - 20.)*omega_base.
+        elif t > 12.:
+            omega = f3(t)
+        elif t > 10.:
+            omega = (12.-t)/2.*f2(t) + (t - 10.)/2.*f3(t)
+        elif t > 4.:
+            omega =  f2(t)
+        elif t > 3.:
+            omega = (4.-t)*f1(t) + (t-3.)*f2(t)
+        else:
+            omega = f1(t)
 
-    omega = omega/10. * model.omega
+        omega = omega/omega_base. * model.omega
 
+    #print('t = ', t, 'omega = ', omega)
     return np.power(omega, 2)/model.g
     # Previous exponential acceleration:
     #     return (np.power(model.omega_start  + (model.omega - model.omega_start)
