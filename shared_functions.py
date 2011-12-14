@@ -140,9 +140,9 @@ def find_omega2g(t, model):
     else:
         omega_base = 10.
         if t > 21.:
-            omega = omega_base.
+            omega = omega_base
         elif t > 20.:
-            omega = (21.-t)*f3(t) + (t - 20.)*omega_base.
+            omega = (21.-t)*f3(t) + (t - 20.)*omega_base
         elif t > 12.:
             omega = f3(t)
         elif t > 10.:
@@ -154,7 +154,7 @@ def find_omega2g(t, model):
         else:
             omega = f1(t)
 
-        omega = omega/omega_base. * model.omega
+        omega = omega/omega_base * model.omega
 
     #print('t = ', t, 'omega = ', omega)
     return np.power(omega, 2)/model.g
