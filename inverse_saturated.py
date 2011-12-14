@@ -48,19 +48,24 @@ def inverse_saturated_heights(xdata, Ks):
 def solve_inverse_saturated(model, measured_data_filename):
     data = load_measured_data(measured_data_filename)
 
-    t_duration    = np.asarray(data.duration, float)
-    model.tspan   = np.array([0, t_duration], float)
-    model.omega   = data.omega
-    model.l       = data.length
+    t_duration     = np.asarray(data.duration, float)
+    t_deceleration = model.deceleration_duration
+    model.t_start  = 0.
+    model.t_end    = t_duration
+    model.tspan    = np.array([0, t_duration + model.deceleration_duration], float)
+    model.omega    = data.omega
+    model.l        = data.length
 
-    if model.inverse_data_type == 0:
+    print(model.tspan, t_duration, t_deceleration, model.t_end)
+
+    if model.data_type == 0:
         raise NotImplemented('inverse::characteristics: load characteristics data not implemented !')
         GC_measured   = data['GC']
         RM_measured   = data['RM']
         data_measured = np.concatenate((GC_measured, RM_measured))
         xdata         = model
         inverse_fn    = inverse_saturated_characteristics
-    elif model.inverse_data_type == 1:
+    elif model.data_type == 1:
         heights_0     = np.asarray(data.h0, float)
         heights_1     = np.asarray(data.h1, float)
         data_measured = heights_1
@@ -68,8 +73,8 @@ def solve_inverse_saturated(model, measured_data_filename):
 
         inverse_fn = inverse_saturated_heights
     else:
-        raise ValueError('Unrecognized inverse_data_type: %d'
-                         % model.inverse_data_type)
+        raise ValueError('Unrecognized data_type: %d'
+                         % model.data_type)
 
     Ks_init = model.ks
      
@@ -79,8 +84,10 @@ def solve_inverse_saturated(model, measured_data_filename):
     h1_inv = inverse_fn(xdata, Ks_inv)
     if model.debugging:
         print('measured value - computed value')
+
     for i in np.arange(len(heights_0)):
-        print('% f - % f' % (heights_1[i], h1_inv[i]))
+        print('Subexperiment ', i+1, '(measured - computed value)',
+              '% f - % f' % (heights_1[i], h1_inv[i]))
 
     return Ks_inv
 
@@ -94,7 +101,7 @@ def verify_inverse_data(model):
         data_filenames = model.inverse_data_filename
     else:
         raise ValueError('Wrong inverse_data_filename: %d'
-                         % model.inverse_data_type)
+                         % model.data_type)
 
 def run_inverse_saturated():
     from sys import argv as sysargv
