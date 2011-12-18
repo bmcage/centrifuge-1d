@@ -73,7 +73,8 @@ DEFAULT_PARAMETERS = \
 
 DEFAULT_DATA_PARAMETERS = \
     {'inverse_data': {'duration': -1.0, 'h0': -1.0, 'h1': -1.0,
-                      'length': -1.0, 'omega': -1.0, 'porosity': -1.0}}
+                      'r0': -1.0, 'length': -1.0, 'omega': -1.0,
+                      'porosity': -1.0}}
 
 #---------------------------------------------------------------
 #
