@@ -57,9 +57,13 @@ def solve_inverse_saturated(model, measured_data_filename):
     t_deceleration = model.deceleration_duration
     model.t_start  = 0.
     model.t_end    = t_duration
-    model.tspan    = np.array([0, t_duration + model.deceleration_duration], float)
+    if model.include_acceleration:
+        model.tspan    = np.array([0, t_duration + model.deceleration_duration], float)
+    else:
+         model.tspan    = np.array([0, t_duration], float)
     model.omega    = data.omega
     model.l        = data.length
+    model.r0       = data.r0
 
     if model.data_type == 0:
         raise NotImplemented('inverse::characteristics: load characteristics data not implemented !')
@@ -68,7 +72,7 @@ def solve_inverse_saturated(model, measured_data_filename):
         data_measured = np.concatenate((GC_measured, RM_measured))
         xdata         = model
         direct_fn    = ip_direct_saturated_characteristics
-    elif model.data_type == 1:
+    elif model.data_type == 1 or model.data_type == 2:
         heights_0     = np.asarray(data.h0, float)
         heights_1     = np.asarray(data.h1, float)
         data_measured = heights_1
@@ -76,6 +80,10 @@ def solve_inverse_saturated(model, measured_data_filename):
         xdata         = (model, heights_0, return_time)
 
         direct_fn = ip_direct_saturated_heights
+
+        if model.data_type == 2:# falling head test
+            model.include_acceleration = False
+            model.omega = np.sqrt(model.g / model.r0)
     else:
         raise ValueError('Unrecognized data_type: %d'
                          % model.data_type)

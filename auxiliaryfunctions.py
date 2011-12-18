@@ -145,6 +145,7 @@ def adjust_model_default(model, adjust_all = False, adjust_omega = False,
                                      model.t_end + model.deceleration_duration
                                                 + model.t_step / 10.,
                                      model.t_step))
+    model.register_key('additional', 'include_acceleration', True)
 
 def adjust_data_default(data):
     data.omega       = data.omega * np.pi/ 30. # (2pi)*omega/60
