@@ -89,7 +89,7 @@ class direct_saturated_rhs(ResFunction):
         omega2g = find_omega2g(t, model)
         L = model.l
         l = x[0]
-        q_out = model.ks*omega2g * (l*(2*model.r0 - l)/L + 2*model.r0 + L)
+        q_out = model.ks*omega2g/2. * (l*(2*model.r0 - l)/L + 2*model.r0 + L)
         result[mass_in_idx] = xdot[0] + q_out
         result[mass_out_idx] = xdot[1] - q_out
         
