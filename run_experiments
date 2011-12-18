@@ -1,22 +1,25 @@
 #!/bin/bash
 
-last_ini_number=$1
-if [ -z "$2" ]; then
-	first_ini_number=$last_ini_number
-else 
-	first_ini_number=$2
-fi
 echo
 echo ---------------------------------------------------------
 echo GENERAL experiments informations
 echo
-echo First experiment: $first_ini_number
-echo Last experiment:  $last_ini_number
+first_ini_number=$1
+if [ -z "$2" ]; then
+	echo Experiment: $first_ini_number
+	echo Executing saturated_heights inverse problem:
+	python inverse_saturated.py -i inifiles/inverse_saturated_heights-experiment_${first_ini_number}.ini
+else 
+	last_ini_number=$2
 
-for (( i=${first_ini_number}; i<=${last_ini_number}; i++ ))
-do
-	echo
-	echo =============================================================
-	echo Executing saturated_heights inverse problem. Experiment ${i}:
-	python inverse_saturated.py -i inifiles/inverse_saturated_heights-experiment_${i}.ini
-done
+	echo First experiment: $first_ini_number
+	echo Last experiment:  $last_ini_number
+
+	for (( i=${first_ini_number}; i<=${last_ini_number}; i++ ))
+	do
+		echo
+		echo =============================================================
+		echo Executing saturated_heights inverse problem. Experiment ${i}:
+		python inverse_saturated.py -i inifiles/inverse_saturated_heights-experiment_${i}.ini
+	done
+fi
