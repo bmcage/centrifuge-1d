@@ -137,6 +137,7 @@ def adjust_model_default(model, adjust_all = False, adjust_omega = False,
     if adjust_all or adjust_omega:
         model.omega_start = model.omega_start * np.pi/ 30. # (2pi)*omega/60
         model.omega       = model.omega * np.pi/ 30.
+    # TODO: adjust omega_end?
 
     if adjust_all or adjust_time:
         # we assure that also the last value of tspan is present (and not cut)
@@ -183,3 +184,25 @@ def load_measured_data(filename, post_hook_fns = None):
     apply_functions(post_hook_fns, measured_data)
 
     return measured_data
+
+def CVS2inifiles(csv_filename, outputdir, inifilename_prefix):
+    import csv
+
+    data = csv.reader(open(csv_filename))
+
+    for row in data:
+
+        experiment, tube_number, duration, omega, r0, length, h0, h1 = row
+
+        fout_filename = '{}/{}_filter{}-exp{}.ini'.format(outputdir,
+                                                          inifilename_prefix,
+                                                          tube_number,
+                                                          experiment)
+        fout = open(fout_filename, mode='w', encoding='utf-8')
+        fout.write('[inverse_data]\n')
+        fout.write('h0       = [{}]\n'.format(h0))
+        fout.write('h1       = [{}]\n'.format(h1))
+        fout.write('duration = [{}]\n'.format(duration))
+        fout.write('omega    = [{}]\n'.format(omega))
+        fout.write('length   = [{}]\n'.format(length))
+        fout.write('r0       = [{}]\n'.format(r0))
