@@ -53,18 +53,33 @@ def ip_direct_saturated_heights(xdata, Ks):
 def solve_inverse_saturated(model, measured_data_filename):
     data = load_measured_data(measured_data_filename)
 
+    # save original values of model and replace them with read data
     t_duration     = np.asarray(data.duration, float)
     t_deceleration = model.deceleration_duration
+
     model.t_start  = 0.
-    model.t_end    = t_duration
+    model_t_end    = model.t_end
+    if data.t_duration < 0:
+        model.t_end    = t_duration
+
     if model.include_acceleration:
         model.tspan    = np.array([0, t_duration + model.deceleration_duration], float)
     else:
          model.tspan    = np.array([0, t_duration], float)
-    model.omega    = data.omega
-    model.l        = data.length
-    model.r0       = data.r0
 
+    model_omega    = model.omega
+    if data.omega < 0:
+    model.omega    = data.omega
+
+    model_l        = model.l
+    if data.length < 0:
+    model.l        = data.length
+
+    model_r0       = model.r0
+    if data.r0 < 0:
+        model.r0       = data.r0
+
+    # resolve the type of measured data
     if model.data_type == 0:
         raise NotImplemented('inverse::characteristics: load characteristics data not implemented !')
         GC_measured   = data['GC']
@@ -88,8 +103,9 @@ def solve_inverse_saturated(model, measured_data_filename):
         raise ValueError('Unrecognized data_type: %d'
                          % model.data_type)
 
+    # Solve inverse problem
     Ks_init = model.ks
-     
+
     Ks_inv, cov_ks = curve_fit(direct_fn, xdata,
                                data_measured, p0 = Ks_init)
 
@@ -97,6 +113,14 @@ def solve_inverse_saturated(model, measured_data_filename):
     xdata         = (model, heights_0, return_time)
     h1_inv, t_inv = direct_fn(xdata, Ks_inv)
 
+    # Restore original values
+    model.t_end    = model_t_end
+    model.omega    = model_omega
+    model.l        = model_l
+    model.r0       = model_r0
+    model.ks       = Ks_init
+
+    # Print results
     for i in np.arange(len(heights_0)):
         print('Subexperiment ', i+1)
         print('    h0:          % .6f' % heights_0[i])
@@ -107,7 +131,6 @@ def solve_inverse_saturated(model, measured_data_filename):
         print('    Error (%%):   % .2f                        % .2f' %
               ((h1_inv[i] - heights_1[i]) / heights_1[i] * 100,
                (t_inv[i] - model.tspan[1]) / model.t_end * 100))
-        
 
     return Ks_inv
 
@@ -133,11 +156,10 @@ def run_inverse_saturated():
                                     [verify_inverse_data, utilize_direct_model])
 
     data_filenames = model.inverse_data_filename
-    Ks_init = model.ks
+
     Ks_inv  = np.empty([len(data_filenames), ],  float)
-    
+
     for i in range(len(data_filenames)):
-        model.ks  = Ks_init
         Ks_inv[i] = solve_inverse_saturated(model, data_filenames[i])
 
     Ks_inv_disp = Ks_inv / 100
