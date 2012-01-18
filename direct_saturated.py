@@ -119,7 +119,7 @@ def solve_direct_saturated_problem(model):
                      user_data=model)
     z0  = np.array([model.l0_in, 0], float)
     zp0 = np.zeros(z0.shape, float)
-    flag, t, z = solver.run_solver(model.tspan, z0, zp0)[:3]
+    flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
 
     return flag, t, z
 
@@ -141,7 +141,7 @@ def run_direct(draw_graphs_p = False):
         if draw_graphs_p:
             draw_graphs(1, t, z[:, 0], z[:, 1], GC, RM)
         return model, GC, RM
-    elif model.data_type == 1:
+    elif model.data_type == 1 or model.data_type == 2:
         h1 = extract_saturated_water_heights(z, model)
         print('t:  ', t)
         print('h1: ', h1)
