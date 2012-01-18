@@ -149,7 +149,10 @@ def adjust_model_default(model, adjust_all = False, adjust_omega = False,
     model.register_key('additional', 'include_acceleration', True)
 
 def adjust_data_default(data):
-    data.omega       = data.omega * np.pi/ 30. # (2pi)*omega/60
+    if type(data.omega) == list:
+        data.omega = [omega * np.pi/ 30 for omega in data.omega]
+    else:
+        data.omega       = data.omega * np.pi/ 30. # (2pi)*omega/60
 
 def load_centrifuge_configs(inifilenames, post_hook_fns = None):
     """

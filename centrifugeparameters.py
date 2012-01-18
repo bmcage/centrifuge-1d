@@ -48,11 +48,19 @@ class CentrifugeParameters:
                 setattr(self, key, float(value))
             elif type(value) == list:
                 key_type = type(getattr(self, key_lower))
+
                 for item in value:
-                    if not (type(item) == key_type):
-                        print("CentrifugeParameters::WARNING: key has non-string value !"
-                              "'%s.%s'" % (section, key))
+                    if type(item) == int and key_type == float:
+                        pass
+                    elif not ((type(item) == key_type) or
+                              (type(item) == int and key_type == float)):
+                        print("CentrifugeParameters::WARNING: key '%s.%s' has non-expected type: %s, expected type: %s" 
+                              % (section, key, item, type(item), key_type))
                         return
+
+                if value and type(value[0] == int) and (key_type == float):
+                    value = [float(item) for item in value]
+
                 setattr(self, key, value)
             else:
                 print("CentrifugeParameters::WARNING: ignoring key with wrong type "
