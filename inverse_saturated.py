@@ -25,59 +25,97 @@ def ip_direct_saturated_characteristics(model, Ks):
     GC, RM = extract_saturated_characteristics(t, z, model)
     return np.concatenate((GC, RM))
 
+def lsq_ip_direct_saturated_heights(xdata, Ks):
+    return ip_direct_saturated_heights(xdata, Ks)[1] # return only heights
+
 def ip_direct_saturated_heights(xdata, Ks):
     model       = xdata[0]
     heights0    = xdata[1]
-    return_time = xdata[2]
+    t_start     = xdata[2]
+    t_end       = xdata[3]
+    t_span      = xdata[4]
+    omega       = xdata[5]
+    L           = xdata[6]
+    r0          = xdata[7]
     model.ks = Ks
 
-    heights = np.empty(heights0.shape, float)
-    t_end   = np.empty(heights0.shape, float)
+    result_heights = np.empty(heights0.shape, float)
+    result_t_end   = np.empty(heights0.shape, float)
+
     for i in np.arange(len(heights0)):
         model.l0_in = heights0[i]
+        model.t_start = t_start[i]
+        model.t_end   = t_end[i]
+        model.tspan   = t_span[i, :]
+        model.omega   = omega[i]
+        model.l       = L[i]
+        model.r0      = r0[i]
+        
         _flag, t, z = solve_direct_saturated_problem(model)
 
         h1 = extract_saturated_water_heights(z, model)
-        heights[i] = h1[1]
-        t_end[i]   = t[1] # t = [start_time, end_time]
+        result_heights[i] = h1[1]
+        result_t_end[i]   = t[1] # t = [start_time, end_time]
 
         if model.debugging:
             print('t = ', t, ', Ks =  ', Ks, ', h0 = ', model.l0_in,
                   ', h_found = ', heights[i], ', r0 = ', model.r0,
                   'omega = ', model.omega, ' flag = ', _flag)
-    if return_time:
-        return heights, t_end
-    else:
-        return heights
+
+    return  result_t_end, result_heights
+
 
 def solve_inverse_saturated(model, measured_data_filename):
     data = load_measured_data(measured_data_filename)
 
     # save original values of model and replace them with read data
-    t_duration     = np.asarray(data.duration, float)
-    t_deceleration = model.deceleration_duration
+    backup_t_start  = model.t_start
+    backup_t_end    = model.t_end
+    backup_t_span   = model.tspan
+    backup_omega    = model.omega
+    backup_l        = model.l
+    backup_r0       = model.r0
+    Ks_init         = model.ks
 
-    model.t_start  = 0.
-    model_t_end    = model.t_end
-    if data.t_duration < 0:
-        model.t_end    = t_duration
-
-    if model.include_acceleration:
-        model.tspan    = np.array([0, t_duration + model.deceleration_duration], float)
+    if np.isscalar(data.duration):
+        if data.t_duration < 0:
+            xdata_t_end = np.asarray([model.t_end], float)
+        else:
+            xdata_t_end = np.asarray([data.duration], float)
     else:
-         model.tspan    = np.array([0, t_duration], float)
+        xdata_t_end = np.asarray(data.duration, float)
 
-    model_omega    = model.omega
-    if data.omega < 0:
-    model.omega    = data.omega
+    xdata_t_start  = np.zeros(np.shape(xdata_t_end), float)
 
-    model_l        = model.l
-    if data.length < 0:
-    model.l        = data.length
+    xdata_t_span = np.zeros([np.alen(xdata_t_end), 2], float)
+    if model.include_acceleration:
+        xdata_t_span[:, 1] = xdata_t_end + model.deceleration_duration
+    else:
+        xdata_t_span[:, 1] = xdata_t_end
 
-    model_r0       = model.r0
-    if data.r0 < 0:
-        model.r0       = data.r0
+    if np.isscalar(data.omega):
+        if data.omega < 0:
+            xdata_omega = np.asarray([model.omega], float)
+        else:
+            xdata_omega = np.asarray([data.omega], float)
+    else:
+        xdata_omega = np.asarray(data.omega, float)
+
+    if np.isscalar(data.length):
+        if data.length < 0:
+            xdata_length = np.asarray([model.length], float)
+        else:
+            xdata_length = np.asarray([data.length], float)
+    else:
+        xdata_length = np.asarray(data.length, float)
+
+    if np.isscalar(data.r0):
+        if data.r0 < 0:
+            xdata_r0 = np.asarray([model.r0], float)
+        else:
+            xdata_r0 = np.asarray([data.r0], float)
+    else:
+        xdata_r0 = np.asarray(data.r0, float)
 
     # resolve the type of measured data
     if model.data_type == 0:
@@ -92,9 +130,12 @@ def solve_inverse_saturated(model, measured_data_filename):
         heights_1     = np.asarray(data.h1, float)
         data_measured = heights_1
         return_time   = False
-        xdata         = (model, heights_0, return_time)
+        xdata         = (model, heights_0, xdata_t_start, xdata_t_end,
+                         xdata_t_span, xdata_omega, xdata_length, xdata_r0,
+                         return_time)
 
-        direct_fn = ip_direct_saturated_heights
+        lsq_direct_fn = lsq_ip_direct_saturated_heights
+        direct_fn     = ip_direct_saturated_heights
 
         if model.data_type == 2:# falling head test
             model.include_acceleration = False
@@ -104,21 +145,19 @@ def solve_inverse_saturated(model, measured_data_filename):
                          % model.data_type)
 
     # Solve inverse problem
-    Ks_init = model.ks
-
-    Ks_inv, cov_ks = curve_fit(direct_fn, xdata,
+    Ks_inv, cov_ks = curve_fit(lsq_direct_fn, xdata,
                                data_measured, p0 = Ks_init)
 
-    return_time   = True # return also times for estimating error
-    xdata         = (model, heights_0, return_time)
-    h1_inv, t_inv = direct_fn(xdata, Ks_inv)
+    t_inv, h1_inv = direct_fn(xdata, Ks_inv)
 
     # Restore original values
-    model.t_end    = model_t_end
-    model.omega    = model_omega
-    model.l        = model_l
-    model.r0       = model_r0
-    model.ks       = Ks_init
+    model.t_start = backup_t_start
+    model.t_end   = backup_t_end
+    model.t_span  = backup_t_span
+    model.omega   = backup_omega
+    model.l       = backup_l
+    model.r0      = backup_r0
+    model.ks      = Ks_init
 
     # Print results
     for i in np.arange(len(heights_0)):
@@ -163,7 +202,7 @@ def run_inverse_saturated():
         Ks_inv[i] = solve_inverse_saturated(model, data_filenames[i])
 
     Ks_inv_disp = Ks_inv / 100
-    print('\n\nKs_inv computed: ')
+    print('\n\nKs_inv computed [m/s]: ')
     for Ks_print in Ks_inv_disp:
         print(Ks_print)
 
