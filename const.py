@@ -52,8 +52,8 @@ PYTHONVERSION  = platform.python_version_tuple()
 #
 #-------------------------------------------------------------------------
 
-INIFILE_DEFAULT = 'inifiles/parameters_default.ini'
-INIFILE_DEFAULT_EXT = 'inifiles/parameters_default_extended.ini'
+INIFILE_DEFAULT = 'inifiles-defaults/parameters_default.ini'
+INIFILE_DEFAULT_EXT = 'inifiles-defaults/parameters_default_extended.ini'
 
 #-------------------------------------------------------------------------
 #
