@@ -188,24 +188,3 @@ def load_measured_data(filename, post_hook_fns = None):
 
     return measured_data
 
-def CVS2inifiles(csv_filename, outputdir, inifilename_prefix):
-    import csv
-
-    data = csv.reader(open(csv_filename))
-
-    for row in data:
-
-        experiment, tube_number, duration, omega, r0, length, h0, h1 = row
-
-        fout_filename = '{}/{}_filter{}-exp{}.ini'.format(outputdir,
-                                                          inifilename_prefix,
-                                                          tube_number,
-                                                          experiment)
-        fout = open(fout_filename, mode='w', encoding='utf-8')
-        fout.write('[inverse_data]\n')
-        fout.write('h0       = [{}]\n'.format(h0))
-        fout.write('h1       = [{}]\n'.format(h1))
-        fout.write('duration = [{}]\n'.format(duration))
-        fout.write('omega    = [{}]\n'.format(omega))
-        fout.write('length   = [{}]\n'.format(length))
-        fout.write('r0       = [{}]\n'.format(r0))
