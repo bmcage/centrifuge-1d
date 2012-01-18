@@ -1,16 +1,27 @@
 #!/bin/bash
 
+if [ -z "$1" ]; then
+    echo
+    echo 'Usage: '$0' <source_dir> <first_experiment> [last_experiment]'
+    echo
+
+    exit 0
+fi
+
 echo
 echo ---------------------------------------------------------
 echo GENERAL experiments informations
 echo
 
-INIFILES_BASE_DIR='inifiles'
+INIFILES_BASE_DIR="$1/inifiles"
 INIFILES_DIR='inverse_saturated_heights'
 FILENAME_PREFIX='inverse_saturated_heights'
 
-first_ini_number=$1
-if [ -z "$2" ]; then
+# UGLY HACK !!!!!
+ln -T -sf "${1}/data" data
+
+first_ini_number=$2
+if [ -z "$3" ]; then
 	echo Experiment: $first_ini_number
 	echo Executing saturated_heights inverse problem:
 	filename="${INIFILES_BASE_DIR}/${INIFILES_DIR}/${FILENAME_PREFIX}-exp_${first_ini_number}.ini"
@@ -19,7 +30,7 @@ if [ -z "$2" ]; then
 	echo
 	echo Experiment ${first_ini_number}: finished.
 else 
-    last_ini_number=$2
+    last_ini_number=$3
 
     echo First experiment: $first_ini_number
     echo Last experiment:  $last_ini_number
