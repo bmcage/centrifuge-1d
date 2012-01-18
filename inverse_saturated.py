@@ -69,6 +69,7 @@ def solve_inverse_saturated(model, measured_data_filename):
     data = load_measured_data(measured_data_filename)
 
     # save original values of model and replace them with read data
+    backup_include_acceleration = model.include_acceleration
     backup_t_start  = model.t_start
     backup_t_end    = model.t_end
     backup_t_span   = model.tspan
@@ -76,6 +77,48 @@ def solve_inverse_saturated(model, measured_data_filename):
     backup_l        = model.l
     backup_r0       = model.r0
     Ks_init         = model.ks
+
+    if np.isscalar(data.length):
+        if data.length < 0:
+            xdata_length = np.asarray([model.length], float)
+        else:
+            xdata_length = np.asarray([data.length], float)
+    else:
+        xdata_length = np.asarray(data.length, float)
+
+    if model.data_type == 2:# falling head test needs special adjustments
+        model.include_acceleration = False
+        # we ignore the r0 value just as omega in measurements data (if present),
+        # because it is of no validity (for falling head test); instead we use 
+        # the values supplied in the original config file (which is in the
+        # 'model' supplied
+
+        #print('1. data.omega: ', data.omega, 'data.r0: ', data.r0,
+        #      'model.r0', model.r0)
+    
+        xdata_omega = (np.sqrt(model.g/model.r0)
+                       * np.ones(np.shape(xdata_length), float))
+        xdata_r0    = model.r0 * np.ones(np.shape(xdata_length), float)
+        #print('2. data.omega: ', data.omega, 'data.r0: ', data.r0,
+        #      'model.r0', model.r0, 'xdataa_omega: ', xdata_omega, 
+        #      'xdata_r0: ', xdata_r0)
+    
+    else:
+        if np.isscalar(data.omega):
+            if data.omega < 0:
+                xdata_omega = np.asarray([model.omega], float)
+            else:
+                xdata_omega = np.asarray([data.omega], float)
+        else:
+            xdata_omega = np.asarray(data.omega, float)
+
+        if np.isscalar(data.r0):
+            if data.r0 < 0:
+                xdata_r0 = np.asarray([model.r0], float)
+            else:
+                xdata_r0 = np.asarray([data.r0], float)
+        else:
+            xdata_r0 = np.asarray(data.r0, float)
 
     if np.isscalar(data.duration):
         if data.t_duration < 0:
@@ -92,30 +135,6 @@ def solve_inverse_saturated(model, measured_data_filename):
         xdata_t_span[:, 1] = xdata_t_end + model.deceleration_duration
     else:
         xdata_t_span[:, 1] = xdata_t_end
-
-    if np.isscalar(data.omega):
-        if data.omega < 0:
-            xdata_omega = np.asarray([model.omega], float)
-        else:
-            xdata_omega = np.asarray([data.omega], float)
-    else:
-        xdata_omega = np.asarray(data.omega, float)
-
-    if np.isscalar(data.length):
-        if data.length < 0:
-            xdata_length = np.asarray([model.length], float)
-        else:
-            xdata_length = np.asarray([data.length], float)
-    else:
-        xdata_length = np.asarray(data.length, float)
-
-    if np.isscalar(data.r0):
-        if data.r0 < 0:
-            xdata_r0 = np.asarray([model.r0], float)
-        else:
-            xdata_r0 = np.asarray([data.r0], float)
-    else:
-        xdata_r0 = np.asarray(data.r0, float)
 
     # resolve the type of measured data
     if model.data_type == 0:
@@ -136,10 +155,6 @@ def solve_inverse_saturated(model, measured_data_filename):
 
         lsq_direct_fn = lsq_ip_direct_saturated_heights
         direct_fn     = ip_direct_saturated_heights
-
-        if model.data_type == 2:# falling head test
-            model.include_acceleration = False
-            model.omega = np.sqrt(model.g / model.r0)
     else:
         raise ValueError('Unrecognized data_type: %d'
                          % model.data_type)
@@ -151,6 +166,7 @@ def solve_inverse_saturated(model, measured_data_filename):
     t_inv, h1_inv = direct_fn(xdata, Ks_inv)
 
     # Restore original values
+    model.include_acceleration = backup_include_acceleration
     model.t_start = backup_t_start
     model.t_end   = backup_t_end
     model.t_span  = backup_t_span
