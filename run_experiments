@@ -1,51 +1,76 @@
 #!/bin/bash
 
-if [ -z "$1" ]; then
+INIFILES_BASE_DIR="sources/inifiles"
+
+usage() {
     echo
-    echo 'Usage: '$0' <source_dir> <first_experiment> [last_experiment]'
+    echo 'Usage: 'run_experiments' <exp_type> <exp_ID> <first_experiment> [last_experiment]'
     echo
+    echo '    exp_type:'
+    echo '        ''ish'' | ''inverse-saturated-heights'' - inverse problem for'
+    echo '             fully saturated media with measured water heights'
+    echo '    exp_ID: experiment_ID - a unique identifier of experiment series'
+    echo
+    echo '    first_experiment: number of first experiment in exp_ID series of'
+    echo '             experiments'
+    echo '    last_experiment: if specified, computes all experiments between'
+    echo '             the first_experiment and last_experiment (included);'
+    echo '             if not specified, computes only first_experiment'
+    echo 
 
     exit 0
+}
+
+if [ -z "$1" ]; then
+    usage
 fi
 
-echo
-echo ---------------------------------------------------------
-echo GENERAL experiments informations
-echo
+case "$1" in
+    'ish' | 'inverse-saturated-heights')
+	EXP_TYPE='inverse-saturated-heights'
 
-INIFILES_BASE_DIR="$1/inifiles"
-INIFILES_DIR='inverse_saturated_heights'
-FILENAME_PREFIX='inverse_saturated_heights'
 
-# UGLY HACK !!!!!
-ln -T -sf "${1}/data" data
+	;;
+    *)
+	echo 'Unknown experiment type: '$1
+	usage
 
-first_ini_number=$2
-if [ -z "$3" ]; then
-	echo Experiment: $first_ini_number
-	echo Executing saturated_heights inverse problem:
-	filename="${INIFILES_BASE_DIR}/${INIFILES_DIR}/${FILENAME_PREFIX}-exp_${first_ini_number}.ini"
-	python inverse_saturated.py -i "$filename"
+	exit 0
+esac
 
-	echo
-	echo Experiment ${first_ini_number}: finished.
-else 
-    last_ini_number=$3
+EXP_ID="$2"
 
+first_experiment=$3
+if [ -z "$4" ]; then
+    last_experiment=$first_experiment
+else
+    last_experiment=$4
+fi
+
+run_experiments() {
+    echo
+    echo ---------------------------------------------------------
+    echo GENERAL experiments informations
+    echo
     echo First experiment: $first_ini_number
     echo Last experiment:  $last_ini_number
 
-    for (( i=${first_ini_number}; i<=${last_ini_number}; i++ ))
+    ini_dir="${INIFILES_BASE_DIR}/${EXP_TYPE}/${EXP_ID}"
+
+
+    for (( i=${first_experiment}; i<=${last_experiment}; i++ ))
     do
 	echo
 	echo =============================================================
-	echo Executing saturated_heights inverse problem.
+	echo Executing $EXP_TYPE problem.
 	echo Experiment ${i}:
 	
-	filename="${INIFILES_BASE_DIR}/${INIFILES_DIR}/${FILENAME_PREFIX}-exp_${i}.ini"
+	filename="${ini_dir}/experiment_${i}.ini"
 	python inverse_saturated.py -i "$filename"
 
 	echo
 	echo Experiment ${i}: finished.
     done
-fi
+}
+
+run_experiments

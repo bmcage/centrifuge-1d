@@ -1,0 +1,119 @@
+#!/usr/bin/python
+
+from os import makedirs, path
+
+base_dir = 'sources'
+data_dir = '{}/data'.format(base_dir)
+csv_dir  = '{}/csv'.format(base_dir)
+
+# TODO: read exp_type (= sysarg[1]) from csv file
+
+ini_data_fields = {'saturated-heights': ('h0', 'h1', 'duration', 'omega', 
+                                         'length', 'r0')}
+csv_data_fields = {'saturated-heights': ('exp_id', 'exp_no', 'tube_number', 
+                                         'duration', 'omega', 'r0', 'length', 
+                                         'h0', 'h1')}
+
+def CVS2dataini(csv_filename, data_dir, ini_fields, csv_fields):
+    import csv
+
+    global exp_type_fullname
+
+    data = {}
+    
+    f_csv = open(csv_filename)
+    csv_data = csv.reader(f_csv)
+
+    print('Reading CSV file...')
+    for row in csv_data:
+
+        experiment_id = row[0] # prescribed experiment and tube_nr position
+        experiment_no = row[1]
+        tube_number   = row[2]
+        
+        if not experiment_id in data:
+            data[experiment_id]={}
+        if not experiment_no in data[experiment_id]:
+            data[experiment_id][experiment_no]={}
+      
+                
+        experiment_data = data[experiment_id][experiment_no]
+        if not tube_number in experiment_data:
+           experiment_data[tube_number]  = {k: [] for k in ini_fields}
+
+        for (descriptor, value) in zip(csv_fields[3:], row[3:]):
+            experiment_data[tube_number][descriptor].append(value)
+
+    f_csv.close()
+
+    for (experiment_id, exp_id_struct) in data.items():
+        out_dir  = '{}/{}/{}'.format(data_dir, exp_type_fullname, experiment_id)
+
+        print('Writing to file(s) experiment(s) for ID: %s' % experiment_id)
+        if not path.exists(out_dir):
+            makedirs(out_dir)
+
+        for (experiment_no, exp_no_struct) in exp_id_struct.items():
+            for (tube_no, base_data) in exp_no_struct.items():
+
+                fout_filename = '{}/experiment_{}-filter{}.ini'.format(out_dir,
+                                                                       experiment_no,
+                                                                       tube_no)
+                fout = open(fout_filename, mode='w', encoding='utf-8')
+
+                fout.write('[inverse_data]\n')
+
+                for dvalue in ini_fields:
+                    fout.write('{:8} = [{}]\n'.format(dvalue, 
+                                                      ', '.join(base_data[dvalue])))
+                fout.close()
+    print('Done.')
+
+def usage():
+    print('\nUsage: make_datafiles <experiment_type>'
+          ' <experiment_name> [csv_file]')
+    print('\n data_filename: csv file containg data')
+    print('\n experiment_type:')
+    print('    ''sh'' | ''saturated-heights'': saturated problem whith measured'
+          ' water heights')
+    print(' experiment_name: unique experiment identifier\n')
+    print(' csv_file: (optional) uses chosen csv file instead of default one'
+          ' (i.e. file ''experiment_name.cvs'' ')
+    exit(0)
+
+from sys import argv as args
+
+args_no = len(args) 
+if (args_no == 1) or ((args_no == 2) 
+                      and (args[1] == '-h' or args[1] == '--help')):
+    usage()
+elif args_no == 3 or args_no == 4:
+    exp_type = args[1]
+    exp_name = args[2]
+    
+    if args_no == 4:
+        csv_file = args[3]
+    else:
+        csv_file = '{}/{}.csv'.format(csv_dir, exp_name)
+
+    if not path.exists(csv_file):
+        print('CSV data file ''%s'' does not exist.' % csv_file)
+        exit(0)
+        
+    if exp_type == 'sh' or exp_type == 'saturated-heights':
+        exp_type_fullname = 'saturated-heights'
+    else:
+        print('\nError: Unknown experiment type: %s' % exp_type)
+        usage()
+    
+    if not path.exists(data_dir):
+        makedirs(data_dir)
+else:
+    print('Bad input !')
+    usage()
+
+ini_fields  = ini_data_fields[exp_type_fullname]
+data_fields = csv_data_fields[exp_type_fullname]
+
+CVS2dataini(csv_file, data_dir, ini_fields, data_fields)
+

@@ -1,0 +1,84 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    echo
+    echo '    Usage: create_experimental_default_inifiles <ini_type> <exp_ID> <first_experiment> [last_experiment] [output_dir]'
+    echo
+    echo '    ini_type:'
+    echo '        ''ish'' | ''inverse-saturated-heights'' - inverse problem for'
+    echo '             fully saturated media with measured water heights'
+    echo '    exp_ID: experiment_ID - a unique identifier of experiment series'
+    echo ''
+    echo '    first_experiment: number of first experiment in exp_ID series of'
+    echo '             experiments'
+    echo '    last_experiment: if specified, computes all experiments between'
+    echo '             the first_experiment and last_experiment (included);'
+    echo '             if not specified, computes only first_experiment'
+    echo '    output_dir: directory where generated ini files will be stored;'
+    echo '             if not specified, the default will be used'
+    echo
+    exit 0
+fi
+BASE_DIR='sources'
+INIFILES_DIR="${BASE_DIR}/inifiles"
+DEFAULTS_DIR='inifiles-defaults'
+DATA_DIR="${BASE_DIR}/data"
+
+inifile_type="$1"
+EXP_ID="$2"
+first_experiment="$3"
+
+if [ -z "$4" ]; then
+    only_one=true
+    last_experiment=$first_experiment
+else 
+    only_one=false
+    last_experiment="$4"
+fi
+
+function adapt_default_inifile {
+    filename="${OUTPUT_DIR}/experiment_${EXP_NO}.ini"
+    ini_data_dir="${DATA_DIR}/${DATA_TYPE_NAME}/${EXP_ID}"
+    
+    cp "${DEFAULTS_DIR}/${EXP_TYPE}-default.ini" "$filename"
+    echo 'IDD: '$ini_data_dir
+    sed -i "s#\[inidirectory\]#${ini_data_dir}#g" "$filename"
+    sed -i "s/\[exp_no\]/${EXP_NO}/g" "$filename"
+
+    echo 'Generated file: '$filename
+}
+
+case "$inifile_type" in
+    'ish' | 'inverse-saturated-heights')
+	EXP_TYPE='inverse-saturated-heights'
+	DATA_TYPE_NAME='saturated-heights'
+
+	;;
+    *)
+	echo 'Unknown inifile type: '$inifile_type
+
+	exit 0
+esac
+
+if [ -z "$5" ]; then
+    OUTPUT_DIR="${INIFILES_DIR}/${EXP_TYPE}/${EXP_ID}"
+else
+    OUTPUT_DIR="$5"
+fi
+
+mkdir -p "$OUTPUT_DIR"
+
+if $only_one; then
+    EXP_NO=$first_experiment
+    echo 'Fe: '$EXP_NO
+    adapt_default_inifile
+else
+    for (( i=$first_experiment; i<=$last_experiment; i++ ))
+    do
+	EXP_NO=$i
+	echo 'Fe: '$EXP_NO
+	adapt_default_inifile
+    done
+fi
+
+exit 0
