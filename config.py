@@ -57,8 +57,10 @@ import const, centrifugeparameters
 DEFAULT_PARAMETERS = \
     {\
             'general': {'g': 981., 'debugging': False}, \
+    'starting-filter': {'d1': 0., 'ks1': -1. },
                'soil': {'n': 2.81, 'gamma': 0.0189, 'Ks': 2.4e-5, \
-                        'porosity': 0.4, 'V': 1.0}, \
+                        'porosity': 0.4, 'V': 1.0},
+      'ending-filter': {'d2': 0., 'ks2': -1. },
               'fluid': {'viscosity': 1.0, 'density': 1.0, \
                         's1_0': 0.1, 's2_0': 0.2, 'pc0': 1.0e5 }, \
          'centrifuge': {'r0': 30.0, 'L': 10.0, 'l0_in': 2.0, 'l0_out': 4.0,

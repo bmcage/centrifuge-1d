@@ -89,9 +89,16 @@ class direct_saturated_rhs(ResFunction):
         omega2g = find_omega2g(t, model)
         L = model.l
         l = x[0]
-        q_out = model.ks*omega2g/2. * (l*(2*model.r0 - l)/L + 2*model.r0 + L)
-        result[mass_in_idx] = xdot[0] + q_out
-        result[mass_out_idx] = xdot[1] - q_out
+        rS = model.r0 - model.d1 -l
+        rE = model.r0 + L + model.d2
+        #print(t, l, rS, rE, model.d1, model.d2)
+        qt = (omega2g/2. / (model.d1/model.ks1 + L/model.ks + model.d2/model.ks2)
+              * (rE*rE - rS*rS))
+        #qt2 = omega2g/2. * model.ks * (2*model.r0 + L + l*(2*model.r0 - l)/L)
+        #print(t, l, qt, qt2)
+
+        result[mass_in_idx] = xdot[0] + qt
+        result[mass_out_idx] = xdot[1] - qt
         
         return 0
 
@@ -114,7 +121,7 @@ def solve_direct_saturated_problem(model):
 
     solver = ida.IDA(direct_saturated_rhs_fn,
                      compute_initcond='yp0',
-                     first_step=1e-18,
+                     first_step_size=1e-18,
                      atol=1e-6,rtol=1e-6,
                      user_data=model)
     z0  = np.array([model.l0_in, 0], float)
