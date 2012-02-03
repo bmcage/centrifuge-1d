@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 
 syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
+import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
+from shared_functions import find_omega2g, h2Kh, dudh, h2u, characteristics
 
 first_idx    = 0
 last_idx     = -1
@@ -14,6 +16,7 @@ s1_idx       = -1
 s2_idx       = -1
 mass_out_idx = -1
 pq_idx       = -1
+z_size       = -1
 
 def draw_graphs(fignum, t, y, z, model):
     h = z[:, first_idx:last_idx+1]
@@ -127,20 +130,6 @@ def utilize_model(model):
     from shared_functions import (lagrangean_derivative_coefs,  dudh, h2Kh,
                                   h2u, characteristics, find_omega2g)
     
-    model.omega_start = model.omega_start / 60
-    model.omega       = model.omega / 60
-    
-    global first_idx, last_idx, mass_in_idx, s1_idx, s2_idx, mass_out_idx, pq_idx
-    #first_idx    = 0
-    last_idx     = model.inner_points+1
-    mass_in_idx  = model.inner_points+2
-    s1_idx       = model.inner_points+3
-    s2_idx       = model.inner_points+4
-    mass_out_idx = model.inner_points+5
-    pq_idx       = model.inner_points+6
-
-    z_size       = model.inner_points+7 # total length of 'z' array
-
     model.register_key('additional', 'm', 1-1/model.n)
 
     if model.dtype == 1:
@@ -158,20 +147,8 @@ def utilize_model(model):
     model.register_key('additional', 'ldc2', ldc2)
     model.register_key('additional', 'ldc3', ldc3)
 
-def run_direct_draining_saturated():
-    from sys import argv as sysargv
-    from auxiliaryfunctions import parse_centrifuge_input
-
-    inifiles = parse_centrifuge_input(sysargv)[0]
-    model    = load_centrifuge_configs(inifiles,
-                                       [utilize_model])
-
-    try:
-        from scikits.odes.sundials import ida
-    except ImportError:
-        print('ImportError: Could not load module ''ida''. Exiting...')
-        return
-
+def solve_direct_draining_saturated_problem(model):
+    global z_size
     z0  = np.zeros([z_size, ], float)
     z0[first_idx:last_idx+1] = -0.15
     z0[s2_idx] = model.l
@@ -184,8 +161,34 @@ def run_direct_draining_saturated():
                      #algebraic_vars_idx=[4],
                      user_data=model)
 
-    flag, t, z = solver.run_solver(model.tspan, z0, zp0)[:3]
+    print('tsp',model.tspan)
+    flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
 
+    return flag, t, z
+
+def run_direct_draining_saturated():
+    from sys import argv as sysargv
+    from auxiliaryfunctions import (parse_centrifuge_input,
+                                    load_centrifuge_configs)
+
+    inifiles = parse_centrifuge_input(sysargv)[0]
+    model    = load_centrifuge_configs(inifiles,
+                                       [utilize_model])
+
+    global first_idx, last_idx, mass_in_idx, s1_idx, s2_idx
+    global mass_out_idx, pq_idx, z_size
+    #first_idx    = 0
+    last_idx     = model.inner_points+1
+    mass_in_idx  = model.inner_points+2
+    s1_idx       = model.inner_points+3
+    s2_idx       = model.inner_points+4
+    mass_out_idx = model.inner_points+5
+    pq_idx       = model.inner_points+6
+
+    z_size       = model.inner_points+7 # total length of 'z' array
+
+    
+    flag, t, z = solve_direct_draining_saturated_problem(model)
     draw_graphs(1, t, model.y, z, model)
 
 if __name__ == "__main__":
