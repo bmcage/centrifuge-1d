@@ -104,8 +104,21 @@ def eval_item(setting):
     return value
 
 
-def read_configs(cfgs_filenames, preserve_sections_p=True, cfgs_merge=True,
-                 register_fns=None):
+# def parser2register(parser, register_fns):
+#         """ 
+#         Loads data from parser into model.
+#         """
+
+#         for psection in parser.sections():
+#             section = sec.lower()
+
+#             for option in parser.options(psection):
+#                 setting = parser.get(psection, option).strip()
+#                 value = eval_item(setting)
+#                 register_fn(section, option, value)
+
+
+def read_configs(cfgs_filenames, preserve_sections_p=True, cfgs_merge=True):
     """
       Reads config .ini files. If preserve_sections_p is false, removes sections
       and leaves only values from all sections; in case of two sections contain
@@ -133,20 +146,6 @@ def read_configs(cfgs_filenames, preserve_sections_p=True, cfgs_merge=True,
                     cfg[setting]=value
 
         return cfg
-
-
-    def parser2register(parser, register_fns):
-        """ 
-        Loads data from parser into model.
-        """
-
-        for psection in parser.sections():
-            section = sec.lower()
-
-            for option in parser.options(psection):
-                setting = parser.get(psection, option).strip()
-                value = eval_item(setting)
-                register_fn(section, option, value)
 
     print(type(cfgs_filenames)==list)
     print(cfgs_filenames)
@@ -177,20 +176,9 @@ def read_configs(cfgs_filenames, preserve_sections_p=True, cfgs_merge=True,
         print('From expected files: ', str(cfgs_filenames),
              'were successfully parsed only: ', str(read_files))
 
-    if register_fns:
-        if type(register_fns)=='list':
-            if len(register_fns) == len(cfgs_filenames):
-                for (fn, parser) in zip (register_fns, parsers):
-                    parser2register(parser, fn)
-            elif len(register_fns) == 1:
-                fn = register_fns[0]
-                for parser in parsers:
-                    parser2register(parser, fn)
-        else: 
-            parser2register(register_fns, fn) # single function
-    else:
-        cfgs = [parser2cfg(parser) for parser in parsers]
-        return cfgs
+    cfgs = [parser2cfg(parser) for parser in parsers]
+
+    return cfgs
 
 
     # def read_configs_old(self, merge_output_p = True, preserve_sections_p = False, \
