@@ -28,34 +28,19 @@
 This package implements access to configuration.
 """
 
-#---------------------------------------------------------------
-#
-# System imports
-#
-#---------------------------------------------------------------
-import os
-import time
+#import os
+#import time
 try:
-  import ConfigParser as configparser
+    import ConfigParser as configparser
 except:
-  import configparser
-import errno
-from gettext import gettext as _
+    import configparser
+  #import errno
+#from gettext import gettext as _
 
-#---------------------------------------------------------------
-#
-# Centrifuge imports
-#
-#---------------------------------------------------------------
 import const, centrifugeparameters
 
-#---------------------------------------------------------------
-#
-# Constants
-#
-#---------------------------------------------------------------
 def base_cfg():
-   base = { 
+    base = { 
             'general': {'g': 981., 'debugging': False},
     'starting-filter': {'d1': 0., 'ks1': -1. },
                'soil': {'n': 2.81, 'gamma': 0.0189, 'Ks': 2.4e-5,
@@ -74,17 +59,19 @@ def base_cfg():
                         'percent_in_saturation': 40.0,
                         'approximation_type': 5, 'mb_epsilon': 1e-5}
     }
+    return base
 
 def merge_cfgs(cfg, *cfgs):
-  """ 
-  Merge all following cfgs into 'cfg'; if the same values appear, the last one
-  (from last cfg) applies
-  """
-  for acfg in cfgs:
-    cfg.update(acfg)
-  return cfg
+    """ 
+    Merge all following cfgs into 'cfg'; if the same values appear, the last one
+    (from last cfg) applies
+    """
+    
+    for acfg in cfgs:
+        cfg.update(acfg)
+    return cfg
 
-DEFAULT_PARAMETERS = default_base()
+DEFAULT_PARAMETERS = base_cfg()
 
 inverse_cfg = {'inverse_data': {'duration': -1.0, 'h0': -1.0, 'h1': -1.0,
                                 'r0': -1.0, 'length': -1.0, 'omega': -1.0,
@@ -94,12 +81,6 @@ inverse_cfg = {'inverse_data': {'duration': -1.0, 'h0': -1.0, 'h1': -1.0,
 
 DEFAULT_DATA_PARAMETERS = merge_cfgs(base_cfg(), inverse_cfg)
 
-
-#---------------------------------------------------------------
-#
-# Local functions
-#
-#---------------------------------------------------------------
 def eval_item(setting):
     """
     Given a value from an ini file, return it in its proper type.
@@ -122,75 +103,123 @@ def eval_item(setting):
         value = int(setting)
     return value
 
-#---------------------------------------------------------------
-#
-# Classes
-#
-#---------------------------------------------------------------
-class ConfigManager(object):
+
+def read_configs(cfgs_filenames, preserve_sections_p=True, cfgs_merge=True,
+                 register_fns=None):
     """
-    Class to construct the singleton CONFIGMAN where all 
-    settings are stored.
+      Reads config .ini files. If preserve_sections_p is false, removes sections
+      and leaves only values from all sections; in case of two sections contain
+      the same values, the latter will be used. If cfgs_merge=True, merges all
+      the config files into one.
     """
-    __instance = None
-    
-    def get_instance():
-        """ Use this function to get the instance of the ConfigManager 
-        that will work on inifile
-        """
-        if ConfigManager.__instance is None:
-            ConfigManager.__instance = 1 # Set to 1 for __init__()
-            ConfigManager.__instance = ConfigManager()
-        return ConfigManager.__instance
-    get_instance = staticmethod(get_instance)
-    
-    def __init__(self):
-        """ 
-        Configure manager constructor loads filenames into 'model' with default
-        values 'defaults'
-        """
-        if ConfigManager.__instance is not 1:
-            raise Exception("This class is a singleton. ", \
-                            "Use the get_instance() method")
 
-    def read_configs(self, merge_output_p = True, preserve_sections_p = False, \
-                         filenames = [const.INIFILE_DEFAULT], \
-                         defaults = [DEFAULT_PARAMETERS], \
-                         saveconfigname = ''):
-        """
-        Reads .ini files and returns them as an object(s)
-        """
+    def parser2cfg(parser):
+        cfg = {}
 
-        if merge_output_p:
-            model = centrifugeparameters.CentrifugeParameters(preserve_sections_p)
-            for default in defaults:
-                model.register_keys(default)
+        for psection in parser.sections():
+            section = psection.lower()
 
-            parser = configparser.ConfigParser()
-            if saveconfigname:
-                # save the first filename that is expected to be config
-                # (so save it without comments)
-                raise Exception('Saving config file is not implemented !')
+            for option in parser.options(psection):
+                setting = parser.get(psection, option).strip()
 
-            for filename in filenames:
-                 if  not (filename and os.path.exists(filename)):
-                     raise ValueError('The file %s cannot be found' % filename)
-        
-                 parser.read(filename)
-            self._parser2model(parser, model)
-            return model
-        else:
-            raise Exception("Multiple outputs are not implemented")
+                value = eval_item(setting)
 
-    def _parser2model(self, parser, model):
+                if preserve_sections_p:
+                    if section in cfg:
+                        cfg[section][option]=value
+                    else:
+                        cfg[section]={option: value}
+                else:
+                    cfg[setting]=value
+
+        return cfg
+
+
+    def parser2register(parser, register_fns):
         """ 
         Loads data from parser into model.
         """
 
-        for sec in parser.sections():
+        for psection in parser.sections():
             section = sec.lower()
-            
-            for option in parser.options(sec):
-                setting = parser.get(sec, option).strip()
+
+            for option in parser.options(psection):
+                setting = parser.get(psection, option).strip()
                 value = eval_item(setting)
-                model.set(section, option, value)
+                register_fn(section, option, value)
+
+    print(type(cfgs_filenames)==list)
+    print(cfgs_filenames)
+    if not (type(cfgs_filenames) == list):
+        cfgs_filenames = [cfgs_filenames]
+    print(type(cfgs_filenames))
+
+    print(cfgs_filenames)
+    if cfgs_merge:
+        parser = configparser.ConfigParser()
+
+        read_files = parser.read(cfgs_filenames)
+            
+        parsers = [parser]
+
+    else:
+        read_files = []
+        parsers = []
+
+        for filename in cfgs_filenames:
+            parser = configparser.ConfigParser()
+            parsers.append(parser)
+          
+            if parser.read(filename):
+                read_files.append(filename)
+
+    if (len(read_files) != len(cfgs_filenames)):
+        print('From expected files: ', str(cfgs_filenames),
+             'were successfully parsed only: ', str(read_files))
+
+    if register_fns:
+        if type(register_fns)=='list':
+            if len(register_fns) == len(cfgs_filenames):
+                for (fn, parser) in zip (register_fns, parsers):
+                    parser2register(parser, fn)
+            elif len(register_fns) == 1:
+                fn = register_fns[0]
+                for parser in parsers:
+                    parser2register(parser, fn)
+        else: 
+            parser2register(register_fns, fn) # single function
+    else:
+        cfgs = [parser2cfg(parser) for parser in parsers]
+        return cfgs
+
+
+    # def read_configs_old(self, merge_output_p = True, preserve_sections_p = False, \
+        #                  filenames = [const.INIFILE_DEFAULT], \
+        #                  defaults = [DEFAULT_PARAMETERS], \
+        #                  saveconfigname = ''):
+        # """
+        # Reads .ini files and returns them as an object(s)
+        # """
+
+        # if merge_output_p:
+        #     model = centrifugeparameters.CentrifugeParameters(preserve_sections_p)
+        #     for default in defaults:
+        #         model.register_keys(default)
+
+        #     parser = configparser.ConfigParser()
+        #     if saveconfigname:
+        #         # save the first filename that is expected to be config
+        #         # (so save it without comments)
+        #         raise Exception('Saving config file is not implemented !')
+
+        #     for filename in filenames:
+        #          if  not (filename and os.path.exists(filename)):
+        #              raise ValueError('The file %s cannot be found' % filename)
+        
+        #          parser.read(filename)
+        #     self._parser2model(parser, model)
+        #     return model
+        # else:
+        #     raise Exception("Multiple outputs are not implemented")
+
+    
