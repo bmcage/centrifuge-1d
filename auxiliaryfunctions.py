@@ -141,12 +141,12 @@ def adjust_model_default(model, adjust_all = False, adjust_omega = False,
 
     if adjust_all or adjust_time:
         # we assure that also the last value of tspan is present (and not cut)
-        model.register_key('experiment', 'tspan',
+        model.register_key('tspan',
                            np.arange(model.t_start,
                                      model.t_end + model.deceleration_duration
                                                 + model.t_step / 10.,
                                      model.t_step))
-    model.register_key('additional', 'include_acceleration', True)
+    model.register_key('include_acceleration', True)
 
 def adjust_data_default(data):
     if type(data.omega) == list:
@@ -159,14 +159,11 @@ def load_centrifuge_configs(inifilenames, post_hook_fns = None):
     Loads centrifuge inifiles (filenames - either a file or a list of files)
     and on the loaded data object calls the post_hook_fn (if set).
     """
-    from config import ConfigManager, DEFAULT_PARAMETERS
+    from config import read_configs, merge_cfgs, base_cfg
+    from model_parameters import ModelParameters
 
-    cm = ConfigManager.get_instance()
-    model   = cm.read_configs(merge_output_p = True,
-                              preserve_sections_p = False,
-                              filenames = inifilenames,
-                              defaults = [DEFAULT_PARAMETERS],
-                              saveconfigname = '')
+    [cfg] = read_configs(inifilenames, preserve_sections_p=True, cfgs_merge=True)
+    model = ModelParameters(merge_cfgs(base_cfg(), cfg))
 
     adjust_model_default(model, adjust_all = True)
     apply_functions(post_hook_fns, model)
