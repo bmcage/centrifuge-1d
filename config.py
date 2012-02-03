@@ -54,8 +54,9 @@ import const, centrifugeparameters
 # Constants
 #
 #---------------------------------------------------------------
-DEFAULT_PARAMETERS = \
-    {       'general': {'g': 981., 'debugging': False},
+def base_cfg():
+   base = { 
+            'general': {'g': 981., 'debugging': False},
     'starting-filter': {'d1': 0., 'ks1': -1. },
                'soil': {'n': 2.81, 'gamma': 0.0189, 'Ks': 2.4e-5,
                         'porosity': 0.4, 'V': 1.0},
@@ -71,14 +72,28 @@ DEFAULT_PARAMETERS = \
                         'inverse_data_filename': '', 'data_type': 0},
      'discretization': {'inner_points': 80, 'first_point_offset': 80.0, 'dtype': 1,
                         'percent_in_saturation': 40.0,
-                        'approximation_type': 5, 'mb_epsilon': 1e-5}}
+                        'approximation_type': 5, 'mb_epsilon': 1e-5}
+    }
 
-DEFAULT_DATA_PARAMETERS = \
-    {'inverse_data': {'duration': -1.0, 'h0': -1.0, 'h1': -1.0,
-                      'r0': -1.0, 'length': -1.0, 'omega': -1.0,
-                      'porosity': -1.0,
-                      'd1': 0.0, 'ks1': -1.0, 'd2': 0.0, 'ks2': -1.0,
-                      'exp_type': ''}}
+def merge_cfgs(cfg, *cfgs):
+  """ 
+  Merge all following cfgs into 'cfg'; if the same values appear, the last one
+  (from last cfg) applies
+  """
+  for acfg in cfgs:
+    cfg.update(acfg)
+  return cfg
+
+DEFAULT_PARAMETERS = default_base()
+
+inverse_cfg = {'inverse_data': {'duration': -1.0, 'h0': -1.0, 'h1': -1.0,
+                                'r0': -1.0, 'length': -1.0, 'omega': -1.0,
+                                'porosity': -1.0,
+                                'd1': 0.0, 'ks1': -1.0, 'd2': 0.0, 'ks2': -1.0,
+                                'exp_type': ''}}
+
+DEFAULT_DATA_PARAMETERS = merge_cfgs(base_cfg(), inverse_cfg)
+
 
 #---------------------------------------------------------------
 #
