@@ -131,7 +131,11 @@ def solve_direct_saturated_problem(model):
     return flag, t, z
 
 def utilize_model(model):
-    model.register_key('experiment','water_volume', total_water_volume(model))
+    model.register_key('water_volume', total_water_volume(model))
+
+def check_cfg(cfg):
+    # TODO: Implement
+    return True
 
 def run_direct(draw_graphs_p = False):
     from sys import argv as sysargv
