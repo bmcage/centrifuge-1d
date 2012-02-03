@@ -24,6 +24,8 @@ def h2Kh(h, n, m, gamma, Ks, Kh = None, tmp1 = None, tmp2 = None):
         tmp2[:] = np.power(1 + gamma * h * tmp1, m/2.)
         Kh[:]   = Ks/tmp2 * np.power(1-tmp1/np.power(tmp2, 2), 2)
     else:
+        #print(gamma, h, n)
+        #raise Error
         tmp1  = np.power( gamma * h, n-1.)
         tmp2 = np.power(1 + gamma * h * tmp1, m/2.)
         Kh   = Ks/tmp2 * np.power(1-tmp1/np.power(tmp2, 2), 2)

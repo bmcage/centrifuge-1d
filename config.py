@@ -55,23 +55,22 @@ import const, centrifugeparameters
 #
 #---------------------------------------------------------------
 DEFAULT_PARAMETERS = \
-    {\
-            'general': {'g': 981., 'debugging': False}, \
+    {       'general': {'g': 981., 'debugging': False},
     'starting-filter': {'d1': 0., 'ks1': -1. },
-               'soil': {'n': 2.81, 'gamma': 0.0189, 'Ks': 2.4e-5, \
+               'soil': {'n': 2.81, 'gamma': 0.0189, 'Ks': 2.4e-5,
                         'porosity': 0.4, 'V': 1.0},
       'ending-filter': {'d2': 0., 'ks2': -1. },
-              'fluid': {'viscosity': 1.0, 'density': 1.0, \
-                        's1_0': 0.1, 's2_0': 0.2, 'pc0': 1.0e5 }, \
+              'fluid': {'viscosity': 1.0, 'density': 1.0,
+                        's1_0': 0.1, 's2_0': 0.2, 'pc0': 1.0e5 },
          'centrifuge': {'r0': 30.0, 'L': 10.0, 'l0_in': 2.0, 'l0_out': 4.0,
-                        'd': 4.0, 'deceleration_duration': 0.}, \
+                        'd': 4.0, 'deceleration_duration': 0.},
          'experiment': {'exp_type': '',
-                        't_start': 0.0, 't_end': 2000.0, 't_step': 200.0, \
+                        't_start': 0.0, 't_end': 2000.0, 't_step': 200.0,
                         'omega_start': 0.0, 'omega': 35.0, 'omega_gamma': 0.5,
                         'omega_end': 0.0,
-                        'inverse_data_filename': '', 'data_type': 0}, \
+                        'inverse_data_filename': '', 'data_type': 0},
      'discretization': {'inner_points': 80, 'first_point_offset': 80.0, 'dtype': 1,
-                        'percent_in_saturation': 40.0, \
+                        'percent_in_saturation': 40.0,
                         'approximation_type': 5, 'mb_epsilon': 1e-5}}
 
 DEFAULT_DATA_PARAMETERS = \

@@ -23,7 +23,7 @@ class CentrifugeParameters:
             raise Exception("Preserving sections not implemented")
         else:
             if hasattr(self, key):
-                raise Exception('Atrribute ''%s''already exists !' % key)
+                raise Exception("Atrribute '%s' already exists !" % key)
             else:
                 setattr(self, key, value)
 
