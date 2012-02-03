@@ -37,18 +37,18 @@ except:
   #import errno
 #from gettext import gettext as _
 
-import const, centrifugeparameters
+#import const
 
 def base_cfg():
     base = { 
             'general': {'g': 981., 'debugging': False},
-    'starting-filter': {'d1': 0., 'ks1': -1. },
-               'soil': {'n': 2.81, 'gamma': 0.0189, 'Ks': 2.4e-5,
-                        'porosity': 0.4, 'V': 1.0},
+    'starting-filter': {'d1': 0., 'ks1': -1.0 },
+               'soil': {'n': 2.81, 'gamma': 0.0189, 'ks': 2.4e-5,
+                        'l': 10.0, 'porosity': 0.4, 'v': 1.0},
       'ending-filter': {'d2': 0., 'ks2': -1. },
               'fluid': {'viscosity': 1.0, 'density': 1.0,
                         's1_0': 0.1, 's2_0': 0.2, 'pc0': 1.0e5 },
-         'centrifuge': {'r0': 30.0, 'L': 10.0, 'l0_in': 2.0, 'l0_out': 4.0,
+         'centrifuge': {'r0': 30.0, 'l0_in': 2.0, 'l0_out': 4.0,
                         'd': 4.0, 'deceleration_duration': 0.},
          'experiment': {'exp_type': '',
                         't_start': 0.0, 't_end': 2000.0, 't_step': 200.0,
@@ -61,14 +61,31 @@ def base_cfg():
     }
     return base
 
-def merge_cfgs(cfg, *cfgs):
+def print_cfg(cfg):
+    print()
+    for (sec, value) in cfg.items():
+        print('section: ', sec)
+        print(value)
+
+def merge_cfgs(cfg, cfgs):
     """ 
     Merge all following cfgs into 'cfg'; if the same values appear, the last one
     (from last cfg) applies
     """
-    
-    for acfg in cfgs:
-        cfg.update(acfg)
+
+    def merge_cfg(cfg, ncfg):
+        for key in ncfg.keys():
+            if key in cfg:
+                cfg[key].update(ncfg[key])
+            else:
+                cfg[key]=dict(ncfg[key])
+
+    if type(cfgs) == list:
+        for acfg in cfgs:
+            merge_cfg(cfg, acfg)
+    else:
+        merge_cfg(cfg, cfgs)
+
     return cfg
 
 DEFAULT_PARAMETERS = base_cfg()
@@ -147,13 +164,9 @@ def read_configs(cfgs_filenames, preserve_sections_p=True, cfgs_merge=True):
 
         return cfg
 
-    print(type(cfgs_filenames)==list)
-    print(cfgs_filenames)
     if not (type(cfgs_filenames) == list):
         cfgs_filenames = [cfgs_filenames]
-    print(type(cfgs_filenames))
 
-    print(cfgs_filenames)
     if cfgs_merge:
         parser = configparser.ConfigParser()
 
