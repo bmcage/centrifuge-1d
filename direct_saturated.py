@@ -11,7 +11,13 @@ from shared_functions import find_omega2g
 mass_in_idx  = 0
 mass_out_idx = 1
 
-    
+DIRECT_SATURATED_ADDITIONAL_PARAMETERS = {}
+
+def direct_saturated_base_cfg()
+    from config import base_cfg, merge_cfgs
+
+    return merge_cfgs(base_cfg(), DIRECT_SATURATED_ADDITIONAL_PARAMETERS)
+
 def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
     import matplotlib.pyplot as plt
