@@ -67,6 +67,18 @@ def print_cfg(cfg):
         print('section: ', sec)
         print(value)
 
+
+def flatten_cfg(cfg):
+    def flatten(flattened_cfg, cfg):
+        for (key, value) in cfg.items():
+            if type(value) == dict:
+                flatten(flattened_cfg, value)
+            else:
+                flattened_cfg[key] = value
+        return flattened_cfg
+
+    return flatten({}, cfg)
+
 def merge_cfgs(cfg, cfgs):
     """ 
     Merge all following cfgs into 'cfg'; if the same values appear, the last one
