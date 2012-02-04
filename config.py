@@ -39,28 +39,6 @@ except:
 
 #import const
 
-def base_cfg():
-    base = { 
-            'general': {'g': 981., 'debugging': False},
-    'starting-filter': {'d1': 0., 'ks1': -1.0 },
-               'soil': {'n': 2.81, 'gamma': 0.0189, 'ks': 2.4e-5,
-                        'l': 10.0, 'porosity': 0.4, 'v': 1.0},
-      'ending-filter': {'d2': 0., 'ks2': -1. },
-              'fluid': {'viscosity': 1.0, 'density': 1.0,
-                        's1_0': 0.1, 's2_0': 0.2, 'pc0': 1.0e5 },
-         'centrifuge': {'r0': 30.0, 'l0_in': 2.0, 'l0_out': 4.0,
-                        'd': 4.0, 'deceleration_duration': 0.},
-         'experiment': {'exp_type': '',
-                        't_start': 0.0, 't_end': 2000.0, 't_step': 200.0,
-                        'omega_start': 0.0, 'omega': 35.0, 'omega_gamma': 0.5,
-                        'omega_end': 0.0,
-                        'inverse_data_filename': '', 'data_type': 0},
-     'discretization': {'inner_points': 80, 'first_point_offset': 80.0, 'dtype': 1,
-                        'percent_in_saturation': 40.0,
-                        'approximation_type': 5, 'mb_epsilon': 1e-5}
-    }
-    return base
-
 def print_cfg(cfg):
     print()
     for (sec, value) in cfg.items():
@@ -108,6 +86,7 @@ inverse_cfg = {'inverse_data': {'duration': -1.0, 'h0': -1.0, 'h1': -1.0,
                                 'd1': 0.0, 'ks1': -1.0, 'd2': 0.0, 'ks2': -1.0,
                                 'exp_type': ''}}
 
+from base import base_cfg
 DEFAULT_DATA_PARAMETERS = merge_cfgs(base_cfg(), inverse_cfg)
 
 def eval_item(setting):
@@ -147,7 +126,8 @@ def eval_item(setting):
 #                 register_fn(section, option, value)
 
 
-def read_configs(cfgs_filenames, preserve_sections_p=True, cfgs_merge=True):
+def read_configs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True, 
+                 cfgs_merge=True):
     """
       Reads config .ini files. If preserve_sections_p is false, removes sections
       and leaves only values from all sections; in case of two sections contain
@@ -156,7 +136,7 @@ def read_configs(cfgs_filenames, preserve_sections_p=True, cfgs_merge=True):
     """
 
     def parser2cfg(parser):
-        cfg = {}
+        cfg = base_cfg
 
         for psection in parser.sections():
             section = psection.lower()
