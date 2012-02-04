@@ -1,4 +1,3 @@
-from numpy import arange
 
 class ModelParameters:
     """
@@ -15,7 +14,7 @@ class ModelParameters:
             setattr(self, key, value)
 
     def register_keys(self, cfg):
-        for (section, keys_values) in cfg.items():
+        for keys_values in cfg.values():
             for (key, value) in keys_values.items():
                 self.register_key(key.lower(), value)
 
@@ -39,9 +38,9 @@ class ModelParameters:
                     pass
                 elif not ((type(item) == key_type) or
                           (type(item) == int and key_type == float)):
-                     raise ValueError("ModelParameters: key '%s' has wrong type."
-                             " Expected type '%s' and got type '%s' of %s"
-                             % (key, key_type, value_type, value))
+                    raise ValueError("ModelParameters: key '%s' has wrong type."
+                            " Expected type '%s' and got type '%s' of %s"
+                            % (key, key_type, value_type, value))
                 if value and type(value[0] == int) and (key_type == float):
                     value = [float(item) for item in value]
 
