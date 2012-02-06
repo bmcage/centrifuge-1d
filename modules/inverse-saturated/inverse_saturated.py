@@ -66,17 +66,9 @@ def ip_direct_saturated_heights(xdata, Ks):
 
 
 def solve_inverse_saturated(model, measured_data_filename):
-    data = load_measured_data(measured_data_filename)
+    
 
-    # save original values of model and replace them with read data
-    backup_include_acceleration = model.include_acceleration
-    backup_t_start  = model.t_start
-    backup_t_end    = model.t_end
-    backup_t_span   = model.tspan
-    backup_omega    = model.omega
-    backup_l        = model.l
-    backup_r0       = model.r0
-    Ks_init         = model.ks
+
 
     if np.isscalar(data.length):
         if data.length < 0:
@@ -138,7 +130,8 @@ def solve_inverse_saturated(model, measured_data_filename):
 
     # resolve the type of measured data
     if model.data_type == 0:
-        raise NotImplemented('inverse::characteristics: load characteristics data not implemented !')
+        raise NotImplementedError('inverse::characteristics: load '
+                                  ' characteristics data not implemented !')
         GC_measured   = data['GC']
         RM_measured   = data['RM']
         data_measured = np.concatenate((GC_measured, RM_measured))
@@ -164,16 +157,6 @@ def solve_inverse_saturated(model, measured_data_filename):
                                data_measured, p0 = Ks_init)
 
     t_inv, h1_inv = direct_fn(xdata, Ks_inv)
-
-    # Restore original values
-    model.include_acceleration = backup_include_acceleration
-    model.t_start = backup_t_start
-    model.t_end   = backup_t_end
-    model.t_span  = backup_t_span
-    model.omega   = backup_omega
-    model.l       = backup_l
-    model.r0      = backup_r0
-    model.ks      = Ks_init
 
     # Print results
     for i in np.arange(len(heights_0)):
@@ -201,21 +184,44 @@ def verify_inverse_data(model):
         raise ValueError('Wrong inverse_data_filename: %d'
                          % model.data_type)
 
+def unify_data(model):
+    pass
+
 def run_inverse_saturated():
     from sys import argv as sysargv
     from auxiliaryfunctions import (parse_centrifuge_input,
                                     load_centrifuge_configs)
 
     inifiles = parse_centrifuge_input(sysargv)[0]
-    model = load_centrifuge_configs(inifiles,
-                                    [verify_inverse_data, utilize_direct_model])
+    imodel = load_centrifuge_configs(inifiles,
+                                     [verify_inverse_data, utilize_direct_model])
 
-    data_filenames = model.inverse_data_filename
+    data = [load_measured_data(filename) for filename in model.inverse_data_filename]
+
+    # save original values of model and replace them with read data
+    backup_include_acceleration = imodel.include_acceleration
+    backup_t_start  = imodel.t_start
+    backup_t_end    = imodel.t_end
+    backup_t_span   = imodel.tspan
+    backup_omega    = imodel.omega
+    backup_l        = imodel.l
+    backup_r0       = imodel.r0
+    Ks_init         = imodel.ks
 
     Ks_inv  = np.empty([len(data_filenames), ],  float)
 
-    for i in range(len(data_filenames)):
-        Ks_inv[i] = solve_inverse_saturated(model, data_filenames[i])
+    for i in range(len(data)):
+        Ks_inv[i] = solve_inverse_saturated(imodel, data_filenames[i])
+
+        # Restore original values
+        model.include_acceleration = backup_include_acceleration
+        model.t_start = backup_t_start
+        model.t_end   = backup_t_end
+        model.t_span  = backup_t_span
+        model.omega   = backup_omega
+        model.l       = backup_l
+        model.r0      = backup_r0
+        model.ks      = Ks_init
 
     Ks_inv_disp = Ks_inv / 100
     print('\n\nKs_inv computed [m/s]: ')
