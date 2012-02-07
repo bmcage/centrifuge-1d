@@ -24,6 +24,9 @@ def usage():
 
 def run_experiments(exp_id, first_experiment, last_experiment):
     from common import modules_names
+    from config import read_cfgs, merge_cfgs, base_cfg
+    from base import ModelParameters
+    from os.path import exists
 
     print('\n'
           '---------------------------------------------------------'
@@ -33,17 +36,39 @@ def run_experiments(exp_id, first_experiment, last_experiment):
           'Last  experiment: %s '
           % first_experiment, last_experiment)
 
-    inifiles_dir = ''.join(INIFILES_BASE_DIR, '/', exp_id)
+    exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
+
+    exp_ini_defaults = exp_inifiles_dir + '/defaults.ini'
+    if exists(ini_defaults):
+        [default_cfg] = read_cfgs(ini_defaults, preserve_sections_p=True)
+    else:
+        default_cfg = ''
 
     find_module = modules_names()
 
     for exp_no in range(first_experiment, last_experiment+1):
         for tube_no in TUBES_NUMBERS:
-            filename = ''.join(inifiles_dir, '/experiment_', tube_no, '.ini')
-
-            print('\n============================================================='
+            print('\n==========================================================='
                   '\nExecuting experiment %s of the %s problem.'
                   % tube_no, exp_id)
+
+            inifilename = (exp_inifiles_dir + '/experiment_' + exp_no
+                           + '-filter' + tube_no +'.ini')
+
+            [cfg] = read_cfgs(inifilename, preserve_sections_p=True)
+
+            module = find_module(exp_type)
+
+            model_cfg = merge_cfgs(model.base_cfg(), default_cfg, cfg)
+
+            if module.adjust_cfg:
+                module.adjust_cfg(model_cfg)
+            if module.check_cfg:
+                module.check_cfg(model_cfg)
+
+            model = ModelParameters(model_cfg)
+
+            module.solve(model)
 
             print('\nExperiment %s finished.' % exp_no)
 
