@@ -13,10 +13,10 @@ mass_out_idx = 1
 
 DIRECT_SATURATED_ADDITIONAL_PARAMETERS = {}
 
-def direct_saturated_base_cfg():
-    from config import base_cfg, merge_cfgs
+def base_cfg():
+    from config import base_cfg as raw_cfg, merge_cfgs
 
-    return merge_cfgs(base_cfg(), DIRECT_SATURATED_ADDITIONAL_PARAMETERS)
+    return merge_cfgs(raw_cfg(), DIRECT_SATURATED_ADDITIONAL_PARAMETERS)
 
 def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
