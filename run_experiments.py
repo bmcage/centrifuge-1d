@@ -23,7 +23,7 @@ def usage():
 
 
 def run_experiments(exp_id, first_experiment, last_experiment):
-    from common import modules_names
+    from common import load_modules_names
     from config import read_cfgs, merge_cfgs, base_cfg
     from base import ModelParameters
     from os.path import exists
@@ -44,7 +44,7 @@ def run_experiments(exp_id, first_experiment, last_experiment):
     else:
         default_cfg = ''
 
-    find_module = modules_names()
+    find_module = load_modules_names()
 
     for exp_no in range(first_experiment, last_experiment+1):
         for tube_no in TUBES_NUMBERS:

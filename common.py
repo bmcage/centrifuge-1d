@@ -24,7 +24,7 @@ def read_model(cfg_filenames, base_cfg = {}, check_cfg_fn = None,
 
     return model
 
-def modules_names()
+def load_modules_names(submodule)
     """
     Lists all experiment types defined in modules/<module_name>.info.py
     and returns a function for quick finding the module for given
@@ -55,7 +55,7 @@ def modules_names()
             module_name = modules_names[exp_type]
 
             if not module_name in loaded_modules:
-                module = __import__('modules.' + module_name + '.run')
+                module = __import__('modules.' + module_name + '.' + submodule)
                 loaded_modules[module_name] = module
 
             return loaded_modules[module_name]
