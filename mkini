@@ -4,7 +4,6 @@ from os import makedirs, path
 
 base_dir = 'sources'
 csv_dir  = '{}/csv'.format(base_dir)
-data_dir = '{}/data'.format(base_dir)
 ini_dir  = '{}/inifiles'.format(base_dir)
 ini_defaults_dir = 'inifiles-defaults'
 
@@ -15,26 +14,6 @@ def usage():
     print(' csv_file: (optional) uses chosen csv file instead of default one'
           ' (i.e. file ''./sources/csv/experiment_id.cvs'' ')
     exit(0)
-
-filter_fns = {}
-def filter_out(exp_type, indexes, row):
-    # IF exp_type in filter_fns:
-    #     filter_fn = filter_fns[exp_type]
-    # else:
-    #     try:
-    #         from <exp_type.module> import filter_fn
-    #     except:
-    #         from <defaults.module> import filter_fn
-    #     filter_fns[exp_type] = filter_fn
-
-    if exp_type == 'ish':
-        # only those rows where the difference between the
-        # starting and ending soil heigh has less than 5% difference
-        sh0 = float(row[indexes['sh0']])
-        sh1 = float(row[indexes['sh1']])
-        return (abs((sh0 - sh1) / sh0) > 0.05)
-    else:
-        return False
 
 def write_ini(fout, exp_id, exp_no, tube_no, data):
     if  data['exp_type'] == 'ish' or data['exp_type'] == 'ishsc':
@@ -56,6 +35,7 @@ def write_ini(fout, exp_id, exp_no, tube_no, data):
         raise NotImplemented
 
 def CSV2dataini(csv_filename, data_dir):
+    from common import load_modules_names
     import csv
 
     data = {}
@@ -64,6 +44,8 @@ def CSV2dataini(csv_filename, data_dir):
     csv_data = csv.reader(f_csv)
 
     exp_identifiers = ['id', 'exp_no', 'exp_type', 'tube_no']
+
+    find_module = load_modules_names('csv_parse')
 
     print('Reading CSV file... ', end="")
 
@@ -93,7 +75,9 @@ def CSV2dataini(csv_filename, data_dir):
         experiment_type = row[exp_type_idx]
         tube_number     = row[tube_no_idx]
 
-        if filter_out(experiment_type, indexes, row): continue
+        module = find_module(experiment_type)
+
+        if module.skip(experiment_type, row, indexes): continue
 
         if not experiment_id in data:
             data[experiment_id]={}
@@ -111,11 +95,11 @@ def CSV2dataini(csv_filename, data_dir):
                 if not 'exp_type' in experiment_data[tube_number]:
                     experiment_data[tube_number]['exp_type'] = value
                 elif experiment_data[tube_number]['exp_type'] != value:
-                    raise ValueError(''.join(['Experiment ', experiment_no,
-                                              'of suit "',experiment_id,
-                                              '"cannot have different experiment',
-                                              ' types: ', value, ' and ',
-                                              experiment_data[tube_number]['exp_type']]))
+                    raise ValueError('Experiment ' + experiment_no + 'of suit "'
+                                     + experiment_id
+                                     + '"cannot have different experiment'
+                                     + ' types: ', value, ' and '
+                                     + experiment_data[tube_number]['exp_type'])
 
     f_csv.close()
 
@@ -150,44 +134,6 @@ def CSV2dataini(csv_filename, data_dir):
 
     return data
 
-from subprocess import call
-
-def adjust_default_inifiles(filename, data_dir, experiment_no):
-    call(['sed', '-i', ''.join(['s#\[inidirectory\]#', data_dir, '#g']),
-          filename])
-    call(['sed', '-i', ''.join(['s#\[exp_no\]#', experiment_no, '#g']),
-          filename])
-
-def create_experiment_inifiles(ini_dir, ini_defaults_dir, data_dir, csv_data):
-
-    print('\nCreating inifiles for experiments...')
-    for (experiment_id, exp_id_struct) in csv_data.items():
-        outputdir = '/'.join([ini_dir, experiment_id])
-        exp_datadir = '/'.join([data_dir, experiment_id])
-
-        call(['mkdir', '-p', outputdir])
-
-        print('    Processing experiments with ID: %s' % experiment_id)
-
-        for (experiment_no, exp_no_struct)  in exp_id_struct.items():
-            filename = ''.join([outputdir, '/experiment_', experiment_no, '.ini'])
-
-            #TODO: add 'force' switch to overwrite
-            if path.exists(filename): continue
-
-            print('     Creating inifile for experiment %s... ' % experiment_no,
-                  end='')
-
-            call(['cp',
-                  ''.join([ini_defaults_dir, '/',
-                          'experiment_on_tubes-default.ini']),
-                  filename])
-
-            adjust_default_inifiles(filename, exp_datadir, experiment_no)
-
-            print('Done.')
-    print('Finished.')
-
 def process_input():
     from sys import argv as args
 
@@ -207,8 +153,8 @@ def process_input():
             print('CSV data file ''%s'' does not exist.' % csv_file)
             exit(0)
 
-        if not path.exists(data_dir):
-            makedirs(data_dir)
+        if not path.exists(ini_dir):
+            makedirs(ini_dir)
     else:
         print('Bad input !')
         usage()
@@ -217,6 +163,4 @@ def process_input():
 
 if __name__ == "__main__":
     csv_file = process_input()
-    csv_data = CSV2dataini(csv_file, data_dir)
-
-    create_experiment_inifiles(ini_dir, ini_defaults_dir, data_dir, csv_data)
+    csv_data = CSV2dataini(csv_file, ini_dir)
