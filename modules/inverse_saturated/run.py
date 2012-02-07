@@ -14,6 +14,17 @@ from direct_saturated import (solve_direct_saturated_problem,
                               extract_saturated_water_heights,
                               utilize_model as utilize_direct_model)
 
+INVERSE_SATURATED_ADDITIONAL_PARAMETERS = {
+    'inverse-heights': { 'l1' : -1.0, 'wl1' : -1.0 }
+    }
+
+import modules.direct_saturated.run as direct
+
+def base_cfg():
+    from config import merge_cfgs
+
+    return merge_cfgs(direct.base_cfg, INVERSE_SATURATED_ADDITIONAL_PARAMETERS)
+
 mass_in_idx  = 0
 mass_out_idx = 1
 
