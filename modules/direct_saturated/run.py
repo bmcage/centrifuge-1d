@@ -123,7 +123,7 @@ def extract_saturated_water_heights(z, model):
 
 direct_saturated_rhs_fn = direct_saturated_rhs()
 
-def solve_direct_saturated_problem(model):
+def solve(model):
 
     solver = ida.IDA(direct_saturated_rhs_fn,
                      compute_initcond='yp0',
@@ -143,14 +143,14 @@ def check_cfg(cfg):
     # TODO: Implement
     return True
 
-def run_direct(draw_graphs_p = False):
+if __name__ == "__main__":
     from sys import argv as sysargv
     from auxiliaryfunctions import (parse_centrifuge_input,
                                     load_centrifuge_configs)
-   
     [inifiles, outputdir, savecfgname] =  parse_centrifuge_input(sysargv)
+
     model = load_centrifuge_configs(inifiles, [utilize_model])
-     
+
     _flag, t, z = solve_direct_saturated_problem(model)
 
     if model.data_type == 0:
@@ -169,5 +169,3 @@ def run_direct(draw_graphs_p = False):
     else:
         raise ValueError('direct_saturated::run_direct Unknown data type: ', data_type)
 
-if __name__ == "__main__":
-    run_direct(draw_graphs_p = True)
