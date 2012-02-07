@@ -126,7 +126,7 @@ def eval_item(setting):
 #                 register_fn(section, option, value)
 
 
-def read_configs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True, 
+def read_cfgs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
                  cfgs_merge=True):
     """
       Reads config .ini files. If preserve_sections_p is false, removes sections
