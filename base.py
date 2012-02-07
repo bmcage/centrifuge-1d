@@ -2,26 +2,27 @@
 def base_cfg():
     base = {
             'general': {'g': 981., 'debugging': False},
-    'starting-filter': {'d1': 0., 'ks1': -1.0 },
-               'soil': {'n': 2.81, 'gamma': 0.0189, 'ks': 2.4e-5,
-                        'l': 10.0, 'porosity': 0.4, 'v': 1.0},
-      'ending-filter': {'d2': 0., 'ks2': -1. },
+    'starting-filter': {'fl1': 0.0, 'ks1': -1.0 },
+               'soil': {'ks': -1.0, 'l0':  -1.0, 'porosity': -1.0},
+      'ending-filter': {'fl2': 0.0, 'ks2': -1.0 },
               'fluid': {'viscosity': 1.0, 'density': 1.0,
-                        's1_0': 0.1, 's2_0': 0.2, 'pc0': 1.0e5 },
-         'centrifuge': {'r0': 30.0, 'l0_in': 2.0, 'l0_out': 4.0,
-                        'd': 4.0, 'deceleration_duration': 0.0,
-                        'include_acceleration': True},
+                        'wl0': 0.0, 'wl0_out': 0.0},
+         'centrifuge': {'r0': -1.0, 'd0_out': -1.0,
+                        'include_acceleration': True,
+                        'deceleration_duration': 0.0},
          'experiment': {'exp_type': '',
                         't_start': 0.0, 't_end': 2000.0, 't_step': 200.0,
                         'omega_start': 0.0, 'omega': 35.0, 'omega_gamma': 0.5,
                         'omega_end': 0.0,
-                        'inverse_data_filename': '', 'data_type': 0},
-     'discretization': {'inner_points': 80, 'first_point_offset': 80.0, 'dtype': 1,
-                        'percent_in_saturation': 40.0,
-                        'approximation_type': 5, 'mb_epsilon': 1e-5}
+                        'data_type': 0}
     }
     return base
-
+# unsaturated_cfg = {
+#             'soil': {'n': 2.81, 'gamma': 0.0189, 'v': 1.0},
+#            'fluid': {'s1_0': 0.1, 's2_0': 0.2, 'pc0': 1.0e5 },
+#   'discretization': {'inner_points': 80, 'first_point_offset': 80.0,
+#                      'dtype': 1, 'percent_in_saturation': 40.0,
+#                      'approximation_type': 5, 'mb_epsilon': 1e-5}
 
 def adjust_base_cfg(cfg, adjust_all = False, adjust_omega = False,
                          adjust_time = False):
