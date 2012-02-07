@@ -72,7 +72,8 @@ def merge_cfgs(cfg, cfgs):
 
     if type(cfgs) == list:
         for acfg in cfgs:
-            merge_cfg(cfg, acfg)
+            if acfg:
+                merge_cfg(cfg, acfg)
     else:
         merge_cfg(cfg, cfgs)
 
