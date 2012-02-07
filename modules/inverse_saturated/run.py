@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 
+import modules.direct_saturated.direct_saturated
+
 syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
 
 from auxiliaryfunctions import load_measured_data
