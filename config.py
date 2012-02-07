@@ -28,14 +28,10 @@
 This package implements access to configuration.
 """
 
-#import os
-#import time
 try:
     import ConfigParser as configparser
 except:
     import configparser
-  #import errno
-#from gettext import gettext as _
 
 #import const
 
@@ -113,20 +109,6 @@ def eval_item(setting):
     return value
 
 
-# def parser2register(parser, register_fns):
-#         """ 
-#         Loads data from parser into model.
-#         """
-
-#         for psection in parser.sections():
-#             section = sec.lower()
-
-#             for option in parser.options(psection):
-#                 setting = parser.get(psection, option).strip()
-#                 value = eval_item(setting)
-#                 register_fn(section, option, value)
-
-
 def read_cfgs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
                  cfgs_merge=True):
     """
@@ -185,35 +167,5 @@ def read_cfgs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
     cfgs = [parser2cfg(parser) for parser in parsers]
 
     return cfgs
-
-
-    # def read_configs_old(self, merge_output_p = True, preserve_sections_p = False, \
-        #                  filenames = [const.INIFILE_DEFAULT], \
-        #                  defaults = [DEFAULT_PARAMETERS], \
-        #                  saveconfigname = ''):
-        # """
-        # Reads .ini files and returns them as an object(s)
-        # """
-
-        # if merge_output_p:
-        #     model = centrifugeparameters.CentrifugeParameters(preserve_sections_p)
-        #     for default in defaults:
-        #         model.register_keys(default)
-
-        #     parser = configparser.ConfigParser()
-        #     if saveconfigname:
-        #         # save the first filename that is expected to be config
-        #         # (so save it without comments)
-        #         raise Exception('Saving config file is not implemented !')
-
-        #     for filename in filenames:
-        #          if  not (filename and os.path.exists(filename)):
-        #              raise ValueError('The file %s cannot be found' % filename)
-        
-        #          parser.read(filename)
-        #     self._parser2model(parser, model)
-        #     return model
-        # else:
-        #     raise Exception("Multiple outputs are not implemented")
 
     
