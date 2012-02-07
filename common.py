@@ -24,7 +24,7 @@ def read_model(cfg_filenames, base_cfg = {}, check_cfg_fn = None,
 
     return model
 
-def load_modules_names(submodule)
+def load_modules_names(submodule):
     """
     Lists all experiment types defined in modules/<module_name>.info.py
     and returns a function for quick finding the module for given
@@ -34,32 +34,41 @@ def load_modules_names(submodule)
     # We keep the list of available modules in modules names, where
     # every modules_names[exp_type] points to given module name that
     # exports it. Modules itself are loaded only on demand.
-    modules_names  = {}
-    loaded_modules = {}
+    existing_modules = {}
+    loaded_modules   = {}
 
-    import os.listdir as listdir
+    from os import listdir
+    from sys import modules as sysmodules
 
-    modules_names = listdir
+    modules_names = listdir('modules')
+
     for module_name in modules_names:
-        if module_name not in ['__pycache__', '__init__']:
+        if module_name not in ['__pycache__', '__init__.py']:
             try:
-                info   = __import__('modules.' + module_name + '.info')
+                module_full_name = 'modules.' + module_name + '.info'
+                __import__(module_full_name)
+
+                info = sysmodules[module_full_name]
 
                 for exp_id in info.types:
-                    modules[exp_id] = module_name
+                    existing_modules[exp_id] = module_name
             except:
-                print('Module %s could not be loaded. Skipping.')
+                print('Module load error:Module "%s" could not be loaded.'
+                      ' Skipping.\n'  % module_name)
 
-    def find_module(exp_type)
-        if exp_type in modules_names:
-            module_name = modules_names[exp_type]
+    def find_module(exp_type):
+        if exp_type in existing_modules:
+            module_name = existing_modules[exp_type]
 
             if not module_name in loaded_modules:
-                module = __import__('modules.' + module_name + '.' + submodule)
-                loaded_modules[module_name] = module
+                module_full_name = 'modules.' + module_name + '.' + submodule
+                __import__(module_full_name)
+                loaded_modules[module_name] = sysmodules[module_full_name]
 
             return loaded_modules[module_name]
         else:
             print('Unknown experiment type: %s' % exp_type)
-            print('Available experiments are:\n %s' % modules_names.keys())
+            print('Available experiments are:\n %s' % modules_names())
             raise ValueError()
+
+    return find_module
