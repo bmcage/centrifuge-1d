@@ -17,7 +17,7 @@ def usage():
 
 def write_ini(fout, exp_id, exp_no, tube_no, data):
     if  data['exp_type'] == 'ish' or data['exp_type'] == 'ishsc':
-        fout.write('[inverse_data]\n')
+        fout.write('[experiment-data]\n')
 
         for (descriptor, value) in data.items():
             if descriptor == 'exp_type':
