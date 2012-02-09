@@ -75,17 +75,6 @@ def merge_cfgs(cfg, cfgs):
 
     return cfg
 
-DEFAULT_PARAMETERS = base_cfg()
-
-inverse_cfg = {'inverse_data': {'duration': -1.0, 'h0': -1.0, 'h1': -1.0,
-                                'r0': -1.0, 'length': -1.0, 'omega': -1.0,
-                                'porosity': -1.0,
-                                'd1': 0.0, 'ks1': -1.0, 'd2': 0.0, 'ks2': -1.0,
-                                'exp_type': ''}}
-
-from base import base_cfg
-DEFAULT_DATA_PARAMETERS = merge_cfgs(base_cfg(), inverse_cfg)
-
 def eval_item(setting):
     """
     Given a value from an ini file, return it in its proper type.
