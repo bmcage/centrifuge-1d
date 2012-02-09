@@ -24,42 +24,41 @@ def usage():
 
 def run_experiments(exp_id, first_experiment, last_experiment):
     from common import load_modules_names
-    from config import read_cfgs, merge_cfgs, base_cfg
+    from config import read_cfgs, merge_cfgs
     from base import ModelParameters
     from os.path import exists
-
-    print('\n'
-          '---------------------------------------------------------'
-          '\n GENERAL experiments informations'
-          '\n'
-          'First experiment: %s'
-          'Last  experiment: %s '
-          % first_experiment, last_experiment)
 
     exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
 
     exp_ini_defaults = exp_inifiles_dir + '/defaults.ini'
-    if exists(ini_defaults):
+    if exists(exp_ini_defaults):
         [default_cfg] = read_cfgs(ini_defaults, preserve_sections_p=True)
     else:
         default_cfg = ''
 
-    find_module = load_modules_names()
+    find_module = load_modules_names('run')
+
+    print('\n'
+          '---------------------------------------------------------'
+          '\n GENERAL experiments informations'
+          '\nFirst experiment: %s'
+          '\nLast  experiment: %s '
+          % (first_experiment, last_experiment))
 
     for exp_no in range(first_experiment, last_experiment+1):
         for tube_no in TUBES_NUMBERS:
             print('\n==========================================================='
                   '\nExecuting experiment %s of the %s problem.'
-                  % tube_no, exp_id)
+                  % (tube_no, exp_id))
 
-            inifilename = (exp_inifiles_dir + '/experiment_' + exp_no
-                           + '-filter' + tube_no +'.ini')
+            inifilename = (exp_inifiles_dir + '/experiment_' + str(exp_no)
+                           + '-filter' + str(tube_no) +'.ini')
 
             [cfg] = read_cfgs(inifilename, preserve_sections_p=True)
 
-            module = find_module(exp_type)
+            module = find_module(cfg['experiment-data']['exp_type'])
 
-            model_cfg = merge_cfgs(model.base_cfg(), default_cfg, cfg)
+            model_cfg = merge_cfgs(module.base_cfg(), default_cfg, cfg)
 
             if module.adjust_cfg:
                 module.adjust_cfg(model_cfg)
@@ -86,11 +85,15 @@ def parse_input():
         exp_id = sysargv[1]
         print(sysargv)
 
-        first_experiment = sysargv[3]
-        if arg_len == 4:
-            last_experiment = sysargv[4]
-        else:
-            last_experiment = first_experiment
+        try:
+            first_experiment = int(sysargv[2])
+            if arg_len == 4:
+                last_experiment = int(sysargv[3])
+            else:
+                last_experiment = first_experiment
+        except:
+            raise ValueError('Input error: first and last experiment have to be'
+                             ' integers. Wrong input: %s' % sysargv[1:])
 
         run_experiments(exp_id, first_experiment, last_experiment)
     else:
