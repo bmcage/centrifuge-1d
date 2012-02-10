@@ -1,3 +1,4 @@
+import numpy as np
 
 def base_cfg():
     base = {
@@ -8,12 +9,12 @@ def base_cfg():
               'fluid': {'viscosity': 1.0, 'density': 1.0,
                         'wl0': 0.0, 'wl0_out': 0.0},
          'centrifuge': {'r0': -1.0, 'd0_out': -1.0,
-                        'include_acceleration': True,
+                        'include_acceleration': False,
                         'deceleration_duration': 0.0},
          'experiment': {'exp_type': '',
                         't_start': 0.0, 't_end': 2000.0, 't_step': 200.0,
-                        'omega_start': 0.0, 'omega': 35.0, 'omega_gamma': 0.5,
-                        'omega_end': 0.0,
+                        'omega_start': -1.0, 'omega': 35.0, 'omega_gamma': 0.5,
+                        'omega_end': -1.0,
                         'data_type': 0}
     }
     return base
@@ -24,21 +25,32 @@ def base_cfg():
 #                      'dtype': 1, 'percent_in_saturation': 40.0,
 #                      'approximation_type': 5, 'mb_epsilon': 1e-5}
 
-def adjust_base_cfg(cfg, adjust_all = False, adjust_omega = False,
-                         adjust_time = False):
-    if adjust_all or adjust_omega:
-        model.omega_start = model.omega_start * np.pi/ 30. # (2pi)*omega/60
-        model.omega       = model.omega * np.pi/ 30.
-    # TODO: adjust omega_end?
+def adjust_cfg(cfg):
+    # print(cfg)
+    omega_fn = lambda x: x * np.pi/ 30.0 # omega -> (2pi)*omega/60//rpm->rad.s-1
 
-    if adjust_all or adjust_time:
-        # we assure that also the last value of tspan is present (and not cut)
-        model.register_key('tspan',
-                           np.arange(model.t_start,
-                                     model.t_end + model.deceleration_duration
-                                                + model.t_step / 10.,
-                                     model.t_step))
+    cfg['omega'] = map(omega_fn, cfg['omega'])
+    if cfg['include_acceleration']:
+        if 'omega_start' in cfg and not (cfg['omega_start'] < 0.):
+            cfg['omega_start'] =  map(omega_fn, cfg['omega_start']) # (2pi)*omega/60
+        else:
+            cfg['omega_start'] = np.asarray([0.0], dtype=float)
 
+        if 'omega_end' in cfg and not (cfg['omega_end'] < 0.):
+            cfg['omega_end'] = map(omega_fn, cfg['omega_end']) # (2pi)*omega/60
+        else:
+            cfg['omega_end'] = np.asarray([0.0], dtype=float)
+    else:
+        cfg['omega_start'] = cfg['omega']
+        cfg['omega_end']   = cfg['omega']
+
+    # we assure that also the last value of tspan is present (and not cut)
+    if 'duration' in cfg:
+        if ('t_start' in cfg) or ('t_end' in cfg) or ('t_step' in cfg):
+            raise ValueError('Cannot set both: "duration" and one of "t_start",'
+                             ' "t_end", t_step"')
+    else:
+        cfg['duration'] = (cfg['t_end'] - cfg['t_start']) / cfg['t_step']
 
 class ModelParameters:
     """
@@ -47,17 +59,20 @@ class ModelParameters:
     def __init__(self, cfg = None):
         if cfg:
             self.register_keys(cfg)
+        self.register_key('tspan', np.asarray([], dtype=float))
 
     def register_key(self, key, value):
         if hasattr(self, key):
             raise Exception("Atrribute '%s' already exists !" % key)
         else:
-            setattr(self, key, value)
+            if type(value) == str:
+                setattr(self, key, value)
+            else:
+                setattr(self, key, np.asarray(value))
 
-    def register_keys(self, cfg):
-        for keys_values in cfg.values():
-            for (key, value) in keys_values.items():
-                self.register_key(key.lower(), value)
+    def register_keys(self, flattened_cfg):
+        for (key, value) in flattened_cfg.items():
+            self.register_key(key.lower(), value)
 
     def set(self, key, value):
         key_lower = key.lower()
