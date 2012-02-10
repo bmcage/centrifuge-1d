@@ -31,7 +31,6 @@ def write_ini(fout, exp_id, exp_no, tube_no, data):
                 fout.write('{:8} = [{}]\n'.format(descriptor,
                                                   ', '.join(value)))
     else:
-        #print('error')
         raise NotImplemented
 
 def CSV2dataini(csv_filename, data_dir):
@@ -62,7 +61,6 @@ def CSV2dataini(csv_filename, data_dir):
         print('CSV file: missing ''id'', ''exp_no''',
               ' ''exp_type'' or ''tube_no'' column name !')
         exit(1)
-    print(csv_fields, indexes)
 
     ini_fields = []
     ini_fields.extend(csv_fields)
