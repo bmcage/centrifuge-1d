@@ -24,7 +24,7 @@ def usage():
 
 def run_experiments(exp_id, first_experiment, last_experiment):
     from common import load_modules_names
-    from config import read_cfgs, merge_cfgs
+    from config import read_cfgs, merge_cfgs, flatten_cfg
     from base import ModelParameters
     from os.path import exists
 
@@ -58,12 +58,12 @@ def run_experiments(exp_id, first_experiment, last_experiment):
 
             module = find_module(cfg['experiment-data']['exp_type'])
 
-            model_cfg = merge_cfgs(module.base_cfg(), default_cfg, cfg)
+            model_cfg = merge_cfgs(module.base_cfg(), [default_cfg, cfg])
+            model_cfg = flatten_cfg(model_cfg)
 
-            if module.adjust_cfg:
-                module.adjust_cfg(model_cfg)
-            if module.check_cfg:
-                module.check_cfg(model_cfg)
+            module.adjust_cfg(model_cfg)
+            if not module.check_cfg(model_cfg):
+                raise ValueError('Check_cfg failed.')
 
             model = ModelParameters(model_cfg)
 
