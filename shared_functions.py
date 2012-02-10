@@ -139,11 +139,12 @@ def find_omega2g(t, model):
                                * (model.omega - model.omega_end))
             else:
                 omega = model.omega
+        elif t > 21.0:
+            omega = model.omega
         else:
             omega_base = 10.
-            if t > 21.:
-                omega = omega_base
-            elif t > 20.:
+
+            if t > 20.:
                 omega = (21.-t)*f3(t) + (t - 20.)*omega_base
             elif t > 12.:
                 omega = f3(t)
