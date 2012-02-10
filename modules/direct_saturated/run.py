@@ -14,9 +14,14 @@ mass_out_idx = 1
 DIRECT_SATURATED_ADDITIONAL_PARAMETERS = {}
 
 def base_cfg():
-    from config import base_cfg as raw_cfg, merge_cfgs
+    from base import base_cfg as raw_cfg
+    from config import merge_cfgs
 
     return merge_cfgs(raw_cfg(), DIRECT_SATURATED_ADDITIONAL_PARAMETERS)
+
+def adjust_cfg(flattened_cfg):
+    from  base import adjust_cfg as base_adjust_cfg
+    base_adjust_cfg(flattened_cfg)
 
 def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
@@ -93,15 +98,14 @@ class direct_saturated_rhs(ResFunction):
     def evaluate(self, t, x, xdot, result, model):
 
         omega2g = find_omega2g(t, model)
-        L = model.l
-        l = x[0]
-        rS = model.r0 - model.d1 -l
-        rE = model.r0 + L + model.d2
-        #print(t, l, rS, rE, model.d1, model.d2)
-        qt = (omega2g/2. / (model.d1/model.ks1 + L/model.ks + model.d2/model.ks2)
+        L = model.l0
+        wl = x[0]
+        rS = model.r0 - model.fl1 -wl
+        rE = model.r0 + L + model.fl2
+
+        qt = (omega2g/2. / (model.fl1/model.ks1 + L/model.ks
+                            + model.fl2/model.ks2)
               * (rE*rE - rS*rS))
-        #qt2 = omega2g/2. * model.ks * (2*model.r0 + L + l*(2*model.r0 - l)/L)
-        #print(t, l, qt, qt2)
 
         result[mass_in_idx] = xdot[0] + qt
         result[mass_out_idx] = xdot[1] - qt
@@ -130,8 +134,9 @@ def solve(model):
                      first_step_size=1e-18,
                      atol=1e-6,rtol=1e-6,
                      user_data=model)
-    z0  = np.array([model.l0_in, 0], float)
+    z0  = np.array([model.wl0, 0], float)
     zp0 = np.zeros(z0.shape, float)
+    print(model.tspan)
     flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
 
     return flag, t, z
@@ -139,9 +144,11 @@ def solve(model):
 def utilize_model(model):
     model.register_key('water_volume', total_water_volume(model))
 
-def check_cfg(cfg):
+def check_cfg(flattened_cfg):
     # TODO: Implement
     return True
+
+print('NAME: ', __name__)
 
 if __name__ == "__main__":
     from sys import argv as sysargv
@@ -157,7 +164,7 @@ if __name__ == "__main__":
         GC, RM = extract_saturated_characteristics(t, z, model)
         if draw_graphs_p:
             draw_graphs(1, t, z[:, 0], z[:, 1], GC, RM)
-        return model, GC, RM
+            #return model, GC, RM
     elif model.data_type == 1 or model.data_type == 2:
         h1 = extract_saturated_water_heights(z, model)
         print('t:  ', t)
@@ -165,7 +172,7 @@ if __name__ == "__main__":
         if draw_graphs_p:
             draw_graphs(1, t, z[:, 0], z[:, 1])
         
-        return h1
+            #return h1
     else:
         raise ValueError('direct_saturated::run_direct Unknown data type: ', data_type)
 
