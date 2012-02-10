@@ -8,13 +8,13 @@ def base_cfg():
       'ending-filter': {'fl2': 0.0, 'ks2': -1.0 },
               'fluid': {'viscosity': 1.0, 'density': 1.0,
                         'wl0': 0.0, 'wl0_out': 0.0},
-         'centrifuge': {'r0': -1.0, 'd0_out': -1.0,
+         'centrifuge': {'r0': -1.0, 'r0_fall', 'd0_out': -1.0,
                         'include_acceleration': False,
                         'deceleration_duration': 0.0},
          'experiment': {'exp_type': '',
                         't_start': 0.0, 't_end': 2000.0, 't_step': 200.0,
                         'omega_start': -1.0, 'omega': 35.0, 'omega_gamma': 0.5,
-                        'omega_end': -1.0,
+                        'omega_end': -1.0, 'duration': -1.0,
                         'data_type': 0}
     }
     return base
@@ -60,6 +60,7 @@ class ModelParameters:
         if cfg:
             self.register_keys(cfg)
         self.register_key('tspan', np.asarray([], dtype=float))
+        self.register_key('omega_fall', np.asarray([], dtype=float))
 
     def register_key(self, key, value):
         if hasattr(self, key):
