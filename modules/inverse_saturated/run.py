@@ -22,13 +22,6 @@ def base_cfg():
 def adjust_cfg(flattened_cfg):
     direct.adjust_cfg(flattened_cfg)
 
-    tspan = np.concatenate(([0.], np.cumsum(flattened_cfg['duration'], 
-                                            dtype=float)))
-
-    flattened_cfg['t_start'] = 0.0
-    flattened_cfg['tspan']   = tspan
-    flattened_cfg['t_end']   = tspan[-1]
-
 mass_in_idx  = 0
 mass_out_idx = 1
 
@@ -75,20 +68,22 @@ def check_cfg(flattened_cfg):
 
 def solve(model):
     def ip_direct_saturated_heights(model, Ks):
-
-        result_heights = np.empty(model.wl0.shape, float)
-        result_t_end   = np.empty(result_heights, float)
-
+        #print('omg:',model.omega)
+        #result_heights = np.empty(model.wl0.shape, float)
+        #result_t_end   = np.empty(result_heights, float)
+        model.ks = Ks
+        #print(Ks)
         _flag, t, z = direct_solve(model)
+        #print(z)
+        wl = extract_heights(z, model)
+        #result_heights[i] = h1[1]
+        #result_t_end[i]   = t[1] # t = [start_time, end_time]
 
-        h1 = extract_heights(z, model)
-        result_heights[i] = h1[1]
-        result_t_end[i]   = t[1] # t = [start_time, end_time]
-
-        return  result_t_end, result_heights
+        #return  result_t_end, result_heights
+        return t, wl
 
     def lsq_ip_direct_saturated_heights(xdata, Ks):
-        return ip_direct_saturated_heights(xdata, Ks)[1] # return only heights
+        return ip_direct_saturated_heights(xdata, Ks)[1] # return only wl
 
     if model.exp_type == 'ish-f':
         # falling head test needs special adjustments
@@ -107,6 +102,7 @@ def solve(model):
         #      'xdata_r0: ', xdata_r0)
 
 
+        #print(model.exp_type, model.wl1, model.ks)
     # resolve the type of measured data
     if model.exp_type in ['ish', 'ish-sc']:
         data_measured = model.wl1
@@ -125,25 +121,31 @@ def solve(model):
                          % model.data_type)
     xdata         = model
 
+    model.ks = 1.1e-8
     Ks_init = model.ks # backup...
     # Solve inverse problem
+    #    Ks_inv, cov_ks = curve_fit(lsq_direct_fn, xdata,
+    #                           data_measured, p0 = Ks_init)
     Ks_inv, cov_ks = curve_fit(lsq_direct_fn, xdata,
-                               data_measured, p0 = Ks_init)
+                               data_measured, p0 = [Ks_init])
+
+    t_inv, wl1_inv = direct_fn(xdata, Ks_inv)
+    #print('tspan: ',model.tspan)
     model.ks = Ks_init #...and restore
 
-    t_inv, h1_inv = direct_fn(xdata, Ks_inv)
-
     # Print results
-    for i in np.arange(len(heights_0)):
+    for i in np.arange(len(data_measured)):
         print('Subexperiment ', i+1)
-        print('    h0:          % .6f' % heights_0[i])
-        print('    h1_measured: % .6f    t_end_expected: % .2f' %
-              (heights_1[i],  model.tspan[1]))
-        print('    h1_computed: % .6f    t_end_computed: % .2f' %
-              (h1_inv[i], t_inv[i]))
+        print('    wl0:          % .6f' % model.wl0[i])
+        print('    wl1_measured: % .6f    t_end_expected: % .2f' %
+              (model.wl1[i],  model.tspan[1]))
+        print('    wl1_computed: % .6f    t_end_computed: % .2f' %
+              (wl1_inv[1], t_inv[1]))
         print('    Error (%%):   % .2f                        % .2f' %
-              ((h1_inv[i] - heights_1[i]) / heights_1[i] * 100,
-               (t_inv[i] - model.tspan[1]) / model.t_end * 100))
+              ((wl1_inv[1] - model.wl1[i]) / model.wl1[i] * 100,
+               (t_inv[1] - model.tspan[1]) / model.tspan[1] * 100))
+
+        print('\nKs found: ', Ks_inv)
 
     return Ks_inv
 
