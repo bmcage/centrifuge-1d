@@ -8,11 +8,11 @@ def base_cfg():
       'ending-filter': {'fl2': 0.0, 'ks2': -1.0 },
               'fluid': {'viscosity': 1.0, 'density': 1.0,
                         'wl0': 0.0, 'wl0_out': 0.0},
-         'centrifuge': {'r0': -1.0, 'r0_fall', 'd0_out': -1.0,
+         'centrifuge': {'r0': -1.0, 'r0_fall': -1.0, 'd0_out': -1.0,
                         'include_acceleration': False,
                         'deceleration_duration': 0.0},
          'experiment': {'exp_type': '',
-                        't_start': 0.0, 't_end': 2000.0, 't_step': 200.0,
+    #                        't_start': 0.0, 't_end': 2000.0, 't_step': 200.0,
                         'omega_start': -1.0, 'omega': 35.0, 'omega_gamma': 0.5,
                         'omega_end': -1.0, 'duration': -1.0,
                         'data_type': 0}
@@ -29,15 +29,15 @@ def adjust_cfg(cfg):
     # print(cfg)
     omega_fn = lambda x: x * np.pi/ 30.0 # omega -> (2pi)*omega/60//rpm->rad.s-1
 
-    cfg['omega'] = map(omega_fn, cfg['omega'])
+    cfg['omega'] = [omega_fn(omega) for omega in cfg['omega']]
     if cfg['include_acceleration']:
         if 'omega_start' in cfg and not (cfg['omega_start'] < 0.):
-            cfg['omega_start'] =  map(omega_fn, cfg['omega_start']) # (2pi)*omega/60
+            cfg['omega_start'] = [omega_fn(omega) for omega in cfg['omega_start']]
         else:
             cfg['omega_start'] = np.asarray([0.0], dtype=float)
 
         if 'omega_end' in cfg and not (cfg['omega_end'] < 0.):
-            cfg['omega_end'] = map(omega_fn, cfg['omega_end']) # (2pi)*omega/60
+            cfg['omega_end'] = [omega_fn(omega) for omega in cfg['omega_end']]
         else:
             cfg['omega_end'] = np.asarray([0.0], dtype=float)
     else:
@@ -59,6 +59,7 @@ class ModelParameters:
     def __init__(self, cfg = None):
         if cfg:
             self.register_keys(cfg)
+            #print(cfg)
         self.register_key('tspan', np.asarray([], dtype=float))
         self.register_key('omega_fall', np.asarray([], dtype=float))
 
