@@ -23,6 +23,15 @@ def adjust_cfg(flattened_cfg):
     from  base import adjust_cfg as base_adjust_cfg
     base_adjust_cfg(flattened_cfg)
 
+    flattened_cfg['_r0']    = -1.0
+    flattened_cfg['_omega'] = -1.0
+    flattened_cfg['_l0']    = -1.0
+    flattened_cfg['_wl0']   = -1.0
+    flattened_cfg['_ks1']   = -1.0
+    flattened_cfg['_ks2']   = -1.0
+    flattened_cfg['_fl1']   = -1.0
+    flattened_cfg['_fl2']   = -1.0
+
 def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
     import matplotlib.pyplot as plt
@@ -98,16 +107,19 @@ class direct_saturated_rhs(ResFunction):
     def evaluate(self, t, x, xdot, result, model):
 
         omega2g = find_omega2g(t, model)
-        L = model.l0
+        print('o2g', omega2g)
+        L = model._l0
         wl = x[0]
-        rS = model.r0 - model.fl1 -wl
-        rE = model.r0 + L + model.fl2
+        rS = model._r0 - model._fl1 - wl
+        rE = model._r0 + L + model._fl2
 
-        qt = (omega2g/2. / (model.fl1/model.ks1 + L/model.ks
-                            + model.fl2/model.ks2)
+        qt = (omega2g/2. / (model._fl1/model._ks1 + L/model.ks
+                            + model._fl2/model._ks2)
               * (rE*rE - rS*rS))
 
-        result[mass_in_idx] = xdot[0] + qt
+        #print('qt: ', qt, x, xdot, result)
+        #print('t: ', t, 'x: ', x)
+        result[mass_in_idx]  = xdot[0] + qt
         result[mass_out_idx] = xdot[1] - qt
         
         return 0
@@ -129,17 +141,67 @@ direct_saturated_rhs_fn = direct_saturated_rhs()
 
 def solve(model):
 
-    solver = ida.IDA(direct_saturated_rhs_fn,
-                     compute_initcond='yp0',
-                     first_step_size=1e-18,
-                     atol=1e-6,rtol=1e-6,
-                     user_data=model)
-    z0  = np.array([model.wl0, 0], float)
-    zp0 = np.zeros(z0.shape, float)
-    print(model.tspan)
-    flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
+    def run_solve(model):
+        solver = ida.IDA(direct_saturated_rhs_fn,
+                         compute_initcond='yp0',
+                         first_step_size=1e-18,
+                         atol=1e-6,rtol=1e-6,
+                         user_data=model)
+        z0  = np.array([model.wl0, 0], float)
+        zp0 = np.zeros(z0.shape, float)
+        print('tsp:', model.tspan)
+        flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
+        print('Final: t: ', t, 'flag: ', flag, ' z0: ', z0, ' z: ', z)
 
-    return flag, t, z
+        return flag, t, z
+
+    if not model.include_acceleration:
+        model.tspan = np.concatenate(([0.0],
+                                    np.cumsum(model.duration, dtype=float)))
+
+        return run_solve(model)
+    else:
+        t = np.empty([len(model.duration), ], dtype=float)
+        z = np.empty([len(t), 2], dtype=float) # 2 columns: wl_in, wl_out
+
+        if not (model.ks1 or model.fl1):
+            model._ks1 = -1.0
+            model._fl1 =  0.0
+        if not (model.ks2 or model.fl2):
+            model._ks2 = -1.0
+            model._fl2 =  0.0
+
+        for i in range(len(model.duration)):
+
+            if model.ks1 and model.fl1:
+                model._ks1 = model.ks1[i]
+                model._fl1 = model.fl1[i]
+            if model.ks2 and model.fl2:
+                model._ks2 = model.ks2[i]
+                model._fl2 = model.fl2[i]
+            model._l0    = model.l0[i]
+            model._r0    = model.r0[i]
+
+            # acceleration
+            model.tspan  = np.asarray([0.0, model.duration[i]])
+            model._omega = model.omega[i]
+
+            tacc, zacc  = run_solve(model)
+            t[i]    = tacc[1]
+            z[i, :] = zacc[1, :]
+
+            # falling head
+            if model.fh_duration:
+                model.tspan  = np.asarray([0.0, model.fh_duration[i]])
+                model._r0    = model.r0_fall
+                model._omega = model.omega_fall
+
+                tfh, zfh = run_solve(model)
+
+        return t, z
+
+    # TODO: finish with set options
+
 
 def utilize_model(model):
     model.register_key('water_volume', total_water_volume(model))
@@ -148,7 +210,7 @@ def check_cfg(flattened_cfg):
     # TODO: Implement
     return True
 
-print('NAME: ', __name__)
+#print('NAME: ', __name__)
 
 if __name__ == "__main__":
     from sys import argv as sysargv
