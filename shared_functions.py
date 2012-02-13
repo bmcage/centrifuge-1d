@@ -119,7 +119,7 @@ def f2(t):
 def f3(t):
     return 0.1332308098 * np.log(t) + 9.5952480661
 
-def find_omega2g(t, model):
+def find_omega2g(t, omega_max, model):
     """
     Model includes the acceleration and deceleration of the centrifuge.
     The acceleration model is based on data measured for the centrifuge
@@ -127,20 +127,23 @@ def find_omega2g(t, model):
     speed for other end-speeds is the done by scaling. Deceleration is
     considered to be linear.
     """
+    t_end = model.tspan[-1]
+    #print('omg2g: ', model.omega, model._omega)
+
     if model.include_acceleration:
-        if t > model.t_end:
+        if t > t_end:
             if model.deceleration_duration > 0.:
-                if t > model.t_end + model.deceleration_duration:
+                if t > t_end + model.deceleration_duration:
                     omega = model.omega_end
                 else:
                     omega = (model.omega_end
-                             + (model.t_end + model.deceleration_duration - t)
+                             + (t_end + model.deceleration_duration - t)
                                / model.deceleration_duration
-                               * (model.omega - model.omega_end))
+                               * (omega_max - model.omega_end))
             else:
-                omega = model.omega
+                omega = omega_max
         elif t > 21.0:
-            omega = model.omega
+            omega = omega_max
         else:
             omega_base = 10.
 
@@ -157,10 +160,11 @@ def find_omega2g(t, model):
             else:
                 omega = f1(t)
 
-            omega = omega/omega_base * model.omega
+            omega = omega/omega_base * omega_max
     else:
-        omega = model.omega
+        omega = omega_max
 
+        #print('omega: ', omega)
     #print('t = ', t, 'omega = ', omega)
     return np.power(omega, 2)/model.g
     # Previous exponential acceleration:
