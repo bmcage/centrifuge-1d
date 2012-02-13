@@ -133,6 +133,7 @@ def solve(model):
     #print('tspan: ',model.tspan)
     model.ks = Ks_init #...and restore
 
+    #print('inv', t_inv, wl1_inv)
     # Print results
     for i in np.arange(len(data_measured)):
         print('Subexperiment ', i+1)
@@ -140,10 +141,10 @@ def solve(model):
         print('    wl1_measured: % .6f    t_end_expected: % .2f' %
               (model.wl1[i],  model.tspan[1]))
         print('    wl1_computed: % .6f    t_end_computed: % .2f' %
-              (wl1_inv[1], t_inv[1]))
+              (wl1_inv[i], t_inv[i]))
         print('    Error (%%):   % .2f                        % .2f' %
-              ((wl1_inv[1] - model.wl1[i]) / model.wl1[i] * 100,
-               (t_inv[1] - model.tspan[1]) / model.tspan[1] * 100))
+              ((wl1_inv[i] - model.wl1[i]) / model.wl1[i] * 100,
+               (t_inv[i] - model.tspan[1]) / model.tspan[1] * 100))
 
         print('\nKs found: ', Ks_inv)
 
