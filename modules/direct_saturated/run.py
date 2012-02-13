@@ -29,8 +29,8 @@ def adjust_cfg(flattened_cfg):
     flattened_cfg['_wl0']   = -1.0
     flattened_cfg['_ks1']   = -1.0
     flattened_cfg['_ks2']   = -1.0
-    flattened_cfg['_fl1']   = -1.0
-    flattened_cfg['_fl2']   = -1.0
+    flattened_cfg['_fl1']   =  0.0
+    flattened_cfg['_fl2']   =  0.0
 
     flattened_cfg['fh_duration'] = np.asarray([], dtype=float)
 
@@ -119,6 +119,7 @@ class direct_saturated_rhs(ResFunction):
                             + model._fl2/model._ks2)
               * (rE*rE - rS*rS))
 
+        #print('L', L, x, model._r0, model._fl1, model._ks1, model._fl2, model._ks2)
         #print('qt: ', qt, x, xdot, result)
         #print('t: ', t, 'x: ', x)
         result[mass_in_idx]  = xdot[0] + qt
@@ -151,9 +152,9 @@ def solve(model):
                          user_data=model)
         z0  = np.array([model.wl0, 0], float)
         zp0 = np.zeros(z0.shape, float)
-        print('tsp:', model.tspan)
+        #print('tsp:', model.tspan)
         flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
-        print('Final: t: ', t, 'flag: ', flag, ' z0: ', z0, ' z: ', z)
+        #print('Final: t: ', t, 'flag: ', flag, ' z0: ', z0, ' z: ', z)
 
         return flag, t, z
 
