@@ -46,10 +46,11 @@ def run_experiments(exp_id, first_experiment, last_experiment):
           % (first_experiment, last_experiment))
 
     for exp_no in range(first_experiment, last_experiment+1):
+        print('\n==========================================================='
+              '\nExecuting experiment %s of the %s problem.'
+              % (exp_no, exp_id))
         for tube_no in TUBES_NUMBERS:
-            print('\n==========================================================='
-                  '\nExecuting experiment %s of the %s problem.'
-                  % (tube_no, exp_id))
+            print('\n   Executing experiment for tube number: ', tube_no)
 
             inifilename = (exp_inifiles_dir + '/experiment_' + str(exp_no)
                            + '-filter' + str(tube_no) +'.ini')
@@ -69,7 +70,7 @@ def run_experiments(exp_id, first_experiment, last_experiment):
 
             module.solve(model)
 
-            print('\nExperiment %s finished.' % exp_no)
+        print('\nExperiment %s finished.' % exp_no)
 
 def parse_input():
 
