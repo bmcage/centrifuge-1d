@@ -29,14 +29,6 @@ def check_cfg(flattened_cfg):
     #TODO
     return True
 
-# def ip_direct_saturated_characteristics(model, Ks):
-#     model.ks = Ks
-#     if model.debugging:
-#         print(Ks)
-#     _flag, t, z = solve_direct_saturated_problem(model)
-#     GC, RM = extract_saturated_characteristics(t, z, model)
-#     return np.concatenate((GC, RM))
-
 
 
 
