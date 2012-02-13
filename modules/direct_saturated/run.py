@@ -32,6 +32,8 @@ def adjust_cfg(flattened_cfg):
     flattened_cfg['_fl1']   = -1.0
     flattened_cfg['_fl2']   = -1.0
 
+    flattened_cfg['fh_duration'] = np.asarray([], dtype=float)
+
 def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
     import matplotlib.pyplot as plt
@@ -106,8 +108,8 @@ def characteristics(t, mass_in, mass_out, model):
 class direct_saturated_rhs(ResFunction):
     def evaluate(self, t, x, xdot, result, model):
 
-        omega2g = find_omega2g(t, model)
-        print('o2g', omega2g)
+        omega2g = find_omega2g(t, model._omega, model)
+        #print('o2g', omega2g)
         L = model._l0
         wl = x[0]
         rS = model._r0 - model._fl1 - wl
@@ -155,50 +157,44 @@ def solve(model):
 
         return flag, t, z
 
-    if not model.include_acceleration:
-        model.tspan = np.concatenate(([0.0],
-                                    np.cumsum(model.duration, dtype=float)))
+    t = np.empty([len(model.duration), ], dtype=float)
+    z = np.empty([len(t), 2], dtype=float) # 2 columns: wl_in, wl_out
 
-        return run_solve(model)
-    else:
-        t = np.empty([len(model.duration), ], dtype=float)
-        z = np.empty([len(t), 2], dtype=float) # 2 columns: wl_in, wl_out
+    if not (model.ks1 or model.fl1):
+        model._ks1 = -1.0
+        model._fl1 =  0.0
+    if not (model.ks2 or model.fl2):
+        model._ks2 = -1.0
+        model._fl2 =  0.0
 
-        if not (model.ks1 or model.fl1):
-            model._ks1 = -1.0
-            model._fl1 =  0.0
-        if not (model.ks2 or model.fl2):
-            model._ks2 = -1.0
-            model._fl2 =  0.0
+    for i in range(len(model.duration)):
 
-        for i in range(len(model.duration)):
+        if model.ks1 and model.fl1:
+            model._ks1 = model.ks1[i]
+            model._fl1 = model.fl1[i]
+        if model.ks2 and model.fl2:
+            model._ks2 = model.ks2[i]
+            model._fl2 = model.fl2[i]
+        model._l0    = model.l0[i]
+        model._r0    = model.r0[i]
 
-            if model.ks1 and model.fl1:
-                model._ks1 = model.ks1[i]
-                model._fl1 = model.fl1[i]
-            if model.ks2 and model.fl2:
-                model._ks2 = model.ks2[i]
-                model._fl2 = model.fl2[i]
-            model._l0    = model.l0[i]
-            model._r0    = model.r0[i]
+        # acceleration
+        model.tspan  = np.asarray([0.0, model.duration[i]])
+        model._omega = model.omega[i]
 
-            # acceleration
-            model.tspan  = np.asarray([0.0, model.duration[i]])
-            model._omega = model.omega[i]
+        flag, tacc, zacc  = run_solve(model)
+        t[i]    = tacc[1]
+        z[i, :] = zacc[1, :]
 
-            tacc, zacc  = run_solve(model)
-            t[i]    = tacc[1]
-            z[i, :] = zacc[1, :]
+        # falling head
+        if model.fh_duration:
+            model.tspan  = np.asarray([0.0, model.fh_duration[i]])
+            model._r0    = model.r0_fall
+            model._omega = model.omega_fall
 
-            # falling head
-            if model.fh_duration:
-                model.tspan  = np.asarray([0.0, model.fh_duration[i]])
-                model._r0    = model.r0_fall
-                model._omega = model.omega_fall
+            flag, tfh, zfh = run_solve(model)
 
-                tfh, zfh = run_solve(model)
-
-        return t, z
+    return flag, t, z
 
     # TODO: finish with set options
 
