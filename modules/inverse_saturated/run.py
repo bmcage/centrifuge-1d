@@ -30,48 +30,14 @@ def check_cfg(flattened_cfg):
     return True
 
 
-
-
-# add to check_fn:
-#if model.l0 < 0:
-# if np.isscalar(data.omega):
-#            if data.omega < 0:
- # if np.isscalar(data.r0):
- #            if data.r0 < 0:
- #                xdata_r0 = np.asarray([model.r0], float)
- #            else:
- #                xdata_r0 = np.asarray([data.r0], float)
- #        else:
- #            xdata_r0 = np.asarray(data.r0, float)
- # if np.isscalar(data.duration):
- #        if data.t_duration < 0:
- 
-    # else:
-    #     xdata_t_end = np.asarray(data.duration, float)
-
-    # xdata_t_start  = np.zeros(np.shape(xdata_t_end), float)
-
-    # xdata_t_span = np.zeros([np.alen(xdata_t_end), 2], float)
-
-    # if model.include_acceleration:
-    #     xdata_t_span[:, 1] = xdata_t_end + model.deceleration_duration
-    # else:
-    #     xdata_t_span[:, 1] = xdata_t_end
-
 def solve(model):
     def ip_direct_saturated_heights(model, Ks):
-        #print('omg:',model.omega)
-        #result_heights = np.empty(model.wl0.shape, float)
-        #result_t_end   = np.empty(result_heights, float)
         model.ks = Ks
-        #print(Ks)
-        (_flag, t, z) = direct_solve(model)
-        #print(z)
-        wl = extract_heights(z, model)
-        #result_heights[i] = h1[1]
-        #result_t_end[i]   = t[1] # t = [start_time, end_time]
 
-        #return  result_t_end, result_heights
+        (_flag, t, z) = direct_solve(model)
+
+        wl = extract_heights(z, model)
+
         return t, wl
 
     def lsq_ip_direct_saturated_heights(xdata, Ks):
@@ -84,17 +50,10 @@ def solve(model):
         # because it is of no validity for falling head test; instead we use 
         # the (default) value in "r0-f" and compute the corresponding omega
 
-        #print('1. data.omega: ', data.omega, 'data.r0: ', data.r0,
-        #      'model.r0', model.r0)
         model.r0 = [model.r0_fall for wl0 in model.wl0]
         model.omega = (np.sqrt(model.g/model.r0)
                        * np.ones(np.shape(model.l0), float))
-        #print('2. data.omega: ', data.omega, 'data.r0: ', data.r0,
-        #      'model.r0', model.r0, 'xdataa_omega: ', xdata_omega, 
-        #      'xdata_r0: ', xdata_r0)
 
-
-        #print(model.exp_type, model.wl1, model.ks)
     # resolve the type of measured data
     if model.exp_type in ['ish', 'ish-sc', 'ish-f']:
         data_measured = model.wl1
@@ -122,10 +81,9 @@ def solve(model):
                                data_measured, p0 = [Ks_init])
 
     t_inv, wl1_inv = direct_fn(xdata, Ks_inv)
-    #print('tspan: ',model.tspan)
+
     model.ks = Ks_init #...and restore
 
-    #print('inv', t_inv, wl1_inv)
     # Print results
     for i in np.arange(len(data_measured)):
         print('Subexperiment ', i+1)
@@ -154,53 +112,5 @@ def verify_inverse_data(model):
         raise ValueError('Wrong inverse_data_filename: %d'
                          % model.data_type)
 
-def unify_data(model):
-    pass
-
-# def run_inverse_saturated():
-#     from sys import argv as sysargv
-#     from auxiliaryfunctions import (parse_centrifuge_input,
-#                                     load_centrifuge_configs)
-
-#     inifiles = parse_centrifuge_input(sysargv)[0]
-#     imodel = load_centrifuge_configs(inifiles,
-#                                      [verify_inverse_data, utilize_direct_model])
-
-#     data = [load_measured_data(filename) for filename in model.inverse_data_filename]
-
-#     # save original values of model and replace them with read data
-#     backup_include_acceleration = imodel.include_acceleration
-#     backup_t_start  = imodel.t_start
-#     backup_t_end    = imodel.t_end
-#     backup_t_span   = imodel.tspan
-#     backup_omega    = imodel.omega
-#     backup_l        = imodel.l
-#     backup_r0       = imodel.r0
-#     Ks_init         = imodel.ks
-
-#     Ks_inv  = np.empty([len(data_filenames), ],  float)
-
-#     for i in range(len(data)):
-#         Ks_inv[i] = solve_inverse_saturated(imodel, data_filenames[i])
-
-#         # Restore original values
-#         model.include_acceleration = backup_include_acceleration
-#         model.t_start = backup_t_start
-#         model.t_end   = backup_t_end
-#         model.t_span  = backup_t_span
-#         model.omega   = backup_omega
-#         model.l       = backup_l
-#         model.r0      = backup_r0
-#         model.ks      = Ks_init
-
-#     Ks_inv_disp = Ks_inv / 100
-#     print('\n\nKs_inv computed [m/s]: ')
-#     for Ks_print in Ks_inv_disp:
-#         print(Ks_print)
-
-#     return Ks_inv
-
-
 if __name__ == "__main__":
-    #run_inverse_saturated()
     pass
