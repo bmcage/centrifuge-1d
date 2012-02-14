@@ -16,7 +16,7 @@ def usage():
     exit(0)
 
 def write_ini(fout, exp_id, exp_no, tube_no, data):
-    if  data['exp_type'] == 'ish' or data['exp_type'] == 'ishsc':
+    if data['exp_type'] in ['ish', 'ishsc', 'ish-f']:
         fout.write('[experiment-data]\n')
 
         for (descriptor, value) in data.items():
@@ -31,7 +31,8 @@ def write_ini(fout, exp_id, exp_no, tube_no, data):
                 fout.write('{:8} = [{}]\n'.format(descriptor,
                                                   ', '.join(value)))
     else:
-        raise NotImplemented
+        raise NotImplementedError('Experiment type "%s" is not implemented.'
+                                  %  data['exp_type'])
 
 def CSV2dataini(csv_filename, data_dir):
     from common import load_modules_names
