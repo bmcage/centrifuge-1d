@@ -65,7 +65,7 @@ def solve(model):
         #result_t_end   = np.empty(result_heights, float)
         model.ks = Ks
         #print(Ks)
-        _flag, t, z = direct_solve(model)
+        (_flag, t, z) = direct_solve(model)
         #print(z)
         wl = extract_heights(z, model)
         #result_heights[i] = h1[1]
@@ -86,7 +86,7 @@ def solve(model):
 
         #print('1. data.omega: ', data.omega, 'data.r0: ', data.r0,
         #      'model.r0', model.r0)
-        model.r0 = model.r0_f
+        model.r0 = [model.r0_fall for wl0 in model.wl0]
         model.omega = (np.sqrt(model.g/model.r0)
                        * np.ones(np.shape(model.l0), float))
         #print('2. data.omega: ', data.omega, 'data.r0: ', data.r0,
@@ -96,7 +96,7 @@ def solve(model):
 
         #print(model.exp_type, model.wl1, model.ks)
     # resolve the type of measured data
-    if model.exp_type in ['ish', 'ish-sc']:
+    if model.exp_type in ['ish', 'ish-sc', 'ish-f']:
         data_measured = model.wl1
         lsq_direct_fn = lsq_ip_direct_saturated_heights
         direct_fn     = ip_direct_saturated_heights
@@ -109,11 +109,11 @@ def solve(model):
         direct_fn    = ip_direct_saturated_characteristics
 
     else:
-        raise ValueError('Unrecognized data_type: %d'
-                         % model.data_type)
+        raise ValueError('Unrecognized experiment type exp_type: %s'
+                         % model.exp_type)
     xdata         = model
 
-    model.ks = 1.1e-8
+    model.ks = 1.1e-7
     Ks_init = model.ks # backup...
     # Solve inverse problem
     #    Ks_inv, cov_ks = curve_fit(lsq_direct_fn, xdata,
@@ -131,14 +131,14 @@ def solve(model):
         print('Subexperiment ', i+1)
         print('    wl0:          % .6f' % model.wl0[i])
         print('    wl1_measured: % .6f    t_end_expected: % .2f' %
-              (model.wl1[i],  model.tspan[1]))
+              (model.wl1[i],  model.duration[i]))
         print('    wl1_computed: % .6f    t_end_computed: % .2f' %
               (wl1_inv[i], t_inv[i]))
         print('    Error (%%):   % .2f                        % .2f' %
               ((wl1_inv[i] - model.wl1[i]) / model.wl1[i] * 100,
-               (t_inv[i] - model.tspan[1]) / model.tspan[1] * 100))
+               (t_inv[i] - model.duration[i]) / model.duration[i] * 100))
 
-        print('\nKs found: ', Ks_inv)
+    print('\nKs found: ', Ks_inv)
 
     return Ks_inv
 
