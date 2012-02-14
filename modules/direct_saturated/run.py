@@ -106,11 +106,9 @@ def solve(model):
                          first_step_size=1e-18,
                          atol=1e-6,rtol=1e-6,
                          user_data=model)
-        z0  = np.array([model.wl0, 0], float)
+        z0  = np.array([model._wl0, 0], float)
         zp0 = np.zeros(z0.shape, float)
-        #print('tsp:', model.tspan)
         flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
-        #print('Final: t: ', t, 'flag: ', flag, ' z0: ', z0, ' z: ', z)
 
         return flag, t, z
 
@@ -134,12 +132,14 @@ def solve(model):
             model._fl2 = model.fl2[i]
         model._l0    = model.l0[i]
         model._r0    = model.r0[i]
+        model._wl0   = model.wl0[i]
 
         # acceleration
         model.tspan  = np.asarray([0.0, model.duration[i]])
         model._omega = model.omega[i]
 
         flag, tacc, zacc  = run_solve(model)
+
         t[i]    = tacc[1]
         z[i, :] = zacc[1, :]
 
@@ -151,7 +151,7 @@ def solve(model):
 
             flag, tfh, zfh = run_solve(model)
 
-    return flag, t, z
+    return (flag, t, z)
 
     # TODO: finish with set options
 
