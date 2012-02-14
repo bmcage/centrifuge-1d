@@ -5,6 +5,7 @@ syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
 INIFILES_BASE_DIR = 'sources/inifiles'
 TUBES_NUMBERS     = [1, 2, 4, 5]
+#TUBES_NUMBERS     = [5]
 
 def usage():
     print('\nUsage:'
@@ -23,7 +24,7 @@ def usage():
 
 
 def run_experiments(exp_id, first_experiment, last_experiment):
-    from common import load_modules_names
+    from common import load_modules_names, make_collector, print_by_tube
     from config import read_cfgs, merge_cfgs, flatten_cfg
     from base import ModelParameters
     from os.path import exists
@@ -37,6 +38,8 @@ def run_experiments(exp_id, first_experiment, last_experiment):
         default_cfg = ''
 
     find_module = load_modules_names('run')
+
+    collector = make_collector(TUBES_NUMBERS)
 
     print('\n'
           '---------------------------------------------------------'
@@ -68,9 +71,13 @@ def run_experiments(exp_id, first_experiment, last_experiment):
 
             model = ModelParameters(model_cfg)
 
-            module.solve(model)
+            results = module.solve(model)
+
+            collector('collect', tube_no=tube_no, data=results)
 
         print('\nExperiment %s finished.' % exp_no)
+
+    collector('print-by-tube', data=print_by_tube)
 
 def parse_input():
 
