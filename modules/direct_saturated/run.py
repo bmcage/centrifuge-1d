@@ -1,8 +1,7 @@
 import numpy as np
 
-from os.path import join as join_path
 from sys import path as syspath
-syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
+syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
 import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
