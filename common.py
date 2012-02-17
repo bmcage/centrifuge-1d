@@ -48,6 +48,7 @@ def load_modules_names(submodule):
                 module_full_name = 'modules.' + module_name + '.info'
                 __import__(module_full_name)
 
+
                 info = sysmodules[module_full_name]
 
                 for exp_id in info.types:
@@ -68,7 +69,7 @@ def load_modules_names(submodule):
             return loaded_modules[module_name]
         else:
             print('Unknown experiment type: %s' % exp_type)
-            print('Available experiments are:\n %s' % modules_names())
+            print('Available experiments are:\n %s' % modules_names)
             raise ValueError()
 
     return find_module
