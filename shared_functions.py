@@ -65,9 +65,9 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model):
     y  = model.y
     dy = model.dy
     r0 = model.r0
-    L  = model.l
-    l0_out = L + model.l0_out
-    l_out  = L + model.l0_out - mass_out
+    L  = model.l0
+    l0_out = L + model.wl0_out
+    l_out  = L + model.wl0_out - mass_out
 
     ds = s2 - s1
 
