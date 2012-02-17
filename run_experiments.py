@@ -1,5 +1,10 @@
 #!/usr/bin/python
 from sys import path as syspath, argv as sysargv
+from common import load_modules_names, make_collector, print_by_tube
+from config import read_cfgs, merge_cfgs, flatten_cfg
+from base import ModelParameters
+
+
 
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
@@ -22,11 +27,27 @@ def usage():
 
     exit(0)
 
+find_module = load_modules_names('run')
+
+def run_experiment(inifilename, default_cfg = ''):
+    [cfg] = read_cfgs(inifilename, preserve_sections_p=True)
+
+    module = find_module(cfg['experiment-data']['exp_type'])
+
+    model_cfg = merge_cfgs(module.base_cfg(), [default_cfg, cfg])
+    model_cfg = flatten_cfg(model_cfg)
+
+    module.adjust_cfg(model_cfg)
+    #if not module.check_cfg(model_cfg):
+    #    raise ValueError('Check_cfg failed.')
+
+    model = ModelParameters(model_cfg)
+
+    results = module.solve(model)
+
+    return results
 
 def run_experiments(exp_id, first_experiment, last_experiment):
-    from common import load_modules_names, make_collector, print_by_tube
-    from config import read_cfgs, merge_cfgs, flatten_cfg
-    from base import ModelParameters
     from os.path import exists
 
     exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
@@ -37,7 +58,6 @@ def run_experiments(exp_id, first_experiment, last_experiment):
     else:
         default_cfg = ''
 
-    find_module = load_modules_names('run')
 
     collector = make_collector(TUBES_NUMBERS)
 
@@ -58,20 +78,7 @@ def run_experiments(exp_id, first_experiment, last_experiment):
             inifilename = (exp_inifiles_dir + '/experiment_' + str(exp_no)
                            + '-filter' + str(tube_no) +'.ini')
 
-            [cfg] = read_cfgs(inifilename, preserve_sections_p=True)
-
-            module = find_module(cfg['experiment-data']['exp_type'])
-
-            model_cfg = merge_cfgs(module.base_cfg(), [default_cfg, cfg])
-            model_cfg = flatten_cfg(model_cfg)
-
-            module.adjust_cfg(model_cfg)
-            if not module.check_cfg(model_cfg):
-                raise ValueError('Check_cfg failed.')
-
-            model = ModelParameters(model_cfg)
-
-            results = module.solve(model)
+            results = run_experiment(inifilename, default_cfg)
 
             collector('collect', tube_no=tube_no, data=results)
 
@@ -86,8 +93,10 @@ def parse_input():
     if arg_len == 1 or (arg_len == 2 and (sysargv[1] in ['-h', '--help'])):
         usage()
     elif arg_len == 3 and sysargv[1] in ['-i', '--inifile']:
-        # run_directly_solver(inifile = sysargv[2])
-        raise NotImplemented
+        print('\n==========================================================='
+              '\nExecuting experiment: %s' % sysargv[2])
+        results = run_experiment(sysargv[2])
+        print('\nExperiment finished.')
     elif arg_len == 3 or arg_len == 4:
 
         exp_id = sysargv[1]
