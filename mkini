@@ -16,7 +16,8 @@ def usage():
     exit(0)
 
 def write_ini(fout, exp_id, exp_no, tube_no, data):
-    if data['exp_type'] in ['ish', 'ishsc', 'ish-f']:
+    if data['exp_type'] in ['ish', 'ishsc', 'ish-f',
+                            'ids', 'idsh']:
         fout.write('[experiment-data]\n')
 
         for (descriptor, value) in data.items():
