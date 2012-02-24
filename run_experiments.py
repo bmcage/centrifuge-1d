@@ -38,8 +38,6 @@ def run_experiment(inifilename, default_cfg = ''):
     model_cfg = flatten_cfg(model_cfg)
 
     module.adjust_cfg(model_cfg)
-    #if not module.check_cfg(model_cfg):
-    #    raise ValueError('Check_cfg failed.')
 
     model = ModelParameters(model_cfg)
 
