@@ -98,7 +98,7 @@ def eval_item(setting):
     return value
 
 
-def read_cfgs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
+def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
                  cfgs_merge=True):
     """
       Reads config .ini files. If preserve_sections_p is false, removes sections
@@ -106,6 +106,8 @@ def read_cfgs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
       the same values, the latter will be used. If cfgs_merge=True, merges all
       the config files into one.
     """
+    if not base_cfg:
+        base_cfg = {}
 
     def parser2cfg(parser):
         cfg = base_cfg
