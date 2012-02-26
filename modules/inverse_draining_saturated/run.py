@@ -2,6 +2,7 @@ from sys import path as syspath
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from shared_functions import h2u
 
 import modules.direct_draining_saturated.run as direct
 from config import merge_cfgs
@@ -9,20 +10,26 @@ from config import merge_cfgs
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
 #n, gamma are dummy values, just to assure that direct checks will pass
-CFG_ADDITIONAL_PARAMETERS = {}
+
+PARAMETERS = {'inverse': ['inv_init_params']}
+# we make sure that n is specified - otherwise direct.adjust fails
+CFG_ADDITIONAL_PARAMETERS = {'soil': {'ks': 0.0, 'n': 1.0, 'gamma': 0.0}}
 
 
 def base_cfg():
     return merge_cfgs(direct.base_cfg(), CFG_ADDITIONAL_PARAMETERS)
 
 def adjust_cfg(flattened_cfg):
-    if not 'n' in flattened_cfg:
-        # we make sure that n is specified - otherwise direct.adjust fails
-        flattened_cfg['n'] = -1.0
     direct.adjust_cfg(flattened_cfg)
 
-    print(flattened_cfg)
-    raise ValueError('eee')
+    if not 'inv_init_params' in flattened_cfg:
+        raise ValueError('CFG:check: Value not initialized: %s' 
+                         % 'inv_init_params')
+    if len(flattened_cfg['inv_init_params']) == 2 and flattened_cfg['ks'] == 0.0:
+        raise ValueError('CFG:check: Value not initialized: %s' 
+                         % 'Ks')
+    #print(flattened_cfg)
+    #raise ValueError('eee')
 
 def solve(model):
     def ip_direct_drainage(model, optim_args):
@@ -33,21 +40,29 @@ def solve(model):
 
         (_flag, t, z) = direct.solve(model)
 
-        u = h2u(z[:, first_idx:last_idx+1], model.n, model.m, model.gamma)
+        u = h2u(z[:, model.first_idx:model.last_idx+1], 
+                model.n, model.m, model.gamma)
 
+        # characteristics: GC is measured only inside the tube, so no mass 
+        #   on output is taken into accout
+        mass_out = 0.0
         GC, _RM, _WM = \
           direct.characteristics(t, u,
-                                 z[:, mass_in_idx], z[:, mass_out_idx],
-                                 z[:, s1_idx], z[:, s2_idx], model, 
+                                 z[:, model.mass_in_idx], mass_out,
+                                 z[:, model.s1_idx], z[:, model.s2_idx], model, 
                                  chtype='gc')
-        
+        wl = z[:, model.mass_out_idx]
 
-        return (t, GC)
+        return (t, GC[1:], wl.transpose()[1:]) # discard values at t=0
 
-    def lsq_ip_direct_drainage(xdata, optim_args):
+    def lsq_ip_direct_drainage(xdata, *optim_args):
 
-        (t, GC) = ip_direct_drainage(xdata, optim_args)
-        return GC
+        (t, GC, wl) = ip_direct_drainage(xdata, optim_args)
+        print('gc, wl: ', GC, wl)
+        #print(np.shape(GC), np.shape(wl), type(GC), type(wl))
+        result = np.concatenate((GC, wl))
+        #print(result)
+        return result
 
 
     #model.r0 = [model.r0_fall for wl0 in model.wl0]
@@ -55,8 +70,10 @@ def solve(model):
                         * np.ones(np.shape(model.l0), float))
 
     # resolve the type of measured data
-    if exp_type in ['ids', 'idsh']:
-        data_measured = model.gc
+    if model.exp_type in ['ids', 'idsh']:
+        #print(np.asarray(model.wl_out1), model.gc1)
+        data_measured = np.concatenate((np.asarray(model.gc1, dtype=float),
+                                        np.asarray(model.wl_out1, dtype=float)))
         lsq_direct_fn = lsq_ip_direct_drainage
         direct_fn     = ip_direct_drainage
     else:
@@ -73,37 +90,52 @@ def solve(model):
         raise ValueError('InitParams: should be of length 3 or 2.')
     model.m = 1.0 - 1.0/model.n
 
-    inv_params_init = tuple(
+    inv_params_init = tuple(model.inv_init_params)
 
     # Solve inverse problem
     #    Ks_inv, cov_ks = curve_fit(lsq_direct_fn, xdata,
     #                           data_measured, p0 = Ks_init)
-    params_inv, cov_ks = curve_fit(lsq_direct_fn, xdata,
-                                   data_measured, p0 = [Ks_init])
+    inv_params, cov_ks = curve_fit(lsq_direct_fn, xdata,
+                                   data_measured, p0 = inv_params_init)
 
-    t_inv, GC_inv = direct_fn(xdata, Ks_inv)
+    (t_inv, GC_inv, wl_inv) = direct_fn(xdata, inv_params)
 
     # Print results
-    for i in np.arange(len(data_measured)):
+    for i in np.arange(len(model.duration)):
+        if model.wl_out1[i] == 0.0:
+            wl_out_measured = 1.0e-10
+        else:
+            wl_out_measured = model.wl_out1[i]
+        wl_out_computed = wl_inv[i]
+
+        duration_measured =  model.duration[i]
+        duration_computed = t_inv[i+1] - t_inv[i]
+        gc_measured = GC_inv[i]
+        gc_computed = model.gc1[i]
+
         print('Subexperiment ', i+1)
-        print('    GC_measured: % .6f    t_end_expected: % .2f' %
-              (model.gc[i],  model.duration[i]))
-        print('    GC_computed: % .6f    t_end_computed: % .2f' %
-              (GC_inv[i], t_inv[i]))
-        print('    Error (%%):   % .2f                        % .2f' %
-              ((GC_inv[i] - model.gc[i]) / model.gc[i] * 100,
-               (t_inv[i] - model.duration[i]) / model.duration[i] * 100))
-    if len(init_params) == 3:
-        (Ks_inv, n_inv, gamma_inv) = params_inv
+        print('    GC_measured: % 3.6f wl_out_measured: % .6f'
+              ' t_end_expected: % 3.2f'
+              % (gc_measured,  wl_out_measured, duration_measured))
+        print('    GC_computed: % 3.6f wl_out_computed: % .6f'
+              ' t_end_computed: % 3.2f'
+              % (gc_computed, wl_out_computed, duration_computed))
+        print('    Error (%%):   % 2.2f                        % 2.2f'
+              '                  % 2.2f'
+              % ((gc_computed - gc_measured) / gc_measured * 100,
+                 (wl_out_computed - wl_out_measured) / wl_out_measured * 100,
+                 (duration_computed - duration_measured) / duration_measured * 100))
+    if inv_params_len == 3:
+        (Ks_inv, n_inv, gamma_inv) = inv_params
         print('\nKs    found: ', Ks_inv)
-    elif len(init_params) == 2:
-        (n_inv, gamma_inv) = params_inv
+    elif inv_params_len == 2:
+        (n_inv, gamma_inv) = inv_params
     print('\nn     found: ', n_inv)
     print('\ngamma found: ', gamma_inv)
 
     
 
-    return params_inv
+    return inv_params
 
 def verify_inverse_data(model):
     if not model.inverse_data_filename:
