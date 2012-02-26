@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from sys import path as syspath, argv as sysargv
+from os.path import exists
 from common import load_modules_names, make_collector, print_by_tube
 from config import read_cfgs, merge_cfgs, flatten_cfg
 from base import ModelParameters
@@ -46,13 +47,12 @@ def run_experiment(inifilename, default_cfg = ''):
     return results
 
 def run_experiments(exp_id, first_experiment, last_experiment):
-    from os.path import exists
 
     exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
 
     exp_ini_defaults = exp_inifiles_dir + '/defaults.ini'
     if exists(exp_ini_defaults):
-        [default_cfg] = read_cfgs(ini_defaults, preserve_sections_p=True)
+        [default_cfg] = read_cfgs(exp_ini_defaults, preserve_sections_p=True)
     else:
         default_cfg = ''
 
@@ -75,10 +75,13 @@ def run_experiments(exp_id, first_experiment, last_experiment):
 
             inifilename = (exp_inifiles_dir + '/experiment_' + str(exp_no)
                            + '-filter' + str(tube_no) +'.ini')
+            if not exists(inifilename):
+                print('File "%s" does not exist, skipping...' % inifilename)
+                continue
 
             results = run_experiment(inifilename, default_cfg)
 
-            collector('collect', tube_no=tube_no, data=results)
+            collector('collect', data=results, tube_no=tube_no)
 
         print('\nExperiment %s finished.' % exp_no)
 
@@ -91,9 +94,15 @@ def parse_input():
     if arg_len == 1 or (arg_len == 2 and (sysargv[1] in ['-h', '--help'])):
         usage()
     elif arg_len == 3 and sysargv[1] in ['-i', '--inifile']:
+        infilename = sysargv[2]
+        if not exists(inifilename):
+                print('File "%s" does not exist, skipping...' % inifilename)
+                return
+
         print('\n==========================================================='
-              '\nExecuting experiment: %s' % sysargv[2])
-        results = run_experiment(sysargv[2])
+              '\nExecuting experiment: %s' % infilename)
+        results = run_experiment(infilename)
+        print(results)
         print('\nExperiment finished.')
     elif arg_len == 3 or arg_len == 4:
 
