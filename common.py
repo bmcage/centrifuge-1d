@@ -85,7 +85,7 @@ def make_collector(tubes_numbers):
 
     def collection(command, data = None, tube_no = None):
         if command == 'collect':
-            if tube_no and data:
+            if tube_no:
                 by_tube_collection[tube_no].append(data)
             else:
                 raise ValueError('Collector:collect - tube number or data'
