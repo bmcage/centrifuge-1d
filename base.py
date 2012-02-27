@@ -1,7 +1,6 @@
 import numpy as np
 
-def base_cfg():
-    base = {
+PARAMETERS =  {
             'general': {'g': 981., 'debugging': False},
     'starting-filter': {'fl1': 0.0, 'ks1': -1.0 },
     'soil': {#'ks': -1.0, 'l0':  -1.0, 'porosity': -1.0
@@ -20,6 +19,10 @@ def base_cfg():
                         'duration': -1.0,
                         'data_type': 0}
     }
+
+def base_cfg():
+    base = {
+         'general': {'g': 981. }}
     return base
 # unsaturated_cfg = {
 #             'soil': {'n': 2.81, 'gamma': 0.0189, 'v': 1.0},
