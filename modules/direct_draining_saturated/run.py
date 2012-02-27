@@ -242,6 +242,7 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype='all'):
                            + (np.power(r0, 2) - np.power(r0 - mass_in[i], 2))
                            + (np.power(r0 + l0_out, 2) - np.power(r0 + l_out, 2))))
             GC[i] =  (gc_unsat + gc_sat) / WM[i]
+            print('GC: unsat, sat, gc/wm', gc_unsat, gc_sat, GC[i])
 
         # Rotational momentum
         if calc_rm:
@@ -304,7 +305,7 @@ def solve(model):
                      linsolver='band', uband=1, lband=2,
                      user_data=model)
 
-    model.duration = np.cumsum(model.duration)
+    tspans = np.cumsum(model.duration)
 
     for i in range(len(model.duration)):
 
@@ -331,7 +332,7 @@ def solve(model):
         #flag, tacc, zacc  = run_solve(model)
         if i == 0:
              z0  = np.zeros([model.z_size, ], float)
-             z0[model.first_idx:model.last_idx+1] = -00.60 # initial pressure h
+             z0[model.first_idx:model.last_idx+1] = model.h_init # initial pressure h
              z0[model.s2_idx] = model._l0
              zp0 = np.zeros([model.z_size, ], float)
              t[0] = 0.0
@@ -339,7 +340,7 @@ def solve(model):
 
              solver._init_step(0.0, z0, zp0)
              
-        flag, t_out = solver.step(model.duration[i], z[i+1, :])
+        flag, t_out = solver.step(tspans[i], z[i+1, :])
         t[i+1] = t_out
 
         #t[i]    = tacc[1]
