@@ -37,6 +37,7 @@ def solve(model):
             (model.ks, model.n, model.gamma) = optim_args
         elif len(optim_args) == 2: # (n, gamma)
             (model.n, model.gamma) = optim_args
+        model.m = 1-1/model.n
 
         (_flag, t, z) = direct.solve(model)
 
@@ -51,14 +52,21 @@ def solve(model):
                                  z[:, model.mass_in_idx], mass_out,
                                  z[:, model.s1_idx], z[:, model.s2_idx], model, 
                                  chtype='gc')
+        print('time:', model.tspan, model.duration)
+
+        print('z, t', z, t)
+        print('m', model.m)
         wl = z[:, model.mass_out_idx]
+        print('gc_mes, wl_mes: t_exp', model.gc1, model.wl_out1, model.duration)
+        print('gc_com, wl_com: t_com', GC[1:], wl[1:], t)
+        #input('pause...')
 
         return (t, GC[1:], wl.transpose()[1:]) # discard values at t=0
 
     def lsq_ip_direct_drainage(xdata, *optim_args):
 
         (t, GC, wl) = ip_direct_drainage(xdata, optim_args)
-        print('gc, wl: ', GC, wl)
+        #print('gc, wl: ', GC, wl)
         #print(np.shape(GC), np.shape(wl), type(GC), type(wl))
         result = np.concatenate((GC, wl))
         #print(result)
@@ -110,8 +118,8 @@ def solve(model):
 
         duration_measured =  model.duration[i]
         duration_computed = t_inv[i+1] - t_inv[i]
-        gc_measured = GC_inv[i]
-        gc_computed = model.gc1[i]
+        gc_measured = model.gc1[i]
+        gc_computed = GC_inv[i]
 
         print('Subexperiment ', i+1)
         print('    GC_measured: % 3.6f wl_out_measured: % .6f'
@@ -130,10 +138,8 @@ def solve(model):
         print('\nKs    found: ', Ks_inv)
     elif inv_params_len == 2:
         (n_inv, gamma_inv) = inv_params
-    print('\nn     found: ', n_inv)
-    print('\ngamma found: ', gamma_inv)
-
-    
+    print('n     found: ', n_inv)
+    print('gamma found: ', gamma_inv)
 
     return inv_params
 
