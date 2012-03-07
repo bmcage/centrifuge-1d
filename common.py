@@ -68,9 +68,9 @@ def load_modules_names(submodule):
 
             return loaded_modules[module_name]
         else:
-            print('Unknown experiment type: %s' % exp_type)
+            print('\n\nUnknown experiment type: %s\n' % exp_type)
             print('Available experiments are:\n %s' % modules_names)
-            raise ValueError()
+            raise exit(1)
 
     return find_module
 
