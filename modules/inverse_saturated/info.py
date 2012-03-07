@@ -1,7 +1,9 @@
 scheme = 'inverse'
 
-types = ['ish', 'inverse-saturated-heights', 'inverse_saturated_heights',
-         'ish-f', 'inverse-saturated-heights-falling-head',
-         'inverse_saturated_heights_falling_head']
+# ish-f:  inverse_saturated_heights-falling_head_test
+# ish-sc: inverse_saturated_heights-saturated_consolidation
+types = ['ish',
+         'ish-f',
+         'ish-sc']
 
 desc  = "Module for solving inverse problem of finding saturated permeability Ks of fully saturated sample in which only saturated flow occurs"

@@ -52,10 +52,8 @@ def solve(model):
                                  z[:, model.mass_in_idx], mass_out,
                                  z[:, model.s1_idx], z[:, model.s2_idx], model, 
                                  chtype='gc')
-        print('time:', model.tspan, model.duration)
 
-        print('z, t', z, t)
-        print('m', model.m)
+        print('\noptimization parameters: ', optim_args)
         wl = z[:, model.mass_out_idx]
         print('gc_mes, wl_mes: t_exp', model.gc1, model.wl_out1, model.duration)
         print('gc_com, wl_com: t_com', GC[1:], wl[1:], t)
@@ -135,11 +133,11 @@ def solve(model):
                  (duration_computed - duration_measured) / duration_measured * 100))
     if inv_params_len == 3:
         (Ks_inv, n_inv, gamma_inv) = inv_params
-        print('\nKs    found: ', Ks_inv)
+        print('\nKs [cm/s] found: ', Ks_inv)
     elif inv_params_len == 2:
         (n_inv, gamma_inv) = inv_params
-    print('n     found: ', n_inv)
-    print('gamma found: ', gamma_inv)
+    print('n         found: ', n_inv)
+    print('gamma     found: ', gamma_inv)
 
     return inv_params
 
