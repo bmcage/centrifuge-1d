@@ -15,36 +15,12 @@ def usage():
           ' (i.e. file ''./sources/csv/experiment_id.cvs'' ')
     exit(0)
 
-def write_ini(fout, exp_id, exp_no, tube_no, data):
-    if data['exp_type'] in ['ish', 'ishsc', 'ish-f',
-                            'ids', 'idsh']:
-        fout.write('[experiment-data]\n')
-
-        for (descriptor, value) in data.items():
-            if descriptor == 'exp_type':
-                fout.write("{:8} = '{}'\n".format(descriptor, value))
-            elif descriptor == 'sh0':
-                fout.write('{:8} = [{}]\n'.format('length',
-                                                  ', '.join(value)))
-            elif descriptor == 'sh1':
-                pass
-            else:
-                fout.write('{:8} = [{}]\n'.format(descriptor,
-                                                  ', '.join(value)))
-    else:
-        raise NotImplementedError('Experiment type "%s" is not implemented.'
-                                  %  data['exp_type'])
-
 def CSV2dataini(csv_filename, data_dir):
     from common import load_modules_names
     import csv
 
-    data = {}
-
     f_csv = open(csv_filename)
     csv_data = csv.reader(f_csv)
-
-    exp_identifiers = ['id', 'exp_no', 'exp_type', 'tube_no']
 
     find_module = load_modules_names('csv_parse')
 
@@ -54,52 +30,35 @@ def CSV2dataini(csv_filename, data_dir):
 
     indexes = {field: csv_fields.index(field) for field in csv_fields}
 
-    try:
-        exp_id_idx   = indexes['id']
-        exp_no_idx   = indexes['exp_no']
-        exp_type_idx = indexes['exp_type']
-        tube_no_idx  = indexes['tube_no']
-    except ValueError:
-        print('CSV file: missing ''id'', ''exp_no''',
-              ' ''exp_type'' or ''tube_no'' column name !')
+    if not 'exp_type' in indexes:
+        print("CSV file: missing experiment identifier: 'exp_type'")
         exit(1)
+    exp_type_idx = indexes['exp_type']
 
-    ini_fields = []
-    ini_fields.extend(csv_fields)
-    for field in exp_identifiers:
-        ini_fields.remove(field)
+    default_module = find_module('_default')
+    data = {}
 
     for row in csv_data:
-        experiment_id   = row[exp_id_idx]
-        experiment_no   = row[exp_no_idx]
         experiment_type = row[exp_type_idx]
-        tube_number     = row[tube_no_idx]
-
         module = find_module(experiment_type)
 
         if module.skip(experiment_type, row, indexes): continue
 
-        if not experiment_id in data:
-            data[experiment_id]={}
-        if not experiment_no in data[experiment_id]:
-            data[experiment_id][experiment_no]={}
+        ini_fields = []
+        ini_fields.extend(csv_fields)
+        if hasattr(module, 'experiment_identifiers'):
+            exp_identifiers = module.experiment_identifiers(indexes)
+        else:
+            exp_identifiers = default_module.experiment_identifiers(indexes)
+        for field in exp_identifiers:
+            ini_fields.remove(field)
 
-        experiment_data = data[experiment_id][experiment_no]
-        if not tube_number in experiment_data:
-           experiment_data[tube_number]  = {k: [] for k in ini_fields}
+        if hasattr(module, 'read_CSV_row'):
+            read_CSV_row = module.read_CSV_row
+        else:
+            read_CSV_row = default_module.read_CSV_row
 
-        for (descriptor, value) in zip(csv_fields, row):
-            if not descriptor in exp_identifiers:
-                experiment_data[tube_number][descriptor].append(value)
-            elif descriptor == 'exp_type':
-                if not 'exp_type' in experiment_data[tube_number]:
-                    experiment_data[tube_number]['exp_type'] = value
-                elif experiment_data[tube_number]['exp_type'] != value:
-                    raise ValueError('Experiment ' + experiment_no + 'of suit "'
-                                     + experiment_id
-                                     + '"cannot have different experiment'
-                                     + ' types: ', value, ' and '
-                                     + experiment_data[tube_number]['exp_type'])
+        read_CSV_row(data, experiment_type, row, indexes, csv_fields, ini_fields)
 
     f_csv.close()
 
@@ -115,20 +74,13 @@ def CSV2dataini(csv_filename, data_dir):
         if not path.exists(out_dir):
             makedirs(out_dir)
 
-        for (experiment_no, exp_no_struct) in exp_id_struct.items():
+        if hasattr(module, 'write2ini'):
+            write2ini = module.write2ini
+        else:
+            write2ini = default_module.write2ini
 
-            print('      Processing experiment number: %s... ' % experiment_no,
-                  end="")
+        write2ini(experiment_id, exp_id_struct, out_dir)
 
-            for (tube_no, base_data) in exp_no_struct.items():
-
-                fout_filename = ''.join([out_dir, '/experiment_', experiment_no,
-                                         '-filter', tube_no, '.ini'])
-
-                fout = open(fout_filename, mode='w', encoding='utf-8')
-                write_ini(fout, experiment_id, experiment_no, tube_no, base_data)
-                fout.close()
-            print('Done.')
         print('    Processing experiments with ID %s finished.' % experiment_id)
     print('Finished.')
 
