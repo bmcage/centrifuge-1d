@@ -1,131 +1,135 @@
 #!/usr/bin/python
 from sys import path as syspath, argv as sysargv
 from os.path import exists
-from common import load_modules_names, make_collector, print_by_tube
+from common import load_modules, make_collector, print_by_tube
 from config import read_cfgs, merge_cfgs, flatten_cfg
 from base import ModelParameters
-
+from optparse import OptionParser
 
 
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
 INIFILES_BASE_DIR = 'sources/inifiles'
-TUBES_NUMBERS     = [1, 2, 4, 5]
-#TUBES_NUMBERS     = [5]
+DEFAULT_TUBES     = [1, 2, 4, 5]
 
-def usage():
-    print('\nUsage:'
-          '\n  run_experiments <exp_ID> <first_experiment> [last_experiment]'
-          '\n           or'
-          '\n run_experiments -i <inifile>'
-          '\n'
-          '\n    exp_ID: experiment_ID - a unique identifier of experiment series'
-          '\n    first_experiment: number of first experiment in exp_ID series'
-          '\n             of experiments'
-          '\n    last_experiment: if specified, computes all experiments between'
-          '\n             the first_experiment and last_experiment (included);'
-          '\n             if not specified, computes only first_experiment')
-
-    exit(0)
-
-find_module = load_modules_names('run')
-
-def run_experiment(inifilename, default_cfg = ''):
-    [cfg] = read_cfgs(inifilename, preserve_sections_p=True)
-
-    module = find_module(cfg['experiment-data']['exp_type'])
-
-    model_cfg = merge_cfgs(module.base_cfg(), [default_cfg, cfg])
-    model_cfg = flatten_cfg(model_cfg)
-
-    module.adjust_cfg(model_cfg)
-
-    model = ModelParameters(model_cfg)
-
-    results = module.solve(model)
-
-    return results
-
-def run_experiments(exp_id, first_experiment, last_experiment):
-
-    exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
-
-    exp_ini_defaults = exp_inifiles_dir + '/defaults.ini'
-    if exists(exp_ini_defaults):
-        [default_cfg] = read_cfgs(exp_ini_defaults, preserve_sections_p=True)
-    else:
-        default_cfg = ''
-
-
-    collector = make_collector(TUBES_NUMBERS)
-
-    print('\n'
-          '---------------------------------------------------------'
-          '\n GENERAL experiments informations'
-          '\nFirst experiment: %s'
-          '\nLast  experiment: %s '
-          % (first_experiment, last_experiment))
-
-    for exp_no in range(first_experiment, last_experiment+1):
-        print('\n==========================================================='
-              '\nExecuting experiment %s of the %s problem.'
-              % (exp_no, exp_id))
-        for tube_no in TUBES_NUMBERS:
-            print('\n   Executing experiment for tube number: ', tube_no)
-
-            inifilename = (exp_inifiles_dir + '/experiment_' + str(exp_no)
-                           + '-filter' + str(tube_no) +'.ini')
-            if not exists(inifilename):
-                print('File "%s" does not exist, skipping...' % inifilename)
-                continue
-
-            results = run_experiment(inifilename, default_cfg)
-
-            collector('collect', data=results, tube_no=tube_no)
-
-        print('\nExperiment %s finished.' % exp_no)
-
-    collector('print-by-tube', data=print_by_tube)
+find_module = load_modules('run')
 
 def parse_input():
 
-    arg_len = len(sysargv)
+    usage_str = ('\n%prog [options] [ID, first_experiment [last_experiment]]'
+             '\n\n    first_experiment: number of first experiment in exp_ID '
+             'series of experiments; either "first_experiment" or "-i" option'
+             'has to be set'
+             '\n    last_experiment:  if specified, computes all experiments '
+             'between the\n\t\t      "first_experiment" and '
+             '"last_experiment" (included);'
+             '\n\t\t      if not specified, computes only first_experiment')
+    optparser = OptionParser(usage=usage_str)
+    optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
+                         metavar='TUBES_NUMBERS',
+                         help="Run experiment only on selected tubes, default is:\n %default")
+    optparser.add_option('-i', '--inifile', dest='inifile', metavar='INIFILENAME',
+                         help="Run experiment from given inifile")
+    (options, args) = optparser.parse_args()
 
-    if arg_len == 1 or (arg_len == 2 and (sysargv[1] in ['-h', '--help'])):
-        usage()
-    elif arg_len == 3 and sysargv[1] in ['-i', '--inifile']:
-        infilename = sysargv[2]
-        if not exists(inifilename):
-                print('File "%s" does not exist, skipping...' % inifilename)
-                return
+    arg_len = len(args)
+    inifilename = options.inifile
+    if (arg_len == 0 and not inifilename) or (arg_len == 1):
+        optparser.print_usage()
+    elif arg_len > 1 and inifilename:
+        print('Error: "first_experiment" and inifile "-i" cannot be set'
+              'at the same time')
+        optparser.print_usage()
+    elif options.inifile and not exists(inifilename):
+        print('File "%s" does not exist, exiting...' % inifilename)
+        exit(0)
 
+    optparser.destroy()
+
+    return (options, args)
+
+def run_experiments(options, exp_args):
+
+    if options.inifile:
+        inifilename = options.inifile
         print('\n==========================================================='
               '\nExecuting experiment: %s' % infilename)
         results = run_experiment(infilename)
         print(results)
         print('\nExperiment finished.')
-    elif arg_len == 3 or arg_len == 4:
-
-        exp_id = sysargv[1]
-        print(sysargv)
-
+    else:
         try:
-            first_experiment = int(sysargv[2])
-            if arg_len == 4:
-                last_experiment = int(sysargv[3])
+            exp_id = exp_args[0]
+            first_experiment = int(exp_args[1])
+            if len(exp_args) == 3:
+                last_experiment = int(experiments[2])
             else:
                 last_experiment = first_experiment
         except:
             raise ValueError('Input error: first and last experiment have to be'
-                             ' integers. Wrong input: %s' % sysargv[1:])
+                             ' integers. Wrong input: %s,%s ' 
+                             % (first_experiment, last_experiment))
 
-        run_experiments(exp_id, first_experiment, last_experiment)
-    else:
-        print('\nWrong arguments for run_experiments: %s' % sysargv[1:])
-        usage()
-        exit(0)
+        exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
+
+        ini_defaults = exp_inifiles_dir + '/defaults.ini'
+        if not exists(ini_defaults):
+            print('Experiment %s does not have file defaults.ini'
+                  'Module name cannot be determined' % exp_id)
+            exit(0)
+
+        [default_cfg] = read_cfgs(ini_defaults, preserve_sections_p=True)
+
+        #collector = make_collector(options.tubes)
+
+        default_module = find_module('_default')
+
+        module = find_module(default_cfg['solver']['module'])
+
+        if hasattr(module, 'experiments_files'):
+            experiments_files = module.experiments_files
+        else:
+           experiments_files = default_module.experiments_files
+
+        print('\n\n GENERAL experiments informations'
+              '\n---------------------------------------------------------'
+              '\n ID: %s'
+              '\n First experiment: %s'
+              '\n Last  experiment: %s '
+              '\n---------------------------------------------------------'
+              % (exp_id, first_experiment, last_experiment))
+
+        (identifiers, experiments_inifiles) = \
+          experiments_files(first_experiment, last_experiment, options.tubes)
+
+        for (identifier, inifile) in zip(identifiers, experiments_inifiles):
+            print('\n=========================================================='
+                  '\nExecuting %s of the problem %s.' % (identifier, exp_id))
+
+            inifile_fullname = exp_inifiles_dir + '/' + inifile
+            if not exists(inifile_fullname):
+                print('File "%s" does not exist, skipping...' % inifilename)
+                continue
+
+            [cfg] = read_cfgs(inifile_fullname, preserve_sections_p=True)
+
+            model_cfg = merge_cfgs(module.base_cfg(), [default_cfg, cfg])
+            model_cfg = flatten_cfg(model_cfg)
+
+            module.adjust_cfg(model_cfg)
+
+            model = ModelParameters(model_cfg)
+
+            results = module.solve(model)
+
+            print(results)
+
+            #collector('collect', data=results, tube_no=tube_no)
+
+            #collector('print-by-tube', data=print_by_tube)
 
 if __name__ == "__main__":
-    parse_input()
+    (options, args) = parse_input()
+    run_experiments(options, args)
 
 
