@@ -36,7 +36,7 @@ def CSV2dataini(csv_filename, data_dir):
         exit(1)
     exp_type_idx = indexes['exp_type']
 
-    default_module = find_module('_default')
+    default_module = find_module('base')
 
     data = {}
 

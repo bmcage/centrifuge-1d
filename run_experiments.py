@@ -82,7 +82,7 @@ def run_experiments(options, exp_args):
 
         #collector = make_collector(options.tubes)
 
-        default_module = find_module('_default')
+        default_module = find_module('base')
 
         module = find_module(default_cfg['solver']['module'])
 
