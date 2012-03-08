@@ -16,13 +16,14 @@ def usage():
     exit(0)
 
 def CSV2dataini(csv_filename, data_dir):
-    from common import load_modules_names
+    from common import load_experiment_types, load_modules
     import csv
 
     f_csv = open(csv_filename)
     csv_data = csv.reader(f_csv)
 
-    find_module = load_modules_names('csv_parse')
+    find_module_name = load_experiment_types()
+    find_module      = load_modules('csv_parse')
 
     print('Reading CSV file... ', end="")
 
@@ -36,11 +37,23 @@ def CSV2dataini(csv_filename, data_dir):
     exp_type_idx = indexes['exp_type']
 
     default_module = find_module('_default')
+
     data = {}
+
+    module_name = ''
 
     for row in csv_data:
         experiment_type = row[exp_type_idx]
-        module = find_module(experiment_type)
+        if module_name:
+            if not module_name == find_module_name(experiment_type):
+                print('Error: experiment_type "%s" requires module "%s", but'
+                      ' expected (first found) module was "%s".'
+                      % (experiment_type, find_module_name(experiment_type),
+                         module_name))
+                exit(1)
+        else:
+            module_name = find_module_name(experiment_type)
+            module = find_module(module_name)
 
         if module.skip(experiment_type, row, indexes): continue
 
@@ -69,7 +82,7 @@ def CSV2dataini(csv_filename, data_dir):
     for (experiment_id, exp_id_struct) in data.items():
         out_dir  = '{}/{}'.format(data_dir, experiment_id)
 
-        print('    Processing experiment(s) with ID: %s' % experiment_id)
+        print('    Processing experiment(s) with ID: %s...' % experiment_id)
 
         if not path.exists(out_dir):
             makedirs(out_dir)
@@ -81,8 +94,17 @@ def CSV2dataini(csv_filename, data_dir):
 
         write2ini(experiment_id, exp_id_struct, out_dir)
 
-        print('    Processing experiments with ID %s finished.' % experiment_id)
-    print('Finished.')
+        print('    Creating default inifile for ID %s...', end = '')
+        default_ini = out_dir + '/defaults.ini'
+        if path.exists(default_ini):
+            print('\n        File "defaults.ini" already exists. Skipping...')
+        else:
+            fout = open(default_ini, mode='w', encoding='utf-8')
+            fout.write('[solver]\n')
+            fout.write("{:8} = '{}'\n".format('module', module_name))
+            print('Done.')
+
+    print('Done.')
 
     return data
 

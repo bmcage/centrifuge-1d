@@ -42,7 +42,7 @@ def read_CSV_row(data, exp_type, row, indexes, csv_fields, ini_fields):
 
 def write2ini(exp_id, exp_id_struct, out_dir):
     for (experiment_no, exp_no_struct) in exp_id_struct.items():
-        print('      Processing experiment number: %s... ' % experiment_no, end="")
+        print('        Processing experiment number: %s... ' % experiment_no, end="")
 
         for (tube_no, base_data) in exp_no_struct.items():
 
