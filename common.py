@@ -24,6 +24,74 @@ def read_model(cfg_filenames, base_cfg = {}, check_cfg_fn = None,
 
     return model
 
+def load_modules(submodule_name):
+    """
+    Loads all submodules of name 'submodule_name', which are accessed by
+    the module name. Loading is done only on demand.
+    """
+
+    from os import listdir
+    from sys import modules as sysmodules
+
+    modules_names = listdir('modules')
+    modules_names.remove('__pycache__')
+    modules_names.remove('__init__.py')
+
+    loaded_modules = dict.fromkeys(modules_names)
+
+    def find_module(module_name):
+        if not module_name in loaded_modules:
+            print('Module load error: Module "%s" could not be loaded.'
+                      ' Unknown module name.\n'  % module_name)
+            exit(1)
+
+        module = loaded_modules[module_name]
+        if not module:
+            module_full_name = 'modules.' + module_name + '.' + submodule_name
+            __import__(module_full_name)
+
+            module = sysmodules[module_full_name]
+            loaded_modules[module_name] = module
+
+        return module
+
+    return find_module
+
+def load_experiment_types():
+
+    from os import listdir
+    from sys import modules as sysmodules
+
+    modules_names = listdir('modules')
+    modules_names.remove('__pycache__')
+    modules_names.remove('__init__.py')
+
+    types_to_names = {}
+
+    for module_name in modules_names:
+        try:
+            module_info_full_name = 'modules.' + module_name + '.info'
+
+            __import__(module_info_full_name)
+
+            info = sysmodules[module_info_full_name]
+
+            for exp_type in info.types:
+                types_to_names[exp_type] = module_name
+        except:
+            print('Module load error:Module "%s" could not be loaded.'
+                  ' Skipping.\n'  % module_name)
+
+    def find_module_name(exp_type):
+        if not exp_type in types_to_names:
+            print('Experiment error: Unknown experiment type: "%s"'
+                  % module_name)
+            exit(1)
+
+        return types_to_names[exp_type]
+
+    return find_module_name
+
 def load_modules_names(submodule):
     """
     Lists all experiment types defined in modules/<module_name>.info.py
