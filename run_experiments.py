@@ -39,76 +39,76 @@ def parse_input():
 
 def run_experiments(options, exp_args):
 
-        try:
-            exp_id = exp_args[0]
-            first_experiment = int(exp_args[1])
-            if len(exp_args) == 3:
-                last_experiment = int(exp_args[2])
-            else:
-                last_experiment = first_experiment
-        except:
-
-            raise ValueError('Input error: first and last experiment have to be'
-                             ' integers. Wrong input: %s ' 
-                             % exp_args[1:])
-
-        exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
-
-        ini_defaults = exp_inifiles_dir + '/defaults.ini'
-        if not exists(ini_defaults):
-            print('Experiment %s does not have file defaults.ini'
-                  'Module name cannot be determined' % exp_id)
-            exit(0)
-
-        [default_cfg] = read_cfgs(ini_defaults, preserve_sections_p=True)
-
-        #collector = make_collector(options.tubes)
-
-        default_module = find_module('base')
-
-        module = find_module(default_cfg['solver']['module'])
-
-        if hasattr(module, 'experiments_files'):
-            experiments_files = module.experiments_files
+    try:
+        exp_id = exp_args[0]
+        first_experiment = int(exp_args[1])
+        if len(exp_args) == 3:
+            last_experiment = int(exp_args[2])
         else:
-           experiments_files = default_module.experiments_files
+            last_experiment = first_experiment
+    except:
 
-        print('\n\n GENERAL experiments informations'
-              '\n---------------------------------------------------------'
-              '\n ID: %s'
-              '\n First experiment: %s'
-              '\n Last  experiment: %s '
-              '\n---------------------------------------------------------'
-              % (exp_id, first_experiment, last_experiment))
+        raise ValueError('Input error: first and last experiment have to be'
+            ' integers. Wrong input: %s ' 
+            % exp_args[1:])
 
-        (identifiers, experiments_inifiles) = \
-          experiments_files(first_experiment, last_experiment, options.tubes)
+    exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
 
-        for (identifier, inifile) in zip(identifiers, experiments_inifiles):
-            print('\n=========================================================='
-                  '\nExecuting %s of the problem %s.' % (identifier, exp_id))
+    ini_defaults = exp_inifiles_dir + '/defaults.ini'
+    if not exists(ini_defaults):
+        print('Experiment %s does not have file defaults.ini'
+            'Module name cannot be determined' % exp_id)
+        exit(0)
 
-            inifile_fullname = exp_inifiles_dir + '/' + inifile
-            if not exists(inifile_fullname):
-                print('File "%s" does not exist, skipping...' % inifilename)
-                continue
+    [default_cfg] = read_cfgs(ini_defaults, preserve_sections_p=True)
 
-            [cfg] = read_cfgs(inifile_fullname, preserve_sections_p=True)
+    #collector = make_collector(options.tubes)
 
-            model_cfg = merge_cfgs(module.base_cfg(), [default_cfg, cfg])
-            model_cfg = flatten_cfg(model_cfg)
+    default_module = find_module('base')
 
-            module.adjust_cfg(model_cfg)
+    module = find_module(default_cfg['solver']['module'])
 
-            model = ModelParameters(model_cfg)
+    if hasattr(module, 'experiments_files'):
+        experiments_files = module.experiments_files
+    else:
+        experiments_files = default_module.experiments_files
 
-            results = module.solve(model)
+    print('\n\n GENERAL experiments informations'
+        '\n---------------------------------------------------------'
+        '\n ID: %s'
+        '\n First experiment: %s'
+        '\n Last  experiment: %s '
+        '\n---------------------------------------------------------'
+        % (exp_id, first_experiment, last_experiment))
 
-            print(results)
+    (identifiers, experiments_inifiles) = \
+      experiments_files(first_experiment, last_experiment, options.tubes)
 
-            #collector('collect', data=results, tube_no=tube_no)
+    for (identifier, inifile) in zip(identifiers, experiments_inifiles):
+        print('\n=========================================================='
+            '\nExecuting %s of the problem %s.' % (identifier, exp_id))
 
-            #collector('print-by-tube', data=print_by_tube)
+        inifile_fullname = exp_inifiles_dir + '/' + inifile
+        if not exists(inifile_fullname):
+            print('File "%s" does not exist, skipping...' % inifilename)
+            continue
+
+        [cfg] = read_cfgs(inifile_fullname, preserve_sections_p=True)
+
+        model_cfg = merge_cfgs(module.base_cfg(), [default_cfg, cfg])
+        model_cfg = flatten_cfg(model_cfg)
+
+        module.adjust_cfg(model_cfg)
+
+        model = ModelParameters(model_cfg)
+
+        results = module.solve(model)
+
+        print(results)
+
+        #collector('collect', data=results, tube_no=tube_no)
+
+        #collector('print-by-tube', data=print_by_tube)
 
 if __name__ == "__main__":
     (options, args) = parse_input()
