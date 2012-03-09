@@ -27,21 +27,11 @@ def parse_input():
     optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
                          metavar='TUBES_NUMBERS',
                          help="Run experiment only on selected tubes, default is:\n %default")
-    optparser.add_option('-i', '--inifile', dest='inifile', metavar='INIFILENAME',
-                         help="Run experiment from given inifile")
     (options, args) = optparser.parse_args()
 
     arg_len = len(args)
-    inifilename = options.inifile
-    if (arg_len == 0 and not inifilename) or (arg_len == 1):
+    if arg_len == 0 or arg_len == 1:
         optparser.print_usage()
-    elif arg_len > 1 and inifilename:
-        print('Error: "first_experiment" and inifile "-i" cannot be set'
-              'at the same time')
-        optparser.print_usage()
-    elif options.inifile and not exists(inifilename):
-        print('File "%s" does not exist, exiting...' % inifilename)
-        exit(0)
 
     optparser.destroy()
 
@@ -49,14 +39,6 @@ def parse_input():
 
 def run_experiments(options, exp_args):
 
-    if options.inifile:
-        inifilename = options.inifile
-        print('\n==========================================================='
-              '\nExecuting experiment: %s' % infilename)
-        results = run_experiment(infilename)
-        print(results)
-        print('\nExperiment finished.')
-    else:
         try:
             exp_id = exp_args[0]
             first_experiment = int(exp_args[1])
@@ -65,6 +47,7 @@ def run_experiments(options, exp_args):
             else:
                 last_experiment = first_experiment
         except:
+
             raise ValueError('Input error: first and last experiment have to be'
                              ' integers. Wrong input: %s ' 
                              % exp_args[1:])
