@@ -44,7 +44,8 @@ def CSV2dataini(csv_filename, data_dir):
 
     for row in csv_data:
         experiment_type = row[exp_type_idx]
-        if module_name:
+
+        if module_name: # module_name was already determined
             if not module_name == find_module_name(experiment_type):
                 print('Error: experiment_type "%s" requires module "%s", but'
                       ' expected (first found) module was "%s".'
@@ -55,21 +56,28 @@ def CSV2dataini(csv_filename, data_dir):
             module_name = find_module_name(experiment_type)
             module = find_module(module_name)
 
-        if module.skip(experiment_type, row, indexes): continue
+            if hasattr(module, 'skip'):
+                skip = module.skip
+            else:
+                skip = default_module.skip
 
-        ini_fields = []
-        ini_fields.extend(csv_fields)
-        if hasattr(module, 'experiment_identifiers'):
-            exp_identifiers = module.experiment_identifiers(indexes)
-        else:
-            exp_identifiers = default_module.experiment_identifiers(indexes)
-        for field in exp_identifiers:
-            ini_fields.remove(field)
+            if hasattr(module, 'experiment_identifiers'):
+                exp_identifiers = module.experiment_identifiers(indexes)
+            else:
+                exp_identifiers = default_module.experiment_identifiers(indexes)
 
-        if hasattr(module, 'read_CSV_row'):
-            read_CSV_row = module.read_CSV_row
-        else:
-            read_CSV_row = default_module.read_CSV_row
+            if hasattr(module, 'read_CSV_row'):
+                read_CSV_row = module.read_CSV_row
+            else:
+                read_CSV_row = default_module.read_CSV_row
+
+            ini_fields = []
+            ini_fields.extend(csv_fields)
+
+            for field in exp_identifiers:
+                ini_fields.remove(field)
+
+        if skip(experiment_type, row, indexes): continue
 
         read_CSV_row(data, experiment_type, row, indexes, csv_fields, ini_fields)
 
