@@ -37,7 +37,7 @@ def experiments_files(first_experiment, last_experiment, tubes):
 
 def solve(model):
     def lsq_fn(h, *optim_args):
-        print(optim_args)
+
         (n, gamma) = optim_args
         m = 1. - 1./n
 
@@ -57,15 +57,22 @@ def solve(model):
 
     u_inv = lsq_fn(xdata, *inv_params)
 
-    draw_graphs(1, model.h[:-1], model.u[:-1], u_inv[:-1])
+    draw_graphs(1, model.h, model.u, inv_params)
 
-def draw_graphs(fignum, h, u_found, u_measured):
+    return inv_params
+
+def draw_graphs(fignum, h_measured, u_measured, inv_found):
     import matplotlib.pyplot as plt
 
     plt.figure(fignum, figsize=(8, 4.5))
 
-    plt.plot(h, u_found, '.', h, u_measured, 'x')
-    plt.xlabel('Hydraulic pressure ''h'' [$Pa$]')
-    plt.ylabel('Relative saturation ''u'' ')
+    [n_found, gamma_found] = inv_found
+    h_calc = -np.arange(0, 1600, 1)
+    u_calc = h2u(h_calc, n_found, 1.-1./n_found, gamma_found)
+
+    plt.plot(u_calc, -h_calc, '-', u_measured, -h_measured, 'x',)
+    plt.yscale('log')
+    plt.ylabel('Hydraulic pressure ''h'' [$Pa$]')
+    plt.xlabel('Relative saturation ''u'' ')
 
     plt.show()
