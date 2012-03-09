@@ -34,6 +34,7 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
+import numpy as np
 
 #import const
 

@@ -2,8 +2,7 @@
 from sys import path as syspath, argv as sysargv
 from os.path import exists
 from common import load_modules, make_collector, print_by_tube
-from config import read_cfgs, merge_cfgs, flatten_cfg
-from base import ModelParameters
+from config import read_cfgs, merge_cfgs, flatten_cfg, ModelParameters
 from optparse import OptionParser
 
 
@@ -62,13 +61,13 @@ def run_experiments(options, exp_args):
             exp_id = exp_args[0]
             first_experiment = int(exp_args[1])
             if len(exp_args) == 3:
-                last_experiment = int(experiments[2])
+                last_experiment = int(exp_args[2])
             else:
                 last_experiment = first_experiment
         except:
             raise ValueError('Input error: first and last experiment have to be'
-                             ' integers. Wrong input: %s,%s ' 
-                             % (first_experiment, last_experiment))
+                             ' integers. Wrong input: %s ' 
+                             % exp_args[1:])
 
         exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
 
