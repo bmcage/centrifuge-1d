@@ -13,25 +13,45 @@ PARAMETERS = {'fluid': ['density'],
      'discretization': ['inner_points', 'dtype'],
          'centrifuge': ['wt_out']}
 
+# wt_out - distance of the output chamber (that catches outspelled water)
+#          from the end of the sample (tube)
+
 DIRECT_DRAINING_SATURATED_ADDITIONAL_PARAMETERS = {}
 
 def base_cfg():
-    from base import base_cfg as raw_cfg
+    from modules.base.run import base_cfg as raw_cfg
     from config import merge_cfgs
 
     return merge_cfgs(raw_cfg(), DIRECT_DRAINING_SATURATED_ADDITIONAL_PARAMETERS)
 
 def adjust_cfg(flattened_cfg):
-    from  base import adjust_cfg as base_adjust_cfg
+    from  modules.base.run import adjust_cfg as base_adjust_cfg
     base_adjust_cfg(flattened_cfg)
 
     for param in ['r0_fall', 'wt_out', 'inner_points', 'dtype', 'density',
-                  'h_init']:
+                  'h_init', 'n', 'gamma', 'draw_graphs']:
         if not param in flattened_cfg:
             raise ValueError('CFG:check: Value not initialized: %s' % param)
 
     from shared_functions import (lagrangean_derivative_coefs,  dudh, h2Kh,
                                   h2u, characteristics, find_omega2g)
+
+    gamma = flattened_cfg['gamma']
+    if len(gamma) > 1:
+        print('Parameter gamma is a list of length > 1. Only constant or '
+              'list of length 1 is supported. Exiting...')
+        exit(1)
+    else:
+        flattened_cfg['gamma'] = gamma[0]
+
+    n = flattened_cfg['n']
+    if type(n) == list:
+        if len(n) > 1:
+            print('Parameter n is a list of length > 1. Only constant or '
+                  'list of length 1 is supported. Exiting...')
+            exit(1)
+        else:
+            flattened_cfg['n'] = n[0]
 
     flattened_cfg['m'] = 1-1/flattened_cfg['n']
 
@@ -347,7 +367,7 @@ def solve(model):
         #z[i, :] = zacc[1, :]
 
         # falling head
-        if hasattr(model, 'fh_duration'):
+        if hasattr(model, 'fh_duration') and model.fh_duration[i] > 0.:
             acc = model.include_acceleration
             model.tspan  = np.asarray([0.0, model.fh_duration[i]])
             model._r0    = model.r0_fall
@@ -357,7 +377,9 @@ def solve(model):
             model.include_acceleration = acc
 
     #print('t,z: ', t, z)
-    #draw_graphs(1, t, model.y, z, model)
+
+    if model.draw_graphs:
+        draw_graphs(1, t, model.y, z, model)
 
     return (flag, t, z)
 
