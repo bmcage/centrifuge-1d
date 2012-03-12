@@ -103,7 +103,7 @@ def run_experiments(options, exp_args):
 
         inifile_fullname = exp_inifiles_dir + '/' + inifile
         if not exists(inifile_fullname):
-            print('File "%s" does not exist, skipping...' % inifilename)
+            print('File "%s" does not exist, skipping...' % inifile)
             continue
 
         [cfg] = read_cfgs(inifile_fullname, preserve_sections_p=True)
