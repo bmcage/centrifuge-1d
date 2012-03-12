@@ -5,13 +5,14 @@ def CSV2ini_fields(field_name, field_value):
     return (field_name, field_value)
 
 def experiment_identifiers(indexes):
-    exp_identifiers = ['exp_type', 'id', 'exp_no', 'tube_no']
-    for exp_identifier in exp_identifiers:
-        if not exp_identifier in indexes:
-            raise("CSV file: missing experiment identifier: '%s'" 
-                  % exp_identifier)
+	exp_identifiers = ['exp_type', 'id', 'exp_no', 'tube_no']
+	for exp_identifier in exp_identifiers:
+		if not exp_identifier in indexes:
+			print("CSV file: missing experiment identifier: '%s' "
+				  % exp_identifier)
+			exit(1)
 
-    return exp_identifiers
+	return exp_identifiers
 
 def read_CSV_row(data, exp_type, row, indexes, csv_fields, ini_fields):
 

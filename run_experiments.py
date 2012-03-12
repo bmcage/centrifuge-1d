@@ -57,7 +57,7 @@ def run_experiments(options, exp_args):
     ini_defaults = exp_inifiles_dir + '/defaults.ini'
     if not exists(ini_defaults):
         print('Experiment %s does not have file defaults.ini'
-            'Module name cannot be determined' % exp_id)
+              'Module name cannot be determined' % exp_id)
         exit(0)
 
     [default_cfg] = read_cfgs(ini_defaults, preserve_sections_p=True)

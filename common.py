@@ -46,6 +46,7 @@ def load_modules(submodule_name):
             exit(1)
 
         module = loaded_modules[module_name]
+
         if not module:
             module_full_name = 'modules.' + module_name + '.' + submodule_name
             __import__(module_full_name)
