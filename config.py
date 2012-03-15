@@ -56,6 +56,16 @@ def flatten_cfg(cfg):
 
     return flatten({}, cfg)
 
+def merge_flattened_cfgs(cfg, cfgs):
+    if type(cfgs) == list:
+        for acfg in cfgs:
+            if acfg:
+                cfg.update(acfg)
+    else:
+        cfg.update(cfg, cfgs)
+
+    return cfg
+
 def merge_cfgs(cfg, cfgs):
     """ 
     Merge all following cfgs into 'cfg'; if the same values appear, the last one
@@ -83,22 +93,27 @@ def eval_item(setting):
     Given a value from an ini file, return it in its proper type.
     May be recursively called, in the case of nested structures.
     """
-    setting = setting.strip()
-    value = None
-    if setting.startswith("'") and setting.endswith("'"):
-        value = setting[1:-1]
-    elif setting.startswith("[") and setting.endswith("]"):
-        list_data = setting[1:-1]
-        value = [eval_item(item) for item in list_data.split(",")]
-    elif setting == "True":
-        value = True 
-    elif setting == "False":
-        value = False
-    elif "." in setting or "e" in setting or "E" in setting:
-        value = float(setting)
-    else:
-        value = int(setting)
-    return value
+    try:
+        setting = setting.strip()
+
+        value = None
+        if setting.startswith("'") and setting.endswith("'"):
+            value = setting[1:-1]
+        elif setting.startswith("[") and setting.endswith("]"):
+            list_data = setting[1:-1]
+            value = [eval_item(item) for item in list_data.split(",")]
+        elif setting == "True":
+            value = True
+        elif setting == "False":
+            value = False
+        elif "." in setting or "e" in setting or "E" in setting:
+            value = float(setting)
+        else:
+            value = int(setting)
+        return value
+    except:
+        print('Error:Could not parse setting: ', setting, '\nExiting...')
+        exit(1)
 
 
 def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
