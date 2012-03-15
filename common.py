@@ -176,3 +176,14 @@ def make_collector(tubes_numbers):
                              ' are: "collect", "print", "print-by-tube",'
                              ' "print-fifo" or "get".' % command)
     return collection
+
+def set_model_attributes(model, iteration, attributes_list):
+    for attribute in attributes_list:
+        value = getattr(model, attribute)
+
+        if not np.isscalar(value):
+            setattr(model, '_%s' % attribute, value[iteration])
+        elif iteration == 0:
+             setattr(model, '_%s' % attribute, value)
+
+    model.tspan  = np.asarray([0.0, model.duration[iteration]])

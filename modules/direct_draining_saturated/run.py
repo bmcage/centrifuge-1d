@@ -8,6 +8,7 @@ from scikits.odes.sundials.common_defs import ResFunction
 #import cProfile
 
 from shared_functions import find_omega2g, h2Kh, dudh, h2u
+from common import set_model_attributes
 
 PARAMETERS = {'fluid': ['density'],
      'discretization': ['inner_points', 'dtype'],
@@ -336,6 +337,8 @@ def solve(model):
 
     tspans = np.cumsum(model.duration)
 
+    attributes_list =  ['l0', 'r0', 'omega', 'porosity']
+
     for i in range(len(model.duration)):
 
         # if model.ks1 and model.fl1:
@@ -349,14 +352,8 @@ def solve(model):
         #print('l0: ', model.l0, 'r0: ', model.r0)        
         #print('ks2: ', model.ks2)
         #print('rf:', model.r0_fall)
-        model._l0    = model.l0[i]
-        model._r0    = model.r0[i]
-        #model._wl0   = model.wl0[i]
 
-        # acceleration
-        model.tspan  = np.asarray([0.0, model.duration[i]])
-        model._omega = model.omega[i]
-        model._porosity = model.porosity[i]
+        set_model_attributes(model, i, attributes_list)
 
         #flag, tacc, zacc  = run_solve(model)
         if i == 0:
