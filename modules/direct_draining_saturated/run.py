@@ -112,9 +112,11 @@ def draw_graphs(fignum, t, y, z, model):
     legend_data = []
     for i in range(len(t)):
         x[i, :] = z[i, model.s1_idx] + y * ds[i]
-        legend_data.append('t = % d' % t[i])
+        legend_data.append('t =%7d' % t[i])
 
     plt.figure(fignum, figsize=(16, 8.5))
+
+    plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
 
     plt.subplot(321)
     plt.plot(x.transpose(), h.transpose(), '.')
@@ -125,7 +127,7 @@ def draw_graphs(fignum, t, y, z, model):
     plt.plot(x.transpose(), u.transpose(), '.')
     plt.xlabel('Rotational axis distance ''r'' [$cm$]')
     plt.ylabel('Relative saturation ''u''')
-    plt.legend(legend_data, bbox_to_anchor=(1., 1.), loc=2, borderaxespad=0.1)
+    plt.legend(legend_data, bbox_to_anchor=(1.02, 1.), loc=2, borderaxespad=0.0)
 
     plt.subplot(323)
     plt.plot(t, z[:, model.mass_out_idx], '.')
