@@ -25,6 +25,7 @@ def base_cfg():
     base = {
          'general': {'g': 981. }}
     return base
+
 # unsaturated_cfg = {
 #             'soil': {'n': 2.81, 'gamma': 0.0189, 'v': 1.0},
 #            'fluid': {'s1_0': 0.1, 's2_0': 0.2, 'pc0': 1.0e5 },
@@ -32,24 +33,29 @@ def base_cfg():
 #                      'dtype': 1, 'percent_in_saturation': 40.0,
 #                      'approximation_type': 5, 'mb_epsilon': 1e-5}
 
+def check_attributes(cfg, attributes):
+    for attribute in attributes:
+        if not attribute in cfg:
+            print('Mandatory argument is not present: ', attribute)
+            exit(1)
+
 def adjust_cfg(cfg):
-    # print(cfg)
+
+    mandatory_attributes = ['omega', 'duration']
+
+    check_attributes(cfg, mandatory_attributes)
+    if cfg['include_acceleration']:
+        check_attributes(cfg, ['omega_start', 'omega_end'])
+
     omega_fn = lambda x: x * np.pi/ 30.0 # omega -> (2pi)*omega/60//rpm->rad.s-1
 
-    cfg['omega'] = [omega_fn(omega) for omega in cfg['omega']]
-    if cfg['include_acceleration']:
-        if 'omega_start' in cfg:
-            cfg['omega_start'] = [omega_fn(omega) for omega in cfg['omega_start']]
-        else:
-            cfg['omega_start'] = np.asarray([0.0], dtype=float)
-
-        if 'omega_end' in cfg:
-            cfg['omega_end'] = [omega_fn(omega) for omega in cfg['omega_end']]
-        else:
-            cfg['omega_end'] = np.asarray([0.0], dtype=float)
-    else:
-        cfg['omega_start'] = cfg['omega']
-        cfg['omega_end']   = cfg['omega']
+    for attribute in ['omega', 'omega_start', 'omega_end']:
+        if attribute in cfg:
+            value = cfg[attribute]
+            if np.isscalar(value):
+                cfg[attribute] = omega_fn(value)
+            else:
+                cfg[attribute] = [omega_fn(omega) for omega in value]
 
     # we assure that also the last value of tspan is present (and not cut)
     if 'duration' in cfg:
