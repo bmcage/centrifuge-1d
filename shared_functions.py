@@ -18,6 +18,16 @@ def lagrangean_derivative_coefs(dx):
 
     return ldc1, ldc2, ldc3
 
+def lagrangean_derivative_coefs_rightpoint(dx12, fx13):
+    [dx1, dx2]      = dx12
+    [fx1, fx2, fx3] = fx13
+
+    derivative = (dx2/(dx1*(dx1+dx2)) * fx1
+                  + (dx2 + dx1)/(-dx1 * dx2) * fx2
+                  + (2*dx2 + dx1)/(dx2*(dx1+dx2)) * fx3)
+
+    return derivative
+
 def h2Kh(h, n, m, gamma, Ks, Kh = None, tmp1 = None, tmp2 = None):
     if dudh and tmp1 and tmp2:
         tmp1[:] = np.power( gamma * h, n-1.)
