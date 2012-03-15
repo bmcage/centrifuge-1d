@@ -2,7 +2,7 @@
 from sys import path as syspath, argv as sysargv
 from os.path import exists
 from common import load_modules, make_collector, print_by_tube
-from config import read_cfgs, merge_cfgs, flatten_cfg, ModelParameters
+from config import read_cfgs, merge_flattened_cfgs, flatten_cfg, ModelParameters
 from optparse import OptionParser
 
 
@@ -74,12 +74,13 @@ def run_experiments(options, exp_args):
         exit(0)
 
     [default_cfg] = read_cfgs(ini_defaults, preserve_sections_p=True)
+    default_cfg = flatten_cfg(default_cfg)
 
     #collector = make_collector(options.tubes)
 
     default_module = find_module('base')
 
-    module = find_module(default_cfg['solver']['module'])
+    module = find_module(default_cfg['module'])
 
     if hasattr(module, 'experiments_files'):
         experiments_files = module.experiments_files
@@ -108,8 +109,8 @@ def run_experiments(options, exp_args):
 
         [cfg] = read_cfgs(inifile_fullname, preserve_sections_p=True)
 
-        model_cfg = merge_cfgs(module.base_cfg(), [default_cfg, cfg])
-        model_cfg = flatten_cfg(model_cfg)
+        model_cfg = merge_flattened_cfgs(flatten_cfg(module.base_cfg()),
+                                         [default_cfg, flatten_cfg(cfg)])
 
         module.adjust_cfg(model_cfg)
 
