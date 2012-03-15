@@ -181,10 +181,7 @@ class ModelParameters:
         if hasattr(self, key):
             raise Exception("Atrribute '%s' already exists !" % key)
         else:
-            if type(value) == str:
-                setattr(self, key, value)
-            else:
-                setattr(self, key, np.asarray(value))
+            setattr(self, key, value)
 
     def register_keys(self, flattened_cfg):
         for (key, value) in flattened_cfg.items():
