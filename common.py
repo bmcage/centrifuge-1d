@@ -1,3 +1,5 @@
+import numpy as np
+
 def read_model(cfg_filenames, base_cfg = {}, check_cfg_fn = None,
                adjust_cfg_fns = None):
     """
