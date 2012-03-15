@@ -13,7 +13,7 @@ syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
 PARAMETERS = {'inverse': ['inv_init_params']}
 # we make sure that n is specified - otherwise direct.adjust fails
-CFG_ADDITIONAL_PARAMETERS = {'soil': {'ks': 0.0, 'n': 1.0, 'gamma': 0.0}}
+CFG_ADDITIONAL_PARAMETERS = {'soil': {'ks': 0.0, 'n': [1.0], 'gamma': [0.0]}}
 
 
 def base_cfg():
