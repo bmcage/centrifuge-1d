@@ -16,13 +16,13 @@ PARAMETERS = {'fluid': ['density'],
 # wt_out - distance of the output chamber (that catches outspelled water)
 #          from the end of the sample (tube)
 
-DIRECT_DRAINING_SATURATED_ADDITIONAL_PARAMETERS = {}
+CFG_ADDITIONAL_PARAMETERS = {}
 
 def base_cfg():
     from modules.base.run import base_cfg as raw_cfg
     from config import merge_cfgs
 
-    return merge_cfgs(raw_cfg(), DIRECT_DRAINING_SATURATED_ADDITIONAL_PARAMETERS)
+    return merge_cfgs(raw_cfg(), CFG_ADDITIONAL_PARAMETERS)
 
 def adjust_cfg(flattened_cfg):
     from  modules.base.run import adjust_cfg as base_adjust_cfg
@@ -102,15 +102,16 @@ def draw_graphs(fignum, t, y, z, model):
     s2 = z[:, model.s2_idx]
     ds = s2 - s1
     mass_in  = z[:, model.mass_in_idx]
-    mass_out = z[:, model.mass_out_idx]
+    mass_out = 0.0 # for GC no expelled water is taken into account
     x = np.empty([len(t), len(y)], float)
 
-    #GC, RM, MW = characteristics(t, u, mass_in, mass_out, s1, s2, model)
+    GC, _RM, _MW = characteristics(t, u, mass_in, mass_out, s1, s2, model,
+                                   chtype='gc')
 
     legend_data = []
     for i in range(len(t)):
         x[i, :] = z[i, model.s1_idx] + y * ds[i]
-        legend_data.append(str('t = % d' % t[i]))
+        legend_data.append('t = % d' % t[i])
 
     plt.figure(fignum, figsize=(16, 8.5))
 
@@ -130,10 +131,10 @@ def draw_graphs(fignum, t, y, z, model):
     plt.xlabel('Time [$s$]')
     plt.ylabel('Outspelled water [$cm^3$]')
 
-    # plt.subplot(325)
-    # plt.plot(t, GC.transpose(), '.')
-    # plt.xlabel('Time [$s$]')
-    # plt.ylabel('Gravitational center [$cm$]')
+    plt.subplot(325)
+    plt.plot(t, GC.transpose(), '.')
+    plt.xlabel('Time [$s$]')
+    plt.ylabel('Gravitational center [$cm$]')
 
     # plt.subplot(326)
     # plt.plot(t, RM.transpose(), '.')
@@ -190,6 +191,7 @@ class centrifuge_residual(ResFunction):
         q_first = 0.
         q12 = -Kh12 * (dhdr12 / ds - omega2g*(r0 + s1 + ds * model.y12))
         q_last  = -Kh_last * np.minimum(0., dhdr_last/ds - omega2g*(r0 + L))
+        #print('ql:', q_last)
         #print('q_out', q_last)
 
         du_dh = dudh(h, n, m, gamma, Ks)
@@ -216,8 +218,6 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype='all'):
     porosity = model._porosity
     y  = model.y
     dy = model.dy
-    r0_gc = 0.0
-    r0_rm = model._r0 
     L  = model._l0
     l0_out = L + model.wt_out
     l_out  = L + model.wt_out - mass_out
@@ -248,6 +248,10 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype='all'):
 
     WM = model.density * (mass_in + porosity*wm_sat + mass_out)
 
+    # GC is from the start of the sample (not from centr.axis)
+    # sample = filter1 + soil + filter2
+    r0_gc = model.fl1
+    r0_rm = model._r0
     for i in range(len(t)):
         # Gravitational center
         r0 = r0_gc
@@ -261,8 +265,11 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype='all'):
                         * (porosity * (np.power(r0 + s1[i], 2) - np.power(r0, 2))
                            + (np.power(r0, 2) - np.power(r0 - mass_in[i], 2))
                            + (np.power(r0 + l0_out, 2) - np.power(r0 + l_out, 2))))
-            GC[i] =  (gc_unsat + gc_sat) / WM[i]
-            print('GC: unsat, sat, gc/wm', gc_unsat, gc_sat, GC[i])
+            gc_left  = (gc_unsat + gc_sat) / WM[i]
+            print(model.fl1, model._l0, model.fl2, gc_left)
+            gc_right = model.fl1 + model._l0 + model.fl2 - gc_left
+            GC[i]    = gc_right
+            #print('GC: unsat, sat, gc/wm', gc_unsat, gc_sat, GC[i])
 
         # Rotational momentum
         if calc_rm:
@@ -321,6 +328,8 @@ def solve(model):
                      #compute_initcond='yp0',
                      first_step_size=1e-20,
                      atol=1e-1,rtol=1e-2,
+                     max_step_size=840.,
+                     max_steps=8000,
                      #algebraic_vars_idx=[4],
                      linsolver='band', uband=1, lband=2,
                      user_data=model)
