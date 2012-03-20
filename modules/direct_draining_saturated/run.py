@@ -29,8 +29,10 @@ def adjust_cfg(flattened_cfg):
     from  modules.base.run import adjust_cfg as base_adjust_cfg
     base_adjust_cfg(flattened_cfg)
 
-    for param in ['r0_fall', 'wt_out', 'inner_points', 'dtype', 'density',
-                  'h_init', 'n', 'gamma', 'draw_graphs']:
+    required_parameters = ['r0_fall', 'wt_out', 'inner_points', 'dtype', 
+                           'density', 'h_init', 'n', 'gamma', 'draw_graphs']
+
+    for param in required_parameters:
         if not param in flattened_cfg:
             raise ValueError('CFG:check: Value not initialized: %s' % param)
 

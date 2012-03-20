@@ -22,9 +22,11 @@ def base_cfg():
 def adjust_cfg(flattened_cfg):
     direct.adjust_cfg(flattened_cfg)
 
-    if not 'inv_init_params' in flattened_cfg:
-        raise ValueError('CFG:check: Value not initialized: %s' 
-                         % 'inv_init_params')
+    required_parameters = ['inv_init_params']
+
+    for param in required_parameters:
+        if not param in flattened_cfg:
+            print('CFG:check: Value not initialized: %s' % param)
     if len(flattened_cfg['inv_init_params']) == 2 and flattened_cfg['ks'] == 0.0:
         raise ValueError('CFG:check: Value not initialized: %s' 
                          % 'Ks')
