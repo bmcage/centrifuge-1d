@@ -1,22 +1,11 @@
 import numpy as np
 
-from sys import path as syspath
-syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
-
 import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
 from shared_functions import find_omega2g
 
 mass_in_idx  = 0
 mass_out_idx = 1
-
-DIRECT_SATURATED_ADDITIONAL_PARAMETERS = {}
-
-def base_cfg():
-    from base import base_cfg as raw_cfg
-    from config import merge_cfgs
-
-    return merge_cfgs(raw_cfg(), DIRECT_SATURATED_ADDITIONAL_PARAMETERS)
 
 def adjust_cfg(flattened_cfg):
     from  base import adjust_cfg as base_adjust_cfg
@@ -39,7 +28,7 @@ def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
     if (not GC is None) or (not RM is None):
         rows = 2
-        figheight = 8 
+        figheight = 8
     else:
         rows = 1
         figheight = 4
@@ -89,7 +78,7 @@ class direct_saturated_rhs(ResFunction):
         #print('t: ', t, 'x: ', x)
         result[mass_in_idx]  = xdot[0] + qt
         result[mass_out_idx] = xdot[1] - qt
-        
+
         return 0
 
 def extract_saturated_water_heights(z, model):
@@ -153,40 +142,3 @@ def solve(model):
     return (flag, t, z)
 
     # TODO: finish with set options
-
-
-def utilize_model(model):
-    model.register_key('water_volume', total_water_volume(model))
-
-def check_cfg(flattened_cfg):
-    # TODO: Implement
-    return True
-
-#print('NAME: ', __name__)
-
-if __name__ == "__main__":
-    from sys import argv as sysargv
-    from auxiliaryfunctions import (parse_centrifuge_input,
-                                    load_centrifuge_configs)
-    [inifiles, outputdir, savecfgname] =  parse_centrifuge_input(sysargv)
-
-    model = load_centrifuge_configs(inifiles, [utilize_model])
-
-    _flag, t, z = solve_direct_saturated_problem(model)
-
-    if model.data_type == 0:
-        GC, RM = extract_saturated_characteristics(t, z, model)
-        if draw_graphs_p:
-            draw_graphs(1, t, z[:, 0], z[:, 1], GC, RM)
-            #return model, GC, RM
-    elif model.data_type == 1 or model.data_type == 2:
-        h1 = extract_saturated_water_heights(z, model)
-        print('t:  ', t)
-        print('h1: ', h1)
-        if draw_graphs_p:
-            draw_graphs(1, t, z[:, 0], z[:, 1])
-        
-            #return h1
-    else:
-        raise ValueError('direct_saturated::run_direct Unknown data type: ', data_type)
-

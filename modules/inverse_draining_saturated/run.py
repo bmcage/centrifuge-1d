@@ -1,25 +1,19 @@
-from sys import path as syspath
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from shared_functions import h2u
 
 import modules.direct_draining_saturated.run as direct
-from config import merge_cfgs
-
-syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
-
-#n, gamma are dummy values, just to assure that direct checks will pass
 
 PARAMETERS = {'inverse': ['inv_init_params']}
-# we make sure that n is specified - otherwise direct.adjust fails
-CFG_ADDITIONAL_PARAMETERS = {'soil': {'ks': 0.0, 'n': [1.0], 'gamma': [0.0]}}
-
-
-def base_cfg():
-    return merge_cfgs(direct.base_cfg(), CFG_ADDITIONAL_PARAMETERS)
 
 def adjust_cfg(flattened_cfg):
+    # we make sure that n, gamma, ks is specified - otherwise
+    # direct.adjust fails
+    if not 'n' in cfg: cfg['n'] = [1.0]
+    if not 'gamma' in cfg: cfg['gamma'] = [0.0]
+    if not 'ks' in cfg: cfg['ks'] = [0.0]
+
     direct.adjust_cfg(flattened_cfg)
 
     required_parameters = ['inv_init_params']
@@ -47,16 +41,16 @@ def solve(model):
 
         (_flag, t, z) = direct.solve(model)
 
-        u = h2u(z[:, model.first_idx:model.last_idx+1], 
+        u = h2u(z[:, model.first_idx:model.last_idx+1],
                 model.n, model.m, model.gamma)
 
-        # characteristics: GC is measured only inside the tube, so no mass 
+        # characteristics: GC is measured only inside the tube, so no mass
         #   on output is taken into accout
         mass_out = 0.0
         GC, _RM, _WM = \
           direct.characteristics(t, u,
                                  z[:, model.mass_in_idx], mass_out,
-                                 z[:, model.s1_idx], z[:, model.s2_idx], model, 
+                                 z[:, model.s1_idx], z[:, model.s2_idx], model,
                                  chtype='gc')
 
         print('\noptimization parameters: ', optim_args)
@@ -146,18 +140,3 @@ def solve(model):
     print('gamma     found: ', gamma_inv)
 
     return inv_params
-
-def verify_inverse_data(model):
-    if not model.inverse_data_filename:
-        raise ValueError('Data file for inverse problem not specified !')
-
-    if isinstance(model.inverse_data_filename, str):
-        data_filenames = [model.inverse_data_filename]
-    elif isinstance(model.inverse_data_filename, (list, tuple)):
-        data_filenames = model.inverse_data_filename
-    else:
-        raise ValueError('Wrong inverse_data_filename: %d'
-                         % model.data_type)
-
-if __name__ == "__main__":
-    pass

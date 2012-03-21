@@ -1,4 +1,3 @@
-from sys import path as syspath
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -6,29 +5,18 @@ from scipy.optimize import curve_fit
 from modules.direct_saturated.run import \
      (solve as direct_solve,
       extract_saturated_water_heights as extract_heights)
-from config import merge_cfgs
 
-syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
-
-INVERSE_SATURATED_ADDITIONAL_PARAMETERS = {
+PARAMETERS = {
     'inverse-heights': { 'l1' : -1.0, 'wl1' : -1.0 }
     }
 
 import modules.direct_saturated.run as direct
-
-def base_cfg():
-    return merge_cfgs(direct.base_cfg(), INVERSE_SATURATED_ADDITIONAL_PARAMETERS)
 
 def adjust_cfg(flattened_cfg):
     direct.adjust_cfg(flattened_cfg)
 
 mass_in_idx  = 0
 mass_out_idx = 1
-
-def check_cfg(flattened_cfg):
-    #TODO
-    return True
-
 
 def solve(model):
     def ip_direct_saturated_heights(model, Ks):
@@ -47,7 +35,7 @@ def solve(model):
         # falling head test needs special adjustments
         model.include_acceleration = False
         # we ignore the r0 value just as omega in measured data (if present),
-        # because it is of no validity for falling head test; instead we use 
+        # because it is of no validity for falling head test; instead we use
         # the (default) value in "r0-f" and compute the corresponding omega
 
         model.r0 = [model.r0_fall for wl0 in model.wl0]
@@ -99,18 +87,3 @@ def solve(model):
     print('\nKs found: ', Ks_inv)
 
     return Ks_inv
-
-def verify_inverse_data(model):
-    if not model.inverse_data_filename:
-        raise ValueError('Data file for inverse problem not specified !')
-
-    if isinstance(model.inverse_data_filename, str):
-        data_filenames = [model.inverse_data_filename]
-    elif isinstance(model.inverse_data_filename, (list, tuple)):
-        data_filenames = model.inverse_data_filename
-    else:
-        raise ValueError('Wrong inverse_data_filename: %d'
-                         % model.data_type)
-
-if __name__ == "__main__":
-    pass

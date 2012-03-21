@@ -2,15 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import modules.base.run as base
-from config import merge_cfgs
 from shared_functions import h2u
 
 PARAMETERS = {'inverse': ['inv_init_params']}
-
-CFG_ADDITIONAL_PARAMETERS = {}
-
-def base_cfg():
-    return CFG_ADDITIONAL_PARAMETERS
 
 def adjust_cfg(flattened_cfg):
 

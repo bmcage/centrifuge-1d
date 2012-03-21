@@ -1,8 +1,5 @@
 import numpy as np
 
-from sys import path as syspath
-syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
-
 import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
 #import cProfile
@@ -17,19 +14,11 @@ PARAMETERS = {'fluid': ['density'],
 # wt_out - distance of the output chamber (that catches outspelled water)
 #          from the end of the sample (tube)
 
-CFG_ADDITIONAL_PARAMETERS = {}
-
-def base_cfg():
-    from modules.base.run import base_cfg as raw_cfg
-    from config import merge_cfgs
-
-    return merge_cfgs(raw_cfg(), CFG_ADDITIONAL_PARAMETERS)
-
 def adjust_cfg(flattened_cfg):
     from  modules.base.run import adjust_cfg as base_adjust_cfg
     base_adjust_cfg(flattened_cfg)
 
-    required_parameters = ['r0_fall', 'wt_out', 'inner_points', 'dtype', 
+    required_parameters = ['r0_fall', 'wt_out', 'inner_points', 'dtype',
                            'density', 'h_init', 'n', 'gamma', 'draw_graphs']
 
     for param in required_parameters:
@@ -69,7 +58,7 @@ def adjust_cfg(flattened_cfg):
     flattened_cfg['pq_idx']       = inner_points+6
 
     # total length of 'z' array (discretization points + s1,s2,mass_in,...)
-    flattened_cfg['z_size']       = inner_points+7 
+    flattened_cfg['z_size']       = inner_points+7
 
     if flattened_cfg['dtype'] == 1:
         y = np.linspace(0, 1, inner_points + 2)
@@ -79,10 +68,10 @@ def adjust_cfg(flattened_cfg):
 
     flattened_cfg['y']   = y
     flattened_cfg['y12'] = (y[1:]+y[:-1])/2.
-    
+
     dy = y[1:]-y[:-1]
     flattened_cfg['dy']  = dy
-    
+
     ldc1, ldc2, ldc3 = lagrangean_derivative_coefs(dy)
     flattened_cfg['ldc1']  = ldc1
     flattened_cfg['ldc2']  = ldc2
@@ -98,7 +87,7 @@ def adjust_cfg(flattened_cfg):
 
 def draw_graphs(fignum, t, y, z, model):
     import matplotlib.pyplot as plt
-    
+
     h = z[:, model.first_idx:model.last_idx+1]
     u = h2u(h, model.n, model.m, model.gamma)
     s1 = z[:, model.s1_idx]
@@ -145,11 +134,11 @@ def draw_graphs(fignum, t, y, z, model):
     # plt.plot(t, RM.transpose(), '.')
     # plt.xlabel('Time [$s$]')
     # plt.ylabel('Rotational momentum [$kg.m.s^{-1}$]')
-    
+
     plt.show()
 
 class centrifuge_residual(ResFunction):
-         
+
     def evaluate(self, t, z, zdot, result, model):
         # F(t,h,dh/dt) = porosity * du/dh * dh/dt
         #                + d[K(h)*(dh/dr - omega^2/g * r)]/dr
@@ -162,7 +151,7 @@ class centrifuge_residual(ResFunction):
         if np.any(h > 0): # positive pressure - we want to refine the step
             return 1
         #print('h: ', h)
-        
+
         hdot =  zdot[first_idx:last_idx+1]
         h12  = (h[1:] + h[:-1]) / 2
 
@@ -187,7 +176,7 @@ class centrifuge_residual(ResFunction):
         #Kh_last =  cProfile.run('h2Kh(h[-1], n, m, gamma, Ks)', 'h2kh2')
 
         dy   = model.dy
-        
+
         dhdr12 = (h[1:] - h[:-1]) / model.dy
         dhdr_last = (model.ldc1[-1] * h[-3]
                      - model.ldc2[-1] * h[-2]
@@ -213,7 +202,7 @@ class centrifuge_residual(ResFunction):
         result[model.s1_idx]  = zdot[model.s1_idx]
         result[model.s2_idx]  = zdot[model.s2_idx]
         result[model.pq_idx]  = zdot[model.pq_idx]
-        
+
         return 0
 
 def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype='all'):
@@ -229,15 +218,15 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype='all'):
 
     ds = s2 - s1
 
-    if calc_gc: 
+    if calc_gc:
         GC = np.empty(t.shape, float)
     else:
         GC = np.asarray([], dtype=float)
 
-    if calc_rm: 
+    if calc_rm:
         RM = np.empty(t.shape, float)
         P = np.pi * model.d / 4
-        
+
         omega2g = (np.power(model.omega_start
                             + (model.omega - model.omega_start)
                             * (1 - np.exp(-model.omega_gamma*t)), 2)
@@ -292,7 +281,7 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype='all'):
             RM[i] = omega2g[i] * P * (rm_unsat + rm_sat)
 
     return GC, RM, WM
-        
+
 residual_fn = centrifuge_residual()
 
 def solve(model):
@@ -303,8 +292,6 @@ def solve(model):
         z0[model.s2_idx] = model._l0
         zp0 = np.zeros([model.z_size, ], float)
 
-        #print('z0:', z0)
-    
         solver = ida.IDA(residual_fn,
                      #compute_initcond='yp0',
                      first_step_size=1e-20,
@@ -326,8 +313,6 @@ def solve(model):
     if not (model.ks2 or model.fl2):
         model.ks2 = -1.0
         model.fl2 =  0.0
-
-   
 
     solver = ida.IDA(residual_fn,
                      #compute_initcond='yp0',
@@ -353,7 +338,7 @@ def solve(model):
         #     model._fl2 = model.fl2[i]
 
         #print(model.l0, model.r0, model.wl0)
-        #print('l0: ', model.l0, 'r0: ', model.r0)        
+        #print('l0: ', model.l0, 'r0: ', model.r0)
         #print('ks2: ', model.ks2)
         #print('rf:', model.r0_fall)
 
@@ -369,7 +354,7 @@ def solve(model):
              z[0, :] = z0
 
              solver._init_step(0.0, z0, zp0)
-             
+
         flag, t_out = solver.step(tspans[i], z[i+1, :])
         t[i+1] = t_out
 
@@ -392,20 +377,3 @@ def solve(model):
         draw_graphs(1, t, model.y, z, model)
 
     return (flag, t, z)
-
-def run_direct_draining_saturated():
-    from sys import argv as sysargv
-    from auxiliaryfunctions import (parse_centrifuge_input,
-                                    load_centrifuge_configs)
-
-    inifiles = parse_centrifuge_input(sysargv)[0]
-    model    = load_centrifuge_configs(inifiles,
-                                       [utilize_model])
-
-    
-    
-    flag, t, z = solve_direct_draining_saturated_problem(model)
-    draw_graphs(1, t, model.y, z, model)
-
-if __name__ == "__main__":
-    run_direct_draining_saturated()

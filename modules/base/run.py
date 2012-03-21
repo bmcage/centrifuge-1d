@@ -1,4 +1,3 @@
-from os.path import exists
 import numpy as np
 
 PARAMETERS =  {
@@ -16,15 +15,10 @@ PARAMETERS =  {
          'experiment': {'exp_type': '',
     #                        't_start': 0.0, 't_end': 2000.0, 't_step': 200.0,
     #                    'omega_start': -1.0, 'omega': [35.0], 'omega_gamma': 0.5,
-    #                    'omega_end': -1.0, 
+    #                    'omega_end': -1.0,
                         'duration': -1.0,
                         'data_type': 0}
     }
-
-def base_cfg():
-    base = {
-         'general': {'g': 981. }}
-    return base
 
 # unsaturated_cfg = {
 #             'soil': {'n': 2.81, 'gamma': 0.0189, 'v': 1.0},
@@ -40,6 +34,9 @@ def check_attributes(cfg, attributes):
             exit(1)
 
 def adjust_cfg(cfg):
+
+    if not 'g' in cfg:
+        cfg['g'] = 981.
 
     mandatory_attributes = ['omega', 'duration']
 
