@@ -144,7 +144,7 @@ def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
                     else:
                         cfg[section]={option: value}
                 else:
-                    cfg[setting]=value
+                    cfg[option]=value
 
         return cfg
 

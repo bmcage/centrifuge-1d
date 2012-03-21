@@ -65,17 +65,12 @@ def adjust_cfg(cfg):
     else:
         cfg['duration'] = (cfg['t_end'] - cfg['t_start']) / cfg['t_step']
 
-def experiments_files(first_experiment, last_experiment, tubes):
-    files = []
-    identifiers = []
+def generate_tubes_suffixes(tubes_numbers):
+    if not tubes_numbers:
+        print('CFG: Error: No tubes numbers specified: "%s"' % tubes_numbers)
+        exit(1)
 
-    for exp_no in range(first_experiment, last_experiment+1):
-        for tube_no in tubes:
-            inifilename = ('experiment_' + str(exp_no)
-                           + '-filter' + str(tube_no) +'.ini')
-            identifier  = 'experiment ' + str(exp_no) + ', tube ' + str(tube_no)
+    suffixes = ['-tube' + str(tube_no) for tube_no in tubes_numbers]
+    identifiers = [', tube ' + str(tube_no) for tube_no in tubes_numbers]
 
-            files.append(inifilename)
-            identifiers.append(identifier)
-
-    return (identifiers, files)
+    return suffixes, identifiers

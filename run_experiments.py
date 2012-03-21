@@ -62,30 +62,30 @@ def run_experiments(options, exp_args):
     except:
 
         raise ValueError('Input error: first and last experiment have to be'
-            ' integers. Wrong input: %s ' 
+            ' integers. Wrong input: %s '
             % exp_args[1:])
 
     exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
 
-    ini_defaults = exp_inifiles_dir + '/defaults.ini'
-    if not exists(ini_defaults):
+    default_ini = exp_inifiles_dir + '/defaults.ini'
+    if not exists(default_ini):
         print('Experiment %s does not have file defaults.ini'
               'Module name cannot be determined' % exp_id)
-        exit(0)
+        exit(1)
 
-    [default_cfg] = read_cfgs(ini_defaults, preserve_sections_p=True)
-    default_cfg = flatten_cfg(default_cfg)
+    [default_cfg] = read_cfgs(default_ini, preserve_sections_p=False)
 
     #collector = make_collector(options.tubes)
 
-    default_module = find_module('base')
+    base_module = find_module('base')
 
     module = find_module(default_cfg['module'])
 
-    if hasattr(module, 'experiments_files'):
-        experiments_files = module.experiments_files
+
+    if hasattr(module, 'generate_tubes_suffixes'):
+        generate_tubes_suffixes = module.generate_tubes_suffixes
     else:
-        experiments_files = default_module.experiments_files
+        generate_tubes_suffixes = base_module.generate_tubes_suffixes
 
     print('\n\n GENERAL experiments informations'
         '\n---------------------------------------------------------'
@@ -95,30 +95,54 @@ def run_experiments(options, exp_args):
         '\n---------------------------------------------------------'
         % (exp_id, first_experiment, last_experiment))
 
-    (identifiers, experiments_inifiles) = \
-      experiments_files(first_experiment, last_experiment, options.tubes)
+    (tubes_suffixes, tubes_identifiers) = generate_tubes_suffixes(options.tubes)
 
-    for (identifier, inifile) in zip(identifiers, experiments_inifiles):
-        print('\n=========================================================='
-            '\nExecuting %s of the problem %s.' % (identifier, exp_id))
+    for exp_no in range(first_experiment, last_experiment+1):
+        group_default_ini = (exp_inifiles_dir + '/experiment_' + str(exp_no)
+                             + '-defaults.ini')
+        print(group_default_ini)
+        if exists(group_default_ini):
+            [group_default_cfg] = read_cfgs(group_default_ini,
+                                            preserve_sections_p = False)
+        else:
+            group_default_cfg = {}
 
-        inifile_fullname = exp_inifiles_dir + '/' + inifile
-        if not exists(inifile_fullname):
-            print('File "%s" does not exist, skipping...' % inifile)
-            continue
+        for (tube_suffix, tube_identifier) in zip(tubes_suffixes,
+                                                  tubes_identifiers):
+            print('\n=========================================================='
+                  '\nExecuting experiment %s%s of the problem %s.'
+                  % (str(exp_no), tube_identifier, exp_id))
 
-        [cfg] = read_cfgs(inifile_fullname, preserve_sections_p=True)
+            tube_default_ini = (exp_inifiles_dir + '/experiment_'
+                                    + str(exp_no) + tube_suffix
+                                    + '-defaults.ini')
 
-        model_cfg = merge_flattened_cfgs(flatten_cfg(module.base_cfg()),
-                                         [default_cfg, flatten_cfg(cfg)])
+            inifile = 'experiment_' + str(exp_no) + tube_suffix + '.ini'
+            filename_ini = (exp_inifiles_dir + '/' + inifile)
+            if not exists(filename_ini):
+                print('File "%s" does not exist, skipping...' % inifile)
+                continue
 
-        module.adjust_cfg(model_cfg)
+            if tube_suffix and exists(tube_default_ini):
+                [tube_default_cfg] = read_cfgs(tube_default_ini,
+                                               preserve_sections_p = False)
+            else:
+                tube_default_cfg = {}
 
-        model = ModelParameters(model_cfg)
+            [filename_cfg] = read_cfgs(filename_ini, preserve_sections_p=False)
 
-        results = module.solve(model)
 
-        print(results)
+            cfg = merge_flattened_cfgs(flatten_cfg(module.base_cfg()),
+                                       [default_cfg, group_default_cfg,
+                                        tube_default_cfg, filename_cfg])
+
+            module.adjust_cfg(cfg)
+
+            model = ModelParameters(cfg)
+
+            results = module.solve(model)
+
+            print(results)
 
         #collector('collect', data=results, tube_no=tube_no)
 
@@ -127,5 +151,3 @@ def run_experiments(options, exp_args):
 if __name__ == "__main__":
     (options, args) = parse_input()
     run_experiments(options, args)
-
-
