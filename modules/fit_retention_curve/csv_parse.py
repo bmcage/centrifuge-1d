@@ -1,16 +1,16 @@
 
 def experiment_identifiers(indexes):
     exp_identifiers = ['exp_type', 'id']
-    
+
     for exp_identifier in exp_identifiers:
         if not exp_identifier in indexes:
-            raise("CSV file: missing experiment identifier: '%s'" 
+            raise("CSV file: missing experiment identifier: '%s'"
                   % exp_identifier)
 
     return exp_identifiers
 
 def read_CSV_row(data, exp_type, row, indexes, csv_fields, ini_fields):
-    
+
     experiment_id   = row[indexes['id']]
 
     if not experiment_id in data:
@@ -32,11 +32,11 @@ def read_CSV_row(data, exp_type, row, indexes, csv_fields, ini_fields):
 def write2ini(exp_id, exp_id_struct, out_dir):
 
     exp_type = exp_id_struct['exp_type']
-    h        = exp_id_struct['h']
+    p        = exp_id_struct['p']
     exp_no   = 1
 
     for (descriptor, value) in exp_id_struct.items():
-        if descriptor in ['exp_type', 'h']: continue
+        if descriptor in ['exp_type', 'p']: continue
 
         fout_filename = out_dir + '/experiment_' + str(exp_no) + '.ini'
 
@@ -44,8 +44,8 @@ def write2ini(exp_id, exp_id_struct, out_dir):
         fout.write('[experiment-data]\n')
         fout.write("{:8} = '{}'\n".format('exp_type', exp_type))
         fout.write("{:8} = '{}'\n".format('sample_id', descriptor))
-        fout.write('{:8} = [{}]\n'.format('h', ', '.join(h)))
-        fout.write('{:8} = [{}]\n'.format('u', ', '.join(value)))
+        fout.write('{:8} = [{}]\n'.format('p', ', '.join(p)))
+        fout.write('{:8} = [{}]\n'.format('theta', ', '.join(value)))
         fout.close()
 
         exp_no = exp_no + 1
