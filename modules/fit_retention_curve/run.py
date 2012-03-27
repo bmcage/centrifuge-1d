@@ -45,30 +45,17 @@ def adjust_cfg(flattened_cfg):
 
     flattened_cfg['theta_s_p'] = theta_s_p
 
-def experiments_files(first_experiment, last_experiment, tubes):
-    files = []
-    identifiers = []
-
-    for exp_no in range(first_experiment, last_experiment+1):
-            inifilename = 'experiment_' + str(exp_no) +'.ini'
-            identifier  = 'experiment ' + str(exp_no)
-
-            files.append(inifilename)
-            identifiers.append(identifier)
-
-    return (identifiers, files)
-
+def generate_tubes_suffixes(tubes_numbers):
+    return ([''], [''])
 
 def solve(model):
     def lsq_fn(xdata, *optim_args):
-        print(xdata, optim_args)
+        print(optim_args)
 
         optim_args_len = len(optim_args)
 
         if optim_args_len == 4:
             h = xdata
-            print(h)
-            print(optim_args)
             (n, gamma, theta_s, theta_r) = optim_args
         elif optim_args_len == 3:
             (h, theta_s_p, theta_sr) = xdata
@@ -88,17 +75,18 @@ def solve(model):
 
         theta = theta_r + (theta_s - theta_r) * u
 
-        print('th', theta)
-
         return theta
 
     inv_params_init = model.inv_init_params
     inv_init_params_len = len(model.inv_init_params)
 
+    # [p] = Pa = kg/m/s^2 = 10 * g/cm/s^2 -\
+    # [h] = cm                            - \
+    # => h [cm] =(10*p)/g/rho with [g]=cm/s^2, [rho]=g/cm^3
     if type(model.p) == list:
-        h = np.asarray([-p / model.rho / model.g for p in model.p])
+        h = np.asarray([-10.*p / model.rho / model.g for p in model.p])
     else:
-        h = model.p / model.rho /model.g
+        h = 10.*model.p / model.rho /model.g
 
     if inv_init_params_len == 4:
         xdata = h
@@ -123,28 +111,40 @@ def solve(model):
     inv_params, cov_inv = curve_fit(lsq_fn, xdata,
                                     data_measured, p0 = inv_params_init)
 
-    print('theta_measured', model.theta)
+    theta_inv = lsq_fn(xdata, *inv_params)
+    print('\ntheta_measured:', end='')
+    for th_m in data_measured:
+        print(' % 8.4f' % th_m, end='')
+    print('\ntheta_computed:', end='')
+    for th_c in theta_inv:
+        print(' % 8.4f' % th_c, end='')
+    print('\nError  (%):    ', end='')
+    for (th_m, th_c) in zip(data_measured, theta_inv):
+        print(' % 8.4f' % ((th_c - th_m) / th_m * 100), end='')
 
+    print('\n\nOptimized parameters found:')
     if inv_init_params_len == 4:
         (n, gamma, theta_s, theta_r) = inv_params
-        print(' n:\t %s\n gamma:\t %s\n theta_s:\t %s\n theta_r:\t %s'
-              % tuple(inv_params))
+        params = ['n', 'gamma', 'theta_s', 'theta_r']
     elif inv_init_params_len == 3:
         if theta_s_p:
             (n, gamma, theta_r) = inv_params
-            print(' n:\t %s\n gamma:\t %s\n theta_r:\t %s' % tuple(inv_params))
+            params = ['n', 'gamma', 'theta_r']
         else:
             (n, gamma, theta_s) = inv_params
-            print(' n:\t %s\n gamma:\t %s\n theta_s:\t %s' % tuple(inv_params))
+            params = ['n', 'gamma', 'theta_s']
     else:
-        print(' n:\t %s\n gamma:\t %s\n theta_s:\t \n theta_r:\t'
-              % tuple(inv_params))
-    print(' Cov: %s' % cov_inv)
+        (n, gamma) = inv_params
+        params = ['n', 'gamma']
 
-    #theta_inv = lsq_fn(xdata, *inv_params)
+    for (param, value) in zip(params, inv_params):
+        print(' %-7s: % 8.5f' % (param, value))
 
-    draw_graphs(1, model.p, model.theta, n, gamma, theta_s, theta_r,
-                model.rho, model.g)
+    print('\n Cov:\n%s\n' % cov_inv)
+
+    if model.draw_graphs:
+        draw_graphs(1, model.p, model.theta, n, gamma, theta_s, theta_r,
+                    model.rho, model.g)
 
     return inv_params
 
@@ -154,8 +154,8 @@ def draw_graphs(fignum, p_measured,theta_measured,
 
     plt.figure(fignum, figsize=(8, 4.5))
 
-    p_calc = np.arange(0, 60000, 1)
-    theta_calc = theta_r + (theta_s - theta_r) * h2u(-p_calc/rho/g,
+    p_calc = np.arange(0, 10000000, 100)
+    theta_calc = theta_r + (theta_s - theta_r) * h2u(-10.*p_calc/rho/g,
                                                      n, 1.-1./n, gamma)
 
     plt.plot(theta_calc, p_calc, '-', theta_measured, p_measured, 'x',)
