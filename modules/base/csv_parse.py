@@ -48,7 +48,7 @@ def write2ini(exp_id, exp_id_struct, out_dir):
         for (tube_no, base_data) in exp_no_struct.items():
 
                 fout_filename = ''.join([out_dir, '/experiment_', experiment_no,
-                                         '-filter', tube_no, '.ini'])
+                                         '-tube', tube_no, '.ini'])
 
                 fout = open(fout_filename, mode='w', encoding='utf-8')
                 fout.write('[experiment-data]\n')

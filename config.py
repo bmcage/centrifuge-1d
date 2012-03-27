@@ -56,18 +56,15 @@ def flatten_cfg(cfg):
 
     return flatten({}, cfg)
 
-def merge_flattened_cfgs(cfg, cfgs):
-    if type(cfgs) == list:
-        for acfg in cfgs:
-            if acfg:
-                cfg.update(acfg)
-    else:
-        cfg.update(cfg, cfgs)
+def merge_flattened_cfgs(cfg, *cfgs):
+    for acfg in cfgs:
+        if acfg:
+            cfg.update(acfg)
 
     return cfg
 
-def merge_cfgs(cfg, cfgs):
-    """ 
+def merge_cfgs(cfg, *cfgs):
+    """
     Merge all following cfgs into 'cfg'; if the same values appear, the last one
     (from last cfg) applies
     """
@@ -155,7 +152,7 @@ def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
         parser = configparser.ConfigParser()
 
         read_files = parser.read(cfgs_filenames)
-            
+
         parsers = [parser]
 
     else:
@@ -165,7 +162,7 @@ def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
         for filename in cfgs_filenames:
             parser = configparser.ConfigParser()
             parsers.append(parser)
-          
+
             if parser.read(filename):
                 read_files.append(filename)
 

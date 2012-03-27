@@ -2,7 +2,7 @@
 from sys import path as syspath, argv as sysargv
 from os.path import exists
 from common import load_modules, make_collector, print_by_tube
-from config import read_cfgs, merge_flattened_cfgs, flatten_cfg, ModelParameters
+from config import read_cfgs, merge_flattened_cfgs, ModelParameters
 from optparse import OptionParser
 
 
@@ -100,7 +100,7 @@ def run_experiments(options, exp_args):
     for exp_no in range(first_experiment, last_experiment+1):
         group_default_ini = (exp_inifiles_dir + '/experiment_' + str(exp_no)
                              + '-defaults.ini')
-        print(group_default_ini)
+
         if exists(group_default_ini):
             [group_default_cfg] = read_cfgs(group_default_ini,
                                             preserve_sections_p = False)
@@ -132,9 +132,8 @@ def run_experiments(options, exp_args):
             [filename_cfg] = read_cfgs(filename_ini, preserve_sections_p=False)
 
 
-            cfg = merge_flattened_cfgs(flatten_cfg(module.base_cfg()),
-                                       [default_cfg, group_default_cfg,
-                                        tube_default_cfg, filename_cfg])
+            cfg = merge_flattened_cfgs({}, default_cfg, group_default_cfg,
+                                       tube_default_cfg, filename_cfg)
 
             module.adjust_cfg(cfg)
 
@@ -142,7 +141,7 @@ def run_experiments(options, exp_args):
 
             results = module.solve(model)
 
-            print(results)
+            print('Results:\n', results)
 
         #collector('collect', data=results, tube_no=tube_no)
 
