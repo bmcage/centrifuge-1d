@@ -19,7 +19,9 @@ def adjust_cfg(flattened_cfg):
     base_adjust_cfg(flattened_cfg)
 
     required_parameters = ['r0_fall', 'wt_out', 'inner_points', 'dtype',
-                           'density', 'h_init', 'n', 'gamma', 'draw_graphs']
+                           'density', 'h_init', 'n', 'gamma', 'draw_graphs',
+                           'atol', 'rtol'
+                           ]
 
     for param in required_parameters:
         if not param in flattened_cfg:
@@ -193,7 +195,8 @@ class centrifuge_residual(ResFunction):
                              + 2 / dy[0] / ds * (q12[0] - q_first))
 
         result[first_idx+1:last_idx] = (porosity * du_dh[1:-1] * hdot[1:-1]
-                             + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
+                                        + 2 / (dy[:-1] + dy[1:]) / ds
+                                          * (q12[1:] - q12[:-1]))
         result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
                              + 2 / dy[-1] / ds * (q_last - q12[-1]))
 
@@ -286,24 +289,6 @@ residual_fn = centrifuge_residual()
 
 def solve(model):
 
-    def run_solve(model):
-        z0  = np.zeros([model.z_size, ], float)
-        z0[model.first_idx:model.last_idx+1] = model.h_init # initial pressure h
-        z0[model.s2_idx] = model._l0
-        zp0 = np.zeros([model.z_size, ], float)
-
-        solver = ida.IDA(residual_fn,
-                     #compute_initcond='yp0',
-                     first_step_size=1e-20,
-                     atol=1e-1,rtol=1e-2,
-                     #algebraic_vars_idx=[4],
-                     #linsolver='band', uband=1, lband=1,
-                     user_data=model)
-
-        flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
-
-        return flag, t, z
-
     t = np.empty([len(model.duration)+1, ], dtype=float)
     z = np.empty([len(t), model.z_size], dtype=float) # 2 columns: wl_in, wl_out
 
@@ -317,14 +302,15 @@ def solve(model):
     solver = ida.IDA(residual_fn,
                      #compute_initcond='yp0',
                      first_step_size=1e-20,
-                     atol=1e-1,rtol=1e-2,
+                     atol=model.atol, rtol=model.rtol,
                      max_step_size=840.,
                      max_steps=8000,
                      #algebraic_vars_idx=[4],
-                     linsolver='band', uband=1, lband=2,
+                     linsolver='band', uband=1, lband=1,
                      user_data=model)
 
     tspans = np.cumsum(model.duration)
+    t_end = 0.0
 
     attributes_list =  ['l0', 'r0', 'omega', 'porosity']
 
@@ -355,8 +341,14 @@ def solve(model):
 
              solver._init_step(0.0, z0, zp0)
 
-        flag, t_out = solver.step(tspans[i], z[i+1, :])
+        t_end = t_end + model.duration[i]
+        flag, t_out = solver.step(t_end, z[i+1, :])
         t[i+1] = t_out
+
+        if t_out < t_end:
+            print('Calculation was not finished. Error occured.')
+            break
+
 
         #t[i]    = tacc[1]
         #z[i, :] = zacc[1, :]
@@ -364,11 +356,13 @@ def solve(model):
         # falling head
         if hasattr(model, 'fh_duration') and model.fh_duration[i] > 0.:
             acc = model.include_acceleration
-            model.tspan  = np.asarray([0.0, model.fh_duration[i]])
-            model._r0    = model.r0_fall
-            model._omega = model.omega_fall[i]
 
-            flag, tfh, zfh = run_solve(model)
+            t_end = t_end + model.fh_duration[i]
+
+            model._r0    = model.r0_fall
+            model._omega = model.omega_fall
+
+            flag, tfh_out = solver.step(t_end)
             model.include_acceleration = acc
 
     #print('t,z: ', t, z)
