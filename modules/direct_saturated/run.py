@@ -1,9 +1,5 @@
 import numpy as np
 
-from os.path import join as join_path
-from sys import path as syspath
-syspath.append(join_path('.', 'odes', 'build', 'lib.linux-x86_64-3.2'))
-
 import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
 from shared_functions import find_omega2g
@@ -11,12 +7,20 @@ from shared_functions import find_omega2g
 mass_in_idx  = 0
 mass_out_idx = 1
 
-DIRECT_SATURATED_ADDITIONAL_PARAMETERS = {}
+def adjust_cfg(flattened_cfg):
+    from  base import adjust_cfg as base_adjust_cfg
+    base_adjust_cfg(flattened_cfg)
 
-def direct_saturated_base_cfg():
-    from config import base_cfg, merge_cfgs
+    flattened_cfg['_r0']    = -1.0
+    flattened_cfg['_omega'] = -1.0
+    flattened_cfg['_l0']    = -1.0
+    flattened_cfg['_wl0']   = -1.0
+    flattened_cfg['_ks1']   = -1.0
+    flattened_cfg['_ks2']   = -1.0
+    flattened_cfg['_fl1']   =  0.0
+    flattened_cfg['_fl2']   =  0.0
 
-    return merge_cfgs(base_cfg(), DIRECT_SATURATED_ADDITIONAL_PARAMETERS)
+    flattened_cfg['fh_duration'] = np.asarray([], dtype=float)
 
 def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
@@ -24,7 +28,7 @@ def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
     if (not GC is None) or (not RM is None):
         rows = 2
-        figheight = 8 
+        figheight = 8
     else:
         rows = 1
         figheight = 4
@@ -55,119 +59,86 @@ def draw_graphs(fignum, t, wl_in, wl_out, GC = None, RM = None):
 
     plt.show()
 
-def characteristics(t, mass_in, mass_out, model):
-    porosity = model.porosity
-    r0 = model.r0
-    L  = model.l
-    l0_out = L + model.l0_out
-    l_out  = L + model.l0_out - mass_out
-
-    GC = np.empty(t.shape, float)
-    RM = np.empty(t.shape, float)
-
-    P = np.pi * model.d / 4
-
-    WM = P * (mass_in + porosity * L + mass_out)
-
-    for i in range(len(t)):
-        omega2g = find_omega2g(t, model)
-        
-        # Gravitational center
-        gc_sat   = (1/2 * model.density
-                    * (porosity * (np.power(r0 + L, 2) - np.power(r0, 2))
-                       + (np.power(r0, 2) - np.power(r0 - mass_in[i], 2))
-                       + (np.power(r0 + l0_out, 2) - np.power(r0 + l_out[i], 2))))
-        GC[i] =  P * gc_sat / WM[i]
-
-        # Rotational momentum
-        rm_sat   = (1/6 * model.density
-                    * (porosity * (np.power(r0 + L, 3) - np.power(r0, 3))
-                        + (np.power(r0, 3) - np.power(r0 - mass_in[i], 3))
-                        + (np.power(r0 + l0_out, 3) - np.power(r0 + l_out[i], 3))))
-
-        RM[i] = omega2g * P * rm_sat
-
-    return GC, RM, WM
-
 class direct_saturated_rhs(ResFunction):
     def evaluate(self, t, x, xdot, result, model):
 
-        omega2g = find_omega2g(t, model)
-        L = model.l
-        l = x[0]
-        rS = model.r0 - model.d1 -l
-        rE = model.r0 + L + model.d2
-        #print(t, l, rS, rE, model.d1, model.d2)
-        qt = (omega2g/2. / (model.d1/model.ks1 + L/model.ks + model.d2/model.ks2)
+        omega2g = find_omega2g(t, model._omega, model)
+        #print('o2g', omega2g)
+        L = model._l0
+        wl = x[0]
+        rS = model._r0 - model._fl1 - wl
+        rE = model._r0 + L + model._fl2
+
+        qt = (omega2g/2. / (model._fl1/model._ks1 + L/model.ks
+                            + model._fl2/model._ks2)
               * (rE*rE - rS*rS))
-        #qt2 = omega2g/2. * model.ks * (2*model.r0 + L + l*(2*model.r0 - l)/L)
-        #print(t, l, qt, qt2)
 
-        result[mass_in_idx] = xdot[0] + qt
+        #print('L', L, x, model._r0, model._fl1, model._ks1, model._fl2, model._ks2)
+        #print('qt: ', qt, x, xdot, result)
+        #print('t: ', t, 'x: ', x)
+        result[mass_in_idx]  = xdot[0] + qt
         result[mass_out_idx] = xdot[1] - qt
-        
+
         return 0
-
-def total_water_volume(model):
-    #TODO: we assume that we start with no outspelled water
-    return (model.l0_in + model.l * model.porosity)
-
-def extract_saturated_characteristics(t, z, model):
-    GC, RM = characteristics(model.tspan, z[:, mass_in_idx],
-                             z[:, mass_out_idx], model)[:2]
-
-    return GC, RM
 
 def extract_saturated_water_heights(z, model):
     return z[:, mass_in_idx]
 
 direct_saturated_rhs_fn = direct_saturated_rhs()
 
-def solve_direct_saturated_problem(model):
+def solve(model):
 
-    solver = ida.IDA(direct_saturated_rhs_fn,
-                     compute_initcond='yp0',
-                     first_step_size=1e-18,
-                     atol=1e-6,rtol=1e-6,
-                     user_data=model)
-    z0  = np.array([model.l0_in, 0], float)
-    zp0 = np.zeros(z0.shape, float)
-    flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
+    def run_solve(model):
+        solver = ida.IDA(direct_saturated_rhs_fn,
+                         compute_initcond='yp0',
+                         first_step_size=1e-18,
+                         atol=1e-6,rtol=1e-6,
+                         user_data=model)
+        z0  = np.array([model._wl0, 0], float)
+        zp0 = np.zeros(z0.shape, float)
+        flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
 
-    return flag, t, z
+        return flag, t, z
 
-def utilize_model(model):
-    model.register_key('water_volume', total_water_volume(model))
+    t = np.empty([len(model.duration), ], dtype=float)
+    z = np.empty([len(t), 2], dtype=float) # 2 columns: wl_in, wl_out
 
-def check_cfg(cfg):
-    # TODO: Implement
-    return True
+    if not (model.ks1 or model.fl1):
+        model._ks1 = -1.0
+        model._fl1 =  0.0
+    if not (model.ks2 or model.fl2):
+        model._ks2 = -1.0
+        model._fl2 =  0.0
 
-def run_direct(draw_graphs_p = False):
-    from sys import argv as sysargv
-    from auxiliaryfunctions import (parse_centrifuge_input,
-                                    load_centrifuge_configs)
-   
-    [inifiles, outputdir, savecfgname] =  parse_centrifuge_input(sysargv)
-    model = load_centrifuge_configs(inifiles, [utilize_model])
-     
-    _flag, t, z = solve_direct_saturated_problem(model)
+    for i in range(len(model.duration)):
 
-    if model.data_type == 0:
-        GC, RM = extract_saturated_characteristics(t, z, model)
-        if draw_graphs_p:
-            draw_graphs(1, t, z[:, 0], z[:, 1], GC, RM)
-        return model, GC, RM
-    elif model.data_type == 1 or model.data_type == 2:
-        h1 = extract_saturated_water_heights(z, model)
-        print('t:  ', t)
-        print('h1: ', h1)
-        if draw_graphs_p:
-            draw_graphs(1, t, z[:, 0], z[:, 1])
-        
-        return h1
-    else:
-        raise ValueError('direct_saturated::run_direct Unknown data type: ', data_type)
+        if model.ks1 and model.fl1:
+            model._ks1 = model.ks1[i]
+            model._fl1 = model.fl1[i]
+        if model.ks2 and model.fl2:
+            model._ks2 = model.ks2[i]
+            model._fl2 = model.fl2[i]
+        model._l0    = model.l0[i]
+        model._r0    = model.r0[i]
+        model._wl0   = model.wl0[i]
 
-if __name__ == "__main__":
-    run_direct(draw_graphs_p = True)
+        # acceleration
+        model.tspan  = np.asarray([0.0, model.duration[i]])
+        model._omega = model.omega[i]
+
+        flag, tacc, zacc  = run_solve(model)
+
+        t[i]    = tacc[1]
+        z[i, :] = zacc[1, :]
+
+        # falling head
+        if model.fh_duration:
+            model.tspan  = np.asarray([0.0, model.fh_duration[i]])
+            model._r0    = model.r0_fall
+            model._omega = model.omega_fall
+
+            flag, tfh, zfh = run_solve(model)
+
+    return (flag, t, z)
+
+    # TODO: finish with set options

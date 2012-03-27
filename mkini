@@ -4,7 +4,6 @@ from os import makedirs, path
 
 base_dir = 'sources'
 csv_dir  = '{}/csv'.format(base_dir)
-data_dir = '{}/data'.format(base_dir)
 ini_dir  = '{}/inifiles'.format(base_dir)
 ini_defaults_dir = 'inifiles-defaults'
 
@@ -16,54 +15,15 @@ def usage():
           ' (i.e. file ''./sources/csv/experiment_id.cvs'' ')
     exit(0)
 
-filter_fns = {}
-def filter_out(exp_type, indexes, row):
-    # IF exp_type in filter_fns:
-    #     filter_fn = filter_fns[exp_type]
-    # else:
-    #     try:
-    #         from <exp_type.module> import filter_fn
-    #     except:
-    #         from <defaults.module> import filter_fn
-    #     filter_fns[exp_type] = filter_fn
-
-    if exp_type == 'ish':
-        # only those rows where the difference between the
-        # starting and ending soil heigh has less than 5% difference
-        sh0 = float(row[indexes['sh0']])
-        sh1 = float(row[indexes['sh1']])
-        return (abs((sh0 - sh1) / sh0) > 0.05)
-    else:
-        return False
-
-def write_ini(fout, exp_id, exp_no, tube_no, data):
-    if  data['exp_type'] == 'ish' or data['exp_type'] == 'ishsc':
-        fout.write('[inverse_data]\n')
-
-        for (descriptor, value) in data.items():
-            if descriptor == 'exp_type':
-                fout.write("{:8} = '{}'\n".format(descriptor, value))
-            elif descriptor == 'sh0':
-                fout.write('{:8} = [{}]\n'.format('length',
-                                                  ', '.join(value)))
-            elif descriptor == 'sh1':
-                pass
-            else:
-                fout.write('{:8} = [{}]\n'.format(descriptor,
-                                                  ', '.join(value)))
-    else:
-        #print('error')
-        raise NotImplemented
-
 def CSV2dataini(csv_filename, data_dir):
+    from common import load_experiment_types, load_modules
     import csv
-
-    data = {}
 
     f_csv = open(csv_filename)
     csv_data = csv.reader(f_csv)
 
-    exp_identifiers = ['id', 'exp_no', 'exp_type', 'tube_no']
+    find_module_name = load_experiment_types()
+    find_module      = load_modules('csv_parse')
 
     print('Reading CSV file... ', end="")
 
@@ -71,51 +31,55 @@ def CSV2dataini(csv_filename, data_dir):
 
     indexes = {field: csv_fields.index(field) for field in csv_fields}
 
-    try:
-        exp_id_idx   = indexes['id']
-        exp_no_idx   = indexes['exp_no']
-        exp_type_idx = indexes['exp_type']
-        tube_no_idx  = indexes['tube_no']
-    except ValueError:
-        print('CSV file: missing ''id'', ''exp_no''',
-              ' ''exp_type'' or ''tube_no'' column name !')
+    if not 'exp_type' in indexes:
+        print("CSV file: missing experiment identifier: 'exp_type'")
         exit(1)
-    print(csv_fields, indexes)
+    exp_type_idx = indexes['exp_type']
 
-    ini_fields = []
-    ini_fields.extend(csv_fields)
-    for field in exp_identifiers:
-        ini_fields.remove(field)
+    default_module = find_module('base')
+
+    data = {}
+
+    module_name = ''
 
     for row in csv_data:
-        experiment_id   = row[exp_id_idx]
-        experiment_no   = row[exp_no_idx]
         experiment_type = row[exp_type_idx]
-        tube_number     = row[tube_no_idx]
 
-        if filter_out(experiment_type, indexes, row): continue
+        if module_name: # module_name was already determined
+            if not module_name == find_module_name(experiment_type):
+                print('Error: experiment_type "%s" requires module "%s", but'
+                      ' expected (first found) module was "%s".'
+                      % (experiment_type, find_module_name(experiment_type),
+                         module_name))
+                exit(1)
+        else:
+            module_name = find_module_name(experiment_type)
+            module = find_module(module_name)
 
-        if not experiment_id in data:
-            data[experiment_id]={}
-        if not experiment_no in data[experiment_id]:
-            data[experiment_id][experiment_no]={}
+            if hasattr(module, 'skip'):
+                skip = module.skip
+            else:
+                skip = default_module.skip
 
-        experiment_data = data[experiment_id][experiment_no]
-        if not tube_number in experiment_data:
-           experiment_data[tube_number]  = {k: [] for k in ini_fields}
+            if hasattr(module, 'experiment_identifiers'):
+                exp_identifiers = module.experiment_identifiers(indexes)
+            else:
+                exp_identifiers = default_module.experiment_identifiers(indexes)
 
-        for (descriptor, value) in zip(csv_fields, row):
-            if not descriptor in exp_identifiers:
-                experiment_data[tube_number][descriptor].append(value)
-            elif descriptor == 'exp_type':
-                if not 'exp_type' in experiment_data[tube_number]:
-                    experiment_data[tube_number]['exp_type'] = value
-                elif experiment_data[tube_number]['exp_type'] != value:
-                    raise ValueError(''.join(['Experiment ', experiment_no,
-                                              'of suit "',experiment_id,
-                                              '"cannot have different experiment',
-                                              ' types: ', value, ' and ',
-                                              experiment_data[tube_number]['exp_type']]))
+            if hasattr(module, 'read_CSV_row'):
+                read_CSV_row = module.read_CSV_row
+            else:
+                read_CSV_row = default_module.read_CSV_row
+
+            ini_fields = []
+            ini_fields.extend(csv_fields)
+
+            for field in exp_identifiers:
+                ini_fields.remove(field)
+
+        if skip(experiment_type, row, indexes): continue
+
+        read_CSV_row(data, experiment_type, row, indexes, csv_fields, ini_fields)
 
     f_csv.close()
 
@@ -126,67 +90,31 @@ def CSV2dataini(csv_filename, data_dir):
     for (experiment_id, exp_id_struct) in data.items():
         out_dir  = '{}/{}'.format(data_dir, experiment_id)
 
-        print('    Processing experiment(s) with ID: %s' % experiment_id)
+        print('    Processing experiment(s) with ID: %s...' % experiment_id)
 
         if not path.exists(out_dir):
             makedirs(out_dir)
 
-        for (experiment_no, exp_no_struct) in exp_id_struct.items():
+        if hasattr(module, 'write2ini'):
+            write2ini = module.write2ini
+        else:
+            write2ini = default_module.write2ini
 
-            print('      Processing experiment number: %s... ' % experiment_no,
-                  end="")
+        write2ini(experiment_id, exp_id_struct, out_dir)
 
-            for (tube_no, base_data) in exp_no_struct.items():
-
-                fout_filename = ''.join([out_dir, '/experiment_', experiment_no,
-                                         '-filter', tube_no, '.ini'])
-
-                fout = open(fout_filename, mode='w', encoding='utf-8')
-                write_ini(fout, experiment_id, experiment_no, tube_no, base_data)
-                fout.close()
+        print('    Creating default inifile for ID %s...', end = '')
+        default_ini = out_dir + '/defaults.ini'
+        if path.exists(default_ini):
+            print('\n        File "defaults.ini" already exists. Skipping...')
+        else:
+            fout = open(default_ini, mode='w', encoding='utf-8')
+            fout.write('[solver]\n')
+            fout.write("{:8} = '{}'\n".format('module', module_name))
             print('Done.')
-        print('    Processing experiments with ID %s finished.' % experiment_id)
-    print('Finished.')
+
+    print('Done.')
 
     return data
-
-from subprocess import call
-
-def adjust_default_inifiles(filename, data_dir, experiment_no):
-    call(['sed', '-i', ''.join(['s#\[inidirectory\]#', data_dir, '#g']),
-          filename])
-    call(['sed', '-i', ''.join(['s#\[exp_no\]#', experiment_no, '#g']),
-          filename])
-
-def create_experiment_inifiles(ini_dir, ini_defaults_dir, data_dir, csv_data):
-
-    print('\nCreating inifiles for experiments...')
-    for (experiment_id, exp_id_struct) in csv_data.items():
-        outputdir = '/'.join([ini_dir, experiment_id])
-        exp_datadir = '/'.join([data_dir, experiment_id])
-
-        call(['mkdir', '-p', outputdir])
-
-        print('    Processing experiments with ID: %s' % experiment_id)
-
-        for (experiment_no, exp_no_struct)  in exp_id_struct.items():
-            filename = ''.join([outputdir, '/experiment_', experiment_no, '.ini'])
-
-            #TODO: add 'force' switch to overwrite
-            if path.exists(filename): continue
-
-            print('     Creating inifile for experiment %s... ' % experiment_no,
-                  end='')
-
-            call(['cp',
-                  ''.join([ini_defaults_dir, '/',
-                          'experiment_on_tubes-default.ini']),
-                  filename])
-
-            adjust_default_inifiles(filename, exp_datadir, experiment_no)
-
-            print('Done.')
-    print('Finished.')
 
 def process_input():
     from sys import argv as args
@@ -207,8 +135,8 @@ def process_input():
             print('CSV data file ''%s'' does not exist.' % csv_file)
             exit(0)
 
-        if not path.exists(data_dir):
-            makedirs(data_dir)
+        if not path.exists(ini_dir):
+            makedirs(ini_dir)
     else:
         print('Bad input !')
         usage()
@@ -217,6 +145,4 @@ def process_input():
 
 if __name__ == "__main__":
     csv_file = process_input()
-    csv_data = CSV2dataini(csv_file, data_dir)
-
-    create_experiment_inifiles(ini_dir, ini_defaults_dir, data_dir, csv_data)
+    csv_data = CSV2dataini(csv_file, ini_dir)

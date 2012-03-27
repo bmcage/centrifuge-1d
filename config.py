@@ -25,17 +25,16 @@
 
 
 """
-This package implements access to configuration.
+This package implements access to configuration and defines
+the ModelParameters class which stores the setting obtained
+from the configuration files.
 """
 
-#import os
-#import time
 try:
     import ConfigParser as configparser
 except:
     import configparser
-  #import errno
-#from gettext import gettext as _
+import numpy as np
 
 #import const
 
@@ -57,8 +56,15 @@ def flatten_cfg(cfg):
 
     return flatten({}, cfg)
 
-def merge_cfgs(cfg, cfgs):
-    """ 
+def merge_flattened_cfgs(cfg, *cfgs):
+    for acfg in cfgs:
+        if acfg:
+            cfg.update(acfg)
+
+    return cfg
+
+def merge_cfgs(cfg, *cfgs):
+    """
     Merge all following cfgs into 'cfg'; if the same values appear, the last one
     (from last cfg) applies
     """
@@ -72,61 +78,42 @@ def merge_cfgs(cfg, cfgs):
 
     if type(cfgs) == list:
         for acfg in cfgs:
-            merge_cfg(cfg, acfg)
+            if acfg:
+                merge_cfg(cfg, acfg)
     else:
         merge_cfg(cfg, cfgs)
 
     return cfg
-
-DEFAULT_PARAMETERS = base_cfg()
-
-inverse_cfg = {'inverse_data': {'duration': -1.0, 'h0': -1.0, 'h1': -1.0,
-                                'r0': -1.0, 'length': -1.0, 'omega': -1.0,
-                                'porosity': -1.0,
-                                'd1': 0.0, 'ks1': -1.0, 'd2': 0.0, 'ks2': -1.0,
-                                'exp_type': ''}}
-
-from base import base_cfg
-DEFAULT_DATA_PARAMETERS = merge_cfgs(base_cfg(), inverse_cfg)
 
 def eval_item(setting):
     """
     Given a value from an ini file, return it in its proper type.
     May be recursively called, in the case of nested structures.
     """
-    setting = setting.strip()
-    value = None
-    if setting.startswith("'") and setting.endswith("'"):
-        value = setting[1:-1]
-    elif setting.startswith("[") and setting.endswith("]"):
-        list_data = setting[1:-1]
-        value = [eval_item(item) for item in list_data.split(",")]
-    elif setting == "True":
-        value = True 
-    elif setting == "False":
-        value = False
-    elif "." in setting or "e" in setting or "E" in setting:
-        value = float(setting)
-    else:
-        value = int(setting)
-    return value
+    try:
+        setting = setting.strip()
+
+        value = None
+        if setting.startswith("'") and setting.endswith("'"):
+            value = setting[1:-1]
+        elif setting.startswith("[") and setting.endswith("]"):
+            list_data = setting[1:-1]
+            value = [eval_item(item) for item in list_data.split(",")]
+        elif setting == "True":
+            value = True
+        elif setting == "False":
+            value = False
+        elif "." in setting or "e" in setting or "E" in setting:
+            value = float(setting)
+        else:
+            value = int(setting)
+        return value
+    except:
+        print('Error:Could not parse setting: ', setting, '\nExiting...')
+        exit(1)
 
 
-# def parser2register(parser, register_fns):
-#         """ 
-#         Loads data from parser into model.
-#         """
-
-#         for psection in parser.sections():
-#             section = sec.lower()
-
-#             for option in parser.options(psection):
-#                 setting = parser.get(psection, option).strip()
-#                 value = eval_item(setting)
-#                 register_fn(section, option, value)
-
-
-def read_configs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True, 
+def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
                  cfgs_merge=True):
     """
       Reads config .ini files. If preserve_sections_p is false, removes sections
@@ -134,6 +121,8 @@ def read_configs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
       the same values, the latter will be used. If cfgs_merge=True, merges all
       the config files into one.
     """
+    if not base_cfg:
+        base_cfg = {}
 
     def parser2cfg(parser):
         cfg = base_cfg
@@ -152,7 +141,7 @@ def read_configs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
                     else:
                         cfg[section]={option: value}
                 else:
-                    cfg[setting]=value
+                    cfg[option]=value
 
         return cfg
 
@@ -163,7 +152,7 @@ def read_configs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
         parser = configparser.ConfigParser()
 
         read_files = parser.read(cfgs_filenames)
-            
+
         parsers = [parser]
 
     else:
@@ -173,7 +162,7 @@ def read_configs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
         for filename in cfgs_filenames:
             parser = configparser.ConfigParser()
             parsers.append(parser)
-          
+
             if parser.read(filename):
                 read_files.append(filename)
 
@@ -185,34 +174,61 @@ def read_configs(cfgs_filenames, base_cfg = {}, preserve_sections_p=True,
 
     return cfgs
 
+##################################################################
+#                 ModelParameters class                          #
+##################################################################
 
-    # def read_configs_old(self, merge_output_p = True, preserve_sections_p = False, \
-        #                  filenames = [const.INIFILE_DEFAULT], \
-        #                  defaults = [DEFAULT_PARAMETERS], \
-        #                  saveconfigname = ''):
-        # """
-        # Reads .ini files and returns them as an object(s)
-        # """
+class ModelParameters:
+    """
+    Parameters of the centrifuge
+    """
+    def __init__(self, cfg = None):
+        if cfg:
+            self.register_keys(cfg)
+            #print(cfg)
+        self.register_key('tspan', np.asarray([], dtype=float))
+        self.register_key('omega_fall', np.asarray([], dtype=float))
 
-        # if merge_output_p:
-        #     model = centrifugeparameters.CentrifugeParameters(preserve_sections_p)
-        #     for default in defaults:
-        #         model.register_keys(default)
+    def register_key(self, key, value):
+        if hasattr(self, key):
+            raise Exception("Atrribute '%s' already exists !" % key)
+        else:
+            setattr(self, key, value)
 
-        #     parser = configparser.ConfigParser()
-        #     if saveconfigname:
-        #         # save the first filename that is expected to be config
-        #         # (so save it without comments)
-        #         raise Exception('Saving config file is not implemented !')
+    def register_keys(self, flattened_cfg):
+        for (key, value) in flattened_cfg.items():
+            self.register_key(key.lower(), value)
 
-        #     for filename in filenames:
-        #          if  not (filename and os.path.exists(filename)):
-        #              raise ValueError('The file %s cannot be found' % filename)
-        
-        #          parser.read(filename)
-        #     self._parser2model(parser, model)
-        #     return model
-        # else:
-        #     raise Exception("Multiple outputs are not implemented")
+    def set(self, key, value):
+        key_lower = key.lower()
+
+        if not hasattr(self, key_lower):
+            raise Exception('Atrribute ''%s'' does not exist !' % key)
+
+        value_type = type(value)
+        key_type   = type(getattr(self, key_lower))
+
+        if value_type == key_type:
+            setattr(self, key_lower, value)
+        elif value_type == int and key_type == float:
+            #convert int automatically to float
+            setattr(self, key, float(value))
+        elif value_type == list:
+            for item in value:
+                if type(item) == int and key_type == float:
+                    pass
+                elif not ((type(item) == key_type) or
+                          (type(item) == int and key_type == float)):
+                    raise ValueError("ModelParameters: key '%s' has wrong type."
+                            " Expected type '%s' and got type '%s' of %s"
+                            % (key, key_type, value_type, value))
+                if value and type(value[0] == int) and (key_type == float):
+                    value = [float(item) for item in value]
+
+                setattr(self, key, value)
+        else:
+            raise ValueError("ModelParameters: key '%s' has wrong type. Expected"
+                             " type '%s' and got type '%s' of %s"
+                             % (key, key_type, value_type, value))
 
     
