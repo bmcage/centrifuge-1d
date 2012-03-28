@@ -195,11 +195,22 @@ class ModelParameters:
         if hasattr(self, key):
             raise Exception("Atrribute '%s' already exists !" % key)
         else:
-            setattr(self, key, value)
+            self.set_value(key, value)
 
     def register_keys(self, flattened_cfg):
         for (key, value) in flattened_cfg.items():
             self.register_key(key.lower(), value)
+
+    def set_value(self, key, value):
+
+        setattr(self, key, value)
+
+        if key == 'n':
+            if type(value) == list:
+                m =  [1-1/n for n in value]
+            else:
+                m = 1-1/value
+            setattr(self, 'm', m)
 
     def set(self, key, value):
         key_lower = key.lower()
