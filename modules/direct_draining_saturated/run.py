@@ -309,7 +309,6 @@ def solve(model):
                      linsolver='band', uband=1, lband=1,
                      user_data=model)
 
-    tspans = np.cumsum(model.duration)
     t_end = 0.0
 
     attributes_list =  ['l0', 'r0', 'omega', 'porosity']

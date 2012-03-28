@@ -14,7 +14,6 @@ def adjust_cfg(flattened_cfg):
     flattened_cfg['_r0']    = -1.0
     flattened_cfg['_omega'] = -1.0
     flattened_cfg['_l0']    = -1.0
-    flattened_cfg['_wl0']   = -1.0
     flattened_cfg['_ks1']   = -1.0
     flattened_cfg['_ks2']   = -1.0
     flattened_cfg['_fl1']   =  0.0
@@ -88,15 +87,14 @@ direct_saturated_rhs_fn = direct_saturated_rhs()
 
 def solve(model):
 
-    def run_solve(model):
+    def run_solve(model, tspan, z0):
         solver = ida.IDA(direct_saturated_rhs_fn,
                          compute_initcond='yp0',
                          first_step_size=1e-18,
                          atol=1e-6,rtol=1e-6,
                          user_data=model)
-        z0  = np.array([model._wl0, 0], float)
         zp0 = np.zeros(z0.shape, float)
-        flag, t, z = solver.solve(model.tspan, z0, zp0)[:3]
+        flag, t, z = solver.solve(tspan, z0, zp0)[:3]
 
         return flag, t, z
 
@@ -110,6 +108,9 @@ def solve(model):
         model._ks2 = -1.0
         model._fl2 =  0.0
 
+    tspan = np.asarray([0.0, 0.0], dtype=float)
+    z0    = np.asarray([0.0, 0.0], dtype=float)
+
     for i in range(len(model.duration)):
 
         if model.ks1 and model.fl1:
@@ -120,24 +121,25 @@ def solve(model):
             model._fl2 = model.fl2[i]
         model._l0    = model.l0[i]
         model._r0    = model.r0[i]
-        model._wl0   = model.wl0[i]
 
         # acceleration
-        model.tspan  = np.asarray([0.0, model.duration[i]])
+        tspan[1]  = model.duration[i]
+        z0[0]     = model.wl0[i]
         model._omega = model.omega[i]
 
-        flag, tacc, zacc  = run_solve(model)
+        flag, tacc, zacc  = run_solve(model, tspan, z0)
 
         t[i]    = tacc[1]
         z[i, :] = zacc[1, :]
 
         # falling head
         if model.fh_duration:
-            model.tspan  = np.asarray([0.0, model.fh_duration[i]])
+            tspan[1]     = model.fh_duration[i]
+            z0[0]        = zacc[1, 0]
             model._r0    = model.r0_fall
             model._omega = model.omega_fall
 
-            flag, tfh, zfh = run_solve(model)
+            flag, tfh, zfh = run_solve(model, tspan, z0)
 
     return (flag, t, z)
 
