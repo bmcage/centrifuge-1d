@@ -3,7 +3,7 @@
 # Centrifuge config
 #
 # Copyright (C) 2005-2007  Donald N. Allingham
-# Copyright (C) 2008-2009  Gary Burton 
+# Copyright (C) 2008-2009  Gary Burton
 # Copyright (C) 2009       Doug Blank <doug.blank@gmail.com>
 # Copyright (C) 2009       Benny Malengier <bm@cage.ugent.be>
 # Copyright (C) 2011-12    Pavol Kišon     <pk@cage.ugent.be>
@@ -117,7 +117,7 @@ def eval_item(setting):
 
 
 def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
-                 cfgs_merge=True):
+              cfgs_merge=True):
     """
       Reads config .ini files. If preserve_sections_p is false, removes sections
       and leaves only values from all sections; in case of two sections contain
@@ -171,7 +171,7 @@ def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
 
     if (len(read_files) != len(cfgs_filenames)):
         print('From expected files: ', str(cfgs_filenames),
-             'were successfully parsed only: ', str(read_files))
+              'were successfully parsed only: ', str(read_files))
 
     cfgs = [parser2cfg(parser) for parser in parsers]
 
@@ -188,7 +188,6 @@ class ModelParameters:
     def __init__(self, cfg = None):
         if cfg:
             self.register_keys(cfg)
-            #print(cfg)
         self.register_key('tspan', np.asarray([], dtype=float))
         self.register_key('omega_fall', np.asarray([], dtype=float))
 
@@ -230,8 +229,8 @@ class ModelParameters:
 
                 setattr(self, key, value)
         else:
-            raise ValueError("ModelParameters: key '%s' has wrong type. Expected"
-                             " type '%s' and got type '%s' of %s"
+            raise ValueError("ModelParameters: key '%s' has wrong type."
+                             " Expected type '%s' and got type '%s' of %s"
                              % (key, key_type, value_type, value))
 
     
