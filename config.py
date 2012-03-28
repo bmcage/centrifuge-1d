@@ -38,12 +38,15 @@ import numpy as np
 
 #import const
 
+def print_flattened_cfg(cfg):
+    for (name, value) in sorted(cfg.items()):
+        print('%-12s = %s' % (name, value))
+
 def print_cfg(cfg):
     print()
-    for (sec, value) in cfg.items():
-        print('section: ', sec)
-        print(value)
-
+    for (section, section_value) in cfg.items():
+        print('[%s]', section)
+        print_flattened_cfg(section_value)
 
 def flatten_cfg(cfg):
     def flatten(flattened_cfg, cfg):

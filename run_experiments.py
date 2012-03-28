@@ -2,7 +2,8 @@
 from sys import path as syspath, argv as sysargv
 from os.path import exists
 from common import load_modules, make_collector, print_by_tube
-from config import read_cfgs, merge_flattened_cfgs, ModelParameters
+from config import read_cfgs, merge_flattened_cfgs, print_flattened_cfg
+from config import ModelParameters
 from optparse import OptionParser
 
 
@@ -30,6 +31,12 @@ def parse_input():
     optparser.add_option('-l', '--list', dest='list', action="store_true",
                          default=False,
                          help="Lists all available experiments")
+    optparser.add_option('-p', '--print-config', dest='print_config_p',
+                         action='store_true', default=False,
+                         help='Print the used configuration file for given'\
+                         ' experiment and exit; if also parameter ''-t'' is'\
+                         ' included, the config file for the tube is included'\
+                         'too.')
     (options, args) = optparser.parse_args()
     arg_len = len(args)
     if arg_len == 0:
@@ -43,7 +50,7 @@ def parse_input():
         optparser.print_help()
         exit(0)
     elif options.list:
-        print('Error: Flag ''-l'' cannot be used with and argument.')
+        print('Error: Flag ''-l'' cannot be used with an argument.')
         exit(1)
 
     optparser.destroy()
@@ -69,7 +76,8 @@ def run_experiments(options, exp_args):
 
     default_ini = exp_inifiles_dir + '/defaults.ini'
     if not exists(default_ini):
-        print('Experiment %s does not have file defaults.ini'
+        print('For experiments serie  %s the file ''defaults.ini'' does'
+              ' not exist. '
               'Module name cannot be determined' % exp_id)
         exit(1)
 
@@ -87,13 +95,14 @@ def run_experiments(options, exp_args):
     else:
         generate_tubes_suffixes = base_module.generate_tubes_suffixes
 
-    print('\n\n GENERAL experiments informations'
-        '\n---------------------------------------------------------'
-        '\n ID: %s'
-        '\n First experiment: %s'
-        '\n Last  experiment: %s '
-        '\n---------------------------------------------------------'
-        % (exp_id, first_experiment, last_experiment))
+    if not options.print_config_p:
+        print('\n\n GENERAL experiments informations'
+              '\n---------------------------------------------------------'
+              '\n ID: %s'
+              '\n First experiment: %s'
+              '\n Last  experiment: %s '
+              '\n---------------------------------------------------------'
+              % (exp_id, first_experiment, last_experiment))
 
     (tubes_suffixes, tubes_identifiers) = generate_tubes_suffixes(options.tubes)
 
@@ -109,9 +118,11 @@ def run_experiments(options, exp_args):
 
         for (tube_suffix, tube_identifier) in zip(tubes_suffixes,
                                                   tubes_identifiers):
-            print('\n=========================================================='
-                  '\nExecuting experiment %s%s of the problem %s.'
-                  % (str(exp_no), tube_identifier, exp_id))
+            if not options.print_config_p:
+                print('\n===================================================='
+                      '=============='
+                      '\nExecuting experiment %s%s of the problem %s.'
+                      % (str(exp_no), tube_identifier, exp_id))
 
             tube_default_ini = (exp_inifiles_dir + '/experiment_'
                                     + str(exp_no) + tube_suffix
@@ -134,6 +145,10 @@ def run_experiments(options, exp_args):
 
             cfg = merge_flattened_cfgs({}, default_cfg, group_default_cfg,
                                        tube_default_cfg, filename_cfg)
+
+            if options.print_config_p:
+                print_flattened_cfg(cfg)
+                continue
 
             module.adjust_cfg(cfg)
 
