@@ -181,3 +181,18 @@ def find_omega2g(t, omega_max, model):
     #     return (np.power(model.omega_start  + (model.omega - model.omega_start)
     #                      *(1 - np.exp(-model.omega_gamma*t)), 2)
     #             / model.g)
+
+def y2x(y, s1, s2):
+    s1_len = len(s1)
+    if s1_len != len(s2):
+        print('Interfaces array ''s1'' and ''s2'' have to be of the same'
+              'lenght. Cannot proceed.')
+        exit(1)
+    x = np.empty([s1_len, len(y)], float)
+
+    ds = s2 - s1
+
+    for i in range(s1_len):
+        x[i, :] = s1[i] + y * ds[i]
+
+    return x
