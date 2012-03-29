@@ -38,55 +38,20 @@ import numpy as np
 
 #import const
 
-def print_flattened_cfg(cfg):
-    for (name, value) in sorted(cfg.items()):
-        print('%-12s = %s' % (name, value))
+def flatten(cfg):
+    cfg_dict = cfg._cfg_dict
 
-def print_cfg(cfg):
-    print()
-    for (section, section_value) in cfg.items():
-        print('[%s]', section)
-        print_flattened_cfg(section_value)
-
-def flatten_cfg(cfg):
-    def flatten(flattened_cfg, cfg):
-        for (key, value) in cfg.items():
+    def dict_flatten(base_dict, dict_tree):
+        for (key, value) in dict_tree.items():
             if type(value) == dict:
-                flatten(flattened_cfg, value)
+                dict_flatten(base_dict, value)
             else:
-                flattened_cfg[key] = value
-        return flattened_cfg
+                base_dict[key] = value
 
-    return flatten({}, cfg)
+    flattened_cfg = Configuration()
+    flattened_cfg._cfg_dict = dict_flatten({}, cfg)
 
-def merge_flattened_cfgs(cfg, *cfgs):
-    for acfg in cfgs:
-        if acfg:
-            cfg.update(acfg)
-
-    return cfg
-
-def merge_cfgs(cfg, *cfgs):
-    """
-    Merge all following cfgs into 'cfg'; if the same values appear, the last one
-    (from last cfg) applies
-    """
-
-    def merge_cfg(cfg, ncfg):
-        for key in ncfg.keys():
-            if key in cfg:
-                cfg[key].update(ncfg[key])
-            else:
-                cfg[key]=dict(ncfg[key])
-
-    if type(cfgs) == list:
-        for acfg in cfgs:
-            if acfg:
-                merge_cfg(cfg, acfg)
-    else:
-        merge_cfg(cfg, cfgs)
-
-    return cfg
+    return flattened_cfg
 
 def eval_item(setting):
     """
@@ -115,67 +80,141 @@ def eval_item(setting):
         print('Error:Could not parse setting: ', setting, '\nExiting...')
         exit(1)
 
+class Configuration:
+    def __init__(self, preserve_sections_p = False):
 
-def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
-              cfgs_merge=True):
-    """
-      Reads config .ini files. If preserve_sections_p is false, removes sections
-      and leaves only values from all sections; in case of two sections contain
-      the same values, the latter will be used. If cfgs_merge=True, merges all
-      the config files into one.
-    """
-    if not base_cfg:
-        base_cfg = {}
+        self._preserve_sections_p = preserve_sections_p
+        self._cfg_dict = {}
 
-    def parser2cfg(parser):
-        cfg = base_cfg
+    def set_value(self, key, value, section = None):
+        cfg_dict = self._cfg_dict
+
+        if self._preserve_sections_p:
+            if not section:
+                print('set_value error: Section not specified: ', section)
+                exit(1)
+            cfg_dict[section][key] = value
+        else:
+            cfg_dict[key] = value
+
+    def get_value(self, key, section = None):
+
+        cfg_dict = self._cfg_dict
+
+        if self._preserve_sections_p and (not section
+                                          or not section in cfg_dict):
+            print('get_value error: Section not present in config: ', section)
+            exit(1)
+
+        if self._preserve_sections_p:
+            if key in cfg_dict[section]:
+                return cfg_dict[section][key]
+            else:
+                return None
+        else:
+            if key in cfg_dict:
+                return cfg_dict[key]
+            else:
+                return None
+
+    def options_p(self, options, section = None):
+
+        cfg_dict = self._cfg_dict
+
+        if self._preserve_sections_p and (not section
+                                          or not section in cfg_dict):
+            print('options_p error: Section not present in config: ', section)
+            exit(1)
+
+        if preserve_sections_p:
+            for option in options:
+                if not option in cfg_dict[section]:
+                    return False
+        else:
+             for option in options:
+                if not option in cfg_dict:
+                    return False
+        return True
+
+    def echo(self):
+        def echo_section(section_dict):
+            for (name, value) in sorted(section_dict.items()):
+                print('%-12s = %s' % (name, value))
+
+        cfg_dict = self._cfg_dict
+
+        if self._preserve_sections_p:
+            for (section, section_value) in cfg_dict.items():
+                print('\n[%s]', section)
+                echo_section(section_value)
+        else:
+            print()
+            echo_section(cfg_dict)
+
+    def merge(self, *cfgs):
+        """
+          Merge all cfgs into current configuration; if the same values appears
+          in more than one of the cfgs, the one from the last cfg applies.
+        """
+        cfg_dict = self._cfg_dict
+        preserve_sections_p = self._preserve_sections_p
+
+        for cfg in cfgs:
+            if not cfg: continue
+
+            if not (preserve_sections_p == cfg._preserve_sections_p):
+                print('MergeCFG Error: Configurations do have same'
+                      ' ''preserve_sections_p'' flag. Cannot merge.')
+                exit(1)
+
+            if preserve_sections_p:
+                for (section, section_value) in cfg.items():
+                    if not section in cfg_dict:
+                        cfg_dict[section] = {}
+
+                    cfg_dict[section].update(section_value)
+            else:
+                cfg_dict.update(cfg._cfg_dict)
+
+        return self
+
+    def read_from_files(self, *cfgs_filenames):
+        """
+          Reads configuration from .ini files 'cfgs_filenames'.
+          If preserve_sections_p is false, removes sections and leaves only
+          values from all sections; if two sections contained
+          the same values, the latter will be kept.
+        """
+
+        # read config files
+        parser     = configparser.ConfigParser()
+        read_files = parser.read(cfgs_filenames)
+
+        if (len(read_files) != len(cfgs_filenames)):
+            print('Warning: from expected files: ', str(cfgs_filenames),
+                  'were successfully parsed only: ', str(read_files))
+
+        # Write data from parser to configuration
+        cfg_dict = self._cfg_dict
+        preserve_sections_p = self._preserve_sections_p
 
         for psection in parser.sections():
             section = psection.lower()
 
-            for option in parser.options(psection):
-                setting = parser.get(psection, option).strip()
+            if preserve_sections_p and not (section in cfg_dict):
+                cfg_dict[section] = {}
 
-                value = eval_item(setting)
+            for option in parser.options(psection):
+                raw_value = parser.get(psection, option).strip()
+
+                value = eval_item(raw_value)
 
                 if preserve_sections_p:
-                    if section in cfg:
-                        cfg[section][option]=value
-                    else:
-                        cfg[section]={option: value}
+                    cfg_dict[section][option]=value
                 else:
-                    cfg[option]=value
+                    cfg_dict[option]=value
 
-        return cfg
-
-    if not (type(cfgs_filenames) == list):
-        cfgs_filenames = [cfgs_filenames]
-
-    if cfgs_merge:
-        parser = configparser.ConfigParser()
-
-        read_files = parser.read(cfgs_filenames)
-
-        parsers = [parser]
-
-    else:
-        read_files = []
-        parsers = []
-
-        for filename in cfgs_filenames:
-            parser = configparser.ConfigParser()
-            parsers.append(parser)
-
-            if parser.read(filename):
-                read_files.append(filename)
-
-    if (len(read_files) != len(cfgs_filenames)):
-        print('From expected files: ', str(cfgs_filenames),
-              'were successfully parsed only: ', str(read_files))
-
-    cfgs = [parser2cfg(parser) for parser in parsers]
-
-    return cfgs
+        return self
 
 ##################################################################
 #                 ModelParameters class                          #
