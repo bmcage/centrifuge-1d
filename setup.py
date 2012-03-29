@@ -8,7 +8,7 @@ import sys
 
 import setuptools
 
-from common import *
+from  settings import *
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
