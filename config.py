@@ -1,29 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-# Centrifuge config
-#
-# Copyright (C) 2005-2007  Donald N. Allingham
-# Copyright (C) 2008-2009  Gary Burton
-# Copyright (C) 2009       Doug Blank <doug.blank@gmail.com>
-# Copyright (C) 2009       Benny Malengier <bm@cage.ugent.be>
-# Copyright (C) 2011-12    Pavol Kišon     <pk@cage.ugent.be>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-
-
 """
 This package implements access to configuration and defines
 the ModelParameters class which stores the setting obtained
@@ -55,31 +29,33 @@ def flatten(cfg):
 
     return flattened_cfg
 
-def eval_item(setting):
+def parse_value(str_value):
     """
-    Given a value from an ini file, return it in its proper type.
-    May be recursively called, in the case of nested structures.
+      Given a value as string, tries to convert to it's correspending type.
+      May be called recursively in the case of nested structures.
     """
     try:
-        setting = setting.strip()
+        raw_value = str_value.strip()
 
-        value = None
-        if setting.startswith("'") and setting.endswith("'"):
-            value = setting[1:-1]
-        elif setting.startswith("[") and setting.endswith("]"):
-            list_data = setting[1:-1]
-            value = [eval_item(item) for item in list_data.split(",")]
-        elif setting == "True":
-            value = True
-        elif setting == "False":
-            value = False
-        elif "." in setting or "e" in setting or "E" in setting:
-            value = float(setting)
+        if "." in raw_value or "e" in raw_value or "E" in raw_value:
+            return float(setting)
+        elif raw_value[0] == "[" and raw_value[-1] == "]":
+            return [parse_value(item) for item in raw_value[1:-1].split(",")]
+        elif ((raw_value[0] == "'" and raw_value[-1] == "'")
+            or (raw_value[0] == '"' and raw_value[-1] == '"')):
+            return raw_value[1:-1]
+        elif raw_value = 'True':
+            return True
+        elif raw_value = 'False':
+            return False
+        elif raw_value[0] == "(" and raw_value[-1] == ")":
+            return tuple([parse_value(item)\
+                          for item in raw_value[1:-1].split(",")])
         else:
-            value = int(setting)
-        return value
+            return int(raw_value)
+
     except:
-        print('Error:Could not parse setting: ', setting, '\nExiting...')
+        print('Error:Could not parse setting: ', raw_value, '\nExiting...')
         exit(1)
 
 class Configuration:
