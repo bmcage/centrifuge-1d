@@ -2,7 +2,7 @@
 from sys import path as syspath, argv as sysargv
 from os.path import exists
 from common import load_modules, make_collector, print_by_tube
-from config import read_cfgs, merge_flattened_cfgs, print_flattened_cfg
+from config import Configuration
 from config import ModelParameters
 from optparse import OptionParser
 
@@ -81,14 +81,13 @@ def run_experiments(options, exp_args):
               'Module name cannot be determined' % exp_id)
         exit(1)
 
-    [default_cfg] = read_cfgs(default_ini, preserve_sections_p=False)
+    default_cfg = Configuration().read_from_files(default_ini)
 
     #collector = make_collector(options.tubes)
 
     base_module = find_module('base')
 
-    module = find_module(default_cfg['module'])
-
+    module = find_module(default_cfg.get_value('module'))
 
     if hasattr(module, 'generate_tubes_suffixes'):
         generate_tubes_suffixes = module.generate_tubes_suffixes
@@ -111,10 +110,10 @@ def run_experiments(options, exp_args):
                              + '-defaults.ini')
 
         if exists(group_default_ini):
-            [group_default_cfg] = read_cfgs(group_default_ini,
-                                            preserve_sections_p = False)
+            group_default_cfg = \
+              Configuration().read_from_files(group_default_ini)
         else:
-            group_default_cfg = {}
+            group_default_cfg = None
 
         for (tube_suffix, tube_identifier) in zip(tubes_suffixes,
                                                   tubes_identifiers):
@@ -125,8 +124,8 @@ def run_experiments(options, exp_args):
                       % (str(exp_no), tube_identifier, exp_id))
 
             tube_default_ini = (exp_inifiles_dir + '/experiment_'
-                                    + str(exp_no) + tube_suffix
-                                    + '-defaults.ini')
+                                + str(exp_no) + tube_suffix
+                                + '-defaults.ini')
 
             inifile = 'experiment_' + str(exp_no) + tube_suffix + '.ini'
             filename_ini = (exp_inifiles_dir + '/' + inifile)
@@ -135,20 +134,22 @@ def run_experiments(options, exp_args):
                 continue
 
             if tube_suffix and exists(tube_default_ini):
-                [tube_default_cfg] = read_cfgs(tube_default_ini,
-                                               preserve_sections_p = False)
+                tube_default_cfg = \
+                  Configuration().read_from_files(tube_default_ini)
             else:
-                tube_default_cfg = {}
+                tube_default_cfg = None
 
-            [filename_cfg] = read_cfgs(filename_ini, preserve_sections_p=False)
+            experiment_cfg = \
+                  Configuration().read_from_files(filename_ini)
 
-
-            cfg = merge_flattened_cfgs({}, default_cfg, group_default_cfg,
-                                       tube_default_cfg, filename_cfg)
+            cfg = Configuration().merge(default_cfg, group_default_cfg,
+                                       tube_default_cfg, experiment_cfg)
 
             if options.print_config_p:
-                print_flattened_cfg(cfg)
+                cfg.echo()
                 continue
+
+            exit(0)
 
             module.adjust_cfg(cfg)
 
