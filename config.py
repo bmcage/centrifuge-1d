@@ -36,7 +36,9 @@ except:
     import configparser
 import numpy as np
 
-#import const
+##################################################################
+#                   Configuration class                          #
+##################################################################
 
 def flatten(cfg):
     cfg_dict = cfg._cfg_dict
