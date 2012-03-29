@@ -55,7 +55,7 @@ def parse_value(str_value):
             return int(raw_value)
 
     except:
-        print('Error:Could not parse setting: ', raw_value, '\nExiting...')
+        print('Error:Could not parse value: ', raw_value, '\nExiting...')
         exit(1)
 
 class Configuration:
@@ -95,7 +95,7 @@ class Configuration:
             else:
                 return None
 
-    def options_p(self, options, section = None):
+    def options_p(self, options, section = None, raise_error = False):
 
         cfg_dict = self._cfg_dict
 
@@ -107,11 +107,19 @@ class Configuration:
         if preserve_sections_p:
             for option in options:
                 if not option in cfg_dict[section]:
-                    return False
+                    if raise_error:
+                        print('Required option is not present: ', option)
+                        exit(1)
+                    else:
+                        return False
         else:
              for option in options:
                 if not option in cfg_dict:
-                    return False
+                    if raise_error:
+                        print('Required option is not present: ', option)
+                        exit(1)
+                    else:
+                        return False
         return True
 
     def echo(self):
@@ -200,25 +208,46 @@ class Configuration:
 
 class ModelParameters:
     """
-    Parameters of the centrifuge
+    Parameters class for the centrifuge simulation.
     """
-    def __init__(self, cfg = None):
-        if cfg:
-            self.register_keys(cfg)
-        self.register_key('tspan', np.asarray([], dtype=float))
-        self.register_key('omega_fall', np.asarray([], dtype=float))
+    def __init__(self, cfg, parameters_list):
+        self._cfg = cfg
+        # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
+        self.rpm2radps lambda x: x * np.pi/ 30.0
+        self._parameters_list = parameters_list
+        self._iterable_parameters = []
+        self._iteration = 0
+        self.first_iteration_p = False
 
-    def register_key(self, key, value):
-        if hasattr(self, key):
-            raise Exception("Atrribute '%s' already exists !" % key)
-        else:
-            self.set_value(key, value)
+        for param in parameters_list:
+            self.set_value(param, cfg.get_value(param))
 
-    def register_keys(self, flattened_cfg):
-        for (key, value) in flattened_cfg.items():
-            self.register_key(key.lower(), value)
+        self._iterations_count = len(cfg.get_value('duration'))
 
     def set_value(self, key, value):
+        """
+          Set the value of parameter given as 'key'.
+          Performs the check of the 'value' and conversion to correct units
+          when needed. Updates also the dependent variables.
+        """
+        # Keep self._itarable_parameters up-to-date; if we set a list-type value
+        # should be stored, if an atom, should be removed
+        if (type(value) == list):
+            if not key in self._iterable_parameters:
+                self._iterable_parameters.append(key)
+        else:
+            if key in self._iterable_parameters:
+                self._iterable_parameters.remove(key)
+
+        if key in ['omega', 'omega_start', 'omega_end']:
+            if type(value) == list:
+                setattr(self, key, [self.rpm2radps(omega) for omega in value])
+            else:
+                setattr(self, key, self.rpm2radps(value))
+            return
+        elif key in ['omega_fall', 'm']:
+            raise ValueError('Parameter %s is not allowed to set directly.'
+                             % key)
 
         setattr(self, key, value)
 
@@ -228,37 +257,39 @@ class ModelParameters:
             else:
                 m = 1-1/value
             setattr(self, 'm', m)
+        elif key == 'r0_fall':
+            from math import sqrt
 
-    def set(self, key, value):
-        key_lower = key.lower()
+            if type(value) == list:
+                setattr(self, key, [sqrt(self.g/r0_fall) for r0_fall in value])
+            else:
+                setattr(self, key, sqrt(self.g/value))
 
-        if not hasattr(self, key_lower):
-            raise Exception('Atrribute ''%s'' does not exist !' % key)
+    def next_iteration(echo):
+        """
+          Assign the next value of the parameters that were given as type list
+        """
+        i = self._iteration
+        self.first_iteration_p = (i == 0)
+        cfg = self._cfg
 
-        value_type = type(value)
-        key_type   = type(getattr(self, key_lower))
+        for key in self._iterable_parameters:
+            setattr(key, cfg.get_value(key)[i])
 
-        if value_type == key_type:
-            setattr(self, key_lower, value)
-        elif value_type == int and key_type == float:
-            #convert int automatically to float
-            setattr(self, key, float(value))
-        elif value_type == list:
-            for item in value:
-                if type(item) == int and key_type == float:
-                    pass
-                elif not ((type(item) == key_type) or
-                          (type(item) == int and key_type == float)):
-                    raise ValueError("ModelParameters: key '%s' has wrong type."
-                            " Expected type '%s' and got type '%s' of %s"
-                            % (key, key_type, value_type, value))
-                if value and type(value[0] == int) and (key_type == float):
-                    value = [float(item) for item in value]
+        self.iteration = i+1
 
-                setattr(self, key, value)
+        return (i < self._iterations_count)
+
+    def echo(self, iterable_only=False):
+        """
+          Print the parameters stored in the model.
+          If 'iterable_only' is True, prints only the current values of the
+          variables that are iterated by the 'next_iteration()' function.
+        """
+        if iterable_only:
+             parameters = sorted(self._iterable_parameters)
         else:
-            raise ValueError("ModelParameters: key '%s' has wrong type."
-                             " Expected type '%s' and got type '%s' of %s"
-                             % (key, key_type, value_type, value))
-
-    
+             parameters = sorted(self._parameters_list)
+        print()
+        for option in parameters:
+            print('%-12s = %s' % (option, getattr(self, option))
