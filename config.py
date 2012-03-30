@@ -49,8 +49,8 @@ def parse_value(str_value):
         elif raw_value = 'False':
             return False
         elif raw_value[0] == "(" and raw_value[-1] == ")":
-            return tuple([parse_value(item)\
-                          for item in raw_value[1:-1].split(",")])
+            return \
+			  tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
         else:
             return int(raw_value)
 
@@ -291,4 +291,75 @@ class ModelParameters:
              parameters = sorted(self._parameters_list)
         print()
         for option in parameters:
-            print('%-12s = %s' % (option, getattr(self, option))
+            print('%-12s = %s' % (option, getattr(self, option)))
+
+##################################################################
+#           Functions on Configuration/ModelParameters           #
+##################################################################
+
+def determine_model_options(config_parameters, cfg, cfg_only_options):
+
+    model_options = list(config_parameters['mandatory'])
+    for option in cfg_only_options:
+        model_options.remove(option)
+
+    model_options.extend(config_parameters['defaults'].keys()
+                         + config_parameters['additional'])
+
+    optional_options = config_parameters['optional']
+    cfg_missing_options = cfg.missing_options(optional_options)
+    for option in optional_options:
+        if not option in cfg_missing_options:
+            model_options.append(option)
+
+    for (test_fn, dependent_options) in config_parameters['dependent'].values():
+    if test_fn(cfg):
+        model_options.extend(dependent_options)
+-
+    return  model_options
+
+def validate_cfg(cfg, config_parameters, ignore_options):
+
+    ignored_options = set(ignore_options)
+
+    def check_options(options)
+        required_options = set(options)
+        required_options.difference_update(ignored_options)
+
+        missing_options = cfg.missing_options(required_options)
+        if missing_options:
+            print('Following required options are not present: ')
+            for option in missing_options:
+                print('  ', option)
+
+                return False
+        return True
+
+    if not check_options(cfg, config_parameters['mandatory']):
+        return False
+
+    if 'dependent' in config_parameters:
+        for (test_fn, dependent_options) \
+            in config_parameters['dependent'].values():
+
+          if test_fn(cfg):
+              if not check_options(cfg, dependent_options):
+                  return False
+
+    return True
+
+def list_aliens(options, config_parameters):
+    aliens_list = set(options)
+
+    aliens_list.difference_update(set(config_parameters['mandatory']))
+
+    if 'optional' in config_parameters:
+        aliens_list.difference_update(set(config_parameters['optional']))
+
+    if 'dependent' in config_parameters:
+        for (_test_fn, dependent_options) \
+            in config_parameters['dependent'].values():
+
+            aliens_list.difference_update(set(dependent_options))
+
+    return aliens_list
