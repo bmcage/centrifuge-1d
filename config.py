@@ -363,3 +363,10 @@ def list_aliens(options, config_parameters):
             aliens_list.difference_update(set(dependent_options))
 
     return aliens_list
+
+def set_cfg_defaults(cfg, config_parameters):
+    defaults_dict = config_parameters['defaults']
+
+    missing_options = cfg.missing_options(defaults_dict.keys())
+    for option in missing_options:
+        cfg.set_value(option, defaults_dict[option])
