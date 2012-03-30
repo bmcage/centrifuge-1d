@@ -16,27 +16,29 @@ find_module = load_modules('run')
 
 def parse_input():
 
-    usage_str = ('\n%prog [options] ID, first_experiment [last_experiment]'
-             '\n\n\tfirst_experiment:'
-             '\n\t\tnumber of the first experiment in exp_ID series of experiments;'
-             '\n\t\teither "first_experiment" or "-i" option has to be set'
-             '\n\tlast_experiment:'
-             '\n\t\tif specified, computes all experiments between the'
-             '\n\t\t"first_experiment" and the "last_experiment" (included);'
-             '\n\t\tif not specified, computes only first_experiment')
+    usage_str = \
+      ('\n%prog [options] ID, first_experiment [last_experiment]'
+       '\n\n\tfirst_experiment:'
+       '\n\t\tnumber of the first experiment in exp_ID series of experiments;'
+       '\n\t\teither "first_experiment" or "-i" option has to be set'
+       '\n\tlast_experiment:'
+       '\n\t\tif specified, computes all experiments between the'
+       '\n\t\t"first_experiment" and the "last_experiment" (included);'
+       '\n\t\tif not specified, computes only first_experiment')
     optparser = OptionParser(usage=usage_str)
     optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
                          metavar='TUBES_NUMBERS',
-                         help="Run experiment only on selected tubes, default is:\n %default")
+                         help=("Run experiment only on selected tubes, default "
+                               "is:\n %default"))
     optparser.add_option('-l', '--list', dest='list', action="store_true",
                          default=False,
                          help="Lists all available experiments")
     optparser.add_option('-p', '--print-config', dest='print_config_p',
                          action='store_true', default=False,
-                         help='Print the used configuration file for given'\
-                         ' experiment and exit; if also parameter ''-t'' is'\
-                         ' included, the config file for the tube is included'\
-                         'too.')
+                         help=('Print the used configuration file for given '
+                               'experiment and exit; if also parameter ''-t'' '
+                               'is included, the config file for the tube is '
+                               'included too.'))
     (options, args) = optparser.parse_args()
     arg_len = len(args)
     if arg_len == 0:
