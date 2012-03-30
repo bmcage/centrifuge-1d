@@ -95,32 +95,25 @@ class Configuration:
             else:
                 return None
 
-    def options_p(self, options, section = None, raise_error = False):
+    def missing_options(self, options, section = None):
 
-        cfg_dict = self._cfg_dict
+        if self._preserve_sections_p:
+            if not section or not section in self._cfg_dict):
+                print('missing_options error: Section not present in config: ',
+                      section)
+                exit(1)
 
-        if self._preserve_sections_p and (not section
-                                          or not section in cfg_dict):
-            print('options_p error: Section not present in config: ', section)
-            exit(1)
-
-        if preserve_sections_p:
-            for option in options:
-                if not option in cfg_dict[section]:
-                    print('Required option is not present: ', option)
-                    if raise_error:
-                        exit(1)
-                    else:
-                        return False
+            cfg_dict = self._cfg_dict[section]
         else:
-             for option in options:
-                if not option in cfg_dict:
-                    print('Required option is not present: ', option)
-                    if raise_error:
-                        exit(1)
-                    else:
-                        return False
-        return True
+            cfg_dict = self._cfg_dict
+
+        result = []
+
+        for option in options:
+            if not option in cfg_dict:
+                result.append(option)
+
+        return result
 
     def echo(self):
         def echo_section(section_dict):
