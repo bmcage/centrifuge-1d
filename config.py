@@ -115,6 +115,12 @@ class Configuration:
 
         return result
 
+    def list_options(self):
+        """
+          Return a list of all options specified in config.
+        """
+        return list(self._cfg_dict.keys())
+
     def echo(self):
         def echo_section(section_dict):
             for (name, value) in sorted(section_dict.items()):
