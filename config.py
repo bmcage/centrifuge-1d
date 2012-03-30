@@ -107,16 +107,16 @@ class Configuration:
         if preserve_sections_p:
             for option in options:
                 if not option in cfg_dict[section]:
+                    print('Required option is not present: ', option)
                     if raise_error:
-                        print('Required option is not present: ', option)
                         exit(1)
                     else:
                         return False
         else:
              for option in options:
                 if not option in cfg_dict:
+                    print('Required option is not present: ', option)
                     if raise_error:
-                        print('Required option is not present: ', option)
                         exit(1)
                     else:
                         return False
