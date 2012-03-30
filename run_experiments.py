@@ -149,8 +149,6 @@ def run_experiments(options, exp_args):
                 cfg.echo()
                 continue
 
-            exit(0)
-
             module.adjust_cfg(cfg)
 
             model = ModelParameters(cfg)
