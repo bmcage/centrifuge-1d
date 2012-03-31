@@ -50,7 +50,7 @@ def parse_value(str_value):
             return False
         elif raw_value[0] == "(" and raw_value[-1] == ")":
             return \
-			  tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
+              tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
         else:
             return int(raw_value)
 
