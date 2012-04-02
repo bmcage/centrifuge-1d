@@ -69,24 +69,6 @@ def load_experiment_types():
 
     return find_module_name
 
-def list_all_options_modules_names(module_name, find_options = None):
-    result = []
-
-    if not find_options:
-        find_options = load_modules('options')
-
-    def traverse(module_name):
-        if not module_name in result:
-            options_module = find_options(module_name)
-
-            for parental_module in options_module.PARENTAL_MODULES:
-                traverse(parental_module)
-            result.append(module_name)
-
-    traverse(module_name)
-
-    return result
-
 def print_by_tube(tube_number, tube_data):
     print('Tube number: ', tube_number)
     for tdata in tube_data:
