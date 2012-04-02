@@ -31,7 +31,7 @@ def adjust_cfg(cfg):
                                   ' implemented')
 
     cfg.set_value('y', y)
-    cfg.set_value('y12'] = (y[1:]+y[:-1])/2.
+    cfg.set_value('y12', (y[1:]+y[:-1])/2.)
 
     dy = y[1:]-y[:-1]
     cfg.set_value('dy', dy)
@@ -180,17 +180,17 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype = 'all'):
     r0_rm = model.r0
 
      # Gravitational center
-     r0 = r0_gc
-     if calc_gc:
-         gc_unsat = (porosity * 1/2 * model.density * ds
-                     * ((r0 + s1)*dy[0]*u[0]
-                        + (r0 + s2)*dy[-1]*u[-1]
-                        + np.sum((dy[:-1]+dy[1:])
-                                 *(r0 + s1 + ds*y[1:-1])*u[1:-1])))
-         gc_sat   = (1/2 * model.density
-                     * (porosity * (np.power(r0 + s1, 2) - np.power(r0, 2))
-                        + (np.power(r0, 2) - np.power(r0 - mass_in, 2))
-                        + (np.power(r0 + l0_out, 2) - np.power(r0 + l_out, 2))))
+    r0 = r0_gc
+    if calc_gc:
+        gc_unsat = (porosity * 1/2 * model.density * ds
+                    * ((r0 + s1)*dy[0]*u[0]
+                       + (r0 + s2)*dy[-1]*u[-1]
+                       + np.sum((dy[:-1]+dy[1:])
+                                *(r0 + s1 + ds*y[1:-1])*u[1:-1])))
+        gc_sat   = (1/2 * model.density
+                    * (porosity * (np.power(r0 + s1, 2) - np.power(r0, 2))
+                       + (np.power(r0, 2) - np.power(r0 - mass_in, 2))
+                       + (np.power(r0 + l0_out, 2) - np.power(r0 + l_out, 2))))
         gc_left  = (gc_unsat + gc_sat) / WM
         print(model.fl1, model.l0, model.fl2, gc_left)
         gc_right = model.fl1 + model.l0 + model.fl2 - gc_left

@@ -37,17 +37,17 @@ def parse_value(str_value):
     try:
         raw_value = str_value.strip()
 
-        if "." in raw_value or "e" in raw_value or "E" in raw_value:
-            return float(setting)
-        elif raw_value[0] == "[" and raw_value[-1] == "]":
+        if raw_value[0] == "[" and raw_value[-1] == "]":
             return [parse_value(item) for item in raw_value[1:-1].split(",")]
         elif ((raw_value[0] == "'" and raw_value[-1] == "'")
-            or (raw_value[0] == '"' and raw_value[-1] == '"')):
+              or (raw_value[0] == '"' and raw_value[-1] == '"')):
             return raw_value[1:-1]
-        elif raw_value = 'True':
+        elif raw_value == 'True':
             return True
-        elif raw_value = 'False':
+        elif raw_value == 'False':
             return False
+        elif "." in raw_value or "e" in raw_value or "E" in raw_value:
+            return float(raw_value)
         elif raw_value[0] == "(" and raw_value[-1] == ")":
             return \
               tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
@@ -98,7 +98,7 @@ class Configuration:
     def missing_options(self, options, section = None):
 
         if self._preserve_sections_p:
-            if not section or not section in self._cfg_dict):
+            if (not section) or (not section in self._cfg_dict):
                 print('missing_options error: Section not present in config: ',
                       section)
                 exit(1)
@@ -192,7 +192,7 @@ class Configuration:
             for option in parser.options(psection):
                 raw_value = parser.get(psection, option).strip()
 
-                value = eval_item(raw_value)
+                value = parse_value(raw_value)
 
                 if preserve_sections_p:
                     cfg_dict[section][option]=value
@@ -212,7 +212,7 @@ class ModelParameters:
     def __init__(self, cfg, parameters_list):
         self._cfg = cfg
         # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
-        self.rpm2radps lambda x: x * np.pi/ 30.0
+        self.rpm2radps = lambda x: x * np.pi/ 30.0
         self._parameters_list = parameters_list
         self._iterable_parameters = []
         self._iteration = 0
@@ -313,16 +313,16 @@ def determine_model_options(config_parameters, cfg, cfg_only_options):
             model_options.append(option)
 
     for (test_fn, dependent_options) in config_parameters['dependent'].values():
-    if test_fn(cfg):
-        model_options.extend(dependent_options)
--
+        if test_fn(cfg):
+            model_options.extend(dependent_options)
+
     return  model_options
 
 def validate_cfg(cfg, config_parameters, ignore_options):
 
     ignored_options = set(ignore_options)
 
-    def check_options(options)
+    def check_options(options):
         required_options = set(options)
         required_options.difference_update(ignored_options)
 
