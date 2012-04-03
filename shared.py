@@ -43,6 +43,7 @@ def load_experiment_types():
     modules_names = listdir('modules')
     modules_names.remove('__pycache__')
     modules_names.remove('__init__.py')
+    modules_names.remove('shared')
 
     types_to_names = {}
 
