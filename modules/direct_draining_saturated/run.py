@@ -3,13 +3,12 @@ import numpy as np
 import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
 
-from shared_functions import find_omega2g, h2Kh, dudh, h2u
+from modules.shared.shared_functions import (find_omega2g, h2Kh, dudh, h2u,
+                                             lagrangean_derivative_coefs)
 
 def adjust_cfg(cfg):
     from  modules.base.run import adjust_cfg as base_adjust_cfg
     base_adjust_cfg(cfg)
-
-    from shared_functions import lagrangean_derivative_coefs
 
     inner_points = cfg.get_value('inner_points')
 
