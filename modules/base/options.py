@@ -2,6 +2,7 @@ PARENTAL_MODULES = []
 
 CONFIG_OPTIONS = {
         'mandatory': ['exp_type',
+                      'ks',
                       'r0', 'l0', 'omega', 'duration',
                       'include_acceleration',
                       'wt_out',
@@ -14,7 +15,7 @@ CONFIG_OPTIONS = {
         'dependent': {'acceleration': \
                       (lambda cfg: cfg.get_value('include_acceleration'),
                        ['omega_start', 'omega_end', 'deceleration_duration'])},
-        'optional': ['l1'],
+        'optional': ['l1', 'measured_gc', 'measured_w'],
         'additional': []
         }
 
