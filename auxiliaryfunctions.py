@@ -6,19 +6,9 @@ def ensure_dir(f):
     if not os.path.exists(d):
         os.makedirs(d)
 
-def ensure_numpy_array(value, arraysize_if_single_value = 0):
+def ensure_numpy_array(value, arraysize_if_single_value = 1):
     try:
-        if (type(value) == float or type(value) == int
-            or type(value) == np.float
-            or type(value) == np.float32
-            or type(value) == np.float64
-            or type(value) == np.float128
-            or type(value) == np.int
-            or type(value) == np.int8
-            or type(value) == np.int16
-            or type(value) == np.int32
-            or type(value) == np.int64):
-
+        if np.isscalar(value):
             array    = np.empty([arraysize_if_single_value, ], float)
             array[:] = value
 
@@ -26,7 +16,8 @@ def ensure_numpy_array(value, arraysize_if_single_value = 0):
         else:
             return np.asarray(value, float)
     except:
-        raise ValueError('af.ensure_numpy_value: value not a number or sequence of numbers: %s' % value)
+        raise ValueError('af.ensure_numpy_value: value is not a number or '
+                         'a sequence of numbers: %s' % value)
 
 def apply_functions(fns, *args):
     """
