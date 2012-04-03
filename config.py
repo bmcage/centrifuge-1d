@@ -8,8 +8,10 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
-from common import load_modules
+from shared import load_modules, load_experiment_types
 from numpy import pi
+
+exptype2modulename = load_experiment_types()
 
 def load_all_options():
     config_options_modules_list = {}
@@ -165,15 +167,17 @@ class Configuration:
     def set_defaults(self):
         cfg_dict = self._cfg_dict
 
-        if not 'module' in cfg_dict:
-            print('Missing option: configuration does not specify ''module'' '
-                  'option. \nCurrent configuration is:')
+        if not 'exp_type' in self._cfg_dict:
+            print('Missing option: configuration does not specify ''exp_type'' '
+                  'option. Cannot validate configuration.\nCurrent '
+                  'configuration is:')
             self.echo()
             print('\nExiting...')
             exit(1)
 
         # set options that are missing but have specified default value
-        config_modules_list = find_options_modules_names(cfg_dict['module'])
+        module_name = exptype2modulename(cfg_dict['exp_type'])
+        config_modules_list = find_options_modules_names(module_name)
         for config_options_module in config_modules_list:
             current_module = find_options_module(config_options_module)
             options = current_module.CONFIG_OPTIONS['defaults']
@@ -274,15 +278,16 @@ class Configuration:
                     return False
             return True
 
-        if not 'module' in self._cfg_dict:
-            print('Missing option: configuration does not specify ''module'' '
-                  'option. \nCurrent configuration is:')
+        if not 'exp_type' in self._cfg_dict:
+            print('Missing option: configuration does not specify ''exp_type'' '
+                  'option. Cannot validate configuration.\nCurrent '
+                  'configuration is:')
             self.echo()
             print('\nExiting...')
             exit(1)
 
-        config_modules_list = \
-          find_options_modules_names(self._cfg_dict['module'])
+        module_name = exptype2modulename(self._cfg_dict['exp_type'])
+        config_modules_list = find_options_modules_names(module_name)
 
         alien_options = set(self.list_options())
 
