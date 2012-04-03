@@ -8,7 +8,33 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
-import numpy as np
+from common import load_modules
+from numpy import pi
+
+def load_all_options():
+    config_options_modules_list = {}
+
+    def traverse(result, module_name):
+        if not module_name in result:
+            options_module = find_options_module(module_name)
+
+            for parental_module in options_module.PARENTAL_MODULES:
+                traverse(result, parental_module)
+            result.append(module_name)
+
+    def find_options_modules_names(module_name):
+        if module_name in config_options_modules_list:
+            return config_options_modules_list[module_name]
+        else:
+            modules_names_list = []
+            traverse(modules_names_list, module_name)
+            config_options_modules_list[module_name] = modules_names_list
+            return modules_names_list
+
+    return find_options_modules_names
+
+find_options_modules_names = load_all_options()
+find_options_module = load_modules('options')
 
 ##################################################################
 #                   Configuration class                          #
@@ -136,6 +162,33 @@ class Configuration:
             print()
             echo_section(cfg_dict)
 
+    def set_defaults(self):
+        cfg_dict = self._cfg_dict
+
+        if not 'module' in cfg_dict:
+            print('Missing option: configuration does not specify ''module'' '
+                  'option. \nCurrent configuration is:')
+            self.echo()
+            print('\nExiting...')
+            exit(1)
+
+        # set options that are missing but have specified default value
+        config_modules_list = find_options_modules_names(cfg_dict['module'])
+        for config_options_module in config_modules_list:
+            current_module = find_options_module(config_options_module)
+            options = current_module.CONFIG_OPTIONS['defaults']
+
+            if self._preserve_sections_p:
+                for (section, section_content) in options.items():
+                    for (option, value) in section_content.items():
+                        if not option in cfg_dict:
+                            cfg_dict[section][option] = value
+            else:
+                for (option, value) in options.items():
+                    if not option in cfg_dict:
+                        cfg_dict[option] = value
+        return self
+
     def merge(self, *cfgs):
         """
           Merge all cfgs into current configuration; if the same values appears
@@ -201,6 +254,77 @@ class Configuration:
 
         return self
 
+    def validate(self):
+
+        ignored_options = []
+        # TODO: add ignore_options
+        #ignored_options = set(ignore_options)
+
+
+        def check_options(options):
+            required_options = set(options)
+            required_options.difference_update(ignored_options)
+
+            missing_options = self.missing_options(required_options)
+            if missing_options:
+                print('Following required options are not present: ')
+                for option in missing_options:
+                    print('  ', option)
+
+                    return False
+            return True
+
+        if not 'module' in self._cfg_dict:
+            print('Missing option: configuration does not specify ''module'' '
+                  'option. \nCurrent configuration is:')
+            self.echo()
+            print('\nExiting...')
+            exit(1)
+
+        config_modules_list = \
+          find_options_modules_names(self._cfg_dict['module'])
+
+        alien_options = set(self.list_options())
+
+        for config_module_name in config_modules_list:
+
+            current_module   = find_options_module(config_module_name)
+            config_parameters = current_module.CONFIG_OPTIONS
+
+            if not check_options(config_parameters['mandatory']):
+                return False
+
+            # remove known options from the list
+            alien_options.difference_update(set(config_parameters['mandatory']))
+
+            if 'dependent' in config_parameters:
+                dependent_options = config_parameters['dependent']
+
+                for (test_fn, dependent_options) \
+                  in config_parameters['dependent'].values():
+
+                    if test_fn(self):
+                        if not check_options(self, dependent_options):
+                            return False
+                    alien_options.difference_update(set(dependent_options))
+
+            if 'optional' in config_parameters:
+                optional_options = config_parameters['optional']
+                alien_options.difference_update(set(optional_options))
+
+            if 'defaults' in config_parameters:
+                defaults_options = config_parameters['defaults']
+                alien_options.difference_update(set(defaults_options))
+
+        print('ao:', alien_options)
+        if not alien_options:
+            print('Found following alien options in configuration:')
+            for option in alien_options:
+                print('  ', option)
+            return False
+
+        return True
+
 ##################################################################
 #                 ModelParameters class                          #
 ##################################################################
@@ -212,7 +336,7 @@ class ModelParameters:
     def __init__(self, cfg, parameters_list):
         self._cfg = cfg
         # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
-        self.rpm2radps = lambda x: x * np.pi/ 30.0
+        self.rpm2radps = lambda x: x * pi/ 30.0
         self._parameters_list = parameters_list
         self._iterable_parameters = []
         self._iteration = 0
@@ -317,56 +441,3 @@ def determine_model_options(config_parameters, cfg, cfg_only_options):
             model_options.extend(dependent_options)
 
     return  model_options
-
-def validate_cfg(cfg, config_parameters, ignore_options):
-
-    ignored_options = set(ignore_options)
-
-    def check_options(options):
-        required_options = set(options)
-        required_options.difference_update(ignored_options)
-
-        missing_options = cfg.missing_options(required_options)
-        if missing_options:
-            print('Following required options are not present: ')
-            for option in missing_options:
-                print('  ', option)
-
-                return False
-        return True
-
-    if not check_options(cfg, config_parameters['mandatory']):
-        return False
-
-    if 'dependent' in config_parameters:
-        for (test_fn, dependent_options) \
-            in config_parameters['dependent'].values():
-
-          if test_fn(cfg):
-              if not check_options(cfg, dependent_options):
-                  return False
-
-    return True
-
-def list_aliens(options, config_parameters):
-    aliens_list = set(options)
-
-    aliens_list.difference_update(set(config_parameters['mandatory']))
-
-    if 'optional' in config_parameters:
-        aliens_list.difference_update(set(config_parameters['optional']))
-
-    if 'dependent' in config_parameters:
-        for (_test_fn, dependent_options) \
-            in config_parameters['dependent'].values():
-
-            aliens_list.difference_update(set(dependent_options))
-
-    return aliens_list
-
-def set_cfg_defaults(cfg, config_parameters):
-    defaults_dict = config_parameters['defaults']
-
-    missing_options = cfg.missing_options(defaults_dict.keys())
-    for option in missing_options:
-        cfg.set_value(option, defaults_dict[option])
