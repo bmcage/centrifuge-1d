@@ -45,9 +45,6 @@ def adjust_cfg(flattened_cfg):
 
     flattened_cfg['theta_s_p'] = theta_s_p
 
-def generate_tubes_suffixes(tubes_numbers):
-    return ([''], [''])
-
 def solve(model):
     def lsq_fn(xdata, *optim_args):
         print(optim_args)

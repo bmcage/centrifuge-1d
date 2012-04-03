@@ -70,6 +70,18 @@ def load_experiment_types():
 
     return find_module_name
 
+def generate_tubes_suffixes(tubes_numbers):
+    if not tubes_numbers:
+        print('generate_tubes_suffixes error: No tubes (numbers) were '
+              'specified - input values was: "%s"' % tubes_numbers)
+        exit(1)
+
+    suffixes = ['-tube' + str(tube_no) for tube_no in tubes_numbers]
+    identifiers = [', tube ' + str(tube_no) for tube_no in tubes_numbers]
+
+    return suffixes, identifiers
+
+
 def print_by_tube(tube_number, tube_data):
     print('Tube number: ', tube_number)
     for tdata in tube_data:

@@ -13,13 +13,3 @@ def adjust_cfg(cfg):
        based on the discretization type and number of inner points.
     """
     pass
-
-def generate_tubes_suffixes(tubes_numbers):
-    if not tubes_numbers:
-        print('CFG: Error: No tubes numbers specified: "%s"' % tubes_numbers)
-        exit(1)
-
-    suffixes = ['-tube' + str(tube_no) for tube_no in tubes_numbers]
-    identifiers = [', tube ' + str(tube_no) for tube_no in tubes_numbers]
-
-    return suffixes, identifiers
