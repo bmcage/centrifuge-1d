@@ -19,6 +19,6 @@ CONFIG_OPTIONS = {
         'additional': []
         }
 
-CONFIG_ONLY_OPTIONS = ['exp_type']
+EXCLUDE_FROM_MODEL = ['exp_type']
 
 IGNORE_OPTIONS = []

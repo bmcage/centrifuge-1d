@@ -8,6 +8,6 @@ CONFIG_OPTIONS = {
         'additional': []
         }
 
-CONFIG_ONLY_OPTIONS = []
+EXCLUDE_FROM_MODEL = []
 
 IGNORE_OPTIONS = []

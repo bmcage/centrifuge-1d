@@ -11,6 +11,6 @@ CONFIG_OPTIONS = {
                        'mass_in_idx', 'mass_out_idx', 'pq_idx', 'z_size',]
         }
 
-CONFIG_ONLY_OPTIONS = []
+EXCLUDE_FROM_MODEL = ['dtype']
 
 IGNORE_OPTIONS = []
