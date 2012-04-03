@@ -258,7 +258,7 @@ class Configuration:
 
         return self
 
-    def validate(self):
+    def is_valid(self):
 
         ignored_options = []
         # TODO: add ignore_options
@@ -321,9 +321,8 @@ class Configuration:
                 defaults_options = config_parameters['defaults']
                 alien_options.difference_update(set(defaults_options))
 
-        print('ao:', alien_options)
-        if not alien_options:
-            print('Found following alien options in configuration:')
+        if alien_options:
+            print('\nFound following alien options in configuration:')
             for option in alien_options:
                 print('  ', option)
             return False
