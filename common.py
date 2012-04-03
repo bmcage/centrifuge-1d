@@ -12,6 +12,7 @@ def load_modules(submodule_name):
     modules_names = listdir('modules')
     modules_names.remove('__pycache__')
     modules_names.remove('__init__.py')
+    modules_names.remove('shared')
 
     loaded_modules = dict.fromkeys(modules_names)
 
