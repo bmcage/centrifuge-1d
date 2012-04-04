@@ -1,3 +1,6 @@
+from modules.shared.shared_functions import lagrangean_derivative_coefs
+from numpy import linspace
+
 PARENTAL_MODULES = ['base']
 
 CONFIG_OPTIONS = {
@@ -30,7 +33,7 @@ def adjust_cfg(cfg):
 
     discretization_type = cfg.get_value('dtype')
     if discretization_type == 1:
-        y = np.linspace(0, 1, inner_points + 2)
+        y = linspace(0, 1, inner_points + 2)
     else:
         raise NotImplementedError('For now only linear discretization is'
                                   ' implemented')

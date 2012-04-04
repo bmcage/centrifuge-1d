@@ -2,9 +2,7 @@ import numpy as np
 
 import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
-
-from modules.shared.shared_functions import (find_omega2g, h2Kh, dudh, h2u,
-                                             lagrangean_derivative_coefs)
+from modules.shared.shared_functions import find_omega2g, h2Kh, dudh, h2u
 
 def draw_graphs(fignum, t, x, h, u, mass_out, GC = None, RM = None, WM = None):
     import matplotlib.pyplot as plt
