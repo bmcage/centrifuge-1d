@@ -268,6 +268,7 @@ class Configuration:
         def module_adjust_cfg(module):
             if hasattr(module, 'adjust_cfg'):
                 module.adjust_cfg(self)
+                return True
 
         exp_type = self.get_value('exp_type')
 
@@ -342,7 +343,7 @@ class Configuration:
     def is_valid(self, modman):
 
         ignored_options = []
-        # TODO: add ignore_options
+        # TODO: ad ignore_options
         #ignored_options = set(ignore_options)
 
 
@@ -403,7 +404,6 @@ class Configuration:
 
         if not modman.traverse_ancestors(exp_type, check_cfg,
                                          submodule='options'):
-            print('ddddd')
             return False
 
         if alien_options:
@@ -466,6 +466,8 @@ class ModelParameters:
 
                 if test_fn(cfg):
                     set_options(dependent_options)
+
+            return True
 
         modman.traverse_ancestors(cfg.get_value('exp_type'),
                                   set_options_from_config,
