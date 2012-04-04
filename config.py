@@ -8,35 +8,105 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
-from shared import load_modules, load_experiment_types
 from numpy import pi
+from os import listdir
+from sys import modules as sysmodules
+from math import sqrt
 
-exptype2modulename = load_experiment_types()
+##################################################################
+#                   ModulesManager class                         #
+##################################################################
 
-def load_all_options():
-    config_options_modules_list = {}
+class ModulesManager():
+    def __init__(self):
+        available_modules = listdir('modules')
+        available_modules.remove('__pycache__')
+        available_modules.remove('__init__.py')
+        available_modules.remove('shared')
 
-    def traverse(result, module_name):
-        if not module_name in result:
-            options_module = find_options_module(module_name)
+        loaded_modules = {}
 
-            for parental_module in options_module.PARENTAL_MODULES:
-                traverse(result, parental_module)
-            result.append(module_name)
+        # module_names[exp_type]    -> module_name
+        # module_names[module_name] -> module_name
+        modules_names = {}
 
-    def find_options_modules_names(module_name):
-        if module_name in config_options_modules_list:
-            return config_options_modules_list[module_name]
+        for module_name in available_modules:
+            try:
+                submodule_info_name = 'modules.' + module_name + '.info'
+
+                __import__(submodule_info_name)
+
+                submodule_info = sysmodules[submodule_info_name]
+
+                for exp_type in submodule_info.types:
+                    modules_names[exp_type] = module_name
+
+                modules_names[module_name] = module_name
+            except:
+                print('Module loading error:Submodule ''info'' of module "%s" '
+                      'could not be loaded. Skipping.'  % module_name)
+
+        self._loaded_modules = loaded_modules
+        self._modules_names  = modules_names
+
+    def traverse_ancestors(self, modname_or_exptype, get_ancestors, apply_fn,
+                           prehook = None, submodule = ''):
+        """
+          Recursively traverses the modules, preserving the order of ancestors
+          it gets from 'get_ancestors(module)' function, and applies the
+          function 'apply_fn(module)' on each (ancestor) module.
+          If 'prehook(module)' is specified, this function is called before
+          going into recursion.
+        """
+
+        def traverse(module):
+            ancestors_list = get_ancestors(module)
+
+            for ancestor_name in ancestors_list:
+                ancestor_module = self.find_module(ancestor_name, submodule)
+
+                if prehook:
+                    prehook(ancestor_module)
+
+                if not traverse(ancestor_module):
+                    return False
+
+            return apply_fn(module)
+
+        module = self.find_module(modname_or_exptype, submodule)
+
+        return traverse(module)
+
+    def find_module(self, modname_or_exptype, submodule=''):
+        """
+          Return an module determined by it's name or the type of experiment.
+          Loading of modules is done only on demand.
+        """
+
+        if not modname_or_exptype in self._modules_names:
+            print('\n\n',modname_or_exptype, self._modules_names,'\n\n')
+            print('\nFind module error: Unknown module name or experiment '
+                  'type: "%s".\nAvailable modules are: %s'
+                  % (modname_or_exptype, list(self._modules_names.keys())))
+            raise
+            exit(1)
+
+        if submodule:
+            module_name = (self._modules_names[modname_or_exptype]
+                           + '.' + submodule)
         else:
-            modules_names_list = []
-            traverse(modules_names_list, module_name)
-            config_options_modules_list[module_name] = modules_names_list
-            return modules_names_list
+             module_name = self._modules_names[modname_or_exptype]
 
-    return find_options_modules_names
+        if not module_name in self._loaded_modules:
+            module_full_name = 'modules.' + module_name
+            __import__(module_full_name)
 
-find_options_modules_names = load_all_options()
-find_options_module = load_modules('options')
+            module = sysmodules[module_full_name]
+            self._loaded_modules[module_name] = module
+        else:
+            module = self._loaded_modules[module_name]
+
+        return module
 
 ##################################################################
 #                   Configuration class                          #
@@ -56,6 +126,11 @@ def flatten(cfg):
     flattened_cfg._cfg_dict = flatten_dict({}, cfg)
 
     return flattened_cfg
+
+
+def get_ancestors(options_module):
+    return options_module.PARENTAL_MODULES
+
 
 def parse_value(str_value):
     """
@@ -164,33 +239,31 @@ class Configuration:
             print()
             echo_section(cfg_dict)
 
-    def set_defaults(self):
+    def set_defaults(self, modman):
+        """
+          Set options that are missing in current configuration, but have
+          specified a default value in modules.
+        """
+
         cfg_dict = self._cfg_dict
 
-        if not 'exp_type' in self._cfg_dict:
-            print('Missing option: configuration does not specify ''exp_type'' '
-                  'option. Cannot validate configuration.\nCurrent '
-                  'configuration is:')
-            self.echo()
-            print('\nExiting...')
-            exit(1)
+        def set_defaults_from_module(options_module):
+            defaults_options = options_module.CONFIG_OPTIONS['defaults']
 
-        # set options that are missing but have specified default value
-        module_name = exptype2modulename(cfg_dict['exp_type'])
-        config_modules_list = find_options_modules_names(module_name)
-        for config_options_module in config_modules_list:
-            current_module = find_options_module(config_options_module)
-            options = current_module.CONFIG_OPTIONS['defaults']
+            if not self._preserve_sections_p:
+                options = {'foo': defaults_options}
 
-            if self._preserve_sections_p:
-                for (section, section_content) in options.items():
-                    for (option, value) in section_content.items():
-                        if not option in cfg_dict:
-                            cfg_dict[section][option] = value
-            else:
-                for (option, value) in options.items():
+            for (section, section_content) in options.items():
+                for (option, value) in section_content.items():
                     if not option in cfg_dict:
-                        cfg_dict[option] = value
+                        self.set_value(option, value, section)
+
+        exp_type = self.get_value('exp_type')
+
+        modman.traverse_ancestors(exp_type, get_ancestors,
+                                  set_defaults_from_module,
+                                  submodule='options')
+
         return self
 
     def merge(self, *cfgs):
@@ -258,7 +331,7 @@ class Configuration:
 
         return self
 
-    def is_valid(self):
+    def is_valid(self, modman):
 
         ignored_options = []
         # TODO: add ignore_options
@@ -278,23 +351,10 @@ class Configuration:
                     return False
             return True
 
-        if not 'exp_type' in self._cfg_dict:
-            print('Missing option: configuration does not specify ''exp_type'' '
-                  'option. Cannot validate configuration.\nCurrent '
-                  'configuration is:')
-            self.echo()
-            print('\nExiting...')
-            exit(1)
-
-        module_name = exptype2modulename(self._cfg_dict['exp_type'])
-        config_modules_list = find_options_modules_names(module_name)
-
         alien_options = set(self.list_options())
 
-        for config_module_name in config_modules_list:
-
-            current_module   = find_options_module(config_module_name)
-            config_parameters = current_module.CONFIG_OPTIONS
+        def check_cfg(options_module):
+            config_parameters = options_module.CONFIG_OPTIONS
 
             if not check_options(config_parameters['mandatory']):
                 return False
@@ -321,6 +381,23 @@ class Configuration:
                 defaults_options = config_parameters['defaults']
                 alien_options.difference_update(set(defaults_options))
 
+            return True
+
+        exp_type = self.get_value('exp_type')
+
+        if not exp_type:
+            print('Missing option: configuration does not specify ''exp_type'' '
+                  'option. Cannot validate configuration.\nCurrent '
+                  'configuration is:')
+            self.echo()
+            print('\nExiting...')
+            exit(1)
+
+        if not modman.traverse_ancestors(exp_type, get_ancestors,
+                                         check_cfg, submodule='options'):
+            print('ddddd')
+            return False
+
         if alien_options:
             print('\nFound following alien options in configuration:')
             for option in alien_options:
@@ -333,23 +410,61 @@ class Configuration:
 #                 ModelParameters class                          #
 ##################################################################
 
+def rpm2radps(x):
+    """
+      Converts rpm to rad.s^{-1}
+    """
+    # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
+    return x * pi/ 30.0
+
 class ModelParameters:
     """
     Parameters class for the centrifuge simulation.
     """
-    def __init__(self, cfg, parameters_list):
-        self._cfg = cfg
-        # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
-        self.rpm2radps = lambda x: x * pi/ 30.0
-        self._parameters_list = parameters_list
-        self._iterable_parameters = []
-        self._iteration = 0
-        self.first_iteration_p = False
 
-        for param in parameters_list:
-            self.set_value(param, cfg.get_value(param))
+    def __init__(self, cfg, modman):
+        self._cfg = cfg
+        self._iterable_parameters = {}
+        self._iteration           = 0
+        self._iterations_count    = 0
+        self.first_iteration_p    = False
 
         self._iterations_count = len(cfg.get_value('duration'))
+
+        exclude_options = []
+
+        def update_exclude_option(options_module):
+            #global exclude_options
+            exclude_options.extend(options_module.EXCLUDE_FROM_MODEL)
+
+        def set_options(options_list):
+             for option in options_list:
+                if not option in exclude_options:
+                    self.set_value(option, cfg.get_value(option))
+
+        def set_options_from_config(options_module):
+            config_options = options_module.CONFIG_OPTIONS
+
+            set_options(config_options['mandatory'])
+            set_options(config_options['defaults'].keys())
+            set_options(config_options['additional'])
+
+            optional_options = set(config_options['optional'])
+            cfg_missing_options  = set(cfg.missing_options(optional_options))
+            optional_options.difference_update(cfg_missing_options)
+            set_options(list(optional_options))
+
+            for (test_fn, dependent_options) \
+              in config_options['dependent'].values():
+
+                if test_fn(cfg):
+                    set_options(dependent_options)
+
+        modman.traverse_ancestors(cfg.get_value('exp_type'),
+                                  get_ancestors,
+                                  set_options_from_config,
+                                  prehook=update_exclude_option,
+                                  submodule='options')
 
     def set_value(self, key, value):
         """
@@ -357,42 +472,73 @@ class ModelParameters:
           Performs the check of the 'value' and conversion to correct units
           when needed. Updates also the dependent variables.
         """
-        # Keep self._itarable_parameters up-to-date; if we set a list-type value
-        # should be stored, if an atom, should be removed
-        if (type(value) == list):
-            if not key in self._iterable_parameters:
-                self._iterable_parameters.append(key)
-        else:
-            if key in self._iterable_parameters:
-                self._iterable_parameters.remove(key)
 
-        if key in ['omega', 'omega_start', 'omega_end']:
-            if type(value) == list:
-                setattr(self, key, [self.rpm2radps(omega) for omega in value])
-            else:
-                setattr(self, key, self.rpm2radps(value))
-            return
-        elif key in ['omega_fall', 'm']:
+        if key in ['omega_fall', 'm']:
             raise ValueError('Parameter %s is not allowed to set directly.'
                              % key)
 
-        setattr(self, key, value)
+        # Keep self._itarable_parameters up-to-date; if we set a list-type value
+        # should be stored, if an atom, should be removed
+        if (type(value) == list):
+            # Handle specialy-treated variables, for which the value
+            # needs to be somehow trasformed
+            if key in ['omega', 'omega_start', 'omega_end']:
+                self._iterable_parameters[key] = \
+                  [rpm2radps(omega) for omega in value]
+                return
 
-        if key == 'n':
-            if type(value) == list:
-                m =  [1-1/n for n in value]
-            else:
-                m = 1-1/value
-            setattr(self, 'm', m)
-        elif key == 'r0_fall':
-            from math import sqrt
+            # Ok, no special treatment, just set it then
+            self._iterable_parameters[key] = value
 
-            if type(value) == list:
-                setattr(self, key, [sqrt(self.g/r0_fall) for r0_fall in value])
-            else:
-                setattr(self, key, sqrt(self.g/value))
+            # Update depending variables (value of which depends on the value
+            # of variables in configuration)
+            if key == 'n':
+                self._iterable_parameters['m'] = [1-1/n for n in value]
+            if key in ['r0_fall', 'g']:
 
-    def next_iteration(echo):
+                if key == 'r0_fall':
+                    r0_fall_list = value
+
+                    if 'g' in self._iterable_parameters:
+                        g_list = self._iterable_parameters['g']
+                    elif hasattr(self, 'g'):
+                        g_list = [self.g for r0_fall in r0_fall_list]
+                    else:
+                        return
+                else:
+                    g_list = value
+
+                    if 'r0_fall' in self._iterable_parameters:
+                        r0_fall_list = self._iterable_parameters['r0_fall']
+                    elif hasattr(self, 'r0_fall'):
+                        r0_fall_list = [self.r0_fall for g in g_list]
+                    else:
+                        return
+
+                omega_fall = [sqrt(g/r0_fall)
+                              for (g, r0_fall) in zip(g_list, r0_fall_list)]
+                self._iterable_parameters['omega_fall'] = omega_fall
+        else:
+            # Now is value an atom, so remove it from iterables if present
+            if key in self._iterable_parameters:
+                del(self._iterable_parameters[key])
+
+            # Handle variables that need to transform the supplied value
+            if key in ['omega', 'omega_start', 'omega_end']:
+                setattr(self, key, rpm2radps(value))
+                return
+
+            # Handle the rest of supplied variable
+            setattr(self, key, value)
+
+            # Initialize depending variables
+            if key == 'n':
+                setattr(self, 'm', m = 1-1/value)
+            elif key in ['r0_fall', 'g']:
+                if hasattr(self, 'g') and hasattr(self, 'r0_fall'):
+                    setattr(self, 'omega_fall', sqrt(self.g/self.r0_fall))
+
+    def next_iteration():
         """
           Assign the next value of the parameters that were given as type list
         """
@@ -400,8 +546,8 @@ class ModelParameters:
         self.first_iteration_p = (i == 0)
         cfg = self._cfg
 
-        for key in self._iterable_parameters:
-            setattr(key, cfg.get_value(key)[i])
+        for (key, value) in self._iterable_parameters:
+            setattr(key, value[i])
 
         self.iteration = i+1
 
@@ -413,35 +559,18 @@ class ModelParameters:
           If 'iterable_only' is True, prints only the current values of the
           variables that are iterated by the 'next_iteration()' function.
         """
-        if iterable_only:
-             parameters = sorted(self._iterable_parameters)
-        else:
-             parameters = sorted(self._parameters_list)
-        print()
-        for option in parameters:
-            print('%-12s = %s' % (option, getattr(self, option)))
 
-##################################################################
-#           Functions on Configuration/ModelParameters           #
-##################################################################
+        iterable_options = self._iterable_parameters
+        print('\nIterable parameters:')
+        for option in sorted(iterable_options):
+            print('  %-12s = %s' % (option, iterable_options[option]))
 
-def determine_model_options(config_parameters, cfg, cfg_only_options):
+        if not iterable_only:
+            options = dict(vars(self))
+            for internal_opt in ['_cfg', '_iterable_parameters', '_iteration',
+                                 '_iterations_count', 'first_iteration_p']:
+                del(options[internal_opt])
 
-    model_options = list(config_parameters['mandatory'])
-    for option in cfg_only_options:
-        model_options.remove(option)
-
-    model_options.extend(config_parameters['defaults'].keys()
-                         + config_parameters['additional'])
-
-    optional_options = config_parameters['optional']
-    cfg_missing_options = cfg.missing_options(optional_options)
-    for option in optional_options:
-        if not option in cfg_missing_options:
-            model_options.append(option)
-
-    for (test_fn, dependent_options) in config_parameters['dependent'].values():
-        if test_fn(cfg):
-            model_options.extend(dependent_options)
-
-    return  model_options
+            print('\nConstant parameters:')
+            for option in sorted(options):
+                print('  %-12s = %s' % (option, getattr(self, option)))
