@@ -1,9 +1,8 @@
 #!/usr/bin/python
 from sys import path as syspath, argv as sysargv
 from os.path import exists
-from common import load_modules, make_collector, print_by_tube
-from config import Configuration
-from config import ModelParameters
+from shared import (make_collector, print_by_tube, generate_tubes_suffixes)
+from config import ModulesManager, Configuration, ModelParameters
 from optparse import OptionParser
 
 
@@ -11,8 +10,6 @@ syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
 INIFILES_BASE_DIR = 'sources/inifiles'
 DEFAULT_TUBES     = [1, 2, 4, 5]
-
-find_module = load_modules('run')
 
 def parse_input():
 
@@ -59,6 +56,12 @@ def parse_input():
 
     return (options, args)
 
+def load_configuration(inifilename):
+     if exists(inifilename):
+        return Configuration().read_from_files(inifilename)
+     else:
+        return None
+
 def run_experiments(options, exp_args):
 
     try:
@@ -77,24 +80,9 @@ def run_experiments(options, exp_args):
     exp_inifiles_dir = INIFILES_BASE_DIR + '/' + exp_id
 
     default_ini = exp_inifiles_dir + '/defaults.ini'
-    if not exists(default_ini):
-        print('For experiments serie  %s the file ''defaults.ini'' does'
-              ' not exist. '
-              'Module name cannot be determined' % exp_id)
-        exit(1)
-
-    default_cfg = Configuration().read_from_files(default_ini)
+    default_cfg = load_configuration(default_ini)
 
     #collector = make_collector(options.tubes)
-
-    base_module = find_module('base')
-
-    module = find_module(default_cfg.get_value('module'))
-
-    if hasattr(module, 'generate_tubes_suffixes'):
-        generate_tubes_suffixes = module.generate_tubes_suffixes
-    else:
-        generate_tubes_suffixes = base_module.generate_tubes_suffixes
 
     if not options.print_config_p:
         print('\n\n GENERAL experiments informations'
@@ -110,12 +98,7 @@ def run_experiments(options, exp_args):
     for exp_no in range(first_experiment, last_experiment+1):
         group_default_ini = (exp_inifiles_dir + '/experiment_' + str(exp_no)
                              + '-defaults.ini')
-
-        if exists(group_default_ini):
-            group_default_cfg = \
-              Configuration().read_from_files(group_default_ini)
-        else:
-            group_default_cfg = None
+        group_default_cfg = load_configuration(group_default_ini)
 
         for (tube_suffix, tube_identifier) in zip(tubes_suffixes,
                                                   tubes_identifiers):
@@ -135,27 +118,37 @@ def run_experiments(options, exp_args):
                 print('File "%s" does not exist, skipping...' % inifile)
                 continue
 
-            if tube_suffix and exists(tube_default_ini):
-                tube_default_cfg = \
-                  Configuration().read_from_files(tube_default_ini)
+            if tube_suffix:
+                tube_default_cfg = load_configuration(tube_default_ini)
             else:
                 tube_default_cfg = None
 
-            experiment_cfg = \
-                  Configuration().read_from_files(filename_ini)
+            experiment_cfg = load_configuration(filename_ini)
 
             cfg = Configuration().merge(default_cfg, group_default_cfg,
                                        tube_default_cfg, experiment_cfg)
 
             if options.print_config_p:
                 cfg.echo()
-                continue
 
-            module.adjust_cfg(cfg)
+            modman = ModulesManager()
 
-            model = ModelParameters(cfg)
+            cfg.set_defaults(modman)
 
-            results = module.solve(model)
+            if not cfg.is_valid(modman):
+                print('\n\nConfiguration is NOT VALID.\n'
+                      'The full configuration is:')
+                cfg.echo()
+                exit(1)
+
+            cfg.adjust_cfg(modman)
+
+            solver_module = modman.find_module(cfg.get_value('exp_type'),
+                                               submodule='run')
+
+            model = ModelParameters(cfg, modman)
+
+            results = solver_module.solve(model)
 
             print('Results:\n', results)
 
