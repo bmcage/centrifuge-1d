@@ -22,3 +22,12 @@ CONFIG_OPTIONS = {
 EXCLUDE_FROM_MODEL = ['exp_type']
 
 IGNORE_OPTIONS = []
+
+def adjust_cfg(cfg):
+    """
+      This method is called after the configuration is read from a file
+      (and was validated). Allows to process configuration data supplied
+       by configuration file(s), e.g. allocate the discretized interval
+       based on the discretization type and number of inner points.
+    """
+    pass

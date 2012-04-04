@@ -6,40 +6,6 @@ from scikits.odes.sundials.common_defs import ResFunction
 from modules.shared.shared_functions import (find_omega2g, h2Kh, dudh, h2u,
                                              lagrangean_derivative_coefs)
 
-def adjust_cfg(cfg):
-    from  modules.base.run import adjust_cfg as base_adjust_cfg
-    base_adjust_cfg(cfg)
-
-    inner_points = cfg.get_value('inner_points')
-
-    cfg.set_value('first_idx',    0)
-    cfg.set_value('last_idx',     inner_points+1)
-    cfg.set_value('mass_in_idx',  inner_points+2)
-    cfg.set_value('s1_idx',       inner_points+3)
-    cfg.set_value('s2_idx',       inner_points+4)
-    cfg.set_value('mass_out_idx', inner_points+5)
-    cfg.set_value('pq_idx',       inner_points+6)
-    # total length of 'z' array (discretization points + s1,s2,mass_in,...)
-    cfg.set_value('z_size',       inner_points+7)
-
-    discretization_type = cfg.get_value('dtype')
-    if discretization_type == 1:
-        y = np.linspace(0, 1, inner_points + 2)
-    else:
-        raise NotImplementedError('For now only linear discretization is'
-                                  ' implemented')
-
-    cfg.set_value('y', y)
-    cfg.set_value('y12', (y[1:]+y[:-1])/2.)
-
-    dy = y[1:]-y[:-1]
-    cfg.set_value('dy', dy)
-
-    ldc1, ldc2, ldc3 = lagrangean_derivative_coefs(dy)
-    cfg.set_value('ldc1', ldc1)
-    cfg.set_value('ldc2', ldc2)
-    cfg.set_value('ldc3', ldc3)
-
 def draw_graphs(fignum, t, x, h, u, mass_out, GC = None, RM = None, WM = None):
     import matplotlib.pyplot as plt
 

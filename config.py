@@ -17,6 +17,9 @@ from math import sqrt
 #                   ModulesManager class                         #
 ##################################################################
 
+def get_ancestors(options_module):
+    return options_module.PARENTAL_MODULES
+
 class ModulesManager():
     def __init__(self):
         available_modules = listdir('modules')
@@ -49,8 +52,8 @@ class ModulesManager():
         self._loaded_modules = loaded_modules
         self._modules_names  = modules_names
 
-    def traverse_ancestors(self, modname_or_exptype, get_ancestors, apply_fn,
-                           prehook = None, submodule = ''):
+    def traverse_ancestors(self, modname_or_exptype, apply_fn, submodule = '',
+                           prehook = None, get_ancestors_fn = get_ancestors):
         """
           Recursively traverses the modules, preserving the order of ancestors
           it gets from 'get_ancestors(module)' function, and applies the
@@ -60,7 +63,7 @@ class ModulesManager():
         """
 
         def traverse(module):
-            ancestors_list = get_ancestors(module)
+            ancestors_list = get_ancestors_fn(module)
 
             for ancestor_name in ancestors_list:
                 ancestor_module = self.find_module(ancestor_name, submodule)
@@ -126,11 +129,6 @@ def flatten(cfg):
     flattened_cfg._cfg_dict = flatten_dict({}, cfg)
 
     return flattened_cfg
-
-
-def get_ancestors(options_module):
-    return options_module.PARENTAL_MODULES
-
 
 def parse_value(str_value):
     """
@@ -260,11 +258,21 @@ class Configuration:
 
         exp_type = self.get_value('exp_type')
 
-        modman.traverse_ancestors(exp_type, get_ancestors,
-                                  set_defaults_from_module,
+        modman.traverse_ancestors(exp_type, set_defaults_from_module,
                                   submodule='options')
 
         return self
+
+    def adjust_cfg(self, modman):
+
+        def module_adjust_cfg(module):
+            if hasattr(module, 'adjust_cfg'):
+                module.adjust_cfg(self)
+
+        exp_type = self.get_value('exp_type')
+
+        modman.traverse_ancestors(exp_type, module_adjust_cfg,
+                                  submodule='options')
 
     def merge(self, *cfgs):
         """
@@ -393,8 +401,8 @@ class Configuration:
             print('\nExiting...')
             exit(1)
 
-        if not modman.traverse_ancestors(exp_type, get_ancestors,
-                                         check_cfg, submodule='options'):
+        if not modman.traverse_ancestors(exp_type, check_cfg,
+                                         submodule='options'):
             print('ddddd')
             return False
 
@@ -461,7 +469,6 @@ class ModelParameters:
                     set_options(dependent_options)
 
         modman.traverse_ancestors(cfg.get_value('exp_type'),
-                                  get_ancestors,
                                   set_options_from_config,
                                   prehook=update_exclude_option,
                                   submodule='options')

@@ -5,11 +5,3 @@
 #                      'dtype': 1, 'percent_in_saturation': 40.0,
 #                      'approximation_type': 5, 'mb_epsilon': 1e-5}
 
-def adjust_cfg(cfg):
-    """
-      This method is called after the configuration is read from a file
-      (and was validated). Allows to process configuration data supplied
-       by configuration file(s), e.g. allocate the discretized interval
-       based on the discretization type and number of inner points.
-    """
-    pass
