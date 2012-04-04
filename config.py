@@ -433,11 +433,10 @@ class ModelParameters:
     def __init__(self, cfg, modman):
         self._cfg = cfg
         self._iterable_parameters = {}
-        self._iteration           = 0
-        self._iterations_count    = 0
-        self.first_iteration_p    = False
+        self.iteration            = 0
+        self.iterations           = 0
 
-        self._iterations_count = len(cfg.get_value('duration'))
+        self.iterations = len(cfg.get_value('duration'))
 
         exclude_options = []
 
@@ -545,20 +544,20 @@ class ModelParameters:
                 if hasattr(self, 'g') and hasattr(self, 'r0_fall'):
                     setattr(self, 'omega_fall', sqrt(self.g/self.r0_fall))
 
-    def next_iteration():
+    def next_iteration(self):
         """
           Assign the next value of the parameters that were given as type list
         """
-        i = self._iteration
-        self.first_iteration_p = (i == 0)
+        i = self.iteration
+
         cfg = self._cfg
 
-        for (key, value) in self._iterable_parameters:
-            setattr(key, value[i])
+        for (key, value) in self._iterable_parameters.items():
+            setattr(self, key, value[i])
 
         self.iteration = i+1
 
-        return (i < self._iterations_count)
+        return (i < self.iterations)
 
     def echo(self, iterable_only=False):
         """
@@ -574,10 +573,15 @@ class ModelParameters:
 
         if not iterable_only:
             options = dict(vars(self))
-            for internal_opt in ['_cfg', '_iterable_parameters', '_iteration',
-                                 '_iterations_count', 'first_iteration_p']:
+            for internal_opt in ['_cfg', '_iterable_parameters', 'iteration',
+                                 'iterations']:
                 del(options[internal_opt])
 
             print('\nConstant parameters:')
             for option in sorted(options):
+                print('  %-12s = %s' % (option, getattr(self, option)))
+
+            print('\nParameters set internally:')
+            options = ['iteration', 'iterations']
+            for option in options:
                 print('  %-12s = %s' % (option, getattr(self, option)))
