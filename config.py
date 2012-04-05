@@ -541,7 +541,7 @@ class ModelParameters:
 
             # Initialize depending variables
             if key == 'n':
-                setattr(self, 'm', m = 1-1/value)
+                setattr(self, 'm', 1-1/value)
             elif key in ['r0_fall', 'g']:
                 if hasattr(self, 'g') and hasattr(self, 'r0_fall'):
                     setattr(self, 'omega_fall', sqrt(self.g/self.r0_fall))
