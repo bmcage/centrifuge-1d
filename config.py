@@ -551,15 +551,17 @@ class ModelParameters:
           Assign the next value of the parameters that were given as type list
         """
         i = self.iteration
+        if i == self.iterations: return False
 
         cfg = self._cfg
 
         for (key, value) in self._iterable_parameters.items():
+            print(key, len(value), value)
             setattr(self, key, value[i])
 
         self.iteration = i+1
 
-        return (i < self.iterations)
+        return True
 
     def echo(self, iterable_only=False):
         """
