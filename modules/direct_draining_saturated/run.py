@@ -1,8 +1,8 @@
 import numpy as np
 
-import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
 from modules.shared.shared_functions import find_omega2g, h2Kh, dudh, h2u
+from modules.shared.solver import simulate
 
 def draw_graphs(fignum, t, x, h, u, mass_out, GC = None, RM = None, WM = None):
     import matplotlib.pyplot as plt
@@ -31,16 +31,17 @@ def draw_graphs(fignum, t, x, h, u, mass_out, GC = None, RM = None, WM = None):
     plt.xlabel('Time [$s$]')
     plt.ylabel('Outspelled water [$cm^3$]')
 
-    if GC:
+    if not GC is None:
         plt.subplot(325)
         plt.plot(t, GC.transpose(), '.')
         plt.xlabel('Time [$s$]')
         plt.ylabel('Gravitational center [$cm$]')
 
-    # plt.subplot(326)
-    # plt.plot(t, RM.transpose(), '.')
-    # plt.xlabel('Time [$s$]')
-    # plt.ylabel('Rotational momentum [$kg.m.s^{-1}$]')
+    if not RM is None:
+         plt.subplot(326)
+         plt.plot(t, RM.transpose(), '.')
+         plt.xlabel('Time [$s$]')
+         plt.ylabel('Rotational momentum [$kg.m.s^{-1}$]')
 
     plt.show()
 
@@ -62,7 +63,7 @@ class centrifuge_residual(ResFunction):
         hdot =  zdot[first_idx:last_idx+1]
         h12  = (h[1:] + h[:-1]) / 2
 
-        omega2g = find_omega2g(t, model._omega, model)
+        omega2g = find_omega2g(t, model)
 
         s2 = model.l0
         s1 = 0
@@ -133,7 +134,7 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype = 'all'):
 
     # Water mass
     wm_sat = ds/2  * (dy[0]* u[0] + dy[-1]*u[-1]
-                      + np.sum((dy[:-1] + dy[1:])*u[1:-1], 1))
+                      + np.sum((dy[:-1] + dy[1:])*u[1:-1]))
 
     WM    = model.density * (mass_in + porosity*wm_sat + mass_out)
 
@@ -155,10 +156,8 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype = 'all'):
                        + (np.power(r0, 2) - np.power(r0 - mass_in, 2))
                        + (np.power(r0 + l0_out, 2) - np.power(r0 + l_out, 2))))
         gc_left  = (gc_unsat + gc_sat) / WM
-        print(model.fl1, model.l0, model.fl2, gc_left)
         gc_right = model.fl1 + model.l0 + model.fl2 - gc_left
         GC       = gc_right
-        #print('GC: unsat, sat, gc/wm', gc_unsat, gc_sat, GC[i])
     else:
         GC = None
 
@@ -185,71 +184,58 @@ residual_fn = centrifuge_residual()
 
 def solve(model):
 
-    t = np.empty([len(model.duration)+1, ], dtype=float)
-    z = np.empty([len(t), model.z_size], dtype=float) # 2 columns: wl_in, wl_out
-    u = np.empty([len(t), model.inner_points+2], dtype=float)
-    z0  = np.zeros([model.z_size, ], float)
-    zp0 = np.zeros([model.z_size, ], float)
-
-    solver = ida.IDA(residual_fn,
-                     #compute_initcond='yp0',
-                     first_step_size=1e-20,
-                     atol=model.atol, rtol=model.rtol,
-                     max_step_size=840.,
-                     max_steps=8000,
-                     #algebraic_vars_idx=[4],
-                     linsolver='band', uband=1, lband=1,
-                     user_data=model)
-
-    t_end = 0.0
+    t   = np.empty([model.iterations+1, ], dtype=float)
+    GC  = np.empty([model.iterations+1, ], dtype=float)
+    z   = np.empty([model.iterations+1, model.z_size], dtype=float)
+    u   = np.empty([model.iterations+1, model.inner_points+2], dtype=float)
+    z0  = np.empty([model.z_size, ], float)
 
     while model.next_iteration():
-        if model.first_iteration_p:
-             # initial pressure h
+        i = model.iteration
+
+        if i == 1:
+             # initialize: z0
+             # set values for t[0], z[0], u[0], GC[0]
              z0[model.first_idx:model.last_idx+1] = model.h_init
-             z0[model.s2_idx] = model.l0
+             s1 = 0.0
+             s2 = model.l0
+             mass_in = mass_out = 0.0
+
+             z0[model.s1_idx] = s1
+             z0[model.s2_idx] = s2
+             z0[model.mass_in_idx]  = mass_in
+             z0[model.mass_out_idx] = mass_out
 
              t[0] = 0.0
              z[0, :] = z0
+             u[0, :] = h2u(z0[model.first_idx: model.last_idx+1],
+                           model.n, model.m, model.gamma)
 
-             solver._init_step(0.0, z0, zp0)
+             GC[0] = characteristics(t[0], u[0, :], mass_in, mass_out,
+                                     s1, s2, model, chtype='gc')[0]
+        else:
+            z0 = z[i-1, :]
 
-        t_end = t_end + model.duration
-        flag, t_out = solver.step(t_end, z[i+1, :])
-        t[i+1] = t_out
+        (flag, t_out, z[i, :]) = simulate(model, residual_fn, z0)
 
-        u[i+1, :] = h2u(z[i+1, model.first_idx: model.last_idx],
-                        model.n, model.m, model.gamma)
+        t[i] = t[i-1] + model.duration
 
-        mass_in  = z[:, model.mass_in_idx]
+        u[i, :] = h2u(z[i, model.first_idx: model.last_idx+1],
+                      model.n, model.m, model.gamma)
+        s1 = z[i, model.s1_idx]
+        s2 = z[i, model.s2_idx]
+
+        mass_in  = z[i, model.mass_in_idx]
         mass_out = 0.0 # for GC and RM no expelled water is taken into account
-        GC[i], _RM, _MW = characteristics(t_out, u, mass_in, mass_out, s1, s2,
-                                          model, chtype='gc')
-
-
-        if t_out < t_end:
-            print('Calculation was not finished. Error occured.')
-            break
-
-        # falling head
-        if model.fh_duration > 0.:
-            acc = model.include_acceleration
-
-            model.r0    = model.r0_fall
-            model.omega = model.omega_fall
-            t_end       = t_end + model.fh_duration
-
-            flag, tfh_out = solver.step(t_end)
-            model.include_acceleration = acc
-
-    #print('t,z: ', t, z)
+        GC[i] = characteristics(t_out, u[i, :], mass_in, mass_out,
+                                          s1, s2, model, chtype='gc')[0]
 
     if model.draw_graphs:
-        from shared_functions import y2x
+        from modules.shared.shared_functions import y2x
 
-        x = y2x(model.y, z[:, s1_idx], z[:, s2_idx])
+        x = y2x(model.y, z[:, model.s1_idx], z[:, model.s2_idx])
         h = z[:, model.first_idx:model.last_idx+1]
-
+        GC[:] = 0.5
 
         draw_graphs(1, t, x, h, u, z[:, model.mass_out_idx], GC=GC)
 
