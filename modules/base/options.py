@@ -11,6 +11,7 @@ CONFIG_OPTIONS = {
                       'ks1': -1.0, 'fl1': 0.0, 'ks2': -1.0, 'fl2': 0.0,
                       'fh_duration': 0.0, 'r0_fall': 1e5,
                       'density': 1.0, 'viscosity': 1.0,
+                      'draw_graphs': False,
                       'include_acceleration': False
                      },
         'dependent': {'centrifugation':
