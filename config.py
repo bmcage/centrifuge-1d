@@ -473,6 +473,11 @@ class ModelParameters:
                                   set_options_from_config,
                                   prehook=update_exclude_option,
                                   submodule='options')
+    def get_iterable_value(self, key):
+        if key in self._iterable_parameters:
+            return self._iterable_parameters[key]
+        else:
+             return None
 
     def set_value(self, key, value):
         """
