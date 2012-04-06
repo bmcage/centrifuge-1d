@@ -63,13 +63,14 @@ class ModulesManager():
         """
 
         def traverse(module):
+
+            if prehook:
+                prehook(module)
+
             ancestors_list = get_ancestors_fn(module)
 
             for ancestor_name in ancestors_list:
                 ancestor_module = self.find_module(ancestor_name, submodule)
-
-                if prehook:
-                    prehook(ancestor_module)
 
                 if not traverse(ancestor_module):
                     return False
@@ -91,7 +92,6 @@ class ModulesManager():
             print('\nFind module error: Unknown module name or experiment '
                   'type: "%s".\nAvailable modules are: %s'
                   % (modname_or_exptype, list(self._modules_names.keys())))
-            raise
             exit(1)
 
         if submodule:
@@ -343,9 +343,9 @@ class Configuration:
     def is_valid(self, modman):
 
         ignored_options = []
-        # TODO: ad ignore_options
-        #ignored_options = set(ignore_options)
 
+        def update_ignored_options(options_module):
+            ignored_options.extend(options_module.IGNORE_OPTIONS)
 
         def check_options(options):
             required_options = set(options)
@@ -357,7 +357,7 @@ class Configuration:
                 for option in missing_options:
                     print('  ', option)
 
-                    return False
+                return False
             return True
 
         alien_options = set(self.list_options())
@@ -378,7 +378,7 @@ class Configuration:
                   in config_parameters['dependent'].values():
 
                     if test_fn(self):
-                        if not check_options(self, dependent_options):
+                        if not check_options(dependent_options):
                             return False
                     alien_options.difference_update(set(dependent_options))
 
@@ -403,7 +403,8 @@ class Configuration:
             exit(1)
 
         if not modman.traverse_ancestors(exp_type, check_cfg,
-                                         submodule='options'):
+                                         submodule='options',
+                                         prehook=update_ignored_options):
             return False
 
         if alien_options:
@@ -435,8 +436,6 @@ class ModelParameters:
         self._iterable_parameters = {}
         self.iteration            = 0
         self.iterations           = 0
-
-        self.iterations = len(cfg.get_value('duration'))
 
         exclude_options = []
 
@@ -473,6 +472,27 @@ class ModelParameters:
                                   set_options_from_config,
                                   prehook=update_exclude_option,
                                   submodule='options')
+
+        if self._iterable_parameters:
+            iterations = -1
+
+            for (key, value) in self._iterable_parameters.items():
+                if iterations == -1:
+                    ref_key = key
+                    iterations = len(value)
+                else:
+                    if len(value) != iterations:
+                        print('Option list ''%s'' has length: %i\n'
+                              'Reference list ''%s'' has length: %i\n'
+                              'Cannot iterate over lists of unequal length.'
+                              'Aborting...'
+                              % (key, len(value), ref_key, iterations))
+                        exit(1)
+        else:
+            iterations = 1
+
+        self.iterations = iterations
+
     def get_iterable_value(self, key):
         if key in self._iterable_parameters:
             return self._iterable_parameters[key]
@@ -561,12 +581,17 @@ class ModelParameters:
         cfg = self._cfg
 
         for (key, value) in self._iterable_parameters.items():
-            print(key, len(value), value)
             setattr(self, key, value[i])
 
         self.iteration = i+1
 
         return True
+
+    def init_iteration(self):
+        self.iteration = 1
+
+        for (key, value) in self._iterable_parameters.items():
+            setattr(self, key, value[0])
 
     def echo(self, iterable_only=False):
         """
