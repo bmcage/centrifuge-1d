@@ -1,10 +1,10 @@
 import scikits.odes.sundials.ida as ida
 from numpy import zeros
+from scipy.optimize import curve_fit
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
                       'Reached time: % 10.6f\nExpected time: % 10.6f')
-
 
 def simulate(model, residual_fn, z0):
 
@@ -52,3 +52,6 @@ def simulate(model, residual_fn, z0):
             return (False, t_out, z_out)
 
     return (True, t_out, z_out)
+
+def simulate_inverse(lsq_direct_fn, xdata, ydata, init_params):
+    return curve_fit(lsq_direct_fn, xdata, ydata, p0 = init_params)
