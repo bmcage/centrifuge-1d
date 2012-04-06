@@ -25,7 +25,6 @@ def simulate(model, residual_fn, z0):
 
         return flag, t[1], z[1]
 
-
     if model.duration > 0.:
         duration = model.duration
         flag, t_out, z_out = run_simulation(duration, z0)
@@ -35,7 +34,7 @@ def simulate(model, residual_fn, z0):
             return (False, t_out, z_out)
         z0 = z_out
 
-    elif model.fh_duration > 0.:
+    if model.fh_duration > 0.:
         acceleration = model.include_acceleration
 
         model.include_acceleration = False
@@ -43,11 +42,15 @@ def simulate(model, residual_fn, z0):
         model.omega = model.omega_fall
 
         duration = model.fh_duration
-        flag, _t_out, z_out[:]= run_simulation(duration, z0)
+        flag, t_fh_out, z_out = run_simulation(duration, z0)
 
         model.include_acceleration = acceleration
 
-        if t_out < duration:
+        if not (model.duration > 0.):
+            # we did only falling head test
+            t_out = t_fh_out
+
+        if t_fh_out < duration:
             print(simulation_err_str % ('Falling head test', t_out, duration))
             return (False, t_out, z_out)
 
