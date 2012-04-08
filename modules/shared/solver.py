@@ -46,10 +46,6 @@ def simulate(model, residual_fn, z0):
 
         model.include_acceleration = acceleration
 
-        if not (model.duration > 0.):
-            # we did only falling head test
-            t_out = t_fh_out
-
         if t_fh_out < duration:
             print(simulation_err_str % ('Falling head test', t_out, duration))
             return (False, t_out, z_out)
