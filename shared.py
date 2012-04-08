@@ -6,10 +6,8 @@ def generate_tubes_suffixes(tubes_numbers):
               'specified - input values was: "%s"' % tubes_numbers)
         exit(1)
 
-    numbers = tubes_numbers.split(',')
-
-    suffixes = ['-tube' + str(tube_no) for tube_no in numbers]
-    identifiers = [', tube ' + str(tube_no) for tube_no in numbers]
+    suffixes = ['-tube' + str(tube_no) for tube_no in tubes_numbers]
+    identifiers = [', tube ' + str(tube_no) for tube_no in tubes_numbers]
 
     return suffixes, identifiers
 
