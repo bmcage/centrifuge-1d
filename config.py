@@ -20,6 +20,29 @@ from math import sqrt
 def get_ancestors(options_module):
     return options_module.PARENTAL_MODULES
 
+
+def rpm2radps(x):
+    """
+      Converts rpm to rad.s^{-1}
+    """
+    # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
+    return x * pi/ 30.0
+
+def calc_omega_fall(r0_fall, g):
+    is_list_r0_fall = type(r0_fall) == list
+    is_list_g       = type(g) == list
+
+    if is_list_r0_fall and is_list_g:
+        omega_fall = [sqrt(g_f/r0_f) for (g_f, r0_f) in zip(g, r0_fall)]
+    elif is_list_r0_fall:
+        omega_fall = [sqrt(g/r0_f) for r0_f in r0_fall]
+    elif is_list_g:
+        omega_fall = [sqrt(g_f/r0_fall) for g_f in g]
+    else:
+        omega_fall = sqrt(g/r0_fall)
+
+    return omega_fall
+
 class ModulesManager():
     def __init__(self):
         available_modules = listdir('modules')
@@ -166,15 +189,31 @@ class Configuration:
         self._cfg_dict = {}
 
     def set_value(self, key, value, section = None):
-        cfg_dict = self._cfg_dict
 
         if self._preserve_sections_p:
             if not section:
                 print('set_value error: Section not specified: ', section)
                 exit(1)
-            cfg_dict[section][key] = value
+            cfg_dict = self._cfg_dict[section]
         else:
-            cfg_dict[key] = value
+            cfg_dict = self._cfg_dict
+
+        cfg_dict[key] = value
+
+        # Handle depending variables
+        if key == 'n':
+            if type(value) == list:
+                m = [1-1/n for n in value]
+            else:
+                m = 1 - 1/value
+            cfg_dict['m'] = m
+
+        elif key in ['r0_fall', 'g']:
+            if ((key == 'r0_fall' and 'g' in cfg_dict)
+                or (key == 'g' and 'r0_fall' in cfg_dict)):
+
+                cfg_dict['omega_fall'] = \
+                  calc_omega_fall(cfg_dict['r0_fall'], cfg_dict['g'])
 
     def get_value(self, key, section = None):
 
@@ -310,6 +349,20 @@ class Configuration:
           the same values, the latter will be kept.
         """
 
+        def transform_value(key, value):
+            """
+              Handle specialy-treated values, that need to be transformed
+              (e.g. into correct units)
+            """
+            if key in ['omega', 'omega_start', 'omega_end']:
+                print(key, value)
+                if type(value) == list:
+                  return [rpm2radps(omega) for omega in value]
+                else:
+                    return rpm2radps(value)
+            else:
+                return value
+
         # read config files
         parser     = configparser.ConfigParser()
         read_files = parser.read(cfgs_filenames)
@@ -331,7 +384,7 @@ class Configuration:
             for option in parser.options(psection):
                 raw_value = parser.get(psection, option).strip()
 
-                value = parse_value(raw_value)
+                value = transform_value(option, parse_value(raw_value))
 
                 if preserve_sections_p:
                     cfg_dict[section][option]=value
@@ -390,6 +443,10 @@ class Configuration:
                 defaults_options = config_parameters['defaults']
                 alien_options.difference_update(set(defaults_options))
 
+            if 'additional' in config_parameters:
+                additional_options = config_parameters['additional']
+                alien_options.difference_update(set(additional_options))
+
             return True
 
         exp_type = self.get_value('exp_type')
@@ -418,13 +475,6 @@ class Configuration:
 ##################################################################
 #                 ModelParameters class                          #
 ##################################################################
-
-def rpm2radps(x):
-    """
-      Converts rpm to rad.s^{-1}
-    """
-    # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
-    return x * pi/ 30.0
 
 class ModelParameters:
     """
@@ -502,74 +552,19 @@ class ModelParameters:
     def set_value(self, key, value):
         """
           Set the value of parameter given as 'key'.
-          Performs the check of the 'value' and conversion to correct units
-          when needed. Updates also the dependent variables.
         """
-
-        if key in ['omega_fall', 'm']:
-            raise ValueError('Parameter %s is not allowed to set directly.'
-                             % key)
 
         # Keep self._itarable_parameters up-to-date; if we set a list-type value
         # should be stored, if an atom, should be removed
         if (type(value) == list):
-            # Handle specialy-treated variables, for which the value
-            # needs to be somehow trasformed
-            if key in ['omega', 'omega_start', 'omega_end']:
-                self._iterable_parameters[key] = \
-                  [rpm2radps(omega) for omega in value]
-                return
-
-            # Ok, no special treatment, just set it then
             self._iterable_parameters[key] = value
-
-            # Update depending variables (value of which depends on the value
-            # of variables in configuration)
-            if key == 'n':
-                self._iterable_parameters['m'] = [1-1/n for n in value]
-            if key in ['r0_fall', 'g']:
-
-                if key == 'r0_fall':
-                    r0_fall_list = value
-
-                    if 'g' in self._iterable_parameters:
-                        g_list = self._iterable_parameters['g']
-                    elif hasattr(self, 'g'):
-                        g_list = [self.g for r0_fall in r0_fall_list]
-                    else:
-                        return
-                else:
-                    g_list = value
-
-                    if 'r0_fall' in self._iterable_parameters:
-                        r0_fall_list = self._iterable_parameters['r0_fall']
-                    elif hasattr(self, 'r0_fall'):
-                        r0_fall_list = [self.r0_fall for g in g_list]
-                    else:
-                        return
-
-                omega_fall = [sqrt(g/r0_fall)
-                              for (g, r0_fall) in zip(g_list, r0_fall_list)]
-                self._iterable_parameters['omega_fall'] = omega_fall
         else:
             # Now is value an atom, so remove it from iterables if present
             if key in self._iterable_parameters:
                 del(self._iterable_parameters[key])
 
-            # Handle variables that need to transform the supplied value
-            if key in ['omega', 'omega_start', 'omega_end']:
-                setattr(self, key, rpm2radps(value))
-                return
-
             # Handle the rest of supplied variable
             setattr(self, key, value)
-
-            # Initialize depending variables
-            if key == 'n':
-                setattr(self, 'm', 1-1/value)
-            elif key in ['r0_fall', 'g']:
-                if hasattr(self, 'g') and hasattr(self, 'r0_fall'):
-                    setattr(self, 'omega_fall', sqrt(self.g/self.r0_fall))
 
     def next_iteration(self):
         """
