@@ -415,7 +415,7 @@ class Configuration:
 
         alien_options = set(self.list_options())
 
-        def check_cfg(options_module):
+        def primary_cfg_check(options_module):
             config_parameters = options_module.CONFIG_OPTIONS
 
             if not check_options(config_parameters['mandatory']):
@@ -449,6 +449,11 @@ class Configuration:
 
             return True
 
+        def custom_cfg_check(options_module):
+            if hasattr(options_module, 'check_cfg'):
+                return module.check_cfg(self)
+
+
         exp_type = self.get_value('exp_type')
 
         if not exp_type:
@@ -459,9 +464,13 @@ class Configuration:
             print('\nExiting...')
             exit(1)
 
-        if not modman.traverse_ancestors(exp_type, check_cfg,
+        if not modman.traverse_ancestors(exp_type, primary_cfg_check,
                                          submodule='options',
                                          prehook=update_ignored_options):
+            return False
+
+        if not modman.traverse_ancestors(exp_type, custom_cfg_check,
+                                         submodule='options'):
             return False
 
         if alien_options:

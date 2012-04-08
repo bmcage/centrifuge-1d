@@ -29,6 +29,16 @@ EXCLUDE_FROM_MODEL = []
 
 IGNORE_OPTIONS = []
 
+def check_cfg(cfg):
+    """
+      Perform additional test on 'cfg' to validate it. Test for expected value,
+      type etc. of supplied values should be done here. Checking for the
+      presence of mandatory and dependent options  is done by default.
+      Additional information informing user about failed test(s) should be
+      supplied. The return value of this function is type boolean.
+    """
+    pass
+
 def adjust_cfg(cfg):
     """
       This method is called after the configuration is read from a file
