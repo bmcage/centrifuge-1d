@@ -41,7 +41,7 @@ def parse_input():
     if arg_len == 0:
         if options.list:
             from os import listdir
-            print('\n'.join(listdir(INIFILES_BASE_DIR)))
+            print('\n'.join(sorted(listdir(INIFILES_BASE_DIR))))
             exit(0)
         optparser.print_help()
         exit(0)
