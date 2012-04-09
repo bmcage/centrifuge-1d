@@ -5,7 +5,7 @@ CONFIG_OPTIONS = {
         'defaults'  : {},
         'dependent' : {},
         'optional'  : [],
-        'additional': ['mass_in_idx', 'mass_out_idx']
+        'additional': []
         }
 
 EXCLUDE_FROM_MODEL = []

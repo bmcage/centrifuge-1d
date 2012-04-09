@@ -11,13 +11,13 @@ def print_results(model, Ks_inv, t_inv, wl1_inv):
         duration = model.get_iterable_value('duration')
 
     for i in range(model.iterations):
-        print('Subexperiment ', i+1)
-        print('    wl0:          % .6f' % wl0[i])
-        print('    wl1_measured: % .6f    t_end_expected: % .2f' %
+        print('Subexperiment %i:' % (i+1))
+        print('    wl0         : % 9.6f' % wl0[i])
+        print('    wl1_measured: % 9.6f    t_end_expected: % 9.2f' %
               (wl1[i], duration[i]))
-        print('    wl1_computed: % .6f    t_end_computed: % .2f' %
+        print('    wl1_computed: % 9.6f    t_end_computed: % 9.2f' %
               (wl1_inv[i], t_inv[i]))
-        print('    Error (%%):   % .2f                        % .2f' %
+        print('    Error (%%)   :  % 5.2f                            % 5.2f' %
               ((wl1_inv[i] - wl1[i]) / wl1[i] * 100,
                (t_inv[i] - duration[i]) / duration[i] * 100))
 
@@ -44,12 +44,10 @@ def solve(model):
                          % model.exp_type)
     xdata         = model
 
-    print(data_measured)
     Ks_inv, cov_ks = simulate_inverse(lsq_direct_fn, xdata, data_measured,
                                       model.inv_init_params)
 
     t_inv, wl1_inv = direct_fn(xdata, Ks_inv)
-    print('ks', Ks_inv, t_inv, wl1_inv)
 
     print_results(model, Ks_inv, t_inv[1:], wl1_inv)
 
