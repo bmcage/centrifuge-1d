@@ -1,29 +1,105 @@
 #!/usr/bin/python
+import csv
 
 from os import makedirs, path
+from optparse import OptionParser
+from config import ModulesManager
 
-base_dir = 'sources'
-csv_dir  = '{}/csv'.format(base_dir)
-ini_dir  = '{}/inifiles'.format(base_dir)
-ini_defaults_dir = 'inifiles-defaults'
+base_dir = 'sources/'
+csv_dir  = base_dir + 'csv/'
+ini_dir  = base_dir + 'inifiles/'
 
+modman = ModulesManager()
 
-def usage():
-    print('\nUsage: make_datafiles <experiment_id> [csv_file]')
-    print(' experiment_id: unique experiment identifier\n')
-    print(' csv_file: (optional) uses chosen csv file instead of default one'
-          ' (i.e. file ''./sources/csv/experiment_id.cvs'' ')
-    exit(0)
+base_module = modman.find_module('base', submodule='csv_parse')
 
-def CSV2dataini(csv_filename, data_dir):
-    from common import load_experiment_types, load_modules
-    import csv
+def parse_input():
+
+    usage_str = (
+         '\n\t%prog <csv_ID>'
+         '\n\nwhere'
+         '\n  csv_ID:'
+         '\n        ID of the csv file. By default will be searched for '
+         '\n        the file ''./sources/csv/<csv_ID>[.cvs]'' ')
+
+    optparser = OptionParser(usage=usage_str)
+
+    (options, args) = optparser.parse_args()
+
+    len_args = len(args)
+
+    if len_args == 0:
+        optparser.print_help()
+        exit(0)
+
+    csv_filename = csv_dir + args[0]
+
+    if path.exists(csv_filename):
+            options.csv_filename = csv_filename
+    elif  path.exists(csv_filename + '.csv'):
+        options.csv_filename = csv_filename + '.csv'
+    else:
+        print('CSV file does not exist:{}'.format(csv_filename))
+        exit(1)
+
+    if not path.exists(ini_dir):
+        makedirs(ini_dir)
+
+    return options
+
+def get_module_function(function_name, module, base_module=base_module):
+    if hasattr(module, function_name):
+        function = getattr(module, function_name)
+    else:
+        function = getattr(base_module, function_name)
+
+    return function
+
+required_fields = ['exp_type', 'id', 'exp_no', 'tube_no']
+
+def csv_has_required_fields(csv_fields):
+
+    result = True
+
+    for field in required_fields:
+        if not field in csv_fields:
+            print("CSV file: missing identifier: '%s' "% field)
+            result = False
+
+    return result
+
+def read_CSV_row(data, exp_type, row, indexes, csv_fields):
+
+    experiment_id = row[indexes['id']]
+    experiment_no = row[indexes['exp_no']]
+    tube_number   = row[indexes['tube_no']]
+    exp_type      = row[indexes['exp_type']]
+
+    if not experiment_id in data:
+        data[experiment_id]={}
+    if not experiment_no in data[experiment_id]:
+        data[experiment_id][experiment_no]={}
+
+    experiment_data = data[experiment_id][experiment_no]
+    if not tube_number in experiment_data:
+        experiment_data[tube_number]  = {k: [] for k in ini_fields}
+
+    for (descriptor, value) in zip(csv_fields, row):
+        if not descriptor in required_fields:
+            experiment_data[tube_number][descriptor].append(value)
+
+    if not 'exp_type' in experiment_data[tube_number]:
+        experiment_data[tube_number]['exp_type'] = row[indexes['exp_type']]
+    elif experiment_data[tube_number]['exp_type'] != row[indexes['exp_type']]:
+        raise ValueError(experiment_id +': experiment ' + experiment_no
+                         + ' - cannot have different experiment'
+                         + ' types: ', value, ' and '
+                         + experiment_data[tube_number]['exp_type'])
+
+def CSV2data(csv_filename):
 
     f_csv = open(csv_filename)
     csv_data = csv.reader(f_csv)
-
-    find_module_name = load_experiment_types()
-    find_module      = load_modules('csv_parse')
 
     print('Reading CSV file... ', end="")
 
@@ -31,118 +107,92 @@ def CSV2dataini(csv_filename, data_dir):
 
     indexes = {field: csv_fields.index(field) for field in csv_fields}
 
-    if not 'exp_type' in indexes:
-        print("CSV file: missing experiment identifier: 'exp_type'")
+    if not csv_has_required_fields(indexes.keys()):
+        print('CSV error: cannot process CSV file, aborting...')
         exit(1)
+
     exp_type_idx = indexes['exp_type']
 
-    default_module = find_module('base')
-
     data = {}
-
-    module_name = ''
 
     for row in csv_data:
         experiment_type = row[exp_type_idx]
 
-        if module_name: # module_name was already determined
-            if not module_name == find_module_name(experiment_type):
-                print('Error: experiment_type "%s" requires module "%s", but'
-                      ' expected (first found) module was "%s".'
-                      % (experiment_type, find_module_name(experiment_type),
-                         module_name))
-                exit(1)
-        else:
-            module_name = find_module_name(experiment_type)
-            module = find_module(module_name)
+        module = modman.find_module(experiment_type, submodule='csv_parse')
 
-            if hasattr(module, 'skip'):
-                skip = module.skip
-            else:
-                skip = default_module.skip
+        skip         = get_module_function('skip', module)
 
-            if hasattr(module, 'experiment_identifiers'):
-                exp_identifiers = module.experiment_identifiers(indexes)
-            else:
-                exp_identifiers = default_module.experiment_identifiers(indexes)
+        ini_fields = []
+        ini_fields.extend(csv_fields)
 
-            if hasattr(module, 'read_CSV_row'):
-                read_CSV_row = module.read_CSV_row
-            else:
-                read_CSV_row = default_module.read_CSV_row
-
-            ini_fields = []
-            ini_fields.extend(csv_fields)
-
-            for field in exp_identifiers:
-                ini_fields.remove(field)
+        for field in required_fields:
+            ini_fields.remove(field)
 
         if skip(experiment_type, row, indexes): continue
 
-        read_CSV_row(data, experiment_type, row, indexes, csv_fields, ini_fields)
+        read_CSV_row(data, experiment_type, row, indexes, csv_fields)
 
     f_csv.close()
 
     print('Done.')
 
+    return data
+
+def write2ini(experiment_data, filename):
+
+    fout = open(filename, mode='w', encoding='utf-8')
+    fout.write('[experiment-data]\n')
+
+    for (descriptor, value) in experiment_data.items():
+        if descriptor == 'exp_type':
+            fout.write("{:8} = '{}'\n".format(descriptor, value))
+        else:
+            fout.write('{:8} = [{}]\n'.format(descriptor,
+                                                          ', '.join(value)))
+    fout.close()
+
+def data2ini(data, output_dir):
+
     print('\nCreating data inifiles...')
 
     for (experiment_id, exp_id_struct) in data.items():
-        out_dir  = '{}/{}'.format(data_dir, experiment_id)
+        exp_out_dir  = output_dir + experiment_id + '/'
+
+        if not path.exists(exp_out_dir):
+            makedirs(exp_out_dir)
 
         print('    Processing experiment(s) with ID: %s...' % experiment_id)
 
-        if not path.exists(out_dir):
-            makedirs(out_dir)
+        for (experiment_no, exp_no_struct) in exp_id_struct.items():
 
-        if hasattr(module, 'write2ini'):
-            write2ini = module.write2ini
-        else:
-            write2ini = default_module.write2ini
+            print('\tProcessing experiment number: %s... '
+                  % experiment_no, end="")
 
-        write2ini(experiment_id, exp_id_struct, out_dir)
+            for (tube_no, exp_data) in exp_no_struct.items():
+
+                filename = (exp_out_dir + 'experiment_' + experiment_no
+                            + '-tube' + tube_no + '.ini')
+
+                write2ini(exp_data, filename)
+
+            print('Done.')
 
         print('    Creating default inifile for ID %s...', end = '')
-        default_ini = out_dir + '/defaults.ini'
+
+        default_ini = exp_out_dir + '/defaults.ini'
+
         if path.exists(default_ini):
             print('\n        File "defaults.ini" already exists. Skipping...')
         else:
             fout = open(default_ini, mode='w', encoding='utf-8')
-            fout.write('[solver]\n')
-            fout.write("{:8} = '{}'\n".format('module', module_name))
+            fout.write('[base]\n')
+            # TODO: add some default stuff that will be added to the defaults
             print('Done.')
 
     print('Done.')
 
-    return data
-
-def process_input():
-    from sys import argv as args
-
-    args_no = len(args)
-    if (args_no == 1) or ((args_no == 2)
-                          and (args[1] == '-h' or args[1] == '--help')):
-        usage()
-    elif args_no == 2 or args_no == 3:
-        exp_id = args[1]
-
-        if args_no == 3:
-            csv_file = args[2]
-        else:
-            csv_file = '{}/{}.csv'.format(csv_dir, exp_id)
-
-        if not path.exists(csv_file):
-            print('CSV data file ''%s'' does not exist.' % csv_file)
-            exit(0)
-
-        if not path.exists(ini_dir):
-            makedirs(ini_dir)
-    else:
-        print('Bad input !')
-        usage()
-
-    return csv_file
-
 if __name__ == "__main__":
-    csv_file = process_input()
-    csv_data = CSV2dataini(csv_file, ini_dir)
+    options = parse_input()
+    data    = CSV2data(options.csv_filename)
+
+    data2ini(data, ini_dir)
