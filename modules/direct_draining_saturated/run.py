@@ -239,4 +239,4 @@ def solve(model):
 
         draw_graphs(1, t, x, h, u, z[:, model.mass_out_idx], GC=GC)
 
-    return (flag, t, z)
+    return (flag, t, z, GC)
