@@ -37,7 +37,7 @@ def check_cfg(cfg):
       Additional information informing user about failed test(s) should be
       supplied. The return value of this function is type boolean.
     """
-    pass
+    return True
 
 def adjust_cfg(cfg):
     """

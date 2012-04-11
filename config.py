@@ -451,7 +451,9 @@ class Configuration:
 
         def custom_cfg_check(options_module):
             if hasattr(options_module, 'check_cfg'):
-                return module.check_cfg(self)
+                return options_module.check_cfg(self)
+            else:
+                return True
 
 
         exp_type = self.get_value('exp_type')
