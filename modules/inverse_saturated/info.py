@@ -1,5 +1,3 @@
-scheme = 'inverse'
-
 # ish-f:  inverse_saturated_heights-falling_head_test
 # ish-sc: inverse_saturated_heights-saturated_consolidation
 types = ['ish',

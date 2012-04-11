@@ -1,110 +1,14 @@
 import numpy as np
 
-import scikits.odes.sundials.ida as ida
 from scikits.odes.sundials.common_defs import ResFunction
-#import cProfile
+from modules.shared.shared_functions import find_omega2g, h2Kh, dudh, h2u
+from modules.shared.solver import simulate
 
-from shared_functions import find_omega2g, h2Kh, dudh, h2u
-from common import set_model_attributes
-
-PARAMETERS = {'fluid': ['density'],
-     'discretization': ['inner_points', 'dtype'],
-         'centrifuge': ['wt_out']}
-
-# wt_out - distance of the output chamber (that catches outspelled water)
-#          from the end of the sample (tube)
-
-def adjust_cfg(flattened_cfg):
-    from  modules.base.run import adjust_cfg as base_adjust_cfg
-    base_adjust_cfg(flattened_cfg)
-
-    required_parameters = ['r0_fall', 'wt_out', 'inner_points', 'dtype',
-                           'density', 'h_init', 'n', 'gamma', 'draw_graphs',
-                           'atol', 'rtol'
-                           ]
-
-    for param in required_parameters:
-        if not param in flattened_cfg:
-            raise ValueError('CFG:check: Value not initialized: %s' % param)
-
-    from shared_functions import (lagrangean_derivative_coefs,  dudh, h2Kh,
-                                  h2u, characteristics, find_omega2g)
-
-    gamma = flattened_cfg['gamma']
-    if len(gamma) > 1:
-        print('Parameter gamma is a list of length > 1. Only constant or '
-              'list of length 1 is supported. Exiting...')
-        exit(1)
-    else:
-        flattened_cfg['gamma'] = gamma[0]
-
-    n = flattened_cfg['n']
-    if type(n) == list:
-        if len(n) > 1:
-            print('Parameter n is a list of length > 1. Only constant or '
-                  'list of length 1 is supported. Exiting...')
-            exit(1)
-        else:
-            flattened_cfg['n'] = n[0]
-
-    flattened_cfg['m'] = 1-1/flattened_cfg['n']
-
-    inner_points = flattened_cfg['inner_points']
-
-    flattened_cfg['first_idx']    = 0
-    flattened_cfg['last_idx']     = inner_points+1
-    flattened_cfg['mass_in_idx']  = inner_points+2
-    flattened_cfg['s1_idx']       = inner_points+3
-    flattened_cfg['s2_idx']       = inner_points+4
-    flattened_cfg['mass_out_idx'] = inner_points+5
-    flattened_cfg['pq_idx']       = inner_points+6
-
-    # total length of 'z' array (discretization points + s1,s2,mass_in,...)
-    flattened_cfg['z_size']       = inner_points+7
-
-    if flattened_cfg['dtype'] == 1:
-        y = np.linspace(0, 1, inner_points + 2)
-    else:
-        raise NotImplementedError('For now only linear discretization is'
-                                  ' implemented')
-
-    flattened_cfg['y']   = y
-    flattened_cfg['y12'] = (y[1:]+y[:-1])/2.
-
-    dy = y[1:]-y[:-1]
-    flattened_cfg['dy']  = dy
-
-    ldc1, ldc2, ldc3 = lagrangean_derivative_coefs(dy)
-    flattened_cfg['ldc1']  = ldc1
-    flattened_cfg['ldc2']  = ldc2
-    flattened_cfg['ldc3']  = ldc3
-
-    if ('wl0' in flattened_cfg and
-        ((type(flattened_cfg['wl0']) == list and any(flattened_cfg['wl0']))
-         or flattened_cfg['wl0'] != 0.)):
-        raise ValueError("InputArgError: 'wl0' is specified and is not zero.\n"
-                         "For drainage saturated non-zero 'wl0' is not allowed.")
-
-    flattened_cfg['_l0'] = -1.0
-
-def draw_graphs(fignum, t, y, z, model):
+def draw_graphs(fignum, t, x, h, u, mass_out, GC = None, RM = None, WM = None):
     import matplotlib.pyplot as plt
-
-    h = z[:, model.first_idx:model.last_idx+1]
-    u = h2u(h, model.n, model.m, model.gamma)
-    s1 = z[:, model.s1_idx]
-    s2 = z[:, model.s2_idx]
-    ds = s2 - s1
-    mass_in  = z[:, model.mass_in_idx]
-    mass_out = 0.0 # for GC no expelled water is taken into account
-    x = np.empty([len(t), len(y)], float)
-
-    GC, _RM, _MW = characteristics(t, u, mass_in, mass_out, s1, s2, model,
-                                   chtype='gc')
 
     legend_data = []
     for i in range(len(t)):
-        x[i, :] = z[i, model.s1_idx] + y * ds[i]
         legend_data.append('t =%7d' % t[i])
 
     plt.figure(fignum, figsize=(16, 8.5))
@@ -123,19 +27,21 @@ def draw_graphs(fignum, t, y, z, model):
     plt.legend(legend_data, bbox_to_anchor=(1.02, 1.), loc=2, borderaxespad=0.0)
 
     plt.subplot(323)
-    plt.plot(t, z[:, model.mass_out_idx], '.')
+    plt.plot(t, mass_out, '.')
     plt.xlabel('Time [$s$]')
     plt.ylabel('Outspelled water [$cm^3$]')
 
-    plt.subplot(325)
-    plt.plot(t, GC.transpose(), '.')
-    plt.xlabel('Time [$s$]')
-    plt.ylabel('Gravitational center [$cm$]')
+    if not GC is None:
+        plt.subplot(325)
+        plt.plot(t, GC.transpose(), '.')
+        plt.xlabel('Time [$s$]')
+        plt.ylabel('Gravitational center [$cm$]')
 
-    # plt.subplot(326)
-    # plt.plot(t, RM.transpose(), '.')
-    # plt.xlabel('Time [$s$]')
-    # plt.ylabel('Rotational momentum [$kg.m.s^{-1}$]')
+    if not RM is None:
+         plt.subplot(326)
+         plt.plot(t, RM.transpose(), '.')
+         plt.xlabel('Time [$s$]')
+         plt.ylabel('Rotational momentum [$kg.m.s^{-1}$]')
 
     plt.show()
 
@@ -157,9 +63,9 @@ class centrifuge_residual(ResFunction):
         hdot =  zdot[first_idx:last_idx+1]
         h12  = (h[1:] + h[:-1]) / 2
 
-        omega2g = find_omega2g(t, model._omega, model)
+        omega2g = find_omega2g(t, model)
 
-        s2 = model._l0
+        s2 = model.l0
         s1 = 0
         ds = s2 - s1
 
@@ -167,9 +73,9 @@ class centrifuge_residual(ResFunction):
         n  = model.n
         m  = model.m
         gamma = model.gamma
-        r0 = model._r0
-        L  = model._l0
-        porosity = model._porosity
+        r0 = model.r0
+        L  = model.l0
+        porosity = model.porosity
 
         Kh12 = h2Kh(h12, n, m, gamma, Ks)
         Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
@@ -208,80 +114,69 @@ class centrifuge_residual(ResFunction):
 
         return 0
 
-def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype='all'):
-    calc_gc = (chtype == 'all' or chtype == 'gc')
-    calc_rm = (chtype == 'all' or chtype == 'rm')
+def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype = 'all'):
 
-    porosity = model._porosity
+    calc_gc = chtype in ['all', 'gc']
+    calc_rm = chtype in ['all', 'rm']
+
+    porosity = model.porosity
     y  = model.y
     dy = model.dy
-    L  = model._l0
+    L  = model.l0
     l0_out = L + model.wt_out
     l_out  = L + model.wt_out - mass_out
 
     ds = s2 - s1
 
-    if calc_gc:
-        GC = np.empty(t.shape, float)
-    else:
-        GC = np.asarray([], dtype=float)
-
     if calc_rm:
-        RM = np.empty(t.shape, float)
         P = np.pi * model.d / 4
-
-        omega2g = (np.power(model.omega_start
-                            + (model.omega - model.omega_start)
-                            * (1 - np.exp(-model.omega_gamma*t)), 2)
-                / model.g)
-
-    else:
-        RM = np.asarray([], dtype=float)
-
+        omega2g = find_omega2g(t, model.omega, model)
 
     # Water mass
-    wm_sat = ds/2  * (dy[0]* u[:, 0] + dy[-1]*u[:, -1]
-                      + np.sum((dy[:-1] + dy[1:])*u[:, 1:-1], 1))
+    wm_sat = ds/2  * (dy[0]* u[0] + dy[-1]*u[-1]
+                      + np.sum((dy[:-1] + dy[1:])*u[1:-1]))
 
-    WM = model.density * (mass_in + porosity*wm_sat + mass_out)
+    WM    = model.density * (mass_in + porosity*wm_sat + mass_out)
 
     # GC is from the start of the sample (not from centr.axis)
     # sample = filter1 + soil + filter2
     r0_gc = model.fl1
-    r0_rm = model._r0
-    for i in range(len(t)):
-        # Gravitational center
-        r0 = r0_gc
-        if calc_gc:
-            gc_unsat = (porosity * 1/2 * model.density * ds[i]
-                        * ((r0 + s1[i])*dy[0]*u[i, 0]
-                            + (r0 + s2[i])*dy[-1]*u[i, -1]
-                            + np.sum((dy[:-1]+dy[1:])
-                                     *(r0 + s1[i] + ds[i]*y[1:-1])*u[i, 1:-1])))
-            gc_sat   = (1/2 * model.density
-                        * (porosity * (np.power(r0 + s1[i], 2) - np.power(r0, 2))
-                           + (np.power(r0, 2) - np.power(r0 - mass_in[i], 2))
-                           + (np.power(r0 + l0_out, 2) - np.power(r0 + l_out, 2))))
-            gc_left  = (gc_unsat + gc_sat) / WM[i]
-            print(model.fl1, model._l0, model.fl2, gc_left)
-            gc_right = model.fl1 + model._l0 + model.fl2 - gc_left
-            GC[i]    = gc_right
-            #print('GC: unsat, sat, gc/wm', gc_unsat, gc_sat, GC[i])
+    r0_rm = model.r0
 
-        # Rotational momentum
-        if calc_rm:
-            r0 = r0_rm
-            rm_unsat = (porosity * 1/4 * model.density * ds[i]
-            * (np.power(r0 + s1[i], 2)*dy[0]*u[i, 0]
-               + np.power(r0 + s2[i], 2)*dy[-1]*u[i, -1]
-               + np.sum((dy[:-1]+dy[1:]) * u[i, 1:-1]
-                        * np.power(r0 + s1[i] + ds[i]*y[1:-1], 2))))
-            rm_sat   = (1/6 * model.density
-                        * (porosity * (np.power(r0 + s1[i], 3) - np.power(r0, 3))
-                           + (np.power(r0, 3) - np.power(r0 - mass_in[i], 3))
-                           + (np.power(r0 + l0_out, 3) - np.power(r0 + l_out[i], 3))))
+     # Gravitational center
+    r0 = r0_gc
+    if calc_gc:
+        gc_unsat = (porosity * 1/2 * model.density * ds
+                    * ((r0 + s1)*dy[0]*u[0]
+                       + (r0 + s2)*dy[-1]*u[-1]
+                       + np.sum((dy[:-1]+dy[1:])
+                                *(r0 + s1 + ds*y[1:-1])*u[1:-1])))
+        gc_sat   = (1/2 * model.density
+                    * (porosity * (np.power(r0 + s1, 2) - np.power(r0, 2))
+                       + (np.power(r0, 2) - np.power(r0 - mass_in, 2))
+                       + (np.power(r0 + l0_out, 2) - np.power(r0 + l_out, 2))))
+        gc_left  = (gc_unsat + gc_sat) / WM
+        gc_right = model.fl1 + model.l0 + model.fl2 - gc_left
+        GC       = gc_right
+    else:
+        GC = None
 
-            RM[i] = omega2g[i] * P * (rm_unsat + rm_sat)
+    # Rotational momentum
+    if calc_rm:
+        r0 = r0_rm
+        rm_unsat = (porosity * 1/4 * model.density * ds
+                    * (np.power(r0 + s1, 2)*dy[0]*u[0]
+                       + np.power(r0 + s2, 2)*dy[-1]*u[-1]
+                       + np.sum((dy[:-1]+dy[1:]) * u[1:-1]
+                                * np.power(r0 + s1 + ds*y[1:-1], 2))))
+        rm_sat   = (1/6 * model.density
+                    * (porosity * (np.power(r0 + s1, 3) - np.power(r0, 3))
+                       + (np.power(r0, 3) - np.power(r0 - mass_in, 3))
+                       + (np.power(r0 + l0_out, 3) - np.power(r0 + l_out, 3))))
+
+        RM = omega2g * P * (rm_unsat + rm_sat)
+    else:
+        RM = None
 
     return GC, RM, WM
 
@@ -289,85 +184,59 @@ residual_fn = centrifuge_residual()
 
 def solve(model):
 
-    t = np.empty([len(model.duration)+1, ], dtype=float)
-    z = np.empty([len(t), model.z_size], dtype=float) # 2 columns: wl_in, wl_out
+    t   = np.empty([model.iterations+1, ], dtype=float)
+    GC  = np.empty([model.iterations+1, ], dtype=float)
+    z   = np.empty([model.iterations+1, model.z_size], dtype=float)
+    u   = np.empty([model.iterations+1, model.inner_points+2], dtype=float)
+    z0  = np.empty([model.z_size, ], float)
 
-    if not (model.ks1 or model.fl1):
-        model.ks1 = -1.0
-        model.fl1 =  0.0
-    if not (model.ks2 or model.fl2):
-        model.ks2 = -1.0
-        model.fl2 =  0.0
+    while model.next_iteration():
+        i = model.iteration
 
-    solver = ida.IDA(residual_fn,
-                     #compute_initcond='yp0',
-                     first_step_size=1e-20,
-                     atol=model.atol, rtol=model.rtol,
-                     max_step_size=840.,
-                     max_steps=8000,
-                     #algebraic_vars_idx=[4],
-                     linsolver='band', uband=1, lband=1,
-                     user_data=model)
+        if i == 1:
+             # initialize: z0
+             # set values for t[0], z[0], u[0], GC[0]
+             z0[model.first_idx:model.last_idx+1] = model.h_init
+             s1 = 0.0
+             s2 = model.l0
+             mass_in = mass_out = 0.0
 
-    tspans = np.cumsum(model.duration)
-    t_end = 0.0
+             z0[model.s1_idx] = s1
+             z0[model.s2_idx] = s2
+             z0[model.mass_in_idx]  = mass_in
+             z0[model.mass_out_idx] = mass_out
 
-    attributes_list =  ['l0', 'r0', 'omega', 'porosity']
-
-    for i in range(len(model.duration)):
-
-        # if model.ks1 and model.fl1:
-        #     model._ks1 = model.ks1[i]
-        #     model._fl1 = model.fl1[i]
-        # if model.ks2 and model.fl2:
-        #     model._ks2 = model.ks2[i]
-        #     model._fl2 = model.fl2[i]
-
-        #print(model.l0, model.r0, model.wl0)
-        #print('l0: ', model.l0, 'r0: ', model.r0)
-        #print('ks2: ', model.ks2)
-        #print('rf:', model.r0_fall)
-
-        set_model_attributes(model, i, attributes_list)
-
-        #flag, tacc, zacc  = run_solve(model)
-        if i == 0:
-             z0  = np.zeros([model.z_size, ], float)
-             z0[model.first_idx:model.last_idx+1] = model.h_init # initial pressure h
-             z0[model.s2_idx] = model._l0
-             zp0 = np.zeros([model.z_size, ], float)
              t[0] = 0.0
              z[0, :] = z0
+             u[0, :] = h2u(z0[model.first_idx: model.last_idx+1],
+                           model.n, model.m, model.gamma)
 
-             solver._init_step(0.0, z0, zp0)
+             GC[0] = characteristics(t[0], u[0, :], mass_in, mass_out,
+                                     s1, s2, model, chtype='gc')[0]
+        else:
+            z0 = z[i-1, :]
 
-        t_end = t_end + model.duration[i]
-        flag, t_out = solver.step(t_end, z[i+1, :])
-        t[i+1] = t_out
+        (flag, t_out, z[i, :]) = simulate(model, residual_fn, z0)
 
-        if t_out < t_end:
-            print('Calculation was not finished. Error occured.')
-            break
+        t[i] = t[i-1] + model.duration
 
+        u[i, :] = h2u(z[i, model.first_idx: model.last_idx+1],
+                      model.n, model.m, model.gamma)
+        s1 = z[i, model.s1_idx]
+        s2 = z[i, model.s2_idx]
 
-        #t[i]    = tacc[1]
-        #z[i, :] = zacc[1, :]
-
-        # falling head
-        if hasattr(model, 'fh_duration') and model.fh_duration[i] > 0.:
-            acc = model.include_acceleration
-
-            t_end = t_end + model.fh_duration[i]
-
-            model._r0    = model.r0_fall
-            model._omega = model.omega_fall
-
-            flag, tfh_out = solver.step(t_end)
-            model.include_acceleration = acc
-
-    #print('t,z: ', t, z)
+        mass_in  = z[i, model.mass_in_idx]
+        mass_out = 0.0 # for GC and RM no expelled water is taken into account
+        GC[i] = characteristics(t_out, u[i, :], mass_in, mass_out,
+                                          s1, s2, model, chtype='gc')[0]
 
     if model.draw_graphs:
-        draw_graphs(1, t, model.y, z, model)
+        from modules.shared.shared_functions import y2x
 
-    return (flag, t, z)
+        x = y2x(model.y, z[:, model.s1_idx], z[:, model.s2_idx])
+        h = z[:, model.first_idx:model.last_idx+1]
+        GC[:] = 0.5
+
+        draw_graphs(1, t, x, h, u, z[:, model.mass_out_idx], GC=GC)
+
+    return (flag, t, z, GC)

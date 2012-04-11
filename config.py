@@ -1,29 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-# Centrifuge config
-#
-# Copyright (C) 2005-2007  Donald N. Allingham
-# Copyright (C) 2008-2009  Gary Burton 
-# Copyright (C) 2009       Doug Blank <doug.blank@gmail.com>
-# Copyright (C) 2009       Benny Malengier <bm@cage.ugent.be>
-# Copyright (C) 2011-12    Pavol Kišon     <pk@cage.ugent.be>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-
-
 """
 This package implements access to configuration and defines
 the ModelParameters class which stores the setting obtained
@@ -34,145 +8,478 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
-import numpy as np
+from numpy import pi
+from os import listdir
+from sys import modules as sysmodules
+from math import sqrt
 
-#import const
+##################################################################
+#                   ModulesManager class                         #
+##################################################################
 
-def print_cfg(cfg):
-    print()
-    for (sec, value) in cfg.items():
-        print('section: ', sec)
-        print(value)
+def get_ancestors(options_module):
+    return options_module.PARENTAL_MODULES
 
 
-def flatten_cfg(cfg):
-    def flatten(flattened_cfg, cfg):
-        for (key, value) in cfg.items():
-            if type(value) == dict:
-                flatten(flattened_cfg, value)
-            else:
-                flattened_cfg[key] = value
-        return flattened_cfg
-
-    return flatten({}, cfg)
-
-def merge_flattened_cfgs(cfg, *cfgs):
-    for acfg in cfgs:
-        if acfg:
-            cfg.update(acfg)
-
-    return cfg
-
-def merge_cfgs(cfg, *cfgs):
+def rpm2radps(x):
     """
-    Merge all following cfgs into 'cfg'; if the same values appear, the last one
-    (from last cfg) applies
+      Converts rpm to rad.s^{-1}
     """
+    # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
+    return x * pi/ 30.0
 
-    def merge_cfg(cfg, ncfg):
-        for key in ncfg.keys():
-            if key in cfg:
-                cfg[key].update(ncfg[key])
-            else:
-                cfg[key]=dict(ncfg[key])
+def calc_omega_fall(r0_fall, g):
+    is_list_r0_fall = type(r0_fall) == list
+    is_list_g       = type(g) == list
 
-    if type(cfgs) == list:
-        for acfg in cfgs:
-            if acfg:
-                merge_cfg(cfg, acfg)
+    if is_list_r0_fall and is_list_g:
+        omega_fall = [sqrt(g_f/r0_f) for (g_f, r0_f) in zip(g, r0_fall)]
+    elif is_list_r0_fall:
+        omega_fall = [sqrt(g/r0_f) for r0_f in r0_fall]
+    elif is_list_g:
+        omega_fall = [sqrt(g_f/r0_fall) for g_f in g]
     else:
-        merge_cfg(cfg, cfgs)
+        omega_fall = sqrt(g/r0_fall)
 
-    return cfg
+    return omega_fall
 
-def eval_item(setting):
+class ModulesManager():
+    def __init__(self):
+        available_modules = listdir('modules')
+        available_modules.remove('__pycache__')
+        available_modules.remove('__init__.py')
+        available_modules.remove('shared')
+
+        loaded_modules = {}
+
+        # module_names[exp_type]    -> module_name
+        # module_names[module_name] -> module_name
+        modules_names = {}
+
+        for module_name in available_modules:
+            try:
+                submodule_info_name = 'modules.' + module_name + '.info'
+
+                __import__(submodule_info_name)
+
+                submodule_info = sysmodules[submodule_info_name]
+
+                for exp_type in submodule_info.types:
+                    modules_names[exp_type] = module_name
+
+                modules_names[module_name] = module_name
+            except:
+                print('Module loading error:Submodule ''info'' of module "%s" '
+                      'could not be loaded. Skipping.'  % module_name)
+
+        self._loaded_modules = loaded_modules
+        self._modules_names  = modules_names
+
+    def traverse_ancestors(self, modname_or_exptype, apply_fn, submodule = '',
+                           prehook = None, get_ancestors_fn = get_ancestors):
+        """
+          Recursively traverses the modules, preserving the order of ancestors
+          it gets from 'get_ancestors(module)' function, and applies the
+          function 'apply_fn(module)' on each (ancestor) module.
+          If 'prehook(module)' is specified, this function is called before
+          going into recursion.
+        """
+
+        def traverse(module):
+
+            if prehook:
+                prehook(module)
+
+            ancestors_list = get_ancestors_fn(module)
+
+            for ancestor_name in ancestors_list:
+                ancestor_module = self.find_module(ancestor_name, submodule)
+
+                if not traverse(ancestor_module):
+                    return False
+
+            return apply_fn(module)
+
+        module = self.find_module(modname_or_exptype, submodule)
+
+        return traverse(module)
+
+    def find_module(self, modname_or_exptype, submodule=''):
+        """
+          Return an module determined by it's name or the type of experiment.
+          Loading of modules is done only on demand.
+        """
+
+        if not modname_or_exptype in self._modules_names:
+            print('\n\n',modname_or_exptype, self._modules_names,'\n\n')
+            print('\nFind module error: Unknown module name or experiment '
+                  'type: "%s".\nAvailable modules are: %s'
+                  % (modname_or_exptype, list(self._modules_names.keys())))
+            exit(1)
+
+        if submodule:
+            module_name = (self._modules_names[modname_or_exptype]
+                           + '.' + submodule)
+        else:
+             module_name = self._modules_names[modname_or_exptype]
+
+        if not module_name in self._loaded_modules:
+            module_full_name = 'modules.' + module_name
+            __import__(module_full_name)
+
+            module = sysmodules[module_full_name]
+            self._loaded_modules[module_name] = module
+        else:
+            module = self._loaded_modules[module_name]
+
+        return module
+
+##################################################################
+#                   Configuration class                          #
+##################################################################
+
+def flatten(cfg):
+    cfg_dict = cfg._cfg_dict
+
+    def flatten_dict(base_dict, dict_tree):
+        for (key, value) in dict_tree.items():
+            if type(value) == dict:
+                dict_flatten(base_dict, value)
+            else:
+                base_dict[key] = value
+
+    flattened_cfg = Configuration()
+    flattened_cfg._cfg_dict = flatten_dict({}, cfg)
+
+    return flattened_cfg
+
+def parse_value(str_value):
     """
-    Given a value from an ini file, return it in its proper type.
-    May be recursively called, in the case of nested structures.
+      Given a value as string, tries to convert to it's correspending type.
+      May be called recursively in the case of nested structures.
     """
     try:
-        setting = setting.strip()
+        raw_value = str_value.strip()
 
-        value = None
-        if setting.startswith("'") and setting.endswith("'"):
-            value = setting[1:-1]
-        elif setting.startswith("[") and setting.endswith("]"):
-            list_data = setting[1:-1]
-            value = [eval_item(item) for item in list_data.split(",")]
-        elif setting == "True":
-            value = True
-        elif setting == "False":
-            value = False
-        elif "." in setting or "e" in setting or "E" in setting:
-            value = float(setting)
+        if raw_value[0] == "[" and raw_value[-1] == "]":
+            return [parse_value(item) for item in raw_value[1:-1].split(",")]
+        elif ((raw_value[0] == "'" and raw_value[-1] == "'")
+              or (raw_value[0] == '"' and raw_value[-1] == '"')):
+            return raw_value[1:-1]
+        elif raw_value == 'True':
+            return True
+        elif raw_value == 'False':
+            return False
+        elif "." in raw_value or "e" in raw_value or "E" in raw_value:
+            return float(raw_value)
+        elif raw_value[0] == "(" and raw_value[-1] == ")":
+            return \
+              tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
         else:
-            value = int(setting)
-        return value
+            return int(raw_value)
+
     except:
-        print('Error:Could not parse setting: ', setting, '\nExiting...')
+        print('Error:Could not parse value: ', raw_value, '\nExiting...')
         exit(1)
 
+class Configuration:
+    def __init__(self, preserve_sections_p = False):
 
-def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
-                 cfgs_merge=True):
-    """
-      Reads config .ini files. If preserve_sections_p is false, removes sections
-      and leaves only values from all sections; in case of two sections contain
-      the same values, the latter will be used. If cfgs_merge=True, merges all
-      the config files into one.
-    """
-    if not base_cfg:
-        base_cfg = {}
+        self._preserve_sections_p = preserve_sections_p
+        self._cfg_dict = {}
 
-    def parser2cfg(parser):
-        cfg = base_cfg
+    def set_value(self, key, value, section = None):
+
+        if self._preserve_sections_p:
+            if not section:
+                print('set_value error: Section not specified: ', section)
+                exit(1)
+            cfg_dict = self._cfg_dict[section]
+        else:
+            cfg_dict = self._cfg_dict
+
+        cfg_dict[key] = value
+
+        # Handle depending variables
+        if key == 'n':
+            if type(value) == list:
+                m = [1-1/n for n in value]
+            else:
+                m = 1 - 1/value
+            cfg_dict['m'] = m
+
+        elif key in ['r0_fall', 'g']:
+            if ((key == 'r0_fall' and 'g' in cfg_dict)
+                or (key == 'g' and 'r0_fall' in cfg_dict)):
+
+                cfg_dict['omega_fall'] = \
+                  calc_omega_fall(cfg_dict['r0_fall'], cfg_dict['g'])
+
+    def get_value(self, key, section = None):
+
+        cfg_dict = self._cfg_dict
+
+        if self._preserve_sections_p and (not section
+                                          or not section in cfg_dict):
+            print('get_value error: Section not present in config: ', section)
+            exit(1)
+
+        if self._preserve_sections_p:
+            if key in cfg_dict[section]:
+                return cfg_dict[section][key]
+            else:
+                return None
+        else:
+            if key in cfg_dict:
+                return cfg_dict[key]
+            else:
+                return None
+
+    def missing_options(self, options, section = None):
+
+        if self._preserve_sections_p:
+            if (not section) or (not section in self._cfg_dict):
+                print('missing_options error: Section not present in config: ',
+                      section)
+                exit(1)
+
+            cfg_dict = self._cfg_dict[section]
+        else:
+            cfg_dict = self._cfg_dict
+
+        result = []
+
+        for option in options:
+            if not option in cfg_dict:
+                result.append(option)
+
+        return result
+
+    def list_options(self):
+        """
+          Return a list of all options specified in config.
+        """
+        return list(self._cfg_dict.keys())
+
+    def echo(self):
+        def echo_section(section_dict):
+            for (name, value) in sorted(section_dict.items()):
+                print('%-12s = %s' % (name, value))
+
+        cfg_dict = self._cfg_dict
+
+        if self._preserve_sections_p:
+            for (section, section_value) in cfg_dict.items():
+                print('\n[%s]', section)
+                echo_section(section_value)
+        else:
+            print()
+            echo_section(cfg_dict)
+
+    def set_defaults(self, modman):
+        """
+          Set options that are missing in current configuration, but have
+          specified a default value in modules.
+        """
+
+        cfg_dict = self._cfg_dict
+
+        def set_defaults_from_module(options_module):
+            defaults_options = options_module.CONFIG_OPTIONS['defaults']
+
+            if not self._preserve_sections_p:
+                options = {'foo': defaults_options}
+
+            for (section, section_content) in options.items():
+                for (option, value) in section_content.items():
+                    if not option in cfg_dict:
+                        self.set_value(option, value, section)
+
+        exp_type = self.get_value('exp_type')
+
+        modman.traverse_ancestors(exp_type, set_defaults_from_module,
+                                  submodule='options')
+
+        return self
+
+    def adjust_cfg(self, modman):
+
+        def module_adjust_cfg(module):
+            if hasattr(module, 'adjust_cfg'):
+                module.adjust_cfg(self)
+                return True
+
+        exp_type = self.get_value('exp_type')
+
+        modman.traverse_ancestors(exp_type, module_adjust_cfg,
+                                  submodule='options')
+
+    def merge(self, *cfgs):
+        """
+          Merge all cfgs into current configuration; if the same values appears
+          in more than one of the cfgs, the one from the last cfg applies.
+        """
+        cfg_dict = self._cfg_dict
+        preserve_sections_p = self._preserve_sections_p
+
+        for cfg in cfgs:
+            if not cfg: continue
+
+            if not (preserve_sections_p == cfg._preserve_sections_p):
+                print('MergeCFG Error: Configurations do have same'
+                      ' ''preserve_sections_p'' flag. Cannot merge.')
+                exit(1)
+
+            if preserve_sections_p:
+                for (section, section_value) in cfg.items():
+                    if not section in cfg_dict:
+                        cfg_dict[section] = {}
+
+                    cfg_dict[section].update(section_value)
+            else:
+                cfg_dict.update(cfg._cfg_dict)
+
+        return self
+
+    def read_from_files(self, *cfgs_filenames):
+        """
+          Reads configuration from .ini files 'cfgs_filenames'.
+          If preserve_sections_p is false, removes sections and leaves only
+          values from all sections; if two sections contained
+          the same values, the latter will be kept.
+        """
+
+        def transform_value(key, value):
+            """
+              Handle specialy-treated values, that need to be transformed
+              (e.g. into correct units)
+            """
+            if key in ['omega', 'omega_start', 'omega_end']:
+                print(key, value)
+                if type(value) == list:
+                  return [rpm2radps(omega) for omega in value]
+                else:
+                    return rpm2radps(value)
+            else:
+                return value
+
+        # read config files
+        parser     = configparser.ConfigParser()
+        read_files = parser.read(cfgs_filenames)
+
+        if (len(read_files) != len(cfgs_filenames)):
+            print('Warning: from expected files: ', str(cfgs_filenames),
+                  'were successfully parsed only: ', str(read_files))
+
+        # Write data from parser to configuration
+        cfg_dict = self._cfg_dict
+        preserve_sections_p = self._preserve_sections_p
 
         for psection in parser.sections():
             section = psection.lower()
 
-            for option in parser.options(psection):
-                setting = parser.get(psection, option).strip()
+            if preserve_sections_p and not (section in cfg_dict):
+                cfg_dict[section] = {}
 
-                value = eval_item(setting)
+            for option in parser.options(psection):
+                raw_value = parser.get(psection, option).strip()
+
+                value = transform_value(option, parse_value(raw_value))
 
                 if preserve_sections_p:
-                    if section in cfg:
-                        cfg[section][option]=value
-                    else:
-                        cfg[section]={option: value}
+                    cfg_dict[section][option]=value
                 else:
-                    cfg[option]=value
+                    cfg_dict[option]=value
 
-        return cfg
+        return self
 
-    if not (type(cfgs_filenames) == list):
-        cfgs_filenames = [cfgs_filenames]
+    def is_valid(self, modman):
 
-    if cfgs_merge:
-        parser = configparser.ConfigParser()
+        ignored_options = []
 
-        read_files = parser.read(cfgs_filenames)
+        def update_ignored_options(options_module):
+            ignored_options.extend(options_module.IGNORE_OPTIONS)
 
-        parsers = [parser]
+        def check_options(options):
+            required_options = set(options)
+            required_options.difference_update(ignored_options)
 
-    else:
-        read_files = []
-        parsers = []
+            missing_options = self.missing_options(required_options)
+            if missing_options:
+                print('Following required options are not present: ')
+                for option in missing_options:
+                    print('  ', option)
 
-        for filename in cfgs_filenames:
-            parser = configparser.ConfigParser()
-            parsers.append(parser)
+                return False
+            return True
 
-            if parser.read(filename):
-                read_files.append(filename)
+        alien_options = set(self.list_options())
 
-    if (len(read_files) != len(cfgs_filenames)):
-        print('From expected files: ', str(cfgs_filenames),
-             'were successfully parsed only: ', str(read_files))
+        def primary_cfg_check(options_module):
+            config_parameters = options_module.CONFIG_OPTIONS
 
-    cfgs = [parser2cfg(parser) for parser in parsers]
+            if not check_options(config_parameters['mandatory']):
+                return False
 
-    return cfgs
+            # remove known options from the list
+            alien_options.difference_update(set(config_parameters['mandatory']))
+
+            if 'dependent' in config_parameters:
+                dependent_options = config_parameters['dependent']
+
+                for (test_fn, dependent_options) \
+                  in config_parameters['dependent'].values():
+
+                    if test_fn(self):
+                        if not check_options(dependent_options):
+                            return False
+                    alien_options.difference_update(set(dependent_options))
+
+            if 'optional' in config_parameters:
+                optional_options = config_parameters['optional']
+                alien_options.difference_update(set(optional_options))
+
+            if 'defaults' in config_parameters:
+                defaults_options = config_parameters['defaults']
+                alien_options.difference_update(set(defaults_options))
+
+            if 'additional' in config_parameters:
+                additional_options = config_parameters['additional']
+                alien_options.difference_update(set(additional_options))
+
+            return True
+
+        def custom_cfg_check(options_module):
+            if hasattr(options_module, 'check_cfg'):
+                return module.check_cfg(self)
+
+
+        exp_type = self.get_value('exp_type')
+
+        if not exp_type:
+            print('Missing option: configuration does not specify ''exp_type'' '
+                  'option. Cannot validate configuration.\nCurrent '
+                  'configuration is:')
+            self.echo()
+            print('\nExiting...')
+            exit(1)
+
+        if not modman.traverse_ancestors(exp_type, primary_cfg_check,
+                                         submodule='options',
+                                         prehook=update_ignored_options):
+            return False
+
+        if not modman.traverse_ancestors(exp_type, custom_cfg_check,
+                                         submodule='options'):
+            return False
+
+        if alien_options:
+            print('\nFound following alien options in configuration:')
+            for option in alien_options:
+                print('  ', option)
+            return False
+
+        return True
 
 ##################################################################
 #                 ModelParameters class                          #
@@ -180,55 +487,139 @@ def read_cfgs(cfgs_filenames, base_cfg = None, preserve_sections_p=True,
 
 class ModelParameters:
     """
-    Parameters of the centrifuge
+    Parameters class for the centrifuge simulation.
     """
-    def __init__(self, cfg = None):
-        if cfg:
-            self.register_keys(cfg)
-            #print(cfg)
-        self.register_key('tspan', np.asarray([], dtype=float))
-        self.register_key('omega_fall', np.asarray([], dtype=float))
 
-    def register_key(self, key, value):
-        if hasattr(self, key):
-            raise Exception("Atrribute '%s' already exists !" % key)
+    def __init__(self, cfg, modman):
+        self._cfg = cfg
+        self._iterable_parameters = {}
+        self.iteration            = 0
+        self.iterations           = 0
+
+        exclude_options = []
+
+        def update_exclude_option(options_module):
+            #global exclude_options
+            exclude_options.extend(options_module.EXCLUDE_FROM_MODEL)
+
+        def set_options(options_list):
+             for option in options_list:
+                if not option in exclude_options:
+                    self.set_value(option, cfg.get_value(option))
+
+        def set_options_from_config(options_module):
+            config_options = options_module.CONFIG_OPTIONS
+
+            set_options(config_options['mandatory'])
+            set_options(config_options['defaults'].keys())
+            set_options(config_options['additional'])
+
+            optional_options = set(config_options['optional'])
+            cfg_missing_options  = set(cfg.missing_options(optional_options))
+            optional_options.difference_update(cfg_missing_options)
+            set_options(list(optional_options))
+
+            for (test_fn, dependent_options) \
+              in config_options['dependent'].values():
+
+                if test_fn(cfg):
+                    set_options(dependent_options)
+
+            return True
+
+        modman.traverse_ancestors(cfg.get_value('exp_type'),
+                                  set_options_from_config,
+                                  prehook=update_exclude_option,
+                                  submodule='options')
+
+        if self._iterable_parameters:
+            iterations = -1
+
+            for (key, value) in self._iterable_parameters.items():
+                if iterations == -1:
+                    ref_key = key
+                    iterations = len(value)
+                else:
+                    if len(value) != iterations:
+                        print('Option list ''%s'' has length: %i\n'
+                              'Reference list ''%s'' has length: %i\n'
+                              'Cannot iterate over lists of unequal length.'
+                              'Aborting...'
+                              % (key, len(value), ref_key, iterations))
+                        exit(1)
         else:
+            iterations = 1
+
+        self.iterations = iterations
+
+    def get_iterable_value(self, key):
+        if key in self._iterable_parameters:
+            return self._iterable_parameters[key]
+        else:
+             return None
+
+    def set_value(self, key, value):
+        """
+          Set the value of parameter given as 'key'.
+        """
+
+        # Keep self._itarable_parameters up-to-date; if we set a list-type value
+        # should be stored, if an atom, should be removed
+        if (type(value) == list):
+            self._iterable_parameters[key] = value
+        else:
+            # Now is value an atom, so remove it from iterables if present
+            if key in self._iterable_parameters:
+                del(self._iterable_parameters[key])
+
+            # Handle the rest of supplied variable
             setattr(self, key, value)
 
-    def register_keys(self, flattened_cfg):
-        for (key, value) in flattened_cfg.items():
-            self.register_key(key.lower(), value)
+    def next_iteration(self):
+        """
+          Assign the next value of the parameters that were given as type list
+        """
+        i = self.iteration
+        if i == self.iterations: return False
 
-    def set(self, key, value):
-        key_lower = key.lower()
+        cfg = self._cfg
 
-        if not hasattr(self, key_lower):
-            raise Exception('Atrribute ''%s'' does not exist !' % key)
+        for (key, value) in self._iterable_parameters.items():
+            setattr(self, key, value[i])
 
-        value_type = type(value)
-        key_type   = type(getattr(self, key_lower))
+        self.iteration = i+1
 
-        if value_type == key_type:
-            setattr(self, key_lower, value)
-        elif value_type == int and key_type == float:
-            #convert int automatically to float
-            setattr(self, key, float(value))
-        elif value_type == list:
-            for item in value:
-                if type(item) == int and key_type == float:
-                    pass
-                elif not ((type(item) == key_type) or
-                          (type(item) == int and key_type == float)):
-                    raise ValueError("ModelParameters: key '%s' has wrong type."
-                            " Expected type '%s' and got type '%s' of %s"
-                            % (key, key_type, value_type, value))
-                if value and type(value[0] == int) and (key_type == float):
-                    value = [float(item) for item in value]
+        return True
 
-                setattr(self, key, value)
-        else:
-            raise ValueError("ModelParameters: key '%s' has wrong type. Expected"
-                             " type '%s' and got type '%s' of %s"
-                             % (key, key_type, value_type, value))
+    def init_iteration(self):
+        self.iteration = 1
 
-    
+        for (key, value) in self._iterable_parameters.items():
+            setattr(self, key, value[0])
+
+    def echo(self, iterable_only=False):
+        """
+          Print the parameters stored in the model.
+          If 'iterable_only' is True, prints only the current values of the
+          variables that are iterated by the 'next_iteration()' function.
+        """
+
+        iterable_options = self._iterable_parameters
+        print('\nIterable parameters:')
+        for option in sorted(iterable_options):
+            print('  %-12s = %s' % (option, iterable_options[option]))
+
+        if not iterable_only:
+            options = dict(vars(self))
+            for internal_opt in ['_cfg', '_iterable_parameters', 'iteration',
+                                 'iterations']:
+                del(options[internal_opt])
+
+            print('\nConstant parameters:')
+            for option in sorted(options):
+                print('  %-12s = %s' % (option, getattr(self, option)))
+
+            print('\nParameters set internally:')
+            options = ['iteration', 'iterations']
+            for option in options:
+                print('  %-12s = %s' % (option, getattr(self, option)))
