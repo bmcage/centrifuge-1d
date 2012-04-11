@@ -54,6 +54,18 @@ def dudh(h, n, m, gamma, Ks, dudh = None, tmp1 = None, tmp2 = None):
 
     return dudh
 
+def dhdu(u, n, m, gamma, dhdu = None, tmp1 = None, tmp2 = None):
+    if dhdu and tmp1 and tmp2:
+        tmp1[:] = np.power(u, 1./m)
+        tmp2[:] = np.power(1 - tmp1, m)
+        dudh[:] = - 1/gamma/(n-1) / tmp1 / tmp2
+    else:
+        tmp1 = np.power(u, 1./m)
+        tmp2 = np.power(1 - tmp1, m)
+        dudh = - 1./gamma/(n-1) / tmp1 / tmp2
+
+    return dudh
+
 def h2u(h, n, m, gamma, u = None):
     if u:
         u[:] = 1/np.power(1+ np.power(gamma * h, n), m)
