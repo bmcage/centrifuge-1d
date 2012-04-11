@@ -2,7 +2,7 @@ import numpy as np
 
 from scikits.odes.sundials.common_defs import ResFunction
 from modules.shared.shared_functions import find_omega2g, h2Kh, dudh, h2u
-from modules.shared.solver import simulate
+from modules.shared.solver import simulate_direct
 
 def draw_graphs(fignum, t, x, h, u, mass_out, GC = None, RM = None, WM = None):
     import matplotlib.pyplot as plt
@@ -216,7 +216,7 @@ def solve(model):
         else:
             z0 = z[i-1, :]
 
-        (flag, t_out, z[i, :]) = simulate(model, residual_fn, z0)
+        (flag, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0)
 
         t[i] = t[i-1] + model.duration
 

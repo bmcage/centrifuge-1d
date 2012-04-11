@@ -2,7 +2,7 @@ import numpy as np
 
 from scikits.odes.sundials.common_defs import ResFunction
 from modules.shared.shared_functions import find_omega2g
-from modules.shared.solver import simulate
+from modules.shared.solver import simulate_direct
 
 def draw_graphs(fignum, t, wl_in, wl_out):
 
@@ -59,7 +59,7 @@ def solve(model):
         i = model.iteration
         z0 = z[i-1, :]
 
-        (success_p, t_out, z[i, :]) = simulate(model, residual_fn, z0)
+        (success_p, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0)
 
         t[i] = t_out
 

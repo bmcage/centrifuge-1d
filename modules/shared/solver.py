@@ -6,7 +6,7 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
                       'Reached time: % 10.6f\nExpected time: % 10.6f')
 
-def simulate(model, residual_fn, z0):
+def simulate_direct(model, residual_fn, z0):
 
     def run_simulation(duration, z0):
         solver = ida.IDA(residual_fn,
