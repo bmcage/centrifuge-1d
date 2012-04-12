@@ -355,7 +355,6 @@ class Configuration:
               (e.g. into correct units)
             """
             if key in ['omega', 'omega_start', 'omega_end']:
-                print(key, value)
                 if type(value) == list:
                   return [rpm2radps(omega) for omega in value]
                 else:
@@ -386,10 +385,7 @@ class Configuration:
 
                 value = transform_value(option, parse_value(raw_value))
 
-                if preserve_sections_p:
-                    cfg_dict[section][option]=value
-                else:
-                    cfg_dict[option]=value
+                self.set_value(option, value, section)
 
         return self
 
