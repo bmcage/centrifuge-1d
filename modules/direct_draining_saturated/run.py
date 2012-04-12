@@ -4,47 +4,6 @@ from scikits.odes.sundials.common_defs import ResFunction
 from modules.shared.shared_functions import find_omega2g, h2Kh, dudh, h2u
 from modules.shared.solver import simulate_direct
 
-def draw_graphs(fignum, t, x, h, u, mass_out, GC = None, RM = None, WM = None):
-    import matplotlib.pyplot as plt
-
-    legend_data = []
-    for i in range(len(t)):
-        legend_data.append('t =%7d' % t[i])
-
-    plt.figure(fignum, figsize=(16, 8.5))
-
-    plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
-
-    plt.subplot(321)
-    plt.plot(x.transpose(), h.transpose(), '.')
-    plt.xlabel('Rotational axis distance ''r'' [$cm$]')
-    plt.ylabel('Piezometric head ''h'' [$cm$]')
-
-    plt.subplot(322)
-    plt.plot(x.transpose(), u.transpose(), '.')
-    plt.xlabel('Rotational axis distance ''r'' [$cm$]')
-    plt.ylabel('Relative saturation ''u''')
-    plt.legend(legend_data, bbox_to_anchor=(1.02, 1.), loc=2, borderaxespad=0.0)
-
-    plt.subplot(323)
-    plt.plot(t, mass_out, '.')
-    plt.xlabel('Time [$s$]')
-    plt.ylabel('Outspelled water [$cm^3$]')
-
-    if not GC is None:
-        plt.subplot(325)
-        plt.plot(t, GC.transpose(), '.')
-        plt.xlabel('Time [$s$]')
-        plt.ylabel('Gravitational center [$cm$]')
-
-    if not RM is None:
-         plt.subplot(326)
-         plt.plot(t, RM.transpose(), '.')
-         plt.xlabel('Time [$s$]')
-         plt.ylabel('Rotational momentum [$kg.m.s^{-1}$]')
-
-    plt.show()
-
 class centrifuge_residual(ResFunction):
 
     def evaluate(self, t, z, zdot, result, model):
@@ -231,12 +190,12 @@ def solve(model):
                                           s1, s2, model, chtype='gc')[0]
 
     if model.draw_graphs:
-        from modules.shared.shared_functions import y2x
+        from modules.shared.show import draw_graphs
 
-        x = y2x(model.y, z[:, model.s1_idx], z[:, model.s2_idx])
         h = z[:, model.first_idx:model.last_idx+1]
         GC[:] = 0.5
 
-        draw_graphs(1, t, x, h, u, z[:, model.mass_out_idx], GC=GC)
+        draw_graphs(t, y=model.y, h=h, u=u, mass_out=z[:, model.mass_out_idx],
+                    GC=GC, s1=z[:, model.s1_idx], s2=z[:, model.s2_idx])
 
     return (flag, t, z, GC)
