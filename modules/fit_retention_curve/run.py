@@ -140,13 +140,13 @@ def solve(model):
     print('\n Cov:\n%s\n' % cov_inv)
 
     if model.draw_graphs:
-        draw_graphs(1, model.p, model.theta, n, gamma, theta_s, theta_r,
+        draw_graphs(model.p, model.theta, n, gamma, theta_s, theta_r,
                     model.rho, model.g)
 
     return inv_params
 
 def draw_graphs(fignum, p_measured,theta_measured,
-                n, gamma, theta_s, theta_r, rho, g):
+                n, gamma, theta_s, theta_r, rho, g, fignum = 1):
     import matplotlib.pyplot as plt
 
     plt.figure(fignum, figsize=(8, 4.5))
