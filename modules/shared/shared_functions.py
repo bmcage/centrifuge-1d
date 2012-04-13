@@ -28,46 +28,51 @@ def lagrangean_derivative_coefs_rightpoint(dx12, fx13):
 
     return derivative
 
-def h2Kh(h, n, m, gamma, Ks, Kh = None, tmp1 = None, tmp2 = None):
-    if dudh and tmp1 and tmp2:
-        tmp1[:] = np.power( gamma * h, n-1.)
-        tmp2[:] = np.power(1 + gamma * h * tmp1, m/2.)
-        Kh[:]   = Ks/tmp2 * np.power(1-tmp1/np.power(tmp2, 2), 2)
+def h2Kh(h, n, m, gamma, Ks, Kh = None):
+    tmp1 = np.power(gamma * h, n-1.)
+    tmp2 = np.power(1 + gamma * h * tmp1, m/2.)
+
+    if not Kh is None:
+        Kh[:] = Ks/tmp2 * np.power(1-tmp1/np.power(tmp2, 2), 2)
     else:
-        #print(gamma, h, n)
-        #raise Error
-        tmp1  = np.power( gamma * h, n-1.)
-        tmp2 = np.power(1 + gamma * h * tmp1, m/2.)
-        Kh   = Ks/tmp2 * np.power(1-tmp1/np.power(tmp2, 2), 2)
+        Kh    = Ks/tmp2 * np.power(1-tmp1/np.power(tmp2, 2), 2)
 
     return Kh
 
-def dudh(h, n, m, gamma, Ks, dudh = None, tmp1 = None, tmp2 = None):
-    if dudh and tmp1 and tmp2:
-        tmp1[:] = np.power(gamma*h, n-1)
-        tmp2[:] = np.power(1 + gamma*h * tmp1, m+1)
+def u2Ku(u, m, gamma, Ks, Ku = None):
+    if not Ku is None:
+        Ku[:] = (Ks * np.power(u, 0.5)
+                 * np.power(1 - np.power(1 - np.power(u, 1./m), m), 2))
+    else:
+        Ku    = (Ks * np.power(u, 0.5)
+                 * np.power(1 - np.power(1 - np.power(u, 1./m), m), 2))
+
+    return Ku
+
+def dudh(h, n, m, gamma, dudh = None):
+    tmp1 = np.power(gamma*h, n-1)
+    tmp2 = np.power(1 + gamma*h * tmp1, m+1)
+
+    if not dudh is None:
         dudh[:] = - gamma*(n-1) * tmp1 / tmp2
     else:
-        tmp1 = np.power(gamma*h, n-1)
-        tmp2 = np.power(1 + gamma*h * tmp1, m+1)
-        dudh = - gamma*(n-1) * tmp1 / tmp2
+        dudh    = - gamma*(n-1) * tmp1 / tmp2
 
     return dudh
 
-def dhdu(u, n, m, gamma, dhdu = None, tmp1 = None, tmp2 = None):
-    if dhdu and tmp1 and tmp2:
-        tmp1[:] = np.power(u, 1./m)
-        tmp2[:] = np.power(1 - tmp1, m)
-        dudh[:] = - 1/gamma/(n-1) / tmp1 / tmp2
+def dhdu(u, n, m, gamma, dhdu = None):
+    tmp1 = np.power(u, 1./m)
+    tmp2 = np.power(1 - tmp1, m)
+
+    if not dhdu is None:
+        dhdu[:] = - 1/gamma/(n-1) / tmp1 / tmp2
     else:
-        tmp1 = np.power(u, 1./m)
-        tmp2 = np.power(1 - tmp1, m)
-        dudh = - 1./gamma/(n-1) / tmp1 / tmp2
+        dhdu    = - 1./gamma/(n-1) / tmp1 / tmp2
 
     return dudh
 
 def h2u(h, n, m, gamma, u = None):
-    if u:
+    if not u is None:
         u[:] = 1/np.power(1+ np.power(gamma * h, n), m)
     else:
         u    = 1/np.power(1+ np.power(gamma * h, n), m)
@@ -75,7 +80,7 @@ def h2u(h, n, m, gamma, u = None):
     return u
 
 def u2h(u, n, m, gamma, h = None):
-    if h:
+    if not h is None:
         h[:] =  np.power(np.power(u, -1/m) - 1, 1/n) / gamma
     else:
         h    =  np.power(np.power(u, -1/m) - 1, 1/n) / gamma
