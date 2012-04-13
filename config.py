@@ -295,6 +295,8 @@ class Configuration:
                     if not option in cfg_dict:
                         self.set_value(option, value, section)
 
+            return True
+
         exp_type = self.get_value('exp_type')
 
         modman.traverse_ancestors(exp_type, set_defaults_from_module,
