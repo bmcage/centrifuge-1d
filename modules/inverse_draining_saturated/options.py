@@ -14,6 +14,8 @@ EXCLUDE_FROM_MODEL = []
 
 IGNORE_OPTIONS = ['ks', 'n', 'gamma']
 
+NONITERABLE_LIST_OPTIONS = ['inv_init_params']
+
 def check_cfg(cfg):
     inv_params_len = len(cfg.get_value('inv_init_params'))
     if not ((inv_params_len == 3) or (inv_params_len == 2)):
