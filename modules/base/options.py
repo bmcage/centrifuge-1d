@@ -29,6 +29,8 @@ EXCLUDE_FROM_MODEL = []
 
 IGNORE_OPTIONS = []
 
+NONITERABLE_LIST_OPTIONS = []
+
 def check_cfg(cfg):
     """
       Perform additional test on 'cfg' to validate it. Test for expected value,
