@@ -82,7 +82,11 @@ def read_CSV_row(data, exp_type, row, indexes, csv_fields):
 
     experiment_data = data[experiment_id][experiment_no]
     if not tube_number in experiment_data:
-        experiment_data[tube_number]  = {k: [] for k in ini_fields}
+        experiment_data[tube_number]  = {}
+
+        for field in csv_fields:
+            if not field in required_fields:
+                experiment_data[tube_number][field] = []
 
     for (descriptor, value) in zip(csv_fields, row):
         if not descriptor in required_fields:
