@@ -495,12 +495,17 @@ class ModelParameters:
         self._iterable_parameters = {}
         self.iteration            = 0
         self.iterations           = 0
+        self._atomic_options      = []
 
         exclude_options = []
+        atoms           = self._atomic_options
 
-        def update_exclude_option(options_module):
+        def update_options_list(options_module):
             #global exclude_options
             exclude_options.extend(options_module.EXCLUDE_FROM_MODEL)
+
+            if hasattr(options_module, 'NONITERABLE_LIST_OPTIONS'):
+                atoms.extend(options_module.NONITERABLE_LIST_OPTIONS)
 
         def set_options(options_list):
              for option in options_list:
@@ -529,7 +534,7 @@ class ModelParameters:
 
         modman.traverse_ancestors(cfg.get_value('exp_type'),
                                   set_options_from_config,
-                                  prehook=update_exclude_option,
+                                  prehook=update_options_list,
                                   submodule='options')
 
         if self._iterable_parameters:
@@ -565,7 +570,7 @@ class ModelParameters:
 
         # Keep self._itarable_parameters up-to-date; if we set a list-type value
         # should be stored, if an atom, should be removed
-        if (type(value) == list):
+        if (type(value) == list) and (not key in self._atomic_options):
             self._iterable_parameters[key] = value
         else:
             # Now is value an atom, so remove it from iterables if present
