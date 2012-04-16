@@ -21,7 +21,7 @@ CONFIG_OPTIONS = {
                         (lambda cfg: cfg.get_value('include_acceleration'),
                          ['omega_start', 'omega_end', 'deceleration_duration'])
                      },
-        'optional':  ['l1', 'measured_gc', 'measured_w'],
+        'optional':  ['l1', 'measured_gc', 'measured_w', 'gc1', 'wl_out1'],
         'additional': ['omega_fall']
         }
 
