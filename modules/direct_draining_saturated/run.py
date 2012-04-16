@@ -55,7 +55,7 @@ class centrifuge_residual(ResFunction):
         #print('ql:', q_last)
         #print('q_out', q_last)
 
-        du_dh = dudh(h, n, m, gamma, Ks)
+        du_dh = dudh(h, n, m, gamma)
         result[first_idx] = (porosity * du_dh[0] * hdot[0]
                              + 2 / dy[0] / ds * (q12[0] - q_first))
 
