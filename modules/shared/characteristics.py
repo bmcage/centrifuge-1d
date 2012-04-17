@@ -1,3 +1,5 @@
+import numpy as np
+
 def water_mass(u, mass_in, mass_out, s1, s2, model):
     """
       Determine the amount of water contained in the experiment.
@@ -12,16 +14,17 @@ def water_mass(u, mass_in, mass_out, s1, s2, model):
     wm_unsat = ds/2  * (dy[0]* u[0] + dy[-1]*u[-1]
                         + np.sum((dy[:-1] + dy[1:])*u[1:-1]))
 
-    WM_in_tube =  model.density * (mass_in + porosity*(wm_sat + wm_unsat))
-    WM    = WM_in_tube + model.density * mass_out
+    WM_in_tube = model.density * (mass_in + model.porosity*(wm_sat + wm_unsat))
+    WM_total   = WM_in_tube + model.density * mass_out
 
-    return WM, WM_in_tube
+    return WM_total, WM_in_tube
 
 def calc_gc(u, mass_in, mass_out, s1, s2, WM_in_tube, model):
     """
       Determine the gravitational center in the sample.
       GC is found from the start of the soil sample (not from centr.axis)
     """
+    y  = model.y
     dy = model.dy
     ds = s2 - s1
     L  = model.l0
