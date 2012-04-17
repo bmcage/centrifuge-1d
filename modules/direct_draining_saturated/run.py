@@ -51,7 +51,7 @@ class centrifuge_residual(ResFunction):
 
         q_first = 0.
         q12 = -Kh12 * (dhdr12 / ds - omega2g*(r0 + s1 + ds * model.y12))
-        q_last  = -Kh_last * np.minimum(0., dhdr_last/ds - omega2g*(r0 + L))
+        q_last  = np.maximum(1e-12, -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
         #print('ql:', q_last)
         #print('q_out', q_last)
 
@@ -148,6 +148,8 @@ def solve(model):
     z   = np.empty([model.iterations+1, model.z_size], dtype=float)
     u   = np.empty([model.iterations+1, model.inner_points+2], dtype=float)
     z0  = np.empty([model.z_size, ], float)
+
+    model.init_iteration()
 
     while model.next_iteration():
         i = model.iteration
