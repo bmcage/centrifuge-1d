@@ -386,7 +386,6 @@ class Configuration:
                 raw_value = parser.get(psection, option).strip()
 
                 value = transform_value(option, parse_value(raw_value))
-
                 self.set_value(option, value, section)
 
         return self
@@ -597,7 +596,7 @@ class ModelParameters:
         return True
 
     def init_iteration(self):
-        self.iteration = 1
+        self.iteration = 0
 
         for (key, value) in self._iterable_parameters.items():
             setattr(self, key, value[0])
