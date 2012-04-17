@@ -37,7 +37,6 @@ class centrifuge_residual(ResFunction):
         porosity = model.porosity
 
         Kh12 = h2Kh(h12, n, m, gamma, Ks)
-        Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
 
         #Kh12 = cProfile.run('h2Kh(h12, n, m, gamma, Ks)', 'h2kh1')
         #Kh_last =  cProfile.run('h2Kh(h[-1], n, m, gamma, Ks)', 'h2kh2')
@@ -45,13 +44,10 @@ class centrifuge_residual(ResFunction):
         dy   = model.dy
 
         dhdr12 = (h[1:] - h[:-1]) / model.dy
-        dhdr_last = (model.ldc1[-1] * h[-3]
-                     - model.ldc2[-1] * h[-2]
-                     + model.ldc3[-1] * h[-1])
 
         q_first = 0.
         q12 = -Kh12 * (dhdr12 / ds - omega2g*(r0 + s1 + ds * model.y12))
-        q_last  = np.maximum(1e-12, -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+
         #print('ql:', q_last)
         #print('q_out', q_last)
 
@@ -62,8 +58,29 @@ class centrifuge_residual(ResFunction):
         result[first_idx+1:last_idx] = (porosity * du_dh[1:-1] * hdot[1:-1]
                                         + 2 / (dy[:-1] + dy[1:]) / ds
                                           * (q12[1:] - q12[:-1]))
-        result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
-                             + 2 / dy[-1] / ds * (q_last - q12[-1]))
+
+        if model.rb_type == 0:
+            q_last = 0.
+            result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
+                                 + 2 / dy[-1] / ds * (q_last - q12[-1]))
+        elif model.rb_type == 1:
+            dhdr_last = (model.ldc1[-1] * h[-3]
+                         - model.ldc2[-1] * h[-2]
+                         + model.ldc3[-1] * h[-1])
+            Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+            q_last  = np.maximum(1e-12,
+                                 -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+            result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
+                                 + 2 / dy[-1] / ds * (q_last - q12[-1]))
+        else:
+            dhdr_last = (model.ldc1[-1] * h[-3]
+                         - model.ldc2[-1] * h[-2]
+                         + model.ldc3[-1] * h[-1])
+            Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+            q_last  = np.maximum(1e-12,
+                                 -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+            result[last_idx]  = hdot[-1]
+            print('kh', Kh_last, q_last)
 
         result[model.mass_in_idx]  = zdot[model.mass_in_idx]
         result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_last
@@ -158,6 +175,19 @@ def solve(model):
              # initialize: z0
              # set values for t[0], z[0], u[0], GC[0]
              z0[model.first_idx:model.last_idx+1] = model.h_init
+             if model.rb_type == 2:
+                 # do regularization for prescribed head on right boundary
+                 n_spanning_points = 5
+
+                 z0_view = z0[model.last_idx-n_spanning_points:model.last_idx+1]
+                 y_view = model.y[-1-n_spanning_points:]
+                 a = ((model.h_last - model.h_init)
+                      / (y_view[-1] - y_view[0]) ** 2)
+
+                 z0_view[:] = ((a * np.power(y_view - y_view[0], 2))
+                                + model.h_init)
+                 z0_view[-1] = model.h_last
+
              s1 = 0.0
              s2 = model.l0
              mass_in = mass_out = 0.0
