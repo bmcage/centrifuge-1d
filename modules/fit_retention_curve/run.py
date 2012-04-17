@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import modules.base.run as base
-from shared_functions import h2u
+from modules.shared.shared_functions import h2u
 
 PARAMETERS = {'inverse': ['inv_init_params']}
 
@@ -80,6 +80,7 @@ def solve(model):
     # [p] = Pa = kg/m/s^2 = 10 * g/cm/s^2 -\
     # [h] = cm                            - \
     # => h [cm] =(10*p)/g/rho with [g]=cm/s^2, [rho]=g/cm^3
+
     if type(model.p) == list:
         h = np.asarray([-10.*p / model.rho / model.g for p in model.p])
     else:
@@ -140,13 +141,13 @@ def solve(model):
     print('\n Cov:\n%s\n' % cov_inv)
 
     if model.draw_graphs:
-        draw_graphs(model.p, model.theta, n, gamma, theta_s, theta_r,
-                    model.rho, model.g)
+        draw_graphs(n, gamma, theta_s, theta_r,
+                    model.rho, model.g, model.p, model.theta)
 
     return inv_params
 
-def draw_graphs(fignum, p_measured,theta_measured,
-                n, gamma, theta_s, theta_r, rho, g, fignum = 1):
+def draw_graphs(n, gamma, theta_s, theta_r, rho, g,
+                p_measured = None, theta_measured = None, fignum = 1):
     import matplotlib.pyplot as plt
 
     plt.figure(fignum, figsize=(8, 4.5))
@@ -155,9 +156,11 @@ def draw_graphs(fignum, p_measured,theta_measured,
     theta_calc = theta_r + (theta_s - theta_r) * h2u(-10.*p_calc/rho/g,
                                                      n, 1.-1./n, gamma)
 
-    plt.plot(theta_calc, p_calc, '-', theta_measured, p_measured, 'x',)
+    plt.plot(theta_calc, p_calc, '-')
+    if p_measured and theta_measured:
+        plt.plot(theta_measured, p_measured, 'x',)
     plt.yscale('log')
     plt.ylabel('Pressure $p$ [Pa]')
-    plt.xlabel('Water content ${\theta}$ ')
+    plt.xlabel('Water content $\theta$ ')
 
     plt.show()
