@@ -13,8 +13,8 @@ def simulate_direct(model, residual_fn, z0):
                          compute_initcond='yp0',
                          first_step_size=1e-18,
                          atol=model.atol, rtol=model.rtol,
-                         max_step_size = 840.,
-                         max_steps = 8000,
+                         max_step_size = model.max_step_size,
+                         max_steps = model.max_steps,
                          #algebraic_vars_idx=[4],
                          linsolver='band', uband=1, lband=1,
                          user_data=model)
