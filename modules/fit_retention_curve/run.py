@@ -4,47 +4,6 @@ from scipy.optimize import curve_fit
 import modules.base.run as base
 from modules.shared.shared_functions import h2u
 
-PARAMETERS = {'inverse': ['inv_init_params']}
-
-def adjust_cfg(flattened_cfg):
-
-    required_parameters = ['inv_init_params', 'p', 'theta', 'draw_graphs',
-                           'rho', 'g']
-
-    for param in required_parameters:
-        if not param  in flattened_cfg:
-            print('CFG:check: Missing paramter in configuration file(s): %s'
-                  % param)
-            exit(1)
-
-    theta_s_p = 'theta_s' in flattened_cfg
-    theta_r_p = 'theta_r' in flattened_cfg
-    inv_init_params_len = len(flattened_cfg['inv_init_params'])
-
-    if ((theta_s_p and theta_r_p and inv_init_params_len == 2)
-        or (theta_s_p and (not theta_r_p) and inv_init_params_len == 3)
-        or ((not theta_s_p) and theta_r_p and inv_init_params_len == 3)
-        or ((not theta_s_p) and (not theta_r_p) and inv_init_params_len == 4)):
-
-        # check correctness of input:
-        # if 2 initial guesses given, optimize only n, gamma
-        # if 3 given, we optimize also either theta_s or theta_r
-        # if 4 we optimize also theta_s and theta_r
-        # theta_s and theta_r;
-        pass
-    else:
-        th_s_str = ''
-        th_r_str = ''
-        if theta_s_p: th_s_str = ' = ' + str(flattened_cfg['theta_s'])
-        if theta_r_p: th_s_str = ' = ' + str(flattened_cfg['theta_r'])
-
-        print('Inconsistent initial guesses inv_init_params = %s'
-              % flattened_cfg['inv_init_params'])
-        print("with 'theta_s'%s and 'theta_r'%s" % (th_s_str, th_r_str))
-        exit(1)
-
-    flattened_cfg['theta_s_p'] = theta_s_p
-
 def solve(model):
     def lsq_fn(xdata, *optim_args):
         print(optim_args)
