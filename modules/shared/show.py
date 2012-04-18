@@ -22,11 +22,11 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 fignum = 1):
 
     twins = ((mass_out, mass_in), (GC, RM), (s1, s2), (WM, None))
-    ylabels = (('Outspelled water [$cm$]', 'Inflow water [$cm$]'),
-               ('Gravitational center [$cm$]',
-                'Rotational momentum [$kg.m.s^{-1}$]'),
-               ('Interface s1 [$cm$]', 'Interface s2 [$cm$]'),
-               ('Water mass [$cm$]', None))
+    ylabels = (('Exspelled water [cm]', 'Inflow water [cm]'),
+               ('Gravitational center [cm]',
+                'Rotational momentum [kg.m.s$^{-1}$]'),
+               ('Interface s1 [cm]', 'Interface s2 [cm]'),
+               ('Water mass [cm]', None))
 
     plt.figure(fignum, figsize=(16, 8.5))
 
@@ -48,13 +48,13 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
             if not h is None:
                 plt.subplot(321)
                 plt.plot(x.transpose(), h.transpose(), '.')
-                plt.xlabel('Rotational axis distance ''r'' [$cm$]')
-                plt.ylabel('Piezometric head ''h'' [$cm$]')
+                plt.xlabel('Rotational axis distance ''r'' [cm]')
+                plt.ylabel('Piezometric head ''h'' [cm]')
 
             if not u is None:
                 plt.subplot(322)
                 plt.plot(x.transpose(), u.transpose(), '.')
-                plt.xlabel('Rotational axis distance ''r'' [$cm$]')
+                plt.xlabel('Rotational axis distance ''r'' [cm]')
                 plt.ylabel('Relative saturation ''u''')
                 plt.legend(legend_data, bbox_to_anchor=(1.02, 1.), loc=2,
                            borderaxespad=0.0)
@@ -80,7 +80,7 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
         if not v1 is None:
             plt.subplot(3,2,2*row + column)
             plt.plot(t, v1, '.')
-            plt.xlabel('Time [$s$]')
+            plt.xlabel('Time [s]')
             plt.ylabel(ylabel1)
 
             column = 2
@@ -88,7 +88,7 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
         if not v2 is None:
             plt.subplot(3,2,2*row + column)
             plt.plot(t, v2, '.')
-            plt.xlabel('Time [$s$]')
+            plt.xlabel('Time [s]')
             plt.ylabel(ylabel2)
 
     plt.show()
