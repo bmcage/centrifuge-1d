@@ -159,7 +159,7 @@ def solve(model):
         s2 = z[i, model.s2_idx]
 
         mass_in  = z[i, model.mass_in_idx]
-        mass_out = 0.0 # for GC and RM no expelled water is taken into account
+        mass_out = z[i, model.mass_out_idx]
         WM_total, WM_in_tube = water_mass(u[i, :], mass_in, mass_out,
                                           s1, s2, model)
         WM[i] = WM_total
