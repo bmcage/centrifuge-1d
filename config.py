@@ -48,7 +48,6 @@ class ModulesManager():
         available_modules = listdir('modules')
         available_modules.remove('__pycache__')
         available_modules.remove('__init__.py')
-        available_modules.remove('shared')
 
         loaded_modules = {}
 
@@ -72,8 +71,27 @@ class ModulesManager():
                 print('Module loading error:Submodule ''info'' of module "%s" '
                       'could not be loaded. Skipping.'  % module_name)
 
+        self._available_modules = available_modules
         self._loaded_modules = loaded_modules
         self._modules_names  = modules_names
+
+    def echo(self, verbose=False):
+        """
+          Display information about available modules and experiment types
+          provided by every module.
+          If 'verbose' is set to 'True', display also module description.
+        """
+        find_module = self.find_module
+
+        print('\n\nCentrifuge modules:')
+
+        for module_name in sorted(self._available_modules):
+            module = find_module(module_name, submodule='info')
+            print('\n  %s:' % module_name)
+            print('        Experiment types:', module.types)
+            if verbose:
+                print('        Description:')
+                print('            ', module.desc)
 
     def traverse_ancestors(self, modname_or_exptype, apply_fn, submodule = '',
                            prehook = None, get_ancestors_fn = get_ancestors):
