@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import modules.base.run as base
-from modules.shared.shared_functions import h2u
+from modules.shared.vangenuchten import h2u
 
 def solve(model):
     def lsq_fn(xdata, *optim_args):

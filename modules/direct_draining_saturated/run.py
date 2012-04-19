@@ -1,7 +1,8 @@
 import numpy as np
 
 from scikits.odes.sundials.common_defs import ResFunction
-from modules.shared.shared_functions import find_omega2g, h2Kh, dudh, h2u
+from modules.shared.shared_functions import find_omega2g
+from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.shared.characteristics import water_mass, calc_gc
 from modules.shared.solver import simulate_direct
 

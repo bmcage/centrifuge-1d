@@ -1,8 +1,8 @@
 import numpy as np
 
 from scikits.odes.sundials.common_defs import ResFunction
-from modules.shared.shared_functions import (find_omega2g, h2Kh, u2Ku,
-                                             dudh, dhdu, h2u, u2h)
+from modules.shared.shared_functions import find_omega2g
+from modules.shared.vangenuchten import h2Kh, u2Ku, dudh, dhdu, h2u, u2h
 from modules.shared.solver import simulate_direct
 
 class centrifuge_residual(ResFunction):
