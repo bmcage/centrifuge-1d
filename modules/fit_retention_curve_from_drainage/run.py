@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from modules.shared.shared_functions import h2u
+from modules.shared.vangenuchten import h2u
 
 def solve(model):
     def lsq_fn(xdata, *optim_args):
@@ -19,7 +19,7 @@ def solve(model):
         m = 1. - 1./n
 
         u = h2u(h, n, m, gamma)
-        print(u, theta_r, theta_s)
+        #print(u, theta_r, theta_s)
         theta = theta_r + (theta_s - theta_r) * u
 
         return theta
@@ -27,14 +27,20 @@ def solve(model):
     inv_params_init = model.inv_init_params
     inv_init_params_len = len(model.inv_init_params)
 
+    re = np.asarray(model.re)
+    l1 = np.asarray(model.l1)
+
     wm0 = model.porosity[0] * model.l0[0]
-    wm_in_tube = wm0 - np.asarray([0] + model.wl_out1)
-    V_total = np.asarray(model.l0[:1] + model.l1)
+    wm_in_tube = wm0 - np.asarray(model.wl_out1)
+    V_total = l1
     theta = wm_in_tube / V_total
 
-    h = -np.power(np.asarray([0.01] + model.omega), 2) / np.asarray(model.g)
+    h = (-np.power(np.asarray(model.omega), 2) / np.asarray(model.g) / 2
+         * (np.power(re, 2) - np.power(re - l1/2, 2)))
+    h[0] = -0.001
+    print(h)
 
-    theta_s  = np.asarray(model.porosity[:1] + model.porosity)
+    theta_s  = np.asarray(model.porosity)
 
     if inv_init_params_len == 3:
         xdata = (h, theta_s)
@@ -44,6 +50,7 @@ def solve(model):
         xdata = (h, theta_s, theta_r)
 
     data_measured = theta
+    print('theta:', theta, theta_s, theta_r)
 
     inv_params, cov_inv = curve_fit(lsq_fn, xdata,
                                     data_measured, p0 = inv_params_init)
