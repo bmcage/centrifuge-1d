@@ -9,7 +9,7 @@ from optparse import OptionParser
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
 INIFILES_BASE_DIR = 'sources/inifiles'
-DEFAULT_TUBES     = [1, 2, 4, 5]
+DEFAULT_TUBES     = '1,2,4,5'
 
 def parse_input():
 
