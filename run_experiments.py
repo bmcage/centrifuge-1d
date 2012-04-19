@@ -30,20 +30,34 @@ def parse_input():
     optparser.add_option('-l', '--list', dest='list', action="store_true",
                          default=False,
                          help="Lists all available experiments")
+    optparser.add_option('-m', '--modules-list', dest='modules_list',
+                         action="store_true", default=False,
+                         help=("Get the list of all available centrifuge "
+                               "modules"))
     optparser.add_option('-p', '--print-config', dest='print_config_p',
                          action='store_true', default=False,
                          help=('Print the used configuration file for given '
                                'experiment and exit; if also parameter ''-t'' '
                                'is included, the config file for the tube is '
                                'included too.'))
+    optparser.add_option('-v', '--verbose', dest='verbose',
+                         action="store_true", default=False,
+                         help="If possible, provide more detailed informations")
+
     (options, args) = optparser.parse_args()
     arg_len = len(args)
     if arg_len == 0:
-        if options.list:
+        if options.list or options.modules_list:
             from os import listdir
-            print('\n'.join(sorted(listdir(INIFILES_BASE_DIR))))
-            exit(0)
-        optparser.print_help()
+
+            if options.list:
+                print('\n'.join(sorted(listdir(INIFILES_BASE_DIR))))
+            if options.modules_list:
+                modman = ModulesManager()
+                modman.echo(options.verbose)
+        else:
+            optparser.print_help()
+
         exit(0)
     elif arg_len == 1:
         optparser.print_help()
