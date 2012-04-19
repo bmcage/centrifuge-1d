@@ -14,14 +14,18 @@ DEFAULT_TUBES     = [1, 2, 4, 5]
 def parse_input():
 
     usage_str = \
-      ('\n%prog [options] ID, first_experiment [last_experiment]'
-       '\n\n\tfirst_experiment:'
-       '\n\t\tnumber of the first experiment in exp_ID series of experiments;'
-       '\n\t\teither "first_experiment" or "-i" option has to be set'
-       '\n\tlast_experiment:'
-       '\n\t\tif specified, computes all experiments between the'
-       '\n\t\t"first_experiment" and the "last_experiment" (included);'
-       '\n\t\tif not specified, computes only first_experiment')
+      ('\n  %prog [options] exp_ID, first_experiment[, last_experiment]'
+       '\n\nArguments:'
+       '\n  exp_ID:'
+       '\n      ID identifying an experiment (see -l for all available '
+       'experiments)'
+       '\n  first_experiment:'
+       '\n      the number of the first experiment in the \'exp_ID\' '
+       'experiments serie'
+       '\n  last_experiment:'
+       '\n      all experiments between the \'first_experiment\' and '
+       'the \'last_experiment\' (included) will be computed.'
+       '\n      if it is not specified, computes only the \'first_experiment\'')
     optparser = OptionParser(usage=usage_str)
     optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
                          metavar='TUBES_NUMBERS',
