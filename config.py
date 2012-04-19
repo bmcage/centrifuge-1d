@@ -48,7 +48,6 @@ class ModulesManager():
         available_modules = listdir('modules')
         available_modules.remove('__pycache__')
         available_modules.remove('__init__.py')
-        available_modules.remove('shared')
 
         loaded_modules = {}
 
@@ -72,8 +71,27 @@ class ModulesManager():
                 print('Module loading error:Submodule ''info'' of module "%s" '
                       'could not be loaded. Skipping.'  % module_name)
 
+        self._available_modules = available_modules
         self._loaded_modules = loaded_modules
         self._modules_names  = modules_names
+
+    def echo(self, verbose=False):
+        """
+          Display information about available modules and experiment types
+          provided by every module.
+          If 'verbose' is set to 'True', display also module description.
+        """
+        find_module = self.find_module
+
+        print('\n\nCentrifuge modules:')
+
+        for module_name in sorted(self._available_modules):
+            module = find_module(module_name, submodule='info')
+            print('\n  %s:' % module_name)
+            print('        Experiment types:', module.types)
+            if verbose:
+                print('        Description:')
+                print('            ', module.desc)
 
     def traverse_ancestors(self, modname_or_exptype, apply_fn, submodule = '',
                            prehook = None, get_ancestors_fn = get_ancestors):
@@ -295,6 +313,8 @@ class Configuration:
                     if not option in cfg_dict:
                         self.set_value(option, value, section)
 
+            return True
+
         exp_type = self.get_value('exp_type')
 
         modman.traverse_ancestors(exp_type, set_defaults_from_module,
@@ -355,7 +375,6 @@ class Configuration:
               (e.g. into correct units)
             """
             if key in ['omega', 'omega_start', 'omega_end']:
-                print(key, value)
                 if type(value) == list:
                   return [rpm2radps(omega) for omega in value]
                 else:
@@ -385,11 +404,7 @@ class Configuration:
                 raw_value = parser.get(psection, option).strip()
 
                 value = transform_value(option, parse_value(raw_value))
-
-                if preserve_sections_p:
-                    cfg_dict[section][option]=value
-                else:
-                    cfg_dict[option]=value
+                self.set_value(option, value, section)
 
         return self
 
@@ -451,7 +466,9 @@ class Configuration:
 
         def custom_cfg_check(options_module):
             if hasattr(options_module, 'check_cfg'):
-                return module.check_cfg(self)
+                return options_module.check_cfg(self)
+            else:
+                return True
 
 
         exp_type = self.get_value('exp_type')
@@ -495,12 +512,17 @@ class ModelParameters:
         self._iterable_parameters = {}
         self.iteration            = 0
         self.iterations           = 0
+        self._atomic_options      = []
 
         exclude_options = []
+        atoms           = self._atomic_options
 
-        def update_exclude_option(options_module):
+        def update_options_list(options_module):
             #global exclude_options
             exclude_options.extend(options_module.EXCLUDE_FROM_MODEL)
+
+            if hasattr(options_module, 'NONITERABLE_LIST_OPTIONS'):
+                atoms.extend(options_module.NONITERABLE_LIST_OPTIONS)
 
         def set_options(options_list):
              for option in options_list:
@@ -529,7 +551,7 @@ class ModelParameters:
 
         modman.traverse_ancestors(cfg.get_value('exp_type'),
                                   set_options_from_config,
-                                  prehook=update_exclude_option,
+                                  prehook=update_options_list,
                                   submodule='options')
 
         if self._iterable_parameters:
@@ -565,7 +587,7 @@ class ModelParameters:
 
         # Keep self._itarable_parameters up-to-date; if we set a list-type value
         # should be stored, if an atom, should be removed
-        if (type(value) == list):
+        if (type(value) == list) and (not key in self._atomic_options):
             self._iterable_parameters[key] = value
         else:
             # Now is value an atom, so remove it from iterables if present
@@ -592,7 +614,7 @@ class ModelParameters:
         return True
 
     def init_iteration(self):
-        self.iteration = 1
+        self.iteration = 0
 
         for (key, value) in self._iterable_parameters.items():
             setattr(self, key, value[0])

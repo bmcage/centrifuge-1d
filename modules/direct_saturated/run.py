@@ -2,28 +2,7 @@ import numpy as np
 
 from scikits.odes.sundials.common_defs import ResFunction
 from modules.shared.shared_functions import find_omega2g
-from modules.shared.solver import simulate
-
-def draw_graphs(fignum, t, wl_in, wl_out):
-
-    import matplotlib.pyplot as plt
-
-    rows = 1
-    figheight = 4
-
-    plt.figure(fignum, figsize=(12, figheight))
-
-    plt.subplot(rows,2,1)
-    plt.plot(t, wl_in, 'b')
-    plt.xlabel('Time')
-    plt.ylabel('Water in inflow chamber [cm]')
-
-    plt.subplot(rows,2,2)
-    plt.plot(t, wl_out, 'k')
-    plt.xlabel('Time')
-    plt.ylabel('Water in outflow chamber [cm]')
-
-    plt.show()
+from modules.shared.solver import simulate_direct
 
 class direct_saturated_rhs(ResFunction):
     def evaluate(self, t, x, xdot, result, model):
@@ -59,13 +38,15 @@ def solve(model):
         i = model.iteration
         z0 = z[i-1, :]
 
-        (success_p, t_out, z[i, :]) = simulate(model, residual_fn, z0)
+        (success_p, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0)
 
         t[i] = t_out
 
         if not (success_p and model.next_iteration()): break
 
     if model.draw_graphs:
-        draw_graphs(1, t, z[:, mass_in_idx], z[:, mass_out_idx])
+        from modules.shared.show import draw_graphs
+
+        draw_graphs(t, mass_in=z[:, mass_in_idx], mass_out=z[:, mass_out_idx])
 
     return (success_p, t, z)

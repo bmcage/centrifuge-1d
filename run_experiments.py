@@ -9,41 +9,59 @@ from optparse import OptionParser
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
 INIFILES_BASE_DIR = 'sources/inifiles'
-DEFAULT_TUBES     = [1, 2, 4, 5]
+DEFAULT_TUBES     = '1,2,4,5'
 
 def parse_input():
 
     usage_str = \
-      ('\n%prog [options] ID, first_experiment [last_experiment]'
-       '\n\n\tfirst_experiment:'
-       '\n\t\tnumber of the first experiment in exp_ID series of experiments;'
-       '\n\t\teither "first_experiment" or "-i" option has to be set'
-       '\n\tlast_experiment:'
-       '\n\t\tif specified, computes all experiments between the'
-       '\n\t\t"first_experiment" and the "last_experiment" (included);'
-       '\n\t\tif not specified, computes only first_experiment')
+      ('\n  %prog [options] exp_ID, first_experiment[, last_experiment]'
+       '\n\nArguments:'
+       '\n  exp_ID:'
+       '\n      ID identifying an experiment (see -l for all available '
+       'experiments)'
+       '\n  first_experiment:'
+       '\n      the number of the first experiment in the \'exp_ID\' '
+       'experiments serie'
+       '\n  last_experiment:'
+       '\n      all experiments between the \'first_experiment\' and '
+       'the \'last_experiment\' (included) will be computed.'
+       '\n      if it is not specified, computes only the \'first_experiment\'')
     optparser = OptionParser(usage=usage_str)
-    optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
-                         metavar='TUBES_NUMBERS',
-                         help=("Run experiment only on selected tubes, default "
-                               "is:\n %default"))
     optparser.add_option('-l', '--list', dest='list', action="store_true",
                          default=False,
                          help="Lists all available experiments")
+    optparser.add_option('-m', '--modules-list', dest='modules_list',
+                         action="store_true", default=False,
+                         help=("Get the list of all available centrifuge "
+                               "modules"))
     optparser.add_option('-p', '--print-config', dest='print_config_p',
                          action='store_true', default=False,
                          help=('Print the used configuration file for given '
                                'experiment and exit; if also parameter ''-t'' '
                                'is included, the config file for the tube is '
                                'included too.'))
+    optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
+                         metavar='TUBES_NUMBERS',
+                         help=("Run experiment only on selected tubes, default "
+                               "is:\n %default"))
+    optparser.add_option('-v', '--verbose', dest='verbose',
+                         action="store_true", default=False,
+                         help="If possible, provide more detailed informations")
+
     (options, args) = optparser.parse_args()
     arg_len = len(args)
     if arg_len == 0:
-        if options.list:
+        if options.list or options.modules_list:
             from os import listdir
-            print('\n'.join(sorted(listdir(INIFILES_BASE_DIR))))
-            exit(0)
-        optparser.print_help()
+
+            if options.list:
+                print('\n'.join(sorted(listdir(INIFILES_BASE_DIR))))
+            if options.modules_list:
+                modman = ModulesManager()
+                modman.echo(options.verbose)
+        else:
+            optparser.print_help()
+
         exit(0)
     elif arg_len == 1:
         optparser.print_help()

@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-import modules.base.run as base
 from modules.shared.vangenuchten import h2u
 
 def solve(model):
@@ -10,17 +9,9 @@ def solve(model):
 
         optim_args_len = len(optim_args)
 
-        if optim_args_len == 4:
-            h = xdata
-            (n, gamma, theta_s, theta_r) = optim_args
-        elif optim_args_len == 3:
-            (h, theta_s_p, theta_sr) = xdata
-            if theta_s_p:
-                theta_s = theta_sr
-                (n, gamma, theta_r) = optim_args
-            else:
-                theta_r = theta_sr
-                (n, gamma, theta_s) = optim_args
+        if optim_args_len == 3:
+            (h, theta_s) = xdata
+            (n, gamma, theta_r) = optim_args
         else:
             (h, theta_s, theta_r) = xdata
             (n, gamma) = optim_args
@@ -28,7 +19,7 @@ def solve(model):
         m = 1. - 1./n
 
         u = h2u(h, n, m, gamma)
-
+        #print(u, theta_r, theta_s)
         theta = theta_r + (theta_s - theta_r) * u
 
         return theta
@@ -36,34 +27,30 @@ def solve(model):
     inv_params_init = model.inv_init_params
     inv_init_params_len = len(model.inv_init_params)
 
-    # [p] = Pa = kg/m/s^2 = 10 * g/cm/s^2 -\
-    # [h] = cm                            - \
-    # => h [cm] =(10*p)/g/rho with [g]=cm/s^2, [rho]=g/cm^3
+    re = np.asarray(model.re)
+    l1 = np.asarray(model.l1)
 
-    if type(model.p) == list:
-        h = np.asarray([-10.*p / model.rho / model.g for p in model.p])
+    wm0 = model.porosity[0] * model.l0[0]
+    wm_in_tube = wm0 - np.asarray(model.wl_out1)
+    V_total = l1
+    theta = wm_in_tube / V_total
+
+    h = (-np.power(np.asarray(model.omega), 2) / np.asarray(model.g) / 2
+         * (np.power(re, 2) - np.power(re - l1/2, 2)))
+    h[0] = -0.001
+    print(h)
+
+    theta_s  = np.asarray(model.porosity)
+
+    if inv_init_params_len == 3:
+        xdata = (h, theta_s)
     else:
-        h = 10.*model.p / model.rho /model.g
-
-    if inv_init_params_len == 4:
-        xdata = h
-    elif inv_init_params_len == 3:
-        theta_s_p = hasattr(model, 'theta_s')
-        if theta_s_p:
-            theta_s  = model.theta_s
-            theta_sr = theta_s
-        else:
-            theta_r  = model.theta_r
-            theta_sr = theta_r
-
-        xdata = (h, theta_s_p, theta_sr)
-    else:
-        theta_s = model.theta_s
         theta_r = model.theta_r
 
         xdata = (h, theta_s, theta_r)
 
-    data_measured = model.theta
+    data_measured = theta
+    print('theta:', theta, theta_s, theta_r)
 
     inv_params, cov_inv = curve_fit(lsq_fn, xdata,
                                     data_measured, p0 = inv_params_init)
@@ -80,16 +67,9 @@ def solve(model):
         print(' % 8.4f' % ((th_c - th_m) / th_m * 100), end='')
 
     print('\n\nOptimized parameters found:')
-    if inv_init_params_len == 4:
-        (n, gamma, theta_s, theta_r) = inv_params
-        params = ['n', 'gamma', 'theta_s', 'theta_r']
-    elif inv_init_params_len == 3:
-        if theta_s_p:
-            (n, gamma, theta_r) = inv_params
-            params = ['n', 'gamma', 'theta_r']
-        else:
-            (n, gamma, theta_s) = inv_params
-            params = ['n', 'gamma', 'theta_s']
+    if inv_init_params_len == 3:
+        (n, gamma, theta_r) = inv_params
+        params = ['n', 'gamma', 'theta_r']
     else:
         (n, gamma) = inv_params
         params = ['n', 'gamma']
@@ -101,7 +81,9 @@ def solve(model):
 
     if model.draw_graphs:
         draw_graphs(n, gamma, theta_s, theta_r,
-                    model.rho, model.g, model.p, model.theta)
+                    model.rho, model.g,
+                    p_measured=-h*model.rho*model.g,
+                    theta_measured=theta)
 
     return inv_params
 
@@ -110,16 +92,17 @@ def draw_graphs(n, gamma, theta_s, theta_r, rho, g,
     import matplotlib.pyplot as plt
 
     plt.figure(fignum, figsize=(8, 4.5))
+    theta_s = theta_s[0]
 
-    p_calc = np.arange(0, 10000000, 100)
+    p_calc = np.logspace(-10, 8, 100)
     theta_calc = theta_r + (theta_s - theta_r) * h2u(-10.*p_calc/rho/g,
                                                      n, 1.-1./n, gamma)
 
     plt.plot(theta_calc, p_calc, '-')
-    if p_measured and theta_measured:
+    if (not p_measured is None) and (not theta_measured is None):
         plt.plot(theta_measured, p_measured, 'x',)
     plt.yscale('log')
     plt.ylabel('Pressure $p$ [Pa]')
-    plt.xlabel('Water content $\theta$ ')
+    plt.xlabel('Water content \t$\theta$ ')
 
     plt.show()
