@@ -27,10 +27,6 @@ def parse_input():
        'the \'last_experiment\' (included) will be computed.'
        '\n      if it is not specified, computes only the \'first_experiment\'')
     optparser = OptionParser(usage=usage_str)
-    optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
-                         metavar='TUBES_NUMBERS',
-                         help=("Run experiment only on selected tubes, default "
-                               "is:\n %default"))
     optparser.add_option('-l', '--list', dest='list', action="store_true",
                          default=False,
                          help="Lists all available experiments")
@@ -44,6 +40,10 @@ def parse_input():
                                'experiment and exit; if also parameter ''-t'' '
                                'is included, the config file for the tube is '
                                'included too.'))
+    optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
+                         metavar='TUBES_NUMBERS',
+                         help=("Run experiment only on selected tubes, default "
+                               "is:\n %default"))
     optparser.add_option('-v', '--verbose', dest='verbose',
                          action="store_true", default=False,
                          help="If possible, provide more detailed informations")
