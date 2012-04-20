@@ -13,7 +13,7 @@ CONFIG_OPTIONS = {
                       'density': 1.0, 'viscosity': 1.0,
                       'draw_graphs': False,
                       'include_acceleration': False,
-                      'save_figs': False, 'save_figs_separately': False,
+                      'save_figures': False, 'separate_figures': False,
                       'atol': 1e-3, 'rtol':1e-6,
                       'max_steps': 800, 'max_step_size': 800.
                      },

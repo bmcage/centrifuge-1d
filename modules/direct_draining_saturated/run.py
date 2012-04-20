@@ -175,7 +175,7 @@ def solve(model):
 
         draw_graphs(t, y=model.y, h=h, u=u, mass_out=z[:, model.mass_out_idx],
                     GC=GC, WM=WM, s1=z[:, model.s1_idx], s2=z[:, model.s2_idx],
-                    save_figures=model.save_figs,
-                    save_figures_separately=model.save_figs_separately)
+                    save_figures=model.save_figures,
+                    separate_figures=model.separate_figures)
 
     return (flag, t, z, GC)

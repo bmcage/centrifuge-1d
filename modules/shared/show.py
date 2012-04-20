@@ -102,7 +102,7 @@ SAVE_PATH = '/home/archetyp/projekty/lyx/geosound/'
 def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 mass_out = None, mass_in = None,
                 GC = None, RM = None,  WM = None,
-                fignum = 1, save_figures=False, save_figures_separately=False):
+                fignum = 1, save_figures=False, separate_figures=False):
 
     twins = ((mass_out, mass_in), (GC, RM), (s1, s2), (WM, None))
     ylabels = (('Exspelled water [cm]', 'Inflow water [cm]'),
