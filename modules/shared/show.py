@@ -97,10 +97,12 @@ def display_table(t_measured=None, t_computed=None,
 
     input('Press ENTER to continue...')
 
+SAVE_PATH = '/home/archetyp/projekty/lyx/geosound/'
+
 def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 mass_out = None, mass_in = None,
                 GC = None, RM = None,  WM = None,
-                fignum = 1, save_figures=False, save_separately=False):
+                fignum = 1, save_figures=False, save_figures_separately=False):
 
     twins = ((mass_out, mass_in), (GC, RM), (s1, s2), (WM, None))
     ylabels = (('Exspelled water [cm]', 'Inflow water [cm]'),
@@ -145,6 +147,9 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
     for ((v1, v2), (ylabel1, ylabel2)) in zip(twins, ylabels):
         if (not v1 is None) or (not v2 is None):
             if row == 2:
+                if save_figures:
+                    fname = SAVE_PATH + ('Image-%i' % fignum)
+                    plt.savefig(fname, dpi=300)
                 fignum = fignum + 1
                 row = 0
 
@@ -172,5 +177,8 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
             plt.ylabel(ylabel2)
 
     plt.show(block=False)
+    if save_figures:
+        fname = SAVE_PATH + ('Image-%i' % fignum)
+        plt.savefig(fname, dpi=300)
 
     input('Press ENTER to continue...')
