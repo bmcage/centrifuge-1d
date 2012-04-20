@@ -111,11 +111,13 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                ('Interface s1 [cm]', 'Interface s2 [cm]'),
                ('Water mass [cm]', None))
 
-    plt.figure(fignum, figsize=(16, 8.5))
+    if not separate_figures:
+        plt.figure(fignum, figsize=(16, 8.5))
+        plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
 
-    plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
-
-    row = -1
+        row = -1
+    else:
+        fignum = fignum -1 # adjust as every separate figure increases +1
 
     if (not h is None) and (not u is None):
         if (s1 is None) or (s2 is None) or (y is None):
@@ -129,23 +131,41 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
             x = y2x(y, s1, s2)
 
             if not h is None:
-                plt.subplot(321)
+                if separate_figures:
+                    fignum = fignum + 1
+                    plt.figure(fignum)
+                else:
+                    plt.subplot(321)
                 plt.plot(x.transpose(), h.transpose(), '.')
                 plt.xlabel('Rotational axis distance ''r'' [cm]')
                 plt.ylabel('Piezometric head ''h'' [cm]')
 
+                if save_figures and separate_figures:
+                    fname = SAVE_PATH + 'Image-h'
+                    plt.savefig(fname, dpi=300)
+
             if not u is None:
-                plt.subplot(322)
+                if separate_figures:
+                    fignum = fignum + 1
+                    plt.figure(fignum)
+                else:
+                    plt.subplot(322)
                 plt.plot(x.transpose(), u.transpose(), '.')
                 plt.xlabel('Rotational axis distance ''r'' [cm]')
                 plt.ylabel('Relative saturation ''u''')
                 plt.legend(legend_data, bbox_to_anchor=(1.02, 1.), loc=2,
                            borderaxespad=0.0)
 
+                if save_figures and separate_figures:
+                    fname = SAVE_PATH + 'Image-u'
+                    plt.savefig(fname, dpi=300)
+
                 row = 0
 
     for ((v1, v2), (ylabel1, ylabel2)) in zip(twins, ylabels):
-        if (not v1 is None) or (not v2 is None):
+        if (v1 is None) and (v2 is None): continue
+
+        if not separate_figures:
             if row == 2:
                 if save_figures:
                     fname = SAVE_PATH + ('Image-%i' % fignum)
@@ -157,24 +177,38 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
             else:
                 row = row + 1
-        else:
-            continue
 
         column = 1
 
         if not v1 is None:
-            plt.subplot(3,2,2*row + column)
+            if separate_figures:
+                fignum = fignum + 1
+                plt.figure(fignum)
+            else:
+                plt.subplot(3,2,2*row + column)
             plt.plot(t, v1, '.')
             plt.xlabel('Time [s]')
             plt.ylabel(ylabel1)
 
+            if save_figures and separate_figures:
+                fname = SAVE_PATH + ('Image-%i' % fignum)
+                plt.savefig(fname, dpi=300)
+
             column = 2
 
         if not v2 is None:
-            plt.subplot(3,2,2*row + column)
+            if separate_figures:
+                fignum = fignum + 1
+                plt.figure(fignum)
+            else:
+                plt.subplot(3,2,2*row + column)
             plt.plot(t, v2, '.')
             plt.xlabel('Time [s]')
             plt.ylabel(ylabel2)
+
+            if save_figures and separate_figures:
+                fname = SAVE_PATH + ('Image-%i' % fignum)
+                plt.savefig(fname, dpi=300)
 
     plt.show(block=False)
     if save_figures:
