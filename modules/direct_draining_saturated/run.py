@@ -82,7 +82,6 @@ class centrifuge_residual(ResFunction):
             q_last  = np.maximum(1e-12,
                                  -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
             result[last_idx]  = hdot[-1]
-            print('kh', Kh_last, q_last, dhdr_last)
 
         result[model.mass_in_idx]  = zdot[model.mass_in_idx]
         result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_last
@@ -146,9 +145,6 @@ def solve(model):
                              model)
         else:
             z0 = z[i-1, :]
-
-        print(z)
-        input('press')
 
         (flag, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0)
 
