@@ -171,7 +171,6 @@ def solve(model):
         from modules.shared.show import draw_graphs
 
         h = z[:, model.first_idx:model.last_idx+1]
-        GC[:] = 0.5
 
         draw_graphs(t, y=model.y, h=h, u=u, mass_out=z[:, model.mass_out_idx],
                     GC=GC, WM=WM, s1=z[:, model.s1_idx], s2=z[:, model.s2_idx],
