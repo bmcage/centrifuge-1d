@@ -104,6 +104,8 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 GC = None, RM = None,  WM = None,
                 fignum = 1, save_figures=False, separate_figures=False):
 
+    print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
+
     twins = ((mass_out, mass_in), (GC, RM), (s1, s2), (WM, None))
     ylabels = (('Exspelled water [cm]', 'Inflow water [cm]'),
                ('Gravitational center [cm]',
@@ -136,9 +138,12 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                     plt.figure(fignum)
                 else:
                     plt.subplot(321)
-                plt.plot(x.transpose(), h.transpose(), '.')
-                plt.xlabel('Rotational axis distance ''r'' [cm]')
+                h_lines = plt.plot(x.transpose(), h.transpose(), '.')
+                plt.xlabel('Sample length ''L'' [cm]')
                 plt.ylabel('Piezometric head ''h'' [cm]')
+
+                if separate_figures:
+                    plt.figlegend(h_lines, legend_data, 1, borderaxespad=0.0)
 
                 if save_figures and separate_figures:
                     fname = SAVE_PATH + 'Image-h'
@@ -150,11 +155,10 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                     plt.figure(fignum)
                 else:
                     plt.subplot(322)
-                plt.plot(x.transpose(), u.transpose(), '.')
+                u_lines = plt.plot(x.transpose(), u.transpose(), '.')
                 plt.xlabel('Rotational axis distance ''r'' [cm]')
                 plt.ylabel('Relative saturation ''u''')
-                plt.legend(legend_data, bbox_to_anchor=(1.02, 1.), loc=2,
-                           borderaxespad=0.0)
+                plt.figlegend(u_lines, legend_data, loc=1, borderaxespad=0.0)
 
                 if save_figures and separate_figures:
                     fname = SAVE_PATH + 'Image-u'
