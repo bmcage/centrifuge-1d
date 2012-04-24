@@ -104,6 +104,12 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 GC = None, RM = None,  WM = None,
                 fignum = 1, save_figures=False, separate_figures=False):
 
+    def add_legend(lines, times):
+        legend_data = ['% 7d' % ti for ti in times]
+
+        plt.figlegend(h_lines, legend_data, 1, borderaxespad=0.0,
+                      title="Time [s]", prop={'family': 'monospace'})
+
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
 
     twins = ((mass_out, mass_in), (GC, RM), (s1, s2), (WM, None))
@@ -126,10 +132,6 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
             print('draw_graphs error: for ''h'' and/or ''u'' to be displayed '
                   'all ''s1'', ''s2'' and ''y'' have to be set.')
         else:
-            legend_data = []
-            for i in range(len(t)):
-                legend_data.append('t =%7d' % t[i])
-
             x = y2x(y, s1, s2)
 
             if not h is None:
@@ -143,7 +145,7 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 plt.ylabel('Piezometric head ''h'' [cm]')
 
                 if separate_figures:
-                    plt.figlegend(h_lines, legend_data, 1, borderaxespad=0.0)
+                   add_legend(h_lines, t)
 
                 if save_figures and separate_figures:
                     fname = SAVE_PATH + 'Image-h'
@@ -158,7 +160,7 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 u_lines = plt.plot(x.transpose(), u.transpose(), '.')
                 plt.xlabel('Rotational axis distance ''r'' [cm]')
                 plt.ylabel('Relative saturation ''u''')
-                plt.figlegend(u_lines, legend_data, loc=1, borderaxespad=0.0)
+                add_legend(u_lines, t)
 
                 if save_figures and separate_figures:
                     fname = SAVE_PATH + 'Image-u'
