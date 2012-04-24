@@ -23,13 +23,21 @@ def parse_input():
          '\n        the file ''./sources/csv/<csv_ID>[.cvs]'' ')
 
     optparser = OptionParser(usage=usage_str)
+    optparser.add_option('-l', '--list', dest='list', action="store_true",
+                         default=False,
+                         help="Lists all available CSV files")
 
     (options, args) = optparser.parse_args()
 
     len_args = len(args)
 
     if len_args == 0:
-        optparser.print_help()
+        if options.list:
+            from os import listdir
+
+            print('\n'.join(sorted(listdir(csv_dir))))
+        else:
+            optparser.print_help()
         exit(0)
 
     csv_filename = csv_dir + args[0]
