@@ -17,7 +17,7 @@ CONFIG_OPTIONS = {
         'defaults'  : {'rho': 1.0},
         'dependent' : {'theta_s': (should_theta_s_be_present, ['theta_s']),
                        'theta_r': (should_theta_r_be_present, ['theta_r'])},
-        'optional'  : ['sample_id'],
+        'optional'  : ['sample_id', 'wl_out1'],
         'additional': []
         }
 
