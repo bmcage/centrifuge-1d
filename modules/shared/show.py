@@ -168,8 +168,8 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
 
                 row = 0
 
-    for ((v1, v2), (ylabel1, ylabel2)) in zip(twins, ylabels):
-        if (v1 is None) and (v2 is None): continue
+    for (v, ylabel) in zip(twins, ylabels):
+        if all(map(lambda vi: vi is None, v)): continue
 
         if not separate_figures:
             if row == 2:
@@ -186,35 +186,22 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
 
         column = 1
 
-        if not v1 is None:
-            if separate_figures:
-                fignum = fignum + 1
-                plt.figure(fignum)
-            else:
-                plt.subplot(3,2,2*row + column)
-            plt.plot(t, v1, '.')
-            plt.xlabel('Time [s]')
-            plt.ylabel(ylabel1)
+        for (v1, ylabel1) in zip(v, ylabel):
+            if not v1 is None:
+                if separate_figures:
+                    fignum = fignum + 1
+                    plt.figure(fignum)
+                else:
+                    plt.subplot(3,2,2*row + column)
+                plt.plot(t, v1, '.')
+                plt.xlabel('Time [s]')
+                plt.ylabel(ylabel1)
 
-            if save_figures and separate_figures:
-                fname = SAVE_PATH + ('Image-%i' % fignum)
-                plt.savefig(fname, dpi=300)
+                if save_figures and separate_figures:
+                    fname = SAVE_PATH + ('Image-%i' % fignum)
+                    plt.savefig(fname, dpi=300)
 
-            column = 2
-
-        if not v2 is None:
-            if separate_figures:
-                fignum = fignum + 1
-                plt.figure(fignum)
-            else:
-                plt.subplot(3,2,2*row + column)
-            plt.plot(t, v2, '.')
-            plt.xlabel('Time [s]')
-            plt.ylabel(ylabel2)
-
-            if save_figures and separate_figures:
-                fname = SAVE_PATH + ('Image-%i' % fignum)
-                plt.savefig(fname, dpi=300)
+                column = column + 1
 
     plt.show(block=False)
     if save_figures:
