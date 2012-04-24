@@ -31,12 +31,14 @@ def solve(model):
     z = np.empty([model.iterations+1, 2], dtype=float) # z[wl_in, wl_out]
 
     model.init_iteration()
+
     t[0] = 0.0
     z[0, :] = np.asarray([model.wl0, 0.0], dtype = float)
 
     while True:
         i = model.iteration
         z0 = z[i-1, :]
+        z0[0] = model.wl0
 
         (success_p, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0)
 
