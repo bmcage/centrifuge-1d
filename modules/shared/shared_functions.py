@@ -28,6 +28,22 @@ def lagrangean_derivative_coefs_rightpoint(dx12, fx13):
 
     return derivative
 
+def scale_array(v, result=None):
+    """
+      Divide all elements of 'v' by it maximal absolute value so all elements
+      get scaled to <0,1> interval. If 'result' is not None, store the values
+      there.
+    """
+    maxv = np.max(np.abs(v))
+
+    if maxv == 0.0: return v
+
+    if result is None
+        return v / maxv
+    else
+        result[:] = v / maxv
+        return result
+
 def f1(t):
     return 1.7032046506 * np.power(t, 1.233644749)
 def f2(t):
