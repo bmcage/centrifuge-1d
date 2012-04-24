@@ -112,13 +112,6 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
 
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
 
-    twins = ((mass_out, mass_in), (GC, RM), (s1, s2), (WM, None))
-    ylabels = (('Exspelled water [cm]', 'Inflow water [cm]'),
-               ('Gravitational center [cm]',
-                'Rotational momentum [kg.m.s$^{-1}$]'),
-               ('Interface s1 [cm]', 'Interface s2 [cm]'),
-               ('Water mass [cm]', None))
-
     if not separate_figures:
         plt.figure(fignum, figsize=(16, 8.5))
         plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
@@ -167,6 +160,18 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                     plt.savefig(fname, dpi=300)
 
                 row = 0
+
+    if (not s1 is None) and all(s1 == 0.0):   s1 = None
+    if (not s2 is None) and all(s2 == s2[0]): s2 = None
+    if (not mass_in  is None) and all(mass_in  == 0.0): mass_in  = None
+    if (not mass_out is None) and all(mass_out == 0.0): mass_out = None
+
+    twins = ((mass_out, mass_in), (GC, RM), (s1, s2), (WM, None))
+    ylabels = (('Exspelled water [cm]', 'Inflow water [cm]'),
+               ('Gravitational center [cm]',
+                'Rotational momentum [kg.m.s$^{-1}$]'),
+               ('Interface s1 [cm]', 'Interface s2 [cm]'),
+               ('Water mass [cm]', None))
 
     for (v, ylabel) in zip(twins, ylabels):
         if all(map(lambda vi: vi is None, v)): continue
