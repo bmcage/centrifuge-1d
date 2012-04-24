@@ -1,5 +1,6 @@
 from modules.direct_draining_saturated.run import solve as solve_direct
 from modules.shared.solver import simulate_inverse
+from modules.shared.shared_functions import scale_array
 from numpy import concatenate, asarray
 
 def print_results(model, inv_params, t_inv, wl1_inv, gc1_inv):
@@ -59,16 +60,21 @@ def solve(model):
 
         (t, gc1, wl_out1) = ip_direct_drainage(xdata, optim_args)
 
+        scale_array(gc1, gc1)
+        scale_array(wl_out1, wl_out1)
+
         result = concatenate((gc1, wl_out1))
 
         return result
 
     if model.exp_type in ['ids', 'idsh']:
-        data_measured = \
-          concatenate((asarray(model.get_iterable_value('gc1'),
-                               dtype=float),
-                       asarray(model.get_iterable_value('wl_out1'),
-                               dtype=float)))
+        gc_meas      = asarray(model.get_iterable_value('gc1'), dtype=float)
+        wl_out_meas = asarray(model.get_iterable_value('wl_out1'), dtype=float)
+
+        scale_array(gc_meas, gc_meas)
+        scale_array(wl_out_meas, wl_out_meas)
+
+        data_measured = concatenate((gc_meas, wl_out_meas))
 
         lsq_direct_fn = lsq_ip_direct_drainage
         direct_fn     = ip_direct_drainage
