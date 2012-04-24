@@ -26,13 +26,18 @@ def print_results(model, Ks_inv, t_inv, wl1_inv):
 def solve(model):
     def ip_direct_saturated_heights(model, Ks):
         model.ks = Ks
+        print(Ks)
 
         (_flag, t, z) = direct_solve(model)
 
         return t, z[1:, model.mass_in_idx]
 
     def lsq_ip_direct_saturated_heights(xdata, Ks):
-        return ip_direct_saturated_heights(xdata, Ks)[1] # return only wl
+        wl_computed = ip_direct_saturated_heights(xdata, Ks)[1] # return only wl
+        print('wl comp', wl_computed)
+        print('wl meas', model.get_iterable_value('wl1'))
+        input('press ENTER...')
+        return wl_computed
 
     # resolve the type of measured data
     if model.exp_type in ['ish', 'ish-sc', 'ish-f']:
