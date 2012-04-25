@@ -6,6 +6,7 @@ PARENTAL_MODULES = ['base']
 CONFIG_OPTIONS = {
         'mandatory' : ['inner_points', 'dtype', 'n', 'gamma', 'draw_graphs',
                        'h_init', 'porosity',
+                       'calc_gc', 'calc_rm',
                        'rb_type'],
         'defaults'  : {},
         'dependent' : {'rb':

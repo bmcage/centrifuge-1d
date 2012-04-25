@@ -3,7 +3,7 @@ import numpy as np
 from scikits.odes.sundials.common_defs import ResFunction
 from modules.shared.shared_functions import find_omega2g
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
-from modules.shared.characteristics import water_mass, calc_gc
+from modules.shared.characteristics import water_mass, calc_gc, calc_rm
 from modules.shared.solver import simulate_direct
 
 class centrifuge_residual(ResFunction):
@@ -96,7 +96,7 @@ residual_fn = centrifuge_residual()
 def solve(model):
 
     t   = np.empty([model.iterations+1, ], dtype=float)
-    GC  = np.empty([model.iterations+1, ], dtype=float)
+
     WM  = np.empty([model.iterations+1, ], dtype=float)
     z   = np.empty([model.iterations+1, model.z_size], dtype=float)
     u   = np.empty([model.iterations+1, model.inner_points+2], dtype=float)
@@ -141,8 +141,14 @@ def solve(model):
              WM_total, WM_in_tube = water_mass(u[0, :], mass_in, mass_out,
                                                s1, s2, model)
              WM[0] = WM_total
-             GC[0] = calc_gc(u[0, :], mass_in, mass_out, s1, s2, WM_in_tube,
-                             model)
+             if model.calc_gc:
+                 GC    = np.empty([model.iterations+1, ], dtype=float)
+                 GC[0] = calc_gc(u[0, :], mass_in, mass_out, s1, s2, WM_in_tube,
+                                 model)
+             if model.calc_rm:
+                 RM    = np.empty([model.iterations+1, ], dtype=float)
+                 RM[0] = calc_rm(t[0], u[0, :], mass_in, mass_out, s1, s2,
+                                 model)
         else:
             z0 = z[i-1, :]
 
@@ -160,8 +166,11 @@ def solve(model):
         WM_total, WM_in_tube = water_mass(u[i, :], mass_in, mass_out,
                                           s1, s2, model)
         WM[i] = WM_total
-        GC[i] = calc_gc(u[i, :], mass_in, mass_out, s1, s2, WM_in_tube,
-                        model)
+        if model.calc_gc:
+            GC[i] = calc_gc(u[i, :], mass_in, mass_out, s1, s2, WM_in_tube,
+                            model)
+        if model.calc_rm:
+            RM[i] = calc_rm(t[i], u[i, :], mass_in, mass_out, s1, s2, model)
 
         # print('results', GC, z[:, model.mass_out_idx], u,
         #       z[:, :model.last_idx+1])
@@ -172,9 +181,21 @@ def solve(model):
 
         h = z[:, model.first_idx:model.last_idx+1]
 
+        if not model.calc_gc:
+            GC = None
+
+        if not model.calc_rm:
+            RM = None
+
         draw_graphs(t, y=model.y, h=h, u=u, mass_out=z[:, model.mass_out_idx],
-                    GC=GC, WM=WM, s1=z[:, model.s1_idx], s2=z[:, model.s2_idx],
+                    GC=GC, RM=RM, WM=WM,
+                    s1=z[:, model.s1_idx], s2=z[:, model.s2_idx],
                     save_figures=model.save_figures,
                     separate_figures=model.separate_figures)
 
-    return (flag, t, z, GC)
+    if not model.calc_gc:
+        GC = np.asarray([], dtype=float)
+    if not model.calc_rm:
+        RM = np.asarray([], dtype=float)
+
+    return (flag, t, z, GC, RM)

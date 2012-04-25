@@ -7,12 +7,12 @@ CONFIG_OPTIONS = {
                        (lambda cfg: len(cfg.get_value('inv_init_params')) == 2,
                         ['ks'])},
         'optional'  : ['wl_out1', 'gc1', 'rm1'],
-        'additional': []
+        'additional': ['calc_wl_out']
         }
 
 EXCLUDE_FROM_MODEL = []
 
-PROVIDE_OPTIONS = ['ks', 'n', 'gamma']
+PROVIDE_OPTIONS = ['ks', 'n', 'gamma', 'calc_gc', 'calc_rm']
 
 NONITERABLE_LIST_OPTIONS = ['inv_init_params']
 
@@ -31,4 +31,6 @@ def check_cfg(cfg):
     return True
 
 def adjust_cfg(cfg):
-    pass
+    cfg.set_value('calc_gc', not cfg.get_value('gc1') is None)
+    cfg.set_value('calc_rm', not cfg.get_value('rm1') is None)
+    cfg.set_value('calc_wl_out', not cfg.get_value('wl_out1') is None)
