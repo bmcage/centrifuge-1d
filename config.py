@@ -412,7 +412,7 @@ class Configuration:
 
         provided_options = []
 
-        def update_provided_options(options_module):
+        def update_special_options(options_module):
             if hasattr(options_module, 'PROVIDE_OPTIONS'):
                 provided_options.extend(options_module.PROVIDE_OPTIONS)
 
@@ -484,7 +484,7 @@ class Configuration:
 
         if not modman.traverse_ancestors(exp_type, primary_cfg_check,
                                          submodule='options',
-                                         prehook=update_provided_options):
+                                         prehook=update_special_options):
             return False
 
         if not modman.traverse_ancestors(exp_type, custom_cfg_check,
