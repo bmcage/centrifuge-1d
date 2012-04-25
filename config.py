@@ -413,7 +413,8 @@ class Configuration:
         provided_options = []
 
         def update_provided_options(options_module):
-            provided_options.extend(options_module.PROVIDE_OPTIONS)
+            if hasattr(options_module, 'PROVIDE_OPTIONS'):
+                provided_options.extend(options_module.PROVIDE_OPTIONS)
 
         def check_options(options):
             required_options = set(options)
