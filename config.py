@@ -410,11 +410,11 @@ class Configuration:
 
     def is_valid(self, modman):
 
-        provided_options = []
+        provided_options = set([])
 
         def update_special_options(options_module):
             if hasattr(options_module, 'PROVIDE_OPTIONS'):
-                provided_options.extend(options_module.PROVIDE_OPTIONS)
+                provided_options.update(options_module.PROVIDE_OPTIONS)
 
         def check_options(options):
             required_options = set(options)
