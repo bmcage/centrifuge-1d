@@ -18,7 +18,7 @@ EXCLUDE_FROM_MODEL = []
 NONITERABLE_LIST_OPTIONS = \
   (CONFIG_OPTIONS['mandatory'] + CONFIG_OPTIONS['optional'])
 
-IGNORE_OPTIONS = []
+PROVIDE_OPTIONS = []
 
 def check_cfg(cfg):
     return True

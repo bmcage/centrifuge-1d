@@ -25,7 +25,7 @@ EXCLUDE_FROM_MODEL = []
 
 NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'p', 'theta']
 
-IGNORE_OPTIONS = ['duration', 'ks', 'r0', 'l0', 'rtol', 'atol', 'wt_out',
+PROVIDE_OPTIONS = ['duration', 'ks', 'r0', 'l0', 'rtol', 'atol', 'wt_out',
                   'omega']
 
 def check_cfg(cfg):

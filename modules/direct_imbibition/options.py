@@ -10,7 +10,7 @@ CONFIG_OPTIONS = {
 
 EXCLUDE_FROM_MODEL = ['percent_in_saturation']
 
-IGNORE_OPTIONS = []
+PROVIDE_OPTIONS = []
 
 def check_cfg(cfg):
     value = cfg.get_value('percent_in_saturation')

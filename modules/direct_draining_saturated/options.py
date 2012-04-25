@@ -19,7 +19,7 @@ CONFIG_OPTIONS = {
 
 EXCLUDE_FROM_MODEL = ['dtype']
 
-IGNORE_OPTIONS = []
+PROVIDE_OPTIONS = []
 
 def adjust_cfg(cfg):
     inner_points = cfg.get_value('inner_points')

@@ -410,14 +410,14 @@ class Configuration:
 
     def is_valid(self, modman):
 
-        ignored_options = []
+        provided_options = []
 
-        def update_ignored_options(options_module):
-            ignored_options.extend(options_module.IGNORE_OPTIONS)
+        def update_provided_options(options_module):
+            provided_options.extend(options_module.PROVIDE_OPTIONS)
 
         def check_options(options):
             required_options = set(options)
-            required_options.difference_update(ignored_options)
+            required_options.difference_update(provided_options)
 
             missing_options = self.missing_options(required_options)
             if missing_options:
@@ -483,7 +483,7 @@ class Configuration:
 
         if not modman.traverse_ancestors(exp_type, primary_cfg_check,
                                          submodule='options',
-                                         prehook=update_ignored_options):
+                                         prehook=update_provided_options):
             return False
 
         if not modman.traverse_ancestors(exp_type, custom_cfg_check,
@@ -492,8 +492,21 @@ class Configuration:
 
         if alien_options:
             print('\nFound following alien options in configuration:')
-            for option in alien_options:
-                print('  ', option)
+            provided_aliens = alien_options.intersection(provided_options)
+            if not provided_aliens.issubset([]):
+                print('\n  Options found in configuration, but provided by '
+                      'a centrifuge module:')
+                for option in provided_aliens:
+                    print('    ', option)
+
+                alien_options.difference_update(provided_aliens)
+
+            if alien_options:
+                print('\n Options found in configuration, but not specified'
+                      'by a module:')
+                for option in alien_options:
+                    print('  ', option)
+
             return False
 
         return True

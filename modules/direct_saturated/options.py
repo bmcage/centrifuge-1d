@@ -10,7 +10,7 @@ CONFIG_OPTIONS = {
 
 EXCLUDE_FROM_MODEL = []
 
-IGNORE_OPTIONS = []
+PROVIDE_OPTIONS = []
 
 def adjust_cfg(cfg):
     cfg.set_value('mass_in_idx',  0)

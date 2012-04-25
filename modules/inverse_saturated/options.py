@@ -10,7 +10,7 @@ CONFIG_OPTIONS = {
 
 EXCLUDE_FROM_MODEL = []
 
-IGNORE_OPTIONS = ['ks']
+PROVIDE_OPTIONS = ['ks']
 
 def adjust_cfg(cfg):
     pass

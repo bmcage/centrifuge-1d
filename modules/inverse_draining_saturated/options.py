@@ -12,7 +12,7 @@ CONFIG_OPTIONS = {
 
 EXCLUDE_FROM_MODEL = []
 
-IGNORE_OPTIONS = ['ks', 'n', 'gamma']
+PROVIDE_OPTIONS = ['ks', 'n', 'gamma']
 
 NONITERABLE_LIST_OPTIONS = ['inv_init_params']
 
