@@ -411,16 +411,36 @@ class Configuration:
     def is_valid(self, modman):
 
         provided_options = set([])
+        blacklisted_options = set([])
 
         def update_special_options(options_module):
             if hasattr(options_module, 'PROVIDE_OPTIONS'):
                 provided_options.update(options_module.PROVIDE_OPTIONS)
+            if hasattr(options_module, 'BLACKLIST_OPTIONS'):
+                blacklisted_options.update(options_module.BLACKLIST_OPTIONS)
+
+        alien_options = set(self.list_options())
+
+        def handle_special_options(options):
+            """
+              From 'options' remove provided and blacklisted options and
+              modify accordingly the 'alien_options' list.
+            """
+
+            normal_options = set(options)
+            normal_options.difference_update(provided_options)
+            normal_options.difference_update(blacklisted_options)
+
+            alien_options.difference_update(normal_options)
+
+            return normal_options
 
         def check_options(options):
-            required_options = set(options)
-            required_options.difference_update(provided_options)
-
-            missing_options = self.missing_options(required_options)
+            """
+              Check whether all supplied 'options' in present configuration.
+              current configuration.
+            """
+            missing_options = self.missing_options(options)
             if missing_options:
                 print('Following required options are not present: ')
                 for option in missing_options:
@@ -429,39 +449,33 @@ class Configuration:
                 return False
             return True
 
-        alien_options = set(self.list_options())
-
         def primary_cfg_check(options_module):
             config_parameters = options_module.CONFIG_OPTIONS
 
-            if not check_options(config_parameters['mandatory']):
+            required_options = \
+              handle_special_options(config_parameters['mandatory'])
+
+            if not check_options(required_options):
                 return False
 
-            # remove known options from the list
-            alien_options.difference_update(set(config_parameters['mandatory']))
-
             if 'dependent' in config_parameters:
-                dependent_options = config_parameters['dependent']
-
                 for (test_fn, dependent_options) \
                   in config_parameters['dependent'].values():
 
                     if test_fn(self):
-                        if not check_options(dependent_options):
+                        required_options = \
+                          handle_special_options(dependent_options)
+                        if not check_options(required_options):
                             return False
-                    alien_options.difference_update(set(dependent_options))
 
             if 'optional' in config_parameters:
-                optional_options = config_parameters['optional']
-                alien_options.difference_update(set(optional_options))
+                handle_special_options(config_parameters['optional'])
 
             if 'defaults' in config_parameters:
-                defaults_options = config_parameters['defaults']
-                alien_options.difference_update(set(defaults_options))
+                handle_special_options(config_parameters['defaults'])
 
             if 'additional' in config_parameters:
-                additional_options = config_parameters['additional']
-                alien_options.difference_update(set(additional_options))
+                handle_special_options(config_parameters['additional'])
 
             return True
 
@@ -493,14 +507,24 @@ class Configuration:
 
         if alien_options:
             print('\nFound following alien options in configuration:')
+
             provided_aliens = alien_options.intersection(provided_options)
             if not provided_aliens.issubset([]):
-                print('\n  Options found in configuration, but provided by '
+                print('\n  Options found in configuration, but PROVIDED by '
                       'a centrifuge module:')
                 for option in provided_aliens:
                     print('    ', option)
 
                 alien_options.difference_update(provided_aliens)
+
+            blacklisted_aliens = alien_options.intersection(blacklisted_options)
+            if not blacklisted_aliens.issubset([]):
+                print('\n  Options found in configuration, but BLACKLISTED by '
+                      'a centrifuge module:')
+                for option in blacklisted_aliens:
+                    print('    ', option)
+
+                    alien_options.difference_update(blacklisted_aliens)
 
             if alien_options:
                 print('\n Options found in configuration, but not specified'
