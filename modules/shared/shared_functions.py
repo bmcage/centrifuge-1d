@@ -38,9 +38,9 @@ def scale_array(v, result=None):
 
     if maxv == 0.0: return v
 
-    if result is None
+    if result is None:
         return v / maxv
-    else
+    else:
         result[:] = v / maxv
         return result
 
