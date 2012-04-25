@@ -557,7 +557,8 @@ class ModelParameters:
 
         def update_options_list(options_module):
             #global exclude_options
-            exclude_options.extend(options_module.EXCLUDE_FROM_MODEL)
+            if hasattr(options_module, 'EXCLUDE_FROM_MODEL'):
+                exclude_options.extend(options_module.EXCLUDE_FROM_MODEL)
 
             if hasattr(options_module, 'NONITERABLE_LIST_OPTIONS'):
                 atoms.extend(options_module.NONITERABLE_LIST_OPTIONS)
