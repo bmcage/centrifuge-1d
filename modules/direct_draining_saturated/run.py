@@ -143,7 +143,7 @@ def solve(model):
              WM[0] = WM_total
              if model.calc_gc:
                  GC    = np.empty([model.iterations+1, ], dtype=float)
-                 GC[0] = calc_gc(u[0, :], mass_in, mass_out, s1, s2, WM_in_tube,
+                 GC[0] = calc_gc(u[0, :], mass_in, s1, s2, WM_in_tube,
                                  model)
              if model.calc_rm:
                  RM    = np.empty([model.iterations+1, ], dtype=float)
@@ -167,8 +167,9 @@ def solve(model):
                                           s1, s2, model)
         WM[i] = WM_total
         if model.calc_gc:
-            GC[i] = calc_gc(u[i, :], mass_in, mass_out, s1, s2, WM_in_tube,
+            GC[i] = calc_gc(u[i, :], mass_in, s1, s2, WM_in_tube,
                             model)
+
         if model.calc_rm:
             RM[i] = calc_rm(t[i], u[i, :], mass_in, mass_out, s1, s2, model)
 

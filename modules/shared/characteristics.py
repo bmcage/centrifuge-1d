@@ -19,17 +19,17 @@ def water_mass(u, mass_in, mass_out, s1, s2, model):
 
     return WM_total, WM_in_tube
 
-def calc_gc(u, mass_in, mass_out, s1, s2, WM_in_tube, model):
+def calc_gc(u, mass_in, s1, s2, WM_in_tube, model):
     """
-      Determine the gravitational center in the sample.
-      GC is found from the start of the soil sample (not from centr.axis)
+      Determine the gravitational center of water in the sample. The water
+      on thi inflow is taken into account (but not water on the outflow).
+      Computed GC is measured from the end of the soil sample
+      (in the direction from centrifuge axis)
     """
     y  = model.y
     dy = model.dy
     ds = s2 - s1
     L  = model.l0
-    l0_out = L + model.wt_out
-    l_out  = L + model.wt_out - mass_out
 
     # sample = filter1 + soil + filter2
     r0 = model.fl1
@@ -41,8 +41,7 @@ def calc_gc(u, mass_in, mass_out, s1, s2, WM_in_tube, model):
                             *(r0 + s1 + ds*y[1:-1])*u[1:-1])))
     gc_sat   = (1/2 * model.density
                 * (model.porosity * (np.power(r0 + s1, 2) - np.power(r0, 2))
-                   + (np.power(r0, 2) - np.power(r0 - mass_in, 2))
-                   + (np.power(r0 + l0_out, 2) - np.power(r0 + l_out, 2))))
+                   + (np.power(r0, 2) - np.power(r0 - mass_in, 2))))
     gc_from_left  = (gc_unsat + gc_sat) / WM_in_tube
     gc_from_right = model.fl1 + model.l0 + model.fl2 - gc_from_left
 
