@@ -183,7 +183,7 @@ def run_experiments(options):
 
         results = solver_module.solve(model)
 
-        print('Results:\n', results)
+        #print('Results:\n', results)
 
         #collector('collect', data=results, tube_no=tube_no)
 
