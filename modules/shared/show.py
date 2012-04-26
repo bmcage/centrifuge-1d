@@ -151,7 +151,7 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 else:
                     plt.subplot(322)
                 u_lines = plt.plot(x.transpose(), u.transpose(), '.')
-                plt.xlabel('Rotational axis distance ''r'' [cm]')
+                plt.xlabel('Sample length ''L'' [cm]')
                 plt.ylabel('Relative saturation ''u''')
                 add_legend(u_lines, t)
 
