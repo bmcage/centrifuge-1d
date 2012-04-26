@@ -4,10 +4,7 @@ import csv
 from os import makedirs, path
 from optparse import OptionParser
 from config import ModulesManager
-
-base_dir = 'sources/'
-csv_dir  = base_dir + 'csv/'
-ini_dir  = base_dir + 'inifiles/'
+from const import CSV_DIR, INI_DIR
 
 modman = ModulesManager()
 
@@ -35,12 +32,12 @@ def parse_input():
         if options.list:
             from os import listdir
 
-            print('\n'.join(sorted(listdir(csv_dir))))
+            print('\n'.join(sorted(listdir(CSV_DIR))))
         else:
             optparser.print_help()
         exit(0)
 
-    csv_filename = csv_dir + args[0]
+    csv_filename = CSV_DIR + args[0]
 
     if path.exists(csv_filename):
             options.csv_filename = csv_filename
@@ -50,8 +47,8 @@ def parse_input():
         print('CSV file does not exist:{}'.format(csv_filename))
         exit(1)
 
-    if not path.exists(ini_dir):
-        makedirs(ini_dir)
+    if not path.exists(INI_DIR):
+        makedirs(INI_DIR)
 
     return options
 
@@ -207,4 +204,4 @@ if __name__ == "__main__":
     options = parse_input()
     data    = CSV2data(options.csv_filename)
 
-    data2ini(data, ini_dir)
+    data2ini(data, INI_DIR)

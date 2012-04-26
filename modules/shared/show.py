@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from numpy import alen, empty
+from const import FIGS_DIR
 
 def y2x(y, s1, s2):
     s1_len = alen(s1)
@@ -97,8 +98,6 @@ def display_table(t_measured=None, t_computed=None,
 
     input('Press ENTER to continue...')
 
-SAVE_PATH = '/home/archetyp/projekty/lyx/geosound/'
-
 def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 mass_out = None, mass_in = None,
                 GC = None, RM = None,  WM = None,
@@ -141,7 +140,7 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                    add_legend(h_lines, t)
 
                 if save_figures and separate_figures:
-                    fname = SAVE_PATH + 'Image-h'
+                    fname = FIGS_DIR + 'Image-h'
                     plt.savefig(fname, dpi=300)
 
             if not u is None:
@@ -156,7 +155,7 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 add_legend(u_lines, t)
 
                 if save_figures and separate_figures:
-                    fname = SAVE_PATH + 'Image-u'
+                    fname = FIGS_DIR + 'Image-u'
                     plt.savefig(fname, dpi=300)
 
                 row = 0
@@ -179,7 +178,7 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
         if not separate_figures:
             if row == 2:
                 if save_figures:
-                    fname = SAVE_PATH + ('Image-%i' % fignum)
+                    fname = FIGS_DIR + ('Image-%i' % fignum)
                     plt.savefig(fname, dpi=300)
                 fignum = fignum + 1
                 row = 0
@@ -203,14 +202,14 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 plt.ylabel(ylabel1)
 
                 if save_figures and separate_figures:
-                    fname = SAVE_PATH + ('Image-%i' % fignum)
+                    fname = FIGS_DIR + ('Image-%i' % fignum)
                     plt.savefig(fname, dpi=300)
 
                 column = column + 1
 
     plt.show(block=False)
     if save_figures:
-        fname = SAVE_PATH + ('Image-%i' % fignum)
+        fname = FIGS_DIR + ('Image-%i' % fignum)
         plt.savefig(fname, dpi=300)
 
     input('Press ENTER to continue...')

@@ -4,11 +4,11 @@ from os.path import exists
 from shared import (make_collector, print_by_tube, generate_tubes_suffixes)
 from config import ModulesManager, Configuration, ModelParameters
 from optparse import OptionParser
+from const import INI_DIR
 
 
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
-INIFILES_BASE_DIR = 'sources/inifiles'
 DEFAULT_TUBES     = '1,2,4,5'
 
 def parse_input():
@@ -55,7 +55,7 @@ def parse_input():
             from os import listdir
 
             if options.list:
-                print('\n'.join(sorted(listdir(INIFILES_BASE_DIR))))
+                print('\n'.join(sorted(listdir(INI_DIR))))
             if options.modules_list:
                 modman = ModulesManager()
                 modman.echo(options.verbose)
@@ -157,7 +157,7 @@ def run_experiments(options):
 
      #collector = make_collector(options.tubes)
 
-    for cfg in get_cfg(INIFILES_BASE_DIR, options.exp_id,
+    for cfg in get_cfg(INI_DIR, options.exp_id,
                        options.first_experiment, options.last_experiment,
                        options.tubes, verbose = (not options.print_config_p)):
 
