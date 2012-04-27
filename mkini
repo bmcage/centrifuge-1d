@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import csv
 
-from os import makedirs, path
+from os import makedirs, path, sep
 from optparse import OptionParser
 from config import ModulesManager
 from const import CSV_DIR, INI_DIR
@@ -37,7 +37,7 @@ def parse_input():
             optparser.print_help()
         exit(0)
 
-    csv_filename = CSV_DIR + args[0]
+    csv_filename = CSV_DIR + sep + args[0]
 
     if path.exists(csv_filename):
             options.csv_filename = csv_filename
@@ -165,7 +165,7 @@ def data2ini(data, output_dir):
     print('\nCreating data inifiles...')
 
     for (experiment_id, exp_id_struct) in data.items():
-        exp_out_dir  = output_dir + experiment_id + '/'
+        exp_out_dir  = output_dir + sep + experiment_id + '/'
 
         if not path.exists(exp_out_dir):
             makedirs(exp_out_dir)
