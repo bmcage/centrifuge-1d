@@ -56,7 +56,7 @@ def solve(model):
         if model.calc_wl_out:
             wl_out1 = z[1:, model.mass_out_idx].transpose()
         else:
-            wl_out1 = np.empty([0,], dtype=float)
+            wl_out1 = empty([0,], dtype=float)
 
         if model.calc_gc:
             gc1 = gc1[1:]
@@ -92,13 +92,13 @@ def solve(model):
                                   dtype=float)
             scale_array(wl_out_meas, wl_out_meas)
         else:
-            wl_out_meas = np.empty([0,], dtype=float)
+            wl_out_meas = empty([0,], dtype=float)
 
         if model.calc_gc:
             gc_meas  = asarray(model.get_iterable_value('gc1'), dtype=float)
             scale_array(gc_meas, gc_meas)
         else:
-            gc_meas = np.empty([0,], dtype=float)
+            gc_meas = empty([0,], dtype=float)
 
         if model.calc_rm:
             rm_meas  = asarray(model.get_iterable_value('rm1'), dtype=float)
