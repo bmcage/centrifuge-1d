@@ -1,7 +1,7 @@
 from modules.direct_draining_saturated.run import solve as solve_direct
 from modules.shared.solver import simulate_inverse
 from modules.shared.shared_functions import scale_array
-from numpy import concatenate, asarray, empty, zeros, ones
+from numpy import concatenate, asarray, empty, zeros, ones, log, exp, cumsum
 
 def print_results(model, inv_params, t_inv, wl_out1_inv, gc1_inv):
     duration = model.get_iterable_value('duration')
@@ -45,11 +45,13 @@ def solve(model):
 
     def ip_direct_drainage(model, optim_args):
         if determine_all:
-            (model.ks, model.n, model.gamma) = optim_args
+            (model.ks, log_n, log_gamma) = optim_args
         else:
-            (model.n, model.gamma) = optim_args
+            (log_n, log_gamma) = optim_args
 
-        model.m = 1-1/model.n
+        model.n     = 1+exp(log_n)
+        model.m     = 1-1/model.n
+        model.gamma = -exp(log_gamma)
 
         (_flag, t, z, gc1, rm1) = solve_direct(model)
 
@@ -76,10 +78,6 @@ def solve(model):
         if model.calc_rm:
             scale_array(rm1, rm1)
 
-        return (t, wl_out1, gc1, rm1)
-
-        return result
-
     if model.exp_type in ['ids', 'idsh']:
         if model.calc_wl_out:
             wl_out_meas = asarray(model.get_iterable_value('wl_out1'),
@@ -100,11 +98,17 @@ def solve(model):
         else:
             rm_meas = empty([0,], dtype=float)
 
+        t_meas = cumsum([0] + model.get_iterable_value('duration'), dtype=float)
 
-        data_measured = concatenate((wl_out_meas, gc_meas, rm_meas))
-
+    data_measured = concatenate((t_meas, wl_out_meas, gc_meas, rm_meas))
     xdata         = model
-    init_params   = model.inv_init_params
+
+    if determine_all:
+        (ks_init, n_init, gamma_init) = model.inv_init_params
+        init_params = (ks_init, log(n_init - 1.0), log(-gamma_init))
+    else:
+        (n_init, gamma_init) = optim_args
+        init_params  = (log(n_init - 1.0), log(-gamma_init))
 
     inv_params, cov_ks = simulate_inverse(ip_direct_drainage, xdata,
                                           data_measured, init_params)
