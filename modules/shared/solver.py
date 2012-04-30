@@ -1,5 +1,5 @@
 import scikits.odes.sundials.ida as ida
-from numpy import zeros
+from numpy import zeros, concatenate
 from scipy.optimize import curve_fit
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
@@ -56,6 +56,6 @@ def simulate_inverse(lsq_direct_fn, xdata, ydata, init_params):
 
     def lsq_wrapper_fn(xdata, *optim_args):
         direct_results = lsq_direct_fn(xdata, optim_args)
-        return np.concatenate(direct_results)
+        return concatenate(direct_results)
 
     return curve_fit(lsq_wrapper_fn, xdata, ydata, p0 = init_params)
