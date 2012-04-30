@@ -53,4 +53,9 @@ def simulate_direct(model, residual_fn, z0):
     return (True, t_out, z_out)
 
 def simulate_inverse(lsq_direct_fn, xdata, ydata, init_params):
-    return curve_fit(lsq_direct_fn, xdata, ydata, p0 = init_params)
+
+    def lsq_wrapper_fn(xdata, *optim_args):
+        direct_results = lsq_direct_fn(xdata, optim_args)
+        return np.concatenate(direct_results)
+
+    return curve_fit(lsq_wrapper_fn, xdata, ydata, p0 = init_params)
