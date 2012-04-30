@@ -78,6 +78,8 @@ def solve(model):
         if model.calc_rm:
             scale_array(rm1, rm1)
 
+        return (t, wl_out1, gc1, rm1)
+
     if model.exp_type in ['ids', 'idsh']:
         if model.calc_wl_out:
             wl_out_meas = asarray(model.get_iterable_value('wl_out1'),
