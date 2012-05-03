@@ -8,7 +8,7 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
-from numpy import pi
+from numpy import pi, inf
 from os import listdir
 from sys import modules as sysmodules
 from math import sqrt
@@ -188,6 +188,10 @@ def parse_value(str_value):
             return True
         elif raw_value == 'False':
             return False
+        elif raw_value == 'inf':
+            return inf
+        elif raw_value == '-inf':
+            return -inf
         elif "." in raw_value or "e" in raw_value or "E" in raw_value:
             return float(raw_value)
         elif raw_value[0] == "(" and raw_value[-1] == ")":
