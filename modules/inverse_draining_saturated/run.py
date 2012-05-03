@@ -70,13 +70,18 @@ def solve(model):
 
     def ip_direct_drainage(model, optim_args):
         if determine_all:
-            (model.ks, log_n, log_gamma) = optim_args
+            (log_ks, log_n, log_gamma) = optim_args
+            ks = exp(log_ks)
+            model.ks = ks
         else:
             (log_n, log_gamma) = optim_args
 
-        model.n     = 1+exp(log_n)
-        model.m     = 1-1/model.n
-        model.gamma = -exp(log_gamma)
+        n     = 1+exp(log_n)
+        gamma = -exp(log_gamma)
+
+        model.n     = n
+        model.m     = 1-1/n
+        model.gamma = gamma
 
         if determine_all:
             print('Ks:    ', model.ks)
@@ -84,31 +89,60 @@ def solve(model):
         print('gamma:', model.gamma)
         # input('ENTER...')
 
-        if (model.n > 20.) or (model.gamma > -1e-8) or (model.gamma < -4):
+        ubounds = model.params_ubounds
+        lbounds = model.params_lbounds
+
+        out_of_range = False
+
+        if n > ubounds['n']:
+            out_of_range = True
+            n_factor     = 10*exp(n-ubounds['n'])
+        elif n < lbounds['n']:
+            out_of_range = True
+            n_factor = 1/(n-1)
+        else:
+            n_factor = 0.
+
+        if gamma > ubounds['gamma']:
+            out_of_range = True
+            gamma_factor = 10 * (gamma / ubounds['gamma'])
+        elif gamma < lbounds['gamma']:
+            out_of_range = True
+            gamma_factor = 10*exp(lbounds['gamma'] - gamma)
+        else:
+            gamma_factor = 0.
+
+        if determine_all:
+            if ks > ubounds['ks']:
+                out_of_range = True
+                ks_factor = 10 * exp(ks - ubounds['ks'])
+            elif ks < lbounds['ks']:
+                out_of_range = True
+                if ks == 0.0:
+                    ks = 1e-20
+                ks_factor = 10 * (lbounds['ks'] / ks)
+            else:
+                ks_factor = 0.
+        else:
+            ks_factor = 0.
+
+        if out_of_range:
             # untolerable range, the solver will probably crash so we
             # return values based on how far from expected range we are
-            if model.gamma > -1e-8:
-                gamma_factor = -1./(1e8 * model.gamma)
-            else:
-                gamma_factor = exp(model.gamma)
 
-            n_factor     = exp(model.n)
-
+            penalization = n_factor + gamma_factor + ks_factor
             if model.calc_wl_out:
-                wl_out1 = (model.get_iterable_value('wl_out1')
-                           + n_factor + gamma_factor)
+                wl_out1 = model.get_iterable_value('wl_out1') + penalization
             else:
                 wl_out1 = empty([0,], dtype=float)
 
             if model.calc_gc:
-                gc1 = (model.get_iterable_value('gc1')
-                           + n_factor + gamma_factor)
+                gc1 = model.get_iterable_value('gc1') + penalization
             else:
                 gc1 = empty([0,], dtype=float)
 
             if model.calc_rm:
-                rm1 = (model.get_iterable_value('rm1')
-                           + n_factor + gamma_factor)
+                rm1 = model.get_iterable_value('rm1') + penalization
             else:
                 rm1 = empty([0,], dtype=float)
 
@@ -140,7 +174,7 @@ def solve(model):
 
     if determine_all:
         (ks_init, n_init, gamma_init) = model.inv_init_params
-        init_params = (ks_init, log(n_init - 1.0), log(-gamma_init))
+        init_params = (log(ks_init), log(n_init - 1.0), log(-gamma_init))
     else:
         (n_init, gamma_init) = optim_args
         init_params  = (log(n_init - 1.0), log(-gamma_init))
@@ -152,7 +186,8 @@ def solve(model):
                                                                 inv_params)
 
     if determine_all:
-        (ks_inv, log_n, log_gamma) = inv_params
+        (log_ks, log_n, log_gamma) = inv_params
+        ks_inv = exp(log_ks)
     else:
         (log_n, log_gamma) = inv_params
         ks_inv = None
