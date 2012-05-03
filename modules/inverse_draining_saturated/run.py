@@ -1,9 +1,11 @@
 from modules.direct_draining_saturated.run import solve as solve_direct
 from modules.shared.solver import simulate_inverse
-from modules.shared.shared_functions import scale_array
+from modules.shared.shared_functions import (scale_array,
+                                             determine_scaling_factor)
 from numpy import concatenate, asarray, empty, zeros, ones, log, exp, cumsum
 
-def print_results(model, inv_params, t_inv, wl_out1_inv, gc1_inv):
+def print_results(model, wl_out1_inv, gc1_inv, t_inv, n_inv, gamma_inv,
+                  ks_inv = None):
     duration = model.get_iterable_value('duration')
 
     subexperiments = len(duration)
@@ -31,17 +33,40 @@ def print_results(model, inv_params, t_inv, wl_out1_inv, gc1_inv):
         print('Error (\%):  ', subexperiments * '    % 5.2f'
               % tuple((rm1_inv - rm1) / rm1 * 100.))
 
-    if len(inv_params) == 3:
-        (Ks_inv, n_inv, gamma_inv) = inv_params
-        print('\nKs [cm/s] found: ', Ks_inv)
-    else:
-        (n_inv, gamma_inv) = inv_params
+    if not ks_inv is None:
+        print('\nKs [cm/s] found: ', ks_inv)
     print('n         found: ', n_inv)
     print('gamma     found: ', gamma_inv)
 
 def solve(model):
     # use all 3 parameters (Ks, n, gamma) or only two (n, gamma) ?
     determine_all = (len(model.inv_init_params) == 3)
+
+    # prepare the measured data
+    if model.calc_wl_out:
+        wl_out_meas = asarray(model.get_iterable_value('wl_out1'), dtype=float)
+        c_coef_wl_out = determine_scaling_factor(wl_out_meas)
+        scale_array(wl_out_meas, c_coef_wl_out, wl_out_meas)
+    else:
+        wl_out_meas = empty([0,], dtype=float)
+
+    if model.calc_gc:
+        gc_meas  = asarray(model.get_iterable_value('gc1'), dtype=float)
+        c_coef_gc = determine_scaling_factor(gc_meas)
+        scale_array(gc_meas, c_coef_gc, gc_meas)
+    else:
+        gc_meas = empty([0,], dtype=float)
+
+    if model.calc_rm:
+        rm_meas  = asarray(model.get_iterable_value('rm1'), dtype=float)
+        c_coef_rm = determine_scaling_factor(rm_meas)
+        scale_array(rm_meas, c_coef_rm, rm_meas)
+    else:
+        rm_meas = empty([0,], dtype=float)
+
+    t_meas = cumsum([0] + model.get_iterable_value('duration'), dtype=float)
+
+
 
     def ip_direct_drainage(model, optim_args):
         if determine_all:
@@ -53,54 +78,62 @@ def solve(model):
         model.m     = 1-1/model.n
         model.gamma = -exp(log_gamma)
 
-        (_flag, t, z, gc1, rm1) = solve_direct(model)
+        if determine_all:
+            print('Ks:    ', model.ks)
+        print('n:     ', model.n)
+        print('gamma:', model.gamma)
+        # input('ENTER...')
 
-        # we discard values at t=0 (for give measurement)
-        if model.calc_wl_out:
-            wl_out1 = z[1:, model.mass_out_idx].transpose()
+        if (model.n > 20.) or (model.gamma > -1e-8) or (model.gamma < -4):
+            # untolerable range, the solver will probably crash so we
+            # return values based on how far from expected range we are
+            if model.gamma > -1e-8:
+                gamma_factor = -1./(1e8 * model.gamma)
+            else:
+                gamma_factor = exp(model.gamma)
+
+            n_factor     = exp(model.n)
+
+            if model.calc_wl_out:
+                wl_out1 = (model.get_iterable_value('wl_out1')
+                           + n_factor + gamma_factor)
+            else:
+                wl_out1 = empty([0,], dtype=float)
+
+            if model.calc_gc:
+                gc1 = (model.get_iterable_value('gc1')
+                           + n_factor + gamma_factor)
+            else:
+                gc1 = empty([0,], dtype=float)
+
+            if model.calc_rm:
+                rm1 = (model.get_iterable_value('rm1')
+                           + n_factor + gamma_factor)
+            else:
+                rm1 = empty([0,], dtype=float)
+
+            t = t_meas
         else:
-            wl_out1 = empty([0,], dtype=float)
+            (_flag, t, z, gc1, rm1) = solve_direct(model)
 
-        if model.calc_gc:
-            gc1 = gc1[1:]
-        if model.calc_rm:
-            rm1 = rm1[1:]
+            # we discard values at t=0 (for give measurement)
+            if model.calc_wl_out:
+                wl_out1 = z[1:, model.mass_out_idx].transpose()
+                scale_array(wl_out1, c_coef_wl_out, wl_out1)
+            else:
+                wl_out1 = empty([0,], dtype=float)
 
-        print('gc_mes, wl_mes: t_exp', model.get_iterable_value('gc1'),
-              model.get_iterable_value('wl_out1'),
-              model.get_iterable_value('duration'))
-        print('gc_com, wl_com: t_com', gc1[1:], wl_out1[1:], t)
+            if model.calc_gc:
+                gc1 = gc1[1:]
+                scale_array(gc1, c_coef_gc, gc1)
+            if model.calc_rm:
+                rm1 = rm1[1:]
+                scale_array(rm1, c_coef_rm, rm1)
 
-        if model.calc_wl_out:
-            scale_array(wl_out1, wl_out1)
-        if model.calc_gc:
-            scale_array(gc1, gc1)
-        if model.calc_rm:
-            scale_array(rm1, rm1)
+        print('gc_mes, wl_mes, t_exp', gc_meas, wl_out_meas, t_meas)
+        print('gc_com, wl_com, t_com', gc1, wl_out1, t)
 
         return (t, wl_out1, gc1, rm1)
-
-    if model.exp_type in ['ids', 'idsh']:
-        if model.calc_wl_out:
-            wl_out_meas = asarray(model.get_iterable_value('wl_out1'),
-                                  dtype=float)
-            scale_array(wl_out_meas, wl_out_meas)
-        else:
-            wl_out_meas = empty([0,], dtype=float)
-
-        if model.calc_gc:
-            gc_meas  = asarray(model.get_iterable_value('gc1'), dtype=float)
-            scale_array(gc_meas, gc_meas)
-        else:
-            gc_meas = empty([0,], dtype=float)
-
-        if model.calc_rm:
-            rm_meas  = asarray(model.get_iterable_value('rm1'), dtype=float)
-            scale_array(rm_meas, rm_meas)
-        else:
-            rm_meas = empty([0,], dtype=float)
-
-        t_meas = cumsum([0] + model.get_iterable_value('duration'), dtype=float)
 
     data_measured = concatenate((t_meas, wl_out_meas, gc_meas, rm_meas))
     xdata         = model
@@ -118,6 +151,26 @@ def solve(model):
     (t_inv, wl_out1_inv, gc1_inv, rm1_inv) = ip_direct_drainage(xdata,
                                                                 inv_params)
 
-    print_results(model, inv_params, t_inv, wl_out1_inv, gc1_inv)
+    if determine_all:
+        (ks_inv, log_n, log_gamma) = inv_params
+    else:
+        (log_n, log_gamma) = inv_params
+        ks_inv = None
+    n_inv     = 1+exp(log_n)
+    gamma_inv = -exp(log_gamma)
 
-    return inv_params
+    if determine_all:
+        resulting_params = (ks_inv, n_inv, gamma_inv)
+    else:
+        resulting_params = (n_inv, gamma_inv)
+
+    if model.calc_wl_out:
+        scale_array(wl_out1_inv, 1/c_coef_wl_out, wl_out1_inv)
+    if model.calc_gc:
+        scale_array(gc1_inv, 1/c_coef_gc, gc1_inv)
+    if model.calc_rm:
+        scale_array(rm1_inv, 1/c_coef_gc, rm1_inv)
+
+    print_results(model, wl_out1_inv, gc1_inv, t_inv, n_inv, gamma_inv, ks_inv)
+
+    return resulting_params
