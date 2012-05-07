@@ -52,12 +52,4 @@ def adjust_cfg(cfg):
        by configuration file(s), e.g. allocate the discretized interval
        based on the discretization type and number of inner points.
     """
-    duration = cfg.get_value('duration')
-    if (type(duration) == list) and (not any(duration)) or (duration == 0.0):
-        # We perform falling-head test only
-        cfg.set_value('duration', cfg.get_value('fh_duration'))
-        cfg.set_value('fh_duration', 0.0)
-
-        cfg.set_value('include_acceleration', False)
-        cfg.set_value('r0', cfg.get_value('r0_fall'))
-        cfg.set_value('omega', cfg.get_value('omega_fall'))
+    pass
