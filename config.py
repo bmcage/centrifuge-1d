@@ -306,6 +306,12 @@ class Configuration:
 
         cfg_dict = self._cfg_dict
 
+        blacklisted_options = set([])
+
+        def update_special_options(options_module):
+            if hasattr(options_module, 'BLACKLIST_OPTIONS'):
+                blacklisted_options.update(options_module.BLACKLIST_OPTIONS)
+
         def set_defaults_from_module(options_module):
             defaults_options = options_module.CONFIG_OPTIONS['defaults']
 
@@ -314,7 +320,8 @@ class Configuration:
 
             for (section, section_content) in options.items():
                 for (option, value) in section_content.items():
-                    if not option in cfg_dict:
+                    if ((not option in cfg_dict)
+                        and (not option in blacklisted_options)):
                         self.set_value(option, value, section)
 
             return True
@@ -322,7 +329,8 @@ class Configuration:
         exp_type = self.get_value('exp_type')
 
         modman.traverse_ancestors(exp_type, set_defaults_from_module,
-                                  submodule='options')
+                                  submodule='options',
+                                  prehook=update_special_options)
 
         return self
 
