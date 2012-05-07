@@ -98,7 +98,7 @@ def display_table(t_measured=None, t_computed=None,
 
     input('Press ENTER to continue...')
 
-def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
+def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 mass_out = None, mass_in = None,
                 GC = None, RM = None,  WM = None,
                 fignum = 1, save_figures=False, separate_figures=False):
@@ -107,9 +107,11 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
         legend_data = ['% 7d' % ti for ti in times]
 
         plt.figlegend(h_lines, legend_data, 1, borderaxespad=0.0,
-                      title="Time [s]", prop={'family': 'monospace'})
+                      title="Time [min]", prop={'family': 'monospace'})
 
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
+
+    t = [ti/60. for ti in times] # sec -> min
 
     if not separate_figures:
         plt.figure(fignum, figsize=(16, 8.5))
@@ -198,7 +200,7 @@ def draw_graphs(t, y = None, s1 = None, s2 = None, h = None, u = None,
                 else:
                     plt.subplot(3,2,2*row + column)
                 plt.plot(t, v1, '.')
-                plt.xlabel('Time [s]')
+                plt.xlabel('Time [min]')
                 plt.ylabel(ylabel1)
 
                 if save_figures and separate_figures:
