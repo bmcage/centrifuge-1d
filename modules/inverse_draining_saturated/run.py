@@ -105,7 +105,7 @@ def solve(model):
 
         if gamma > ubounds['gamma']:
             out_of_range = True
-            gamma_factor = 10 * (gamma / ubounds['gamma'])
+            gamma_factor = 10 * (ubounds['gamma'] / gamma)
         elif gamma < lbounds['gamma']:
             out_of_range = True
             gamma_factor = 10*exp(lbounds['gamma'] - gamma)
@@ -131,6 +131,7 @@ def solve(model):
             # return values based on how far from expected range we are
 
             penalization = n_factor + gamma_factor + ks_factor
+
             if model.calc_wl_out:
                 wl_out1 = model.get_iterable_value('wl_out1') + penalization
             else:
