@@ -44,7 +44,8 @@ def solve(model):
 
     # prepare the measured data
     if model.calc_wl_out:
-        wl_out_meas = asarray(model.get_iterable_value('wl_out1'), dtype=float)
+        wl_out_sep  = asarray(model.get_iterable_value('wl_out1'), dtype=float)
+        wl_out_meas = wl_out_sep.cumsum()
         c_coef_wl_out = determine_scaling_factor(wl_out_meas)
         scale_array(wl_out_meas, c_coef_wl_out, wl_out_meas)
     else:
