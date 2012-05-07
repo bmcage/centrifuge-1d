@@ -52,8 +52,9 @@ def simulate_direct(model, residual_fn, z0):
         t_retn_out = t_retn_out + z_out
 
         if t_fh_out < duration:
-            print(simulation_err_str % ('Falling head test', t_out, duration))
-            return (False, t_out, z_out)
+            print(simulation_err_str % ('Falling head test',
+                                        t_fh_out, duration))
+            return (False, t_retn_out, z_out)
 
     return (True, t_retn_out, z_out)
 
