@@ -4,21 +4,21 @@ from modules.shared.shared_functions import (scale_array,
                                              determine_scaling_factor)
 from numpy import concatenate, asarray, empty, zeros, ones, log, exp, cumsum
 
-def print_results(model, wl_out1_inv, gc1_inv, t_inv, n_inv, gamma_inv,
+def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
                   ks_inv = None):
     duration = model.get_iterable_value('duration')
 
     subexperiments = len(duration)
 
     if model.calc_wl_out:
-        wl_out1  = asarray(model.get_iterable_value('wl_out1'))
-        wl_out1[wl_out1 == 0.0] = 1.0e-10
+        wl_out  = asarray(model.get_iterable_value('wl_out'))
+        wl_out[wl_out1 == 0.0] = 1.0e-10
         print('WL_out_measured: ', subexperiments *  '% 8.6f'
-              % tuple(wl_out1))
+              % tuple(wl_out))
         print('WL_out_computed: ', subexperiments *  '% 8.6f'
-              % tuple(wl_out1_inv))
+              % tuple(wl_out_inv))
         print('Error (\%):  ', subexperiments * '    % 5.2f'
-              % tuple((wl_out1_inv - wl_out1) / wl_out1 * 100.))
+              % tuple((wl_out_inv - wl_out1) / wl_out * 100.))
     if model.calc_gc:
         gc1  = asarray(model.get_iterable_value('gc1'), dtype=float)
         print('GC_measured: ', subexperiments *  '% 9.6f' % tuple(gc1))
@@ -44,7 +44,7 @@ def solve(model):
 
     # prepare the measured data
     if model.calc_wl_out:
-        wl_out_sep  = asarray(model.get_iterable_value('wl_out1'), dtype=float)
+        wl_out_sep  = asarray(model.get_iterable_value('wl_out'), dtype=float)
         wl_out_meas = wl_out_sep.cumsum()
         c_coef_wl_out = determine_scaling_factor(wl_out_meas)
         scale_array(wl_out_meas, c_coef_wl_out, wl_out_meas)
@@ -134,9 +134,9 @@ def solve(model):
             penalization = n_factor + gamma_factor + ks_factor
 
             if model.calc_wl_out:
-                wl_out1 = model.get_iterable_value('wl_out1') + penalization
+                wl_out = model.get_iterable_value('wl_out') + penalization
             else:
-                wl_out1 = empty([0,], dtype=float)
+                wl_out = empty([0,], dtype=float)
 
             if model.calc_gc:
                 gc1 = model.get_iterable_value('gc1') + penalization
@@ -154,10 +154,10 @@ def solve(model):
 
             # we discard values at t=0 (for give measurement)
             if model.calc_wl_out:
-                wl_out1 = z[1:, model.mass_out_idx].transpose()
-                scale_array(wl_out1, c_coef_wl_out, wl_out1)
+                wl_out = z[1:, model.mass_out_idx].transpose()
+                scale_array(wl_out, c_coef_wl_out, wl_out)
             else:
-                wl_out1 = empty([0,], dtype=float)
+                wl_out = empty([0,], dtype=float)
 
             if model.calc_gc:
                 gc1 = gc1[1:]
@@ -167,9 +167,9 @@ def solve(model):
                 scale_array(rm1, c_coef_rm, rm1)
 
         print('gc_mes, wl_mes, t_exp', gc_meas, wl_out_meas, t_meas)
-        print('gc_com, wl_com, t_com', gc1, wl_out1, t)
+        print('gc_com, wl_com, t_com', gc1, wl_out, t)
 
-        return (t, wl_out1, gc1, rm1)
+        return (t, wl_out, gc1, rm1)
 
     data_measured = concatenate((t_meas, wl_out_meas, gc_meas, rm_meas))
     xdata         = model
@@ -184,7 +184,7 @@ def solve(model):
     inv_params, cov_ks = simulate_inverse(ip_direct_drainage, xdata,
                                           data_measured, init_params)
 
-    (t_inv, wl_out1_inv, gc1_inv, rm1_inv) = ip_direct_drainage(xdata,
+    (t_inv, wl_out_inv, gc1_inv, rm1_inv) = ip_direct_drainage(xdata,
                                                                 inv_params)
 
     if determine_all:
@@ -202,12 +202,12 @@ def solve(model):
         resulting_params = (n_inv, gamma_inv)
 
     if model.calc_wl_out:
-        scale_array(wl_out1_inv, 1/c_coef_wl_out, wl_out1_inv)
+        scale_array(wl_out_inv, 1/c_coef_wl_out, wl_out_inv)
     if model.calc_gc:
         scale_array(gc1_inv, 1/c_coef_gc, gc1_inv)
     if model.calc_rm:
         scale_array(rm1_inv, 1/c_coef_gc, rm1_inv)
 
-    print_results(model, wl_out1_inv, gc1_inv, t_inv, n_inv, gamma_inv, ks_inv)
+    print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv, ks_inv)
 
     return resulting_params

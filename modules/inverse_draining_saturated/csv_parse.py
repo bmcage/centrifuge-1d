@@ -8,7 +8,7 @@ def skip(exp_type, row, indexes):
         l0 = float(row[indexes['l0']])
         l1 = float(row[indexes['l1']])
         return ((abs((l0 - l1) / l0) > 0.05)
-                or (float(row[indexes['wl_out1']]) < 0.0))
+                or (float(row[indexes['wl_out']]) < 0.0))
     else:
         return False
 

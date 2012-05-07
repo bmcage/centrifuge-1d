@@ -6,7 +6,7 @@ CONFIG_OPTIONS = {
         'dependent' : {'inv_params':
                        (lambda cfg: len(cfg.get_value('inv_init_params')) == 2,
                         ['ks'])},
-        'optional'  : ['wl_out1', 'gc1', 'rm1', 'inv_ubounds', 'inv_lbounds'],
+        'optional'  : ['wl_out', 'gc1', 'rm1', 'inv_ubounds', 'inv_lbounds'],
         'additional': ['calc_wl_out', 'params_ubounds', 'params_lbounds']
         }
 
@@ -31,9 +31,9 @@ def check_cfg(cfg):
               'be the same as the length of ''inv_params'' option.')
         return False
 
-    if ((cfg.get_value('wl_out1') is None) and (cfg.get_value('gc1') is None)
+    if ((cfg.get_value('wl_out') is None) and (cfg.get_value('gc1') is None)
         and (cfg.get_value('rm1') is None)):
-        print('No measured data (wl_out1, gc1, rm1) is specified. Cannot run '
+        print('No measured data (wl_out, gc1, rm1) is specified. Cannot run '
               'inverse problem')
         return False
 
@@ -44,7 +44,7 @@ def adjust_cfg(cfg):
 
     cfg.set_value('calc_gc', not cfg.get_value('gc1') is None)
     cfg.set_value('calc_rm', not cfg.get_value('rm1') is None)
-    cfg.set_value('calc_wl_out', not cfg.get_value('wl_out1') is None)
+    cfg.set_value('calc_wl_out', not cfg.get_value('wl_out') is None)
 
     params_ubounds = cfg.get_value('inv_ubounds')
     params_lbounds = cfg.get_value('inv_lbounds')
