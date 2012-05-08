@@ -12,13 +12,14 @@ def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
 
     if model.calc_wl_out:
         wl_out  = asarray(model.get_iterable_value('wl_out'))
-        wl_out[wl_out1 == 0.0] = 1.0e-10
+        wl_out  = wl_out.cumsum()
+        wl_out[wl_out == 0.0] = 1.0e-10
         print('WL_out_measured: ', subexperiments *  '% 8.6f'
               % tuple(wl_out))
         print('WL_out_computed: ', subexperiments *  '% 8.6f'
               % tuple(wl_out_inv))
         print('Error (\%):  ', subexperiments * '    % 5.2f'
-              % tuple((wl_out_inv - wl_out1) / wl_out * 100.))
+              % tuple((wl_out_inv - wl_out) / wl_out * 100.))
     if model.calc_gc:
         gc1  = asarray(model.get_iterable_value('gc1'), dtype=float)
         print('GC_measured: ', subexperiments *  '% 9.6f' % tuple(gc1))
@@ -134,17 +135,17 @@ def solve(model):
             penalization = n_factor + gamma_factor + ks_factor
 
             if model.calc_wl_out:
-                wl_out = model.get_iterable_value('wl_out') + penalization
+                wl_out = wl_out_meas + penalization
             else:
                 wl_out = empty([0,], dtype=float)
 
             if model.calc_gc:
-                gc1 = model.get_iterable_value('gc1') + penalization
+                gc1 = gc_meas + penalization
             else:
                 gc1 = empty([0,], dtype=float)
 
             if model.calc_rm:
-                rm1 = model.get_iterable_value('rm1') + penalization
+                rm1 = rm_meas + penalization
             else:
                 rm1 = empty([0,], dtype=float)
 
