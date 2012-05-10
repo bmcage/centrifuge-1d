@@ -5,7 +5,7 @@ from modules.shared.shared_functions import (scale_array,
 from numpy import concatenate, asarray, empty, zeros, ones, log, exp, cumsum
 
 def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
-                  ks_inv = None):
+                  ks_inv = None, display_graphs=True, fignum = 1):
     duration = model.get_iterable_value('duration')
 
     subexperiments = len(duration)
@@ -38,6 +38,88 @@ def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
         print('\nKs [cm/s] found: ', ks_inv)
     print('n         found: ', n_inv)
     print('gamma     found: ', gamma_inv)
+
+    if display_graphs:
+        import matplotlib.pyplot as plt
+
+        def add_legend(lines):
+            legend_data = ['measured', 'computed']
+
+            plt.figlegend(h_lines, legend_data, 1, borderaxespad=0.0,
+                          prop={'family': 'monospace'})
+
+        t_duration = model.get_iterable_value('duration')
+        if t_duration is None:
+            t_duration = model.duration
+        t_fh_duration = model.get_iterable_value('fh_duration')
+        if t_fh_duration is None:
+            t_fh_duration = model.fh_duration
+
+        t_minutes = cumsum((asarray(t_duration, dtype=float)
+                            + asarray(t_fh_duration, dtype=float))
+                            / 60)
+        t_inv_minutes = t_inv[1:] / 60
+
+        figures_count = (int(model.calc_wl_out) + int(model.calc_gc)
+                         + int(model.calc_gc))
+
+        xlabel = ('Time [min]')
+
+        if figures_count == 1:
+            plt.figure(fignum)
+            rows = 1
+            cols = 1
+
+        elif figures_count == 2:
+            plt.figure(fignum, figsize=(16, 4.5))
+            rows = 1
+            cols = 2
+        else:
+            plt.figure(fignum, figsize=(16, 8.5))
+            rows = 2
+            cols = 2
+
+        plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
+
+        current_column = 1
+
+        if model.calc_wl_out:
+            plt.subplot(rows, cols, current_column)
+
+            h_lines = plt.plot(t_minutes, wl_out, '.',
+                               t_inv_minutes, wl_out_inv, 'x')
+            plt.xlabel(xlabel)
+            plt.ylabel('Expelled water [cm]')
+
+            add_legend(h_lines)
+
+            current_column = current_column + 1
+
+        if model.calc_gc:
+            plt.subplot(rows, cols, current_column)
+
+            h_lines = plt.plot(t_minutes, gc1, '.', t_inv_minutes, gc1_inv, 'x')
+            plt.xlabel(xlabel)
+            plt.ylabel('Gravitational centre [cm]')
+
+            add_legend(h_lines)
+
+            current_column = current_column + 1
+
+        if model.calc_rm:
+            if rows == 2:
+                current_column = 1
+
+            plt.subplot(rows, cols, current_column)
+
+            h_lines = plt.plot(t_minutes, rm1, '.', t_inv_minutes, rm1_inv, 'x')
+            plt.xlabel(xlabel)
+            plt.ylabel('Rotational momentum [cm]')
+
+            add_legend(h_lines)
+
+        plt.show(block=False)
+        input('Enter...')
 
 def solve(model):
     # use all 3 parameters (Ks, n, gamma) or only two (n, gamma) ?
