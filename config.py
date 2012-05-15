@@ -188,6 +188,8 @@ def parse_value(str_value):
             return True
         elif raw_value == 'False':
             return False
+        elif raw_value == 'None':
+            return None
         elif raw_value == 'inf':
             return inf
         elif raw_value == '-inf':
