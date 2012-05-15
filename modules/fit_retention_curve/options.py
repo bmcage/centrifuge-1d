@@ -3,13 +3,15 @@ PARENTAL_MODULES = ['base']
 def should_theta_s_be_present(cfg):
     inv_init_params_len = len(cfg.get_value('inv_init_params'))
     result = ((inv_init_params_len == 2)
-              or ((inv_init_params_len == 3) and cfg.get_value('thera_r')))
+              or ((inv_init_params_len == 3)
+                   and (cfg.get_value('theta_r') is None)))
     return result
 
 def should_theta_r_be_present(cfg):
     inv_init_params_len = len(cfg.get_value('inv_init_params'))
     result = ((inv_init_params_len == 2)
-              or ((inv_init_params_len == 3) and cfg.get_value('thera_r')))
+              or ((inv_init_params_len == 3)
+                  and (cfg.get_value('theta_s') is None)))
     return result
 
 CONFIG_OPTIONS = {
