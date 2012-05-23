@@ -152,7 +152,7 @@ def solve(model):
 
 
 
-    def ip_direct_drainage(model, optim_args):
+    def ip_direct_drainage(model, optim_args, retn_z_p = False):
         if determine_all:
             (log_ks, log_n, log_gamma) = optim_args
             ks = exp(log_ks)
@@ -252,7 +252,10 @@ def solve(model):
         print('gc_mes, wl_mes, t_exp', gc_meas, wl_out_meas, t_meas)
         print('gc_com, wl_com, t_com', gc1, wl_out, t)
 
-        return (t, wl_out, gc1, rm1)
+        if retn_z_p:
+            return (t, wl_out, gc1, rm1, z)
+        else:
+            return (t, wl_out, gc1, rm1)
 
     data_measured = concatenate((t_meas, wl_out_meas, gc_meas, rm_meas))
     xdata         = model
@@ -267,8 +270,9 @@ def solve(model):
     inv_params, cov_ks = simulate_inverse(ip_direct_drainage, xdata,
                                           data_measured, init_params)
 
-    (t_inv, wl_out_inv, gc1_inv, rm1_inv) = ip_direct_drainage(xdata,
-                                                                inv_params)
+    (t_inv, wl_out_inv, gc1_inv, rm1_inv, z) = \
+      ip_direct_drainage(xdata, inv_params, retn_z_p = True)
+    print('z:', z[-1, :])
 
     if determine_all:
         (log_ks, log_n, log_gamma) = inv_params
