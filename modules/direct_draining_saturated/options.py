@@ -9,13 +9,17 @@ CONFIG_OPTIONS = {
                        'calc_gc', 'calc_rm',
                        'rb_type'],
         'defaults'  : {},
-        'dependent' : {'rb':
+        'dependent' : {'rb-2':
                          (lambda cfg: cfg.get_value('rb_type') == 2,
+                          ['h_last']),
+                        'rb-4':
+                         (lambda cfg: cfg.get_value('rb_type') == 4,
                           ['h_last'])},
         'optional'  : ['n1', 'gamma1', 'n2', 'gamma2'],
         'additional': ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
                        'first_idx', 'last_idx', 's1_idx', 's2_idx',
-                       'mass_in_idx', 'mass_out_idx', 'pq_idx', 'z_size',]
+                       'mass_in_idx', 'mass_out_idx', 'pq_idx', 'z_size',
+                       'h_last']
         }
 
 EXCLUDE_FROM_MODEL = ['dtype']
@@ -52,3 +56,6 @@ def adjust_cfg(cfg):
     cfg.set_value('ldc1', ldc1)
     cfg.set_value('ldc2', ldc2)
     cfg.set_value('ldc3', ldc3)
+
+    if cfg.get_value('rb_type') == 4:
+        cfg.set_value('h_last', )
