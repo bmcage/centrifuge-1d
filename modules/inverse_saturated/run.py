@@ -1,6 +1,6 @@
-import numpy as np
 from modules.direct_saturated.run import solve as direct_solve
 from modules.shared.solver import simulate_inverse
+from numpy import concatenate, cumsum
 
 def print_results(model, Ks_inv, t_inv, wl1_inv):
     wl0      = model.get_iterable_value('wl0')
@@ -24,30 +24,34 @@ def print_results(model, Ks_inv, t_inv, wl1_inv):
     print('\nKs found: ', Ks_inv)
 
 def solve(model):
-    def ip_direct_saturated_heights(model, Ks):
-        model.ks = Ks
-        print(Ks)
+    def ip_direct_saturated_heights(model, optim_args):
+        model.ks = optim_args[0]
+        print(model.ks)
 
         (_flag, t, z) = direct_solve(model)
-
+        #print('t', t, z[1:, model.mass_in_idx])
         return t, z[1:, model.mass_in_idx]
 
     # resolve the type of measured data
     if model.exp_type in ['ish', 'ish-sc', 'ish-f']:
-        data_measured = model.get_iterable_value('wl1')
-        lsq_direct_fn = lsq_ip_direct_saturated_heights
-        direct_fn     = ip_direct_saturated_heights
+        t_meas = cumsum([0] + model.get_iterable_value('duration'), dtype=float)
+        wl1_meas = model.get_iterable_value('wl1')
+        data_measured = concatenate((t_meas, wl1_meas))
+        #lsq_direct_fn = lsq_ip_direct_saturated_heights
+        #direct_fn     = ip_direct_saturated_heights
     else:
         raise ValueError('Unrecognized experiment type exp_type: %s'
                          % model.exp_type)
     xdata         = model
 
+    #Ks_init = list(model.inv_init_params)
+    #print('meas:', data_measured)
     Ks_inv, cov_ks = simulate_inverse(ip_direct_saturated_heights,
                                       xdata, data_measured,
                                       model.inv_init_params)
 
     t_inv, wl1_inv = ip_direct_saturated_heights(xdata, Ks_inv)
-
+    #print('wl1', wl1_inv)
     print_results(model, Ks_inv, t_inv[1:], wl1_inv)
 
     return Ks_inv
