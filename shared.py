@@ -21,23 +21,23 @@ def make_collector(tubes_numbers):
     by_tube_collection = {tube_no:[] for tube_no in tubes_numbers}
     fifo_collection = []
 
-    def collection(command, data = None, tube_no = None):
+    def collection(command, data = None, tube_no = None, print_format_fn=print):
         if command == 'collect':
-            if tube_no:
+            if tube_no is None:
+                fifo_collection.append(data)
+            else:
                 by_tube_collection[tube_no].append(data)
-            else:
-                raise ValueError('Collector:collect - tube number or data'
-                                 ' not specified')
+
         elif command in ['print', 'print-by-tube', 'print-fifo']:
-            if data:
-                if command == 'print-by-tube':
-                    for (tube_no, tube_data) in by_tube_collection.items():
-                        data(tube_no, tube_data)
-                else:
-                    data(fifo_collection)
+            if command == 'print-by-tube':
+                for (tube_no, tube_data) in by_tube_collection.items():
+                    print('Tube:', tube_no)
+                    for value in tube_data:
+                        print_format_fn(value)
             else:
-                raise ValueError('Collector:print data not specified. Data'
-                                 ' has to contain a print-data function.')
+                for value in fifo_collection:
+                    print_format_fn(value)
+
         elif command == 'get':
             return (fifo_collection, by_tube_collection)
         else:

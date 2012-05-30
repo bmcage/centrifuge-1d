@@ -155,7 +155,7 @@ def get_cfg(ini_dir, exp_id, first_experiment, last_experiment, tubes,
 
 def run_experiments(options):
 
-     #collector = make_collector(options.tubes)
+    collector = make_collector(options.tubes)
 
     for cfg in get_cfg(INI_DIR, options.exp_id,
                        options.first_experiment, options.last_experiment,
@@ -183,11 +183,12 @@ def run_experiments(options):
 
         results = solver_module.solve(model)
 
-        #print('Results:\n', results)
+        collector('collect', data=results)
 
-        #collector('collect', data=results, tube_no=tube_no)
-
-        #collector('print-by-tube', data=print_by_tube)
+    print('Results summary:\n')
+    print_fn = lambda x: print(x[0])
+    collector('print', print_format_fn=print_fn)
+    #collector('print-by-tube', data=print_by_tube)
 
 if __name__ == "__main__":
     options = parse_input()
