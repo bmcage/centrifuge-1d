@@ -35,7 +35,7 @@ def simulate_direct(model, residual_fn, z0):
             print(simulation_err_str % ('Centrifugation', t_out, duration))
             return (False, t_out, z_out)
         z0 = z_out
-        t_retn_out = z_out
+        t_retn_out = t_out
 
     if model.fh_duration > 0.:
         acceleration = model.include_acceleration
@@ -49,7 +49,7 @@ def simulate_direct(model, residual_fn, z0):
 
         model.include_acceleration = acceleration
 
-        t_retn_out = t_retn_out + z_out
+        t_retn_out = t_retn_out + t_fh_out
 
         if t_fh_out < duration:
             print(simulation_err_str % ('Falling head test',
@@ -62,6 +62,7 @@ def simulate_inverse(lsq_direct_fn, xdata, ydata, init_params):
 
     def lsq_wrapper_fn(xdata, *optim_args):
         direct_results = lsq_direct_fn(xdata, optim_args)
+        #print(direct_results)
         return concatenate(direct_results)
 
     return curve_fit(lsq_wrapper_fn, xdata, ydata, p0 = init_params)
