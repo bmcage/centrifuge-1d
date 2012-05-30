@@ -1,10 +1,10 @@
 import numpy as np
 
-from scikits.odes.sundials.common_defs import ResFunction
+from scikits.odes.sundials.common_defs import IDA_RhsFunction
 from modules.shared.shared_functions import find_omega2g
 from modules.shared.solver import simulate_direct
 
-class direct_saturated_rhs(ResFunction):
+class direct_saturated_rhs(IDA_RhsFunction):
     def evaluate(self, t, x, xdot, result, model):
 
         omega2g = find_omega2g(t, model)
@@ -27,24 +27,27 @@ residual_fn = direct_saturated_rhs()
 
 def solve(model):
 
-    t = np.empty([model.iterations+1, ], dtype=float)
-    z = np.empty([model.iterations+1, 2], dtype=float) # z[wl_in, wl_out]
+    t  = np.empty([model.iterations+1, ], dtype=float)
+    z  = np.empty([model.iterations+1, 2], dtype=float) # z[wl_in, wl_out]
+    z0 = np.empty([2, ], dtype=float)
+
+    z0[1] = 0.0
 
     model.init_iteration()
 
     t[0] = 0.0
-    z[0, :] = np.asarray([model.wl0, 0.0], dtype = float)
+    z[0, model.mass_in_idx]  = model.wl0
+    z[0, model.mass_out_idx] = 0.0
 
-    while True:
+    while model.next_iteration():
         i = model.iteration
-        z0 = z[i-1, :]
         z0[0] = model.wl0
+        #print(i, z0)
 
         (success_p, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0)
-
         t[i] = t_out
-
-        if not (success_p and model.next_iteration()): break
+        #print('zi', z[i, :])
+        if not success_p: break
 
     if model.draw_graphs:
         from modules.shared.show import draw_graphs
