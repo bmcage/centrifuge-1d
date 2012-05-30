@@ -4,18 +4,18 @@ CONFIG_OPTIONS = {
         'mandatory': ['exp_type',
                       'ks',
                       'r0', 'l0', 'duration',
+                      'fh_duration', 'r0_fall',
                       'wt_out',
+                      'include_acceleration',
+                      'atol', 'rtol',
+                      'max_steps', 'max_step_size'
                       ],
         'defaults':  {'g': 981,
                       'omega_start': 0.0, 'omega_end': 0.0,
                       'ks1': -1.0, 'fl1': 0.0, 'ks2': -1.0, 'fl2': 0.0,
-                      'fh_duration': 0.0, 'r0_fall': 1e5,
                       'density': 1.0, 'viscosity': 1.0,
                       'draw_graphs': False,
-                      'include_acceleration': False,
                       'save_figures': False, 'separate_figures': False,
-                      'atol': 1e-3, 'rtol':1e-6,
-                      'max_steps': 800, 'max_step_size': 800.
                      },
         'dependent': {'centrifugation':
                         (lambda cfg: not (cfg.get_value('duration') == 0.0),
