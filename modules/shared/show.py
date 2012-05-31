@@ -168,7 +168,7 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
     if (not mass_out is None) and all(mass_out == 0.0): mass_out = None
 
     twins = ((mass_out, mass_in), (GC, RM), (s1, s2), (WM, None))
-    ylabels = (('Exspelled water [cm]', 'Inflow water [cm]'),
+    ylabels = (('Expelled water [cm]', 'Inflow water [cm]'),
                ('Gravitational center [cm]',
                 'Rotational momentum [kg.m.s$^{-1}$]'),
                ('Interface s1 [cm]', 'Interface s2 [cm]'),
