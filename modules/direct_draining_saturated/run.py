@@ -66,9 +66,11 @@ class centrifuge_residual(IDA_RhsFunction):
                      - model.ldc2[-1] * h[-2]
                      + model.ldc3[-1] * h[-1])
 
-        if rb_type > 2:
+        if rb_type == 3:
             rE = model.r0 + L + model.fl2
-            rI = rE - s2
+            rI = model.r0 + s2
+
+            h_end = omega2g/2 * (rE*rE - rI*rI)
 
             q_out = (omega2g/2. / (model.fl1/model.ks1 + L/model.ks
                                    + model.fl2/model.ks2)
@@ -81,23 +83,7 @@ class centrifuge_residual(IDA_RhsFunction):
             result[last_idx]  = hdot[-1]
             result[model.s2_idx]  = zdot[model.s2_idx] + dhdotdr_last/dhdr_last
         else:
-            if rb_type == 0:
-                q_out = 0.
-                result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
-                                     + 2 / dy[-1] / ds * (q_out - q12[-1]))
-            elif rb_type == 1:
-                Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
-                q_out  = np.maximum(1e-12,
-                                     -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
-                result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
-                                     + 2 / dy[-1] / ds * (q_out - q12[-1]))
-            else:
-                Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
-                q_out  = np.maximum(1e-12,
-                                     -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
-                result[last_idx]  = hdot[-1]
-
-            result[model.s2_idx]  = zdot[model.s2_idx]
+            raise NotImplementedError('rb_type has to be 3')
 
         print('ds2dt', result[model.s2_idx], dhdotdr_last/dhdr_last,
               dhdotdr_last, dhdr_last)
