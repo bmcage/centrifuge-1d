@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from numpy import alen, empty
 from const import FIGS_DIR
+from os import makedirs, path
 
 def y2x(y, s1, s2):
     s1_len = alen(s1)
@@ -98,10 +99,18 @@ def display_table(t_measured=None, t_computed=None,
 
     input('Press ENTER to continue...')
 
+def nd2strlist(nd):
+    result = []
+    for value in nd:
+        result.append(str(value))
+    return result
+
 def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 mass_out = None, mass_in = None,
                 GC = None, RM = None,  WM = None,
-                fignum = 1, save_figures=False, separate_figures=False):
+                fignum = 1, save_figures=False, separate_figures=False,
+                save_as_text=False,
+                model=None):
 
     def add_legend(lines, times):
         legend_data = ['% 7d' % ti for ti in times]
@@ -110,6 +119,16 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                       title="Time [min]", prop={'family': 'monospace'})
 
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
+
+    if model is None:
+        OUT_DIR = FIGS_DIR + '/'
+    else:
+        OUT_DIR = (FIGS_DIR + '/' + 'n=' + str(model.n) + ',gamma='
+                   + str(model.gamma) + ',omega='+str(model.omega) +'/')
+    print(OUT_DIR)
+
+    if not path.exists(OUT_DIR):
+        makedirs(OUT_DIR)
 
     t = [ti/60. for ti in times] # sec -> min
 
@@ -142,7 +161,7 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                    add_legend(h_lines, t)
 
                 if save_figures and separate_figures:
-                    fname = FIGS_DIR + 'Image-h'
+                    fname = OUT_DIR + 'Image-h'
                     plt.savefig(fname, dpi=300)
 
             if not u is None:
@@ -157,7 +176,7 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 add_legend(u_lines, t)
 
                 if save_figures and separate_figures:
-                    fname = FIGS_DIR + 'Image-u'
+                    fname = OUT_DIR + 'Image-u'
                     plt.savefig(fname, dpi=300)
 
                 row = 0
@@ -180,7 +199,7 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
         if not separate_figures:
             if row == 2:
                 if save_figures:
-                    fname = FIGS_DIR + ('Image-%i' % fignum)
+                    fname = OUT_DIR + ('Image-%i' % fignum)
                     plt.savefig(fname, dpi=300)
                 fignum = fignum + 1
                 row = 0
@@ -204,14 +223,43 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 plt.ylabel(ylabel1)
 
                 if save_figures and separate_figures:
-                    fname = FIGS_DIR + ('Image-%i' % fignum)
+                    fname = OUT_DIR + ('Image-%i' % fignum)
                     plt.savefig(fname, dpi=300)
 
                 column = column + 1
 
     plt.show(block=False)
     if save_figures:
-        fname = FIGS_DIR + ('Image-%i' % fignum)
+        fname = OUT_DIR + ('Image-%i' % fignum)
         plt.savefig(fname, dpi=300)
+
+    if save_as_text:
+        filename = OUT_DIR +'data_as_text.txt'
+        fout = open(filename, mode='w', encoding='utf-8')
+
+        if not h is None:
+            fout.write('{:8} = [{}]\n'.format('h', ', '.join(nd2strlist(h))))
+        if not u is None:
+            fout.write('{:8} = [{}]\n'.format('u', ', '.join(nd2strlist(u))))
+
+        fout.write('{:8} = [{}]\n'.format('t', ', '.join(nd2strlist(t))))
+        if not mass_out is None:
+            fout.write('{:8} = [{}]\n'.format('mass_out',
+                                              ', '.join(nd2strlist(mass_out))))
+        if not mass_in is None:
+            fout.write('{:8} = [{}]\n'.format('mass_in',
+                                              ', '.join(nd2strlist(mass_in))))
+        if not GC is None:
+            fout.write('{:8} = [{}]\n'.format('GC', ', '.join(nd2strlist(GC))))
+        if not RM is None:
+            fout.write('{:8} = [{}]\n'.format('RM', ', '.join(nd2strlist(RM))))
+        if not WM is None:
+            fout.write('{:8} = [{}]\n'.format('WM', ', '.join(nd2strlist(WM))))
+        if not s1 is None:
+            fout.write('{:8} = [{}]\n'.format('s1', ', '.join(nd2strlist(s1))))
+        if not s2 is None:
+            fout.write('{:8} = [{}]\n'.format('s2', ', '.join(nd2strlist(s2))))
+
+        fout.close()
 
     input('Press ENTER to continue...')

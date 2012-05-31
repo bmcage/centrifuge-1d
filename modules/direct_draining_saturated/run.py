@@ -199,7 +199,9 @@ def solve(model):
                     GC=GC, RM=RM, WM=WM,
                     s1=z[:, model.s1_idx], s2=z[:, model.s2_idx],
                     save_figures=model.save_figures,
-                    separate_figures=model.separate_figures)
+                    separate_figures=model.separate_figures,
+                    save_as_text=model.save_as_text,
+                    model=model)
 
     if not model.calc_gc:
         GC = np.asarray([], dtype=float)

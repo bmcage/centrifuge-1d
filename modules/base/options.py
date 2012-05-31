@@ -16,6 +16,7 @@ CONFIG_OPTIONS = {
                       'density': 1.0, 'viscosity': 1.0,
                       'draw_graphs': False,
                       'save_figures': False, 'separate_figures': False,
+                      'save_as_text': False,
                      },
         'dependent': {'centrifugation':
                         (lambda cfg: not (cfg.get_value('duration') == 0.0),
