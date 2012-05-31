@@ -62,7 +62,7 @@ def simulate_inverse(lsq_direct_fn, xdata, ydata, init_params):
 
     def lsq_wrapper_fn(xdata, *optim_args):
         direct_results = lsq_direct_fn(xdata, optim_args)
-        #print(direct_results)
+        #print('direct results:', direct_results)
         return concatenate(direct_results)
 
     return curve_fit(lsq_wrapper_fn, xdata, ydata, p0 = init_params)

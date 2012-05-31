@@ -53,5 +53,6 @@ def solve(model):
         from modules.shared.show import draw_graphs
 
         draw_graphs(t, mass_in=z[:, mass_in_idx], mass_out=z[:, mass_out_idx])
+    #print('z result:', z[:, :])
 
     return (success_p, t, z)
