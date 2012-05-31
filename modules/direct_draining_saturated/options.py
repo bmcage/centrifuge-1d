@@ -1,5 +1,5 @@
 from modules.shared.shared_functions import lagrangean_derivative_coefs
-from numpy import linspace
+from numpy import linspace, power, asarray
 
 PARENTAL_MODULES = ['base']
 
@@ -14,7 +14,7 @@ CONFIG_OPTIONS = {
                           ['h_last']),
                         'rb-4':
                          (lambda cfg: cfg.get_value('rb_type') == 4,
-                          ['h_last'])},
+                          ['h_last', 'dip_height'])},
         'optional'  : ['n1', 'gamma1', 'n2', 'gamma2'],
         'additional': ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
                        'first_idx', 'last_idx', 's1_idx', 's2_idx',
@@ -58,4 +58,13 @@ def adjust_cfg(cfg):
     cfg.set_value('ldc3', ldc3)
 
     if cfg.get_value('rb_type') == 4:
-        cfg.set_value('h_last', )
+        omega2g = (power(asarray(cfg.get_value('omega'), dtype=float), 2)
+                   /(2  * cfg.get_value('g')))
+        rL = asarray(cfg.get_value('r0'))+asarray(cfg.get_value('l0'))
+        h_last = omega2g * (power(rL
+                                  + asarray(cfg.get_value('fl2'), dtype=float),
+                                  2)
+                            - power(rL - asarray(cfg.get_value('dip_height'),
+                                                 dtype=float),
+                                    2))
+        cfg.set_value('h_last', h_last)

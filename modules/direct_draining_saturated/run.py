@@ -66,33 +66,44 @@ class centrifuge_residual(IDA_RhsFunction):
                      - model.ldc2[-1] * h[-2]
                      + model.ldc3[-1] * h[-1])
 
-        if rb_type > 3:
+        if rb_type > 2:
+            rE = model.r0 + L + model.fl2
+            rI = rE - s2
+
+            q_out = (omega2g/2. / (model.fl1/model.ks1 + L/model.ks
+                                   + model.fl2/model.ks2)
+                     * (rE*rE - rI*rI))
+
             dhdotdr_last = (model.ldc1[-1] * hdot[-3]
                              - model.ldc2[-1] * hdot[-2]
                              + model.ldc3[-1] * hdot[-1])
 
+            result[last_idx]  = hdot[-1]
             result[model.s2_idx]  = zdot[model.s2_idx] + dhdotdr_last/dhdr_last
         else:
             if rb_type == 0:
-                q_last = 0.
+                q_out = 0.
                 result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
-                                     + 2 / dy[-1] / ds * (q_last - q12[-1]))
+                                     + 2 / dy[-1] / ds * (q_out - q12[-1]))
             elif rb_type == 1:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
-                q_last  = np.maximum(1e-12,
+                q_out  = np.maximum(1e-12,
                                      -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
                 result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
-                                     + 2 / dy[-1] / ds * (q_last - q12[-1]))
+                                     + 2 / dy[-1] / ds * (q_out - q12[-1]))
             else:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
-                q_last  = np.maximum(1e-12,
+                q_out  = np.maximum(1e-12,
                                      -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
                 result[last_idx]  = hdot[-1]
 
             result[model.s2_idx]  = zdot[model.s2_idx]
 
+        print('ds2dt', result[model.s2_idx], dhdotdr_last/dhdr_last,
+              dhdotdr_last, dhdr_last)
+
         result[model.mass_in_idx]  = zdot[model.mass_in_idx]
-        result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_last
+        result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_out
         result[model.s1_idx]  = zdot[model.s1_idx]
         result[model.pq_idx]  = zdot[model.pq_idx]
 
@@ -129,14 +140,18 @@ def solve(model):
                       + model.h_init)
         z0_view[-1] = model.h_last
 
-        s1 = 0.0
+    if model.rb_type < 3:
         s2 = model.l0
-        mass_in = mass_out = 0.0
+    else:
+        s2 = model.dip_height
 
-        z0[model.s1_idx] = s1
-        z0[model.s2_idx] = s2
-        z0[model.mass_in_idx]  = mass_in
-        z0[model.mass_out_idx] = mass_out
+    s1 = 0.0
+    mass_in = mass_out = 0.0
+
+    z0[model.s1_idx] = s1
+    z0[model.s2_idx] = s2
+    z0[model.mass_in_idx]  = mass_in
+    z0[model.mass_out_idx] = mass_out
 
     t[0] = 0.0
     u[0, :] = h2u(z0[model.first_idx: model.last_idx+1],
