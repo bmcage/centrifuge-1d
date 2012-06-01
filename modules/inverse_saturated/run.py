@@ -1,14 +1,13 @@
 from modules.direct_saturated.run import solve as direct_solve
 from modules.shared.solver import simulate_inverse
-from numpy import concatenate, cumsum
+from numpy import concatenate, cumsum, asarray
 
 def print_results(model, Ks_inv, t_inv, wl1_inv):
     wl0      = model.get_iterable_value('wl0')
     wl1      = model.get_iterable_value('wl1')
-    if model.duration == 0.0:
-        duration = model.get_iterable_value('fh_duration')
-    else:
-        duration = model.get_iterable_value('duration')
+
+    duration = (asarray(model.get_iterable_value('fh_duration'))
+                + asarray(model.get_iterable_value('duration')))
 
     for i in range(model.iterations):
         print('Subexperiment %i:' % (i+1))
