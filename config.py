@@ -180,7 +180,14 @@ def parse_value(str_value):
         raw_value = str_value.strip()
 
         if raw_value[0] == "[" and raw_value[-1] == "]":
-            return [parse_value(item) for item in raw_value[1:-1].split(",")]
+            value = []
+            for item in raw_value[1:-1].split(","):
+                one_value = parse_value(item)
+                if type(one_value) == list:
+                    value.extend(one_value)
+                else:
+                    value.append(one_value)
+            return value
         elif ((raw_value[0] == "'" and raw_value[-1] == "'")
               or (raw_value[0] == '"' and raw_value[-1] == '"')):
             return raw_value[1:-1]
@@ -194,6 +201,11 @@ def parse_value(str_value):
             return inf
         elif raw_value == '-inf':
             return -inf
+        elif '*' in raw_value:
+            [raw_mul, raw_val] = raw_value.split("*")
+            mul = parse_value(raw_mul)
+            val = parse_value(raw_val)
+            return [val for i in range(mul)]
         elif "." in raw_value or "e" in raw_value or "E" in raw_value:
             return float(raw_value)
         elif raw_value[0] == "(" and raw_value[-1] == ")":
