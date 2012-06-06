@@ -30,7 +30,8 @@ NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'p', 'theta']
 PROVIDE_OPTIONS = ['duration', 'ks', 'r0', 'l0', 'wt_out',
                   'omega']
 
-BLACKLIST_OPTIONS = ['rtol', 'atol']
+BLACKLIST_OPTIONS = ['rtol', 'atol', 'include_acceleration', 'max_step_size',
+                     'r0_fall', 'fh_duration', 'max_steps']
 
 def check_cfg(cfg):
     theta_s_p = not cfg.get_value('theta_s') is None
