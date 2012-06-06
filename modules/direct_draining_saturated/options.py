@@ -13,7 +13,7 @@ CONFIG_OPTIONS = {
                          (lambda cfg: cfg.get_value('rb_type') == 2,
                           ['h_last']),
                         'rb-3':
-                         (lambda cfg: cfg.get_value('rb_type') == 3,
+                         (lambda cfg: cfg.get_value('rb_type') in [3, 4],
                           ['dip_height'])},
         'optional'  : ['n1', 'gamma1', 'n2', 'gamma2'],
         'additional': ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
