@@ -163,6 +163,7 @@ def run_experiments(options):
 
         if options.print_config_p:
             cfg.echo()
+            exit(0)
 
         modman = ModulesManager()
 
