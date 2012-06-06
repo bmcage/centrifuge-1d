@@ -3,8 +3,12 @@ import numpy as np
 from scikits.odes.sundials.common_defs import IDA_RhsFunction
 from modules.shared.shared_functions import find_omega2g
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
-from modules.shared.characteristics import water_mass, calc_gc, calc_rm
+from modules.direct_draining_saturated.characteristics import \
+     water_mass, calc_gc, calc_rm
 from modules.shared.solver import simulate_direct
+
+#TODO: will the new characteristics work also for the previous
+#      rb_types?
 
 class centrifuge_residual(IDA_RhsFunction):
 
@@ -83,21 +87,34 @@ class centrifuge_residual(IDA_RhsFunction):
             result[last_idx]  = hdot[-1]
             result[model.s2_idx]  = zdot[model.s2_idx] + dhdotdr_last/dhdr_last
         elif rb_type == 4:
-            print('s2:', s2)
             #F = model.r0 + L + model.fl2
             rD = model.r0 + L - model.dip_height
             rI = model.r0 + s2
-            q_out = (omega2g/2. / (model.fl1/model.ks1 + L/model.ks
-                                   + model.fl2/model.ks2)
-                     * (rD*rD - rI*rI))
-            q_s2 = np.maximum(1e-12,
-                              -Ks * (dhdr_last/ds - omega2g*(r0 + s2)))
+            q_out = np.maximum(omega2g/2. / (model.fl1/model.ks1 + L/model.ks
+                                             + model.fl2/model.ks2)
+                                            * (rD*rD - rI*rI),
+                               0.0)
+            #q_s2 = np.maximum(1e-12,
+            #                  -Ks * (dhdr_last/ds - omega2g*(r0 + s2)))
+            q_s2 = -Ks * (dhdr_last/ds - omega2g*(r0 + s2))
 
             result[last_idx]  = hdot[-1]
-            result[model.s2_idx]  = zdot[model.s2_idx] + (q_s2 - q_out)/porosity
-            print('s2dot:', -(q_s2 - q_out)/porosity)
-            print('h(s2):', h[-1])
-            print('-------')
+            result[model.s2_idx]  = zdot[model.s2_idx] + (q_out - q_s2)/porosity
+            print('q_out, q_s2:', q_out, q_s2)
+            print('s2:', s2, 's2dot:', -(q_s2 - q_out))
+            print('t, h(1), h(s2):', t, h[0], h[-1])
+            #input('Press ENTER to continue...')
+            #print('-------')
+        elif rb_type == 5:
+            rE = model.r0 + L + model.fl2
+            rI = model.r0 + s2
+
+            q_out = (omega2g/2. / (model.fl1/model.ks1 + L/model.ks
+                                   + model.fl2/model.ks2)
+                     * (rE*rE - rI*rI))
+
+            wdot = ds/2  * (dy[0]* hdot[0] + dy[-1]*hdot[-1]
+                            + np.sum((dy[:-1] + dy[1:])*hdot[1:-1]))
         else:
             raise NotImplementedError('rb_type has to be 3 or 4')
 
@@ -145,7 +162,8 @@ def solve(model):
     if model.rb_type < 3:
         s2 = model.l0
     else:
-        s2 = model.l0 - model.dip_height
+        #s2 = model.l0 - model.dip_height
+        s2 = 0.5
 
     s1 = 0.0
     mass_in = mass_out = 0.0
