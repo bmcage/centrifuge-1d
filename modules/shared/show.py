@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from numpy import alen, empty
+from numpy import alen, empty, pi
 from const import FIGS_DIR
 from os import makedirs, path
 
@@ -124,10 +124,11 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
         OUT_DIR = FIGS_DIR + '/'
     else:
         OUT_DIR = (FIGS_DIR + '/' + 'n=' + str(model.n) + ',gamma='
-                   + str(model.gamma) + ',omega='+str(model.omega) +'/')
+                   + str(model.gamma) + ',Ks=%g' % model.ks
+                   + ',omega=%.2f' % (model.omega*30./pi) +'/')
     print(OUT_DIR)
 
-    if not path.exists(OUT_DIR):
+    if save_figures and (not path.exists(OUT_DIR)):
         makedirs(OUT_DIR)
 
     t = [ti/60. for ti in times] # sec -> min
@@ -260,6 +261,8 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
         if not s2 is None:
             fout.write('{:8} = [{}]\n'.format('s2', ', '.join(nd2strlist(s2))))
 
+        if not model.descr == '':
+            fout.write('{:8} = "{}"\n'.format('descr', model.descr))
         fout.close()
 
     input('Press ENTER to continue...')
