@@ -65,7 +65,7 @@ class centrifuge_residual(IDA_RhsFunction):
         dhdr_last = (model.ldc1[-1] * h[-3]
                      - model.ldc2[-1] * h[-2]
                      + model.ldc3[-1] * h[-1])
-
+        print('h3:', h[-3:])
         if rb_type == 3:
             rE = model.r0 + L + model.fl2
             rI = model.r0 + s2
@@ -82,11 +82,27 @@ class centrifuge_residual(IDA_RhsFunction):
 
             result[last_idx]  = hdot[-1]
             result[model.s2_idx]  = zdot[model.s2_idx] + dhdotdr_last/dhdr_last
-        else:
-            raise NotImplementedError('rb_type has to be 3')
+        elif rb_type == 4:
+            print('s2:', s2)
+            #F = model.r0 + L + model.fl2
+            rD = model.r0 + L - model.dip_height
+            rI = model.r0 + s2
+            q_out = (omega2g/2. / (model.fl1/model.ks1 + L/model.ks
+                                   + model.fl2/model.ks2)
+                     * (rD*rD - rI*rI))
+            q_s2 = np.maximum(1e-12,
+                              -Ks * (dhdr_last/ds - omega2g*(r0 + s2)))
 
-        print('ds2dt', result[model.s2_idx], dhdotdr_last/dhdr_last,
-              dhdotdr_last, dhdr_last)
+            result[last_idx]  = hdot[-1]
+            result[model.s2_idx]  = zdot[model.s2_idx] + (q_s2 - q_out)/porosity
+            print('s2dot:', -(q_s2 - q_out)/porosity)
+            print('h(s2):', h[-1])
+            print('-------')
+        else:
+            raise NotImplementedError('rb_type has to be 3 or 4')
+
+        #print('ds2dt', result[model.s2_idx], dhdotdr_last/dhdr_last,
+        #      dhdotdr_last, dhdr_last)
 
         result[model.mass_in_idx]  = zdot[model.mass_in_idx]
         result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_out
@@ -129,7 +145,7 @@ def solve(model):
     if model.rb_type < 3:
         s2 = model.l0
     else:
-        s2 = model.dip_height
+        s2 = model.l0 - model.dip_height
 
     s1 = 0.0
     mass_in = mass_out = 0.0
