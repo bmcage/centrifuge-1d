@@ -158,11 +158,14 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 plt.xlabel('Sample length ''L'' [cm]')
                 plt.ylabel('Piezometric head ''h'' [cm]')
 
-                if separate_figures:
-                   add_legend(h_lines, t)
-
                 if save_figures and separate_figures:
                     fname = OUT_DIR + 'Image-h'
+                    plt.savefig(fname, dpi=300)
+
+                if separate_figures:
+                   add_legend(h_lines, t)
+                if save_figures and separate_figures:
+                    fname = OUT_DIR + 'Image-h-leg'
                     plt.savefig(fname, dpi=300)
 
             if not u is None:
@@ -174,10 +177,14 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 u_lines = plt.plot(x.transpose(), u.transpose(), '.')
                 plt.xlabel('Sample length ''L'' [cm]')
                 plt.ylabel('Relative saturation ''u''')
-                add_legend(u_lines, t)
 
                 if save_figures and separate_figures:
                     fname = OUT_DIR + 'Image-u'
+                    plt.savefig(fname, dpi=300)
+
+                add_legend(u_lines, t)
+                if save_figures and separate_figures:
+                    fname = OUT_DIR + 'Image-u-leg'
                     plt.savefig(fname, dpi=300)
 
                 row = 0
