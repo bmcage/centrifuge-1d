@@ -264,7 +264,7 @@ def solve(model):
         (ks_init, n_init, gamma_init) = model.inv_init_params
         init_params = (log(ks_init), log(n_init - 1.0), log(-gamma_init))
     else:
-        (n_init, gamma_init) = optim_args
+        (n_init, gamma_init) = model.inv_init_params
         init_params  = (log(n_init - 1.0), log(-gamma_init))
 
     inv_params, cov_ks = simulate_inverse(ip_direct_drainage, xdata,
