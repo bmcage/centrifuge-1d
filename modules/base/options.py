@@ -14,9 +14,9 @@ CONFIG_OPTIONS = {
                       'omega_start': 0.0, 'omega_end': 0.0,
                       'ks1': -1.0, 'fl1': 0.0, 'ks2': -1.0, 'fl2': 0.0,
                       'density': 1.0, 'viscosity': 1.0,
-                      'draw_graphs': False,
-                      'save_figures': False, 'separate_figures': False,
-                      'save_as_text': False,
+                      'draw_graphs': True,
+                      'save_figures': True, 'separate_figures': True,
+                      'save_as_text': True,
                      },
         'dependent': {'centrifugation':
                         (lambda cfg: not (cfg.get_value('duration') == 0.0),
