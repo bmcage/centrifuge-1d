@@ -109,13 +109,20 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 mass_out = None, mass_in = None,
                 GC = None, RM = None,  WM = None,
                 fignum = 1, save_figures=False, separate_figures=False,
-                save_as_text=False,
+                save_as_text=False, draw_equilibrium=False,
+                show_figures=False,
                 model=None):
 
-    def add_legend(lines, times):
+    def add_legend(lines, times, append_to_legend=None):
         legend_data = ['% 7d' % ti for ti in times]
 
-        plt.figlegend(h_lines, legend_data, 1, borderaxespad=0.0,
+        if append_to_legend:
+            if type(append_to_legend)==list:
+                legend_data.extend(append_to_legend)
+            else:
+                legend_data.append(append_to_legend)
+        print('Legend', append_to_legend, legend_data)
+        plt.figlegend(lines, legend_data, 1, borderaxespad=0.0,
                       title="Time [min]", prop={'family': 'monospace'})
 
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
@@ -154,16 +161,30 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                     plt.figure(fignum)
                 else:
                     plt.subplot(321)
-                h_lines = plt.plot(x.transpose(), h.transpose(), '.')
+
+                if draw_equilibrium:
+                    c_omega = (model.omega ** 2)/model.g/2
+                    r0 = model.r0
+                    c_eqlib = (r0 + model.l0 + model.fl2) ** 2
+                    h_eqlib = c_omega * ((r0 + x) ** 2 - c_eqlib)
+                    h_lines = plt.plot(x.transpose(), h.transpose(), '.',
+                                       x.transpose(), h_eqlib.transpose(), 'x')
+
+                    append_to_legend = ['h in equilibrium']
+                else:
+                    append_to_legend = []
+                    h_lines = plt.plot(x.transpose(), h.transpose(), '.')
+
                 plt.xlabel('Sample length ''L'' [cm]')
                 plt.ylabel('Piezometric head ''h'' [cm]')
+
 
                 if save_figures and separate_figures:
                     fname = OUT_DIR + 'Image-h'
                     plt.savefig(fname, dpi=300)
 
                 if separate_figures:
-                   add_legend(h_lines, t)
+                   add_legend(h_lines, t, append_to_legend=append_to_legend)
                 if save_figures and separate_figures:
                     fname = OUT_DIR + 'Image-h-leg'
                     plt.savefig(fname, dpi=300)
