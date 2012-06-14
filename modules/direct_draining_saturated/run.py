@@ -16,6 +16,12 @@ class centrifuge_residual(IDA_RhsFunction):
         # F(t,h,dh/dt) = porosity * du/dh * dh/dt
         #                + d[K(h)*(dh/dr - omega^2/g * r)]/dr
 
+        #print('--------------------')
+        print('t', t)
+        #print('z', z)
+        #print('zdot', zdot)
+        #print('--------------------')
+
         first_idx = model.first_idx
         last_idx  = model.last_idx
 
@@ -24,6 +30,8 @@ class centrifuge_residual(IDA_RhsFunction):
         if np.any(h > 0): # positive pressure - we want to refine the step
             return 1
         #print('h: ', h)
+
+        dhdr = np.empty([model.inner_points+2,], dtype=float)
 
         hdot =  zdot[first_idx:last_idx+1]
         h12  = (h[1:] + h[:-1]) / 2
@@ -47,64 +55,77 @@ class centrifuge_residual(IDA_RhsFunction):
         #Kh12 = cProfile.run('h2Kh(h12, n, m, gamma, Ks)', 'h2kh1')
         #Kh_last =  cProfile.run('h2Kh(h[-1], n, m, gamma, Ks)', 'h2kh2')
 
-        dy   = model.dy
+        y  = model.y
+        dy = model.dy
 
-        dhdr12 = (h[1:] - h[:-1]) / model.dy
+        dhdr12 = (h[1:] - h[:-1]) / dy
+        dhdr[0] = (model.ldc1[0] * h[0]
+                     - model.ldc2[0] * h[1]
+                     + model.ldc3[0] * h[2])
+        dhdr[1:-1] = (model.ldc1[1:-1] * h[:-2]
+                     - model.ldc2[1:-1] * h[1:-1]
+                     + model.ldc3[1:-1] * h[2:])
+        dhdr[-1] = (model.ldc1[-1] * h[-3]
+                     - model.ldc2[-1] * h[-2]
+                     + model.ldc3[-1] * h[-1])
 
+        #dhdr[:-1] = 0.
+        #print('dhdr', dhdr, 'h[1:3]', h[0:3])
+        #print('ldc', model.ldc1[:10], model.ldc2[:10], model.ldc3[:10])
         q_first = 0.
         q12 = -Kh12 * (dhdr12 / ds - omega2g*(r0 + s1 + ds * model.y12))
 
         #print('ql:', q_last)
         #print('q_out', q_last)
+        ds1dt = zdot[model.s1_idx]
+        ds2dt = zdot[model.s2_idx]
 
         du_dh = dudh(h, n, m, gamma)
-        result[first_idx] = (porosity * du_dh[0] * hdot[0]
-                             + 2 / dy[0] / ds * (q12[0] - q_first))
+        result[first_idx] = \
+          (porosity * du_dh[0] * (hdot[0] - dhdr[0]*ds1dt)
+           + 2 / dy[0] / ds * (q12[0] - q_first))
 
-        result[first_idx+1:last_idx] = (porosity * du_dh[1:-1] * hdot[1:-1]
-                                        + 2 / (dy[:-1] + dy[1:]) / ds
-                                          * (q12[1:] - q12[:-1]))
+        result[first_idx+1:last_idx] = \
+          (porosity*du_dh[1:-1]*(hdot[1:-1]
+                                 - dhdr[1:-1]*((1-y[1:-1])*ds1dt
+                                               + y[1:-1]*ds2dt))
+            + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
 
         rb_type = model.rb_type
-        dhdr_last = (model.ldc1[-1] * h[-3]
-                     - model.ldc2[-1] * h[-2]
-                     + model.ldc3[-1] * h[-1])
+
+        q_s2 = -Ks * (dhdr[-1]/ds - omega2g*(r0 + s2))
+
+        rD = model.r0 + L - model.dip_height
+        rI = model.r0 + s2
+
+        q_sat = (omega2g/2. * (rD*rD - rI*rI)
+                           / (model.fl1/model.ks1 + (L-s2)/model.ks
+                              + model.fl2/model.ks2))
         print('h3:', h[-3:])
         if rb_type == 3:
-            rE = model.r0 + L + model.fl2
-            rI = model.r0 + s2
 
-            h_end = omega2g/2 * (rE*rE - rI*rI)
+            if dhdr[-1] == 0.0:
+                dhdr[-1] = -1e-12
+            q_last = q_sat - q_s2
+            #q_last = q_sat - q_s2
+            dhdt_last = - q_last/ porosity / du_dh[-1]
 
-            q_out = (omega2g/2. / (model.fl1/model.ks1 + L/model.ks
-                                   + model.fl2/model.ks2)
-                     * (rE*rE - rI*rI))
-
-            dhdotdr_last = (model.ldc1[-1] * hdot[-3]
-                             - model.ldc2[-1] * hdot[-2]
-                             + model.ldc3[-1] * hdot[-1])
+            #print('s2', z[model.s2_idx], '\ns2dt', -dhdt_last/dhdr[-1])
+            print('\nq_sat', q_sat, 'q_s2', q_s2, 'q_last', q_last,
+                  'expelled', z[model.mass_out_idx])
 
             result[last_idx]  = hdot[-1]
-            result[model.s2_idx]  = zdot[model.s2_idx] + dhdotdr_last/dhdr_last
+            result[model.s2_idx] = \
+              zdot[model.s2_idx] + dhdt_last/dhdr[-1]
         elif rb_type == 4:
-            #F = model.r0 + L + model.fl2
-            rD = model.r0 + L - model.dip_height
-            rI = model.r0 + s2
-            q_out = np.maximum(omega2g/2. / (model.fl1/model.ks1 + L/model.ks
-                                             + model.fl2/model.ks2)
-                                            * (rD*rD - rI*rI),
-                               0.0)
-            #q_s2 = np.maximum(1e-12,
-            #                  -Ks * (dhdr_last/ds - omega2g*(r0 + s2)))
-            q_s2 = -Ks * (dhdr_last/ds - omega2g*(r0 + s2))
+            q_last = q_sat - q_s2
 
             result[last_idx]  = hdot[-1]
-            result[model.s2_idx]  = zdot[model.s2_idx] + (q_out - q_s2)/porosity
-            print('q_out, q_s2:', q_out, q_s2)
-            print('s2:', s2, 's2dot:', -(q_s2 - q_out))
-            print('t, h(1), h(s2):', t, h[0], h[-1])
-            #input('Press ENTER to continue...')
-            #print('-------')
+            result[model.s2_idx]  = \
+              zdot[model.s2_idx] - q_last/porosity
+            print('s2', z[model.s2_idx])
+            print('\nq_sat', q_sat, 'q_s2', q_s2, 'q_last', q_last,
+                  'expelled', z[model.mass_out_idx])
         elif rb_type == 5:
             rE = model.r0 + L + model.fl2
             rI = model.r0 + s2
@@ -116,13 +137,13 @@ class centrifuge_residual(IDA_RhsFunction):
             wdot = ds/2  * (dy[0]* hdot[0] + dy[-1]*hdot[-1]
                             + np.sum((dy[:-1] + dy[1:])*hdot[1:-1]))
         else:
-            raise NotImplementedError('rb_type has to be 3 or 4')
+            raise NotImplementedError('rb_type has to be 3 - 5')
 
-        #print('ds2dt', result[model.s2_idx], dhdotdr_last/dhdr_last,
-        #      dhdotdr_last, dhdr_last)
+        #print('ds2dt', result[model.s2_idx], dhdotdr_last/dhdr[-1],
+        #      dhdotdr_last, dhdr[-1])
 
         result[model.mass_in_idx]  = zdot[model.mass_in_idx]
-        result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_out
+        result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_sat
         result[model.s1_idx]  = zdot[model.s1_idx]
         result[model.pq_idx]  = zdot[model.pq_idx]
 
@@ -146,7 +167,7 @@ def solve(model):
     z0 = z[0, :]
 
     z0[model.first_idx:model.last_idx+1] = model.h_init
-    if model.rb_type == 2:
+    if model.rb_type in [2, 3, 4]:
         # do regularization for prescribed head on right boundary
         n_spanning_points = 5
 
@@ -163,7 +184,7 @@ def solve(model):
         s2 = model.l0
     else:
         #s2 = model.l0 - model.dip_height
-        s2 = 0.5
+        s2 = 1.07
 
     s1 = 0.0
     mass_in = mass_out = 0.0
