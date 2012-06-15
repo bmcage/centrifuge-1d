@@ -22,6 +22,18 @@ class centrifuge_residual(IDA_RhsFunction):
         #print('zdot', zdot)
         #print('--------------------')
 
+        r0 = model.r0
+        L  = model.l0
+        rb_type = model.rb_type
+
+        s2 = z[model.s2_idx]
+        s1 = z[model.s1_idx]
+        ds = s2 - s1
+
+        if (rb_type > 3) and (s2 > L - model.dip_height):
+            print('refine, s2EQ=', L - model.dip_height, 's2=', s2)
+            return 1
+
         first_idx = model.first_idx
         last_idx  = model.last_idx
 
@@ -38,16 +50,12 @@ class centrifuge_residual(IDA_RhsFunction):
 
         omega2g = find_omega2g(t, model)
 
-        s2 = z[model.s2_idx]
-        s1 = 0
-        ds = s2 - s1
 
         Ks = model.ks
         n  = model.n
         m  = model.m
         gamma = model.gamma
-        r0 = model.r0
-        L  = model.l0
+
         porosity = model.porosity
 
         Kh12 = h2Kh(h12, n, m, gamma, Ks)
@@ -58,22 +66,22 @@ class centrifuge_residual(IDA_RhsFunction):
         y  = model.y
         dy = model.dy
 
-        dhdr12 = (h[1:] - h[:-1]) / dy
+        dhdr12 = (h[1:] - h[:-1]) / dy / ds
         dhdr[0] = (model.ldc1[0] * h[0]
                      - model.ldc2[0] * h[1]
-                     + model.ldc3[0] * h[2])
+                     + model.ldc3[0] * h[2]) / ds
         dhdr[1:-1] = (model.ldc1[1:-1] * h[:-2]
                      - model.ldc2[1:-1] * h[1:-1]
-                     + model.ldc3[1:-1] * h[2:])
+                     + model.ldc3[1:-1] * h[2:]) / ds
         dhdr[-1] = (model.ldc1[-1] * h[-3]
                      - model.ldc2[-1] * h[-2]
-                     + model.ldc3[-1] * h[-1])
+                     + model.ldc3[-1] * h[-1]) / ds
 
         #dhdr[:-1] = 0.
         #print('dhdr', dhdr, 'h[1:3]', h[0:3])
         #print('ldc', model.ldc1[:10], model.ldc2[:10], model.ldc3[:10])
         q_first = 0.
-        q12 = -Kh12 * (dhdr12 / ds - omega2g*(r0 + s1 + ds * model.y12))
+        q12 = -Kh12 * (dhdr12  - omega2g*(r0 + s1 + ds * model.y12))
 
         #print('ql:', q_last)
         #print('q_out', q_last)
@@ -91,8 +99,6 @@ class centrifuge_residual(IDA_RhsFunction):
                                                + y[1:-1]*ds2dt))
             + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
 
-        rb_type = model.rb_type
-
         q_s2 = -Ks * (dhdr[-1]/ds - omega2g*(r0 + s2))
 
         rD = model.r0 + L - model.dip_height
@@ -101,7 +107,13 @@ class centrifuge_residual(IDA_RhsFunction):
         q_sat = (omega2g/2. * (rD*rD - rI*rI)
                            / (model.fl1/model.ks1 + (L-s2)/model.ks
                               + model.fl2/model.ks2))
+        if q_sat < 0:
+            print(10*'-' + '\nQ_SAT =', q_sat, ' !!!\n' + 10*'-')
+            print(omega2g, rD, rI, L, s2, model.ks, model.ks2, model.ks1)
+
         print('h3:', h[-3:])
+        print('s1', z[model.s1_idx], 's2', z[model.s2_idx])
+
         if rb_type == 3:
 
             if dhdr[-1] == 0.0:
@@ -118,12 +130,11 @@ class centrifuge_residual(IDA_RhsFunction):
             result[model.s2_idx] = \
               zdot[model.s2_idx] + dhdt_last/dhdr[-1]
         elif rb_type == 4:
-            q_last = q_sat - q_s2
+            q_last = q_s2 - q_sat
 
             result[last_idx]  = hdot[-1]
             result[model.s2_idx]  = \
-              zdot[model.s2_idx] - q_last/porosity
-            print('s2', z[model.s2_idx])
+              zdot[model.s2_idx] + q_last/porosity
             print('\nq_sat', q_sat, 'q_s2', q_s2, 'q_last', q_last,
                   'expelled', z[model.mass_out_idx])
         elif rb_type == 5:
@@ -184,7 +195,7 @@ def solve(model):
         s2 = model.l0
     else:
         #s2 = model.l0 - model.dip_height
-        s2 = 1.07
+        s2 = 1.00
 
     s1 = 0.0
     mass_in = mass_out = 0.0
