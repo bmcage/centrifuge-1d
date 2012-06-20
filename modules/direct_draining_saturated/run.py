@@ -1,7 +1,7 @@
 import numpy as np
 
 from scikits.odes.sundials.common_defs import IDA_RhsFunction
-from modules.shared.shared_functions import find_omega2g
+from modules.shared.shared_functions import find_omega2g, right_derivative
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.direct_draining_saturated.characteristics import \
      water_mass, calc_gc, calc_rm
@@ -43,7 +43,7 @@ class centrifuge_residual(IDA_RhsFunction):
             return 1
         #print('h: ', h)
 
-        dhdr = np.empty([model.inner_points+2,], dtype=float)
+        dhdy = np.empty([model.inner_points+2,], dtype=float)
 
         hdot =  zdot[first_idx:last_idx+1]
         h12  = (h[1:] + h[:-1]) / 2
@@ -66,22 +66,22 @@ class centrifuge_residual(IDA_RhsFunction):
         y  = model.y
         dy = model.dy
 
-        dhdr12 = (h[1:] - h[:-1]) / dy / ds
-        dhdr[0] = (model.ldc1[0] * h[0]
-                     - model.ldc2[0] * h[1]
-                     + model.ldc3[0] * h[2]) / ds
-        dhdr[1:-1] = (model.ldc1[1:-1] * h[:-2]
-                     - model.ldc2[1:-1] * h[1:-1]
-                     + model.ldc3[1:-1] * h[2:]) / ds
-        dhdr[-1] = (model.ldc1[-1] * h[-3]
-                     - model.ldc2[-1] * h[-2]
-                     + model.ldc3[-1] * h[-1]) / ds
+        dhdy12 = (h[1:] - h[:-1]) / dy
+        dhdy[0] = (model.ldc1[0] * h[0]
+                     + model.ldc2[0] * h[1]
+                     + model.ldc3[0] * h[2])
+        dhdy[1:-1] = (model.ldc1[1:-1] * h[:-2]
+                     + model.ldc2[1:-1] * h[1:-1]
+                     + model.ldc3[1:-1] * h[2:])
+        dhdy[-1] = (model.ldc1[-1] * h[-3]
+                     + model.ldc2[-1] * h[-2]
+                     + model.ldc3[-1] * h[-1])
 
-        #dhdr[:-1] = 0.
-        #print('dhdr', dhdr, 'h[1:3]', h[0:3])
+        #dhdy[:-1] = 0.
+        #print('dhdy', dhdy, 'h[1:3]', h[0:3])
         #print('ldc', model.ldc1[:10], model.ldc2[:10], model.ldc3[:10])
         q_first = 0.
-        q12 = -Kh12 * (dhdr12  - omega2g*(r0 + s1 + ds * model.y12))
+        q12 = -Kh12 * (dhdy12/ds  - omega2g*(r0 + s1 + ds * model.y12))
 
         #print('ql:', q_last)
         #print('q_out', q_last)
@@ -90,16 +90,17 @@ class centrifuge_residual(IDA_RhsFunction):
 
         du_dh = dudh(h, n, m, gamma)
         result[first_idx] = \
-          (porosity * du_dh[0] * (hdot[0] - dhdr[0]*ds1dt)
+          (porosity * du_dh[0] * (hdot[0] - dhdy[0]/ds*ds1dt)
            + 2 / dy[0] / ds * (q12[0] - q_first))
 
         result[first_idx+1:last_idx] = \
           (porosity*du_dh[1:-1]*(hdot[1:-1]
-                                 - dhdr[1:-1]*((1-y[1:-1])*ds1dt
-                                               + y[1:-1]*ds2dt))
+                                 - dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt
+                                                  + y[1:-1]*ds2dt))
             + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
 
-        q_s2 = -Ks * (dhdr[-1]/ds - omega2g*(r0 + s2))
+        #TODO: in q_s2 h<0 => K(h) != Ks
+        q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
 
         rD = model.r0 + L - model.dip_height
         rI = model.r0 + s2
@@ -107,6 +108,7 @@ class centrifuge_residual(IDA_RhsFunction):
         q_sat = (omega2g/2. * (rD*rD - rI*rI)
                            / (model.fl1/model.ks1 + (L-s2)/model.ks
                               + model.fl2/model.ks2))
+        q_sat = 0.0
         if q_sat < 0:
             print(10*'-' + '\nQ_SAT =', q_sat, ' !!!\n' + 10*'-')
             print(omega2g, rD, rI, L, s2, model.ks, model.ks2, model.ks1)
@@ -115,20 +117,20 @@ class centrifuge_residual(IDA_RhsFunction):
         print('s1', z[model.s1_idx], 's2', z[model.s2_idx])
 
         if rb_type == 3:
-
-            if dhdr[-1] == 0.0:
-                dhdr[-1] = -1e-12
+            if dhdy[-1] == 0.0:
+                dhdy[-1] = -1e-12
             q_last = q_sat - q_s2
             #q_last = q_sat - q_s2
             dhdt_last = - q_last/ porosity / du_dh[-1]
+            dqdy_last = right_derivative([(dy[-2]+dy[-1])/2, dy[-1]/2],
+                                         [q12[-2], q12[-1], q_s2])
 
-            #print('s2', z[model.s2_idx], '\ns2dt', -dhdt_last/dhdr[-1])
+            #print('s2', z[model.s2_idx], '\ns2dt', -dhdt_last/dhdy[-1])
             print('\nq_sat', q_sat, 'q_s2', q_s2, 'q_last', q_last,
                   'expelled', z[model.mass_out_idx])
 
             result[last_idx]  = hdot[-1]
-            result[model.s2_idx] = \
-              zdot[model.s2_idx] + dhdt_last/dhdr[-1]
+            result[model.s2_idx] = ds2dt + dqdy_last/dhdy[-1]/porosity/du_dh[-1]
         elif rb_type == 4:
             q_last = q_s2 - q_sat
 
@@ -177,10 +179,19 @@ def solve(model):
     # set values for t[0], z[0], u[0], GC[0]
     z0 = z[0, :]
 
+    if model.rb_type > 3:
+        atol_orig = model.atol
+        atol = atol_orig * np.ones([model.z_size,], dtype=float)
+        atol[model.s2_idx] = 1e-4
+
+        rtol_orig = model.rtol
+        rtol = rtol_orig * np.ones([model.z_size,], dtype=float)
+        rtol[model.s2_idx] = 1e-4
+
     z0[model.first_idx:model.last_idx+1] = model.h_init
     if model.rb_type in [2, 3, 4]:
         # do regularization for prescribed head on right boundary
-        n_spanning_points = 5
+        n_spanning_points = 15
 
         z0_view = z0[model.last_idx-n_spanning_points:model.last_idx+1]
         y_view = model.y[-1-n_spanning_points:]
@@ -250,6 +261,9 @@ def solve(model):
         # print('results', GC, z[:, model.mass_out_idx], u,
         #       z[:, :model.last_idx+1])
 
+    if model.rb_type > 3:
+        model.atol = atol_orig
+        model.rtol = rtol_orig
 
     if model.draw_graphs:
         from modules.shared.show import draw_graphs
