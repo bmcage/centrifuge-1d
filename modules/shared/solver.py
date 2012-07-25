@@ -6,7 +6,7 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
                       'Reached time: % 10.6f\nExpected time: % 10.6f')
 
-def simulate_direct(model, residual_fn, z0):
+def simulate_direct(model, residual_fn, z0, algvars_idx = None):
 
     def run_simulation(duration, z0):
         solver = ida.IDA(residual_fn,
@@ -15,7 +15,7 @@ def simulate_direct(model, residual_fn, z0):
                          atol=model.atol, rtol=model.rtol,
                          max_step_size = model.max_step_size,
                          max_steps = model.max_steps,
-                         #algebraic_vars_idx=[4],
+                         algebraic_vars_idx=algvars_idx,
                          #linsolver='band', uband=1, lband=1,
                          user_data=model)
 
