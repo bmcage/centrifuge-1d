@@ -13,13 +13,13 @@ CONFIG_OPTIONS = {
                          (lambda cfg: cfg.get_value('rb_type') == 2,
                           ['h_last']),
                         'rb-3':
-                         (lambda cfg: cfg.get_value('rb_type') in [3, 4],
+                         (lambda cfg: cfg.get_value('rb_type') in [3, 4, 6],
                           ['dip_height'])},
         'optional'  : ['n1', 'gamma1', 'n2', 'gamma2'],
         'additional': ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
                        'first_idx', 'last_idx', 's1_idx', 's2_idx',
                        'mass_in_idx', 'mass_out_idx', 'pq_idx', 'z_size',
-                       'h_last']
+                       'h_last', 'wm0']
         }
 
 EXCLUDE_FROM_MODEL = ['dtype']
