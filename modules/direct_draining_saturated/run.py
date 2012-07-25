@@ -152,16 +152,15 @@ class centrifuge_residual(IDA_RhsFunction):
             wdot = ds/2  * (dy[0]* hdot[0] + dy[-1]*hdot[-1]
                             + np.sum((dy[:-1] + dy[1:])*hdot[1:-1]))
         elif rb_type == 6:
-            # mass balance based on DAE
-            # 1. set y[s2_idx]
-            # 2. set initial condition for y0[s2_idx]
-            # 3. variable in model for wm0
             u = h2u(h, n, m, gamma)
-            WM_total, WM_in_tube = water_mass(u, z[mass_in_idx], z[mass_out_idx],
-                                              z[model.s1_idx], z[model.s2_idx]s1,
+            WM_total, WM_in_tube = water_mass(u,
+                                              z[model.mass_in_idx], z[model.mass_out_idx],
+                                              z[model.s1_idx], z[model.s2_idx],
                                               model)
+            result[last_idx]  = hdot[-1]
+            result[model.s2_idx] = WM_total - model.wm0
         else:
-            raise NotImplementedError('rb_type has to be 3 - 5')
+            raise NotImplementedError('rb_type has to be 3 - 6')
 
         #print('ds2dt', result[model.s2_idx], dhdotdr_last/dhdr[-1],
         #      dhdotdr_last, dhdr[-1])
@@ -200,7 +199,7 @@ def solve(model):
         rtol[model.s2_idx] = 1e-4
 
     z0[model.first_idx:model.last_idx+1] = model.h_init
-    if model.rb_type in [2, 3, 4]:
+    if model.rb_type in [2, 3, 4, 5, 6]:
         # do regularization for prescribed head on right boundary
         n_spanning_points = 15
 
@@ -218,6 +217,11 @@ def solve(model):
     else:
         #s2 = model.l0 - model.dip_height
         s2 = 1.00
+
+    if model.rb_type == 6:
+        algvars_idx = [model.s2_idx]
+    else:
+        algvars_idx = None
 
     s1 = 0.0
     mass_in = mass_out = 0.0
@@ -250,7 +254,8 @@ def solve(model):
 
         z0 = z[i-1, :]
 
-        (flag, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0)
+        (flag, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0,
+                                                 algvars_idx)
 
         t[i] = t[i-1] + t_out
 
