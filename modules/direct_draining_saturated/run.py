@@ -108,10 +108,11 @@ class centrifuge_residual(IDA_RhsFunction):
         q_sat = (omega2g/2. * (rD*rD - rI*rI)
                            / (model.fl1/model.ks1 + (L-s2)/model.ks
                               + model.fl2/model.ks2))
-        q_sat = 0.0
+        #q_sat = 0.0
         if q_sat < 0:
             print(10*'-' + '\nQ_SAT =', q_sat, ' !!!\n' + 10*'-')
             print(omega2g, rD, rI, L, s2, model.ks, model.ks2, model.ks1)
+            #q_sat = 0.0
 
         print('h3:', h[-3:])
         print('s1', z[model.s1_idx], 's2', z[model.s2_idx])
@@ -119,18 +120,19 @@ class centrifuge_residual(IDA_RhsFunction):
         if rb_type == 3:
             if dhdy[-1] == 0.0:
                 dhdy[-1] = -1e-12
-            q_last = q_sat - q_s2
+            q_last = q_s2 # - q_sat
             #q_last = q_sat - q_s2
             dhdt_last = - q_last/ porosity / du_dh[-1]
             dqdy_last = right_derivative([(dy[-2]+dy[-1])/2, dy[-1]/2],
-                                         [q12[-2], q12[-1], q_s2])
+                                         [q12[-2], q12[-1], q_last])
 
             #print('s2', z[model.s2_idx], '\ns2dt', -dhdt_last/dhdy[-1])
             print('\nq_sat', q_sat, 'q_s2', q_s2, 'q_last', q_last,
                   'expelled', z[model.mass_out_idx])
 
             result[last_idx]  = hdot[-1]
-            result[model.s2_idx] = ds2dt + dqdy_last/dhdy[-1]/porosity/du_dh[-1]
+            result[model.s2_idx] = (ds2dt + dqdy_last/dhdy[-1]/porosity/du_dh[-1]
+                                    +q_sat / porosity)
         elif rb_type == 4:
             q_last = q_s2 - q_sat
 
@@ -149,6 +151,15 @@ class centrifuge_residual(IDA_RhsFunction):
 
             wdot = ds/2  * (dy[0]* hdot[0] + dy[-1]*hdot[-1]
                             + np.sum((dy[:-1] + dy[1:])*hdot[1:-1]))
+        elif rb_type == 6:
+            # mass balance based on DAE
+            # 1. set y[s2_idx]
+            # 2. set initial condition for y0[s2_idx]
+            # 3. variable in model for wm0
+            u = h2u(h, n, m, gamma)
+            WM_total, WM_in_tube = water_mass(u, z[mass_in_idx], z[mass_out_idx],
+                                              z[model.s1_idx], z[model.s2_idx]s1,
+                                              model)
         else:
             raise NotImplementedError('rb_type has to be 3 - 5')
 
@@ -182,7 +193,7 @@ def solve(model):
     if model.rb_type > 3:
         atol_orig = model.atol
         atol = atol_orig * np.ones([model.z_size,], dtype=float)
-        atol[model.s2_idx] = 1e-4
+        atol[model.s2_idx] = 1e-8
 
         rtol_orig = model.rtol
         rtol = rtol_orig * np.ones([model.z_size,], dtype=float)
@@ -223,6 +234,8 @@ def solve(model):
     WM_total, WM_in_tube = water_mass(u[0, :], mass_in, mass_out,
                                       s1, s2, model)
     WM[0] = WM_total
+    model.wm0 = WM_total
+
     if model.calc_gc:
         GC    = np.empty([model.iterations+1, ], dtype=float)
         GC[0] = calc_gc(u[0, :], mass_in, s1, s2, WM_in_tube,
