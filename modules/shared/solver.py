@@ -18,6 +18,7 @@ def simulate_direct(model, residual_fn, z0, algvars_idx = None, root_fn = None,
                          max_steps = model.max_steps,
                          algebraic_vars_idx=algvars_idx,
                          rootfn=root_fn, nr_rootfns=nr_rootfns,
+                         tcrit=duration,
                          #linsolver='band', uband=1, lband=1,
                          user_data=model)
 
