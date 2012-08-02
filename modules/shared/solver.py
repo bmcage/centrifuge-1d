@@ -7,12 +7,12 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
                       'Reached time: % 10.6f\nExpected time: % 10.6f')
 
 def simulate_direct(model, residual_fn, z0, algvars_idx = None, root_fn = None,
-                    nr_rootfns=None):
+                    nr_rootfns=None, first_step_size=1e-30):
 
     def run_simulation(duration, z0):
         solver = ida.IDA(residual_fn,
                          compute_initcond='yp0',
-                         first_step_size=1e-18,
+                         first_step_size=first_step_size,
                          atol=model.atol, rtol=model.rtol,
                          max_step_size = model.max_step_size,
                          max_steps = model.max_steps,
@@ -24,9 +24,19 @@ def simulate_direct(model, residual_fn, z0, algvars_idx = None, root_fn = None,
 
         zp0 = zeros(z0.shape, float)
 
-        flag, t, z = solver.solve([0.0, duration], z0, zp0)[:3]
+        flag, t, z, zp, t_err, z_err, zp_err = solver.solve([0.0, duration], z0, zp0)
 
-        return flag, t[1], z[1]
+        if flag == 0: # Success
+            return flag, t[1], z[1]
+        elif flag == 1: # TCrit reached,also success
+            return flag, t_err, z_err
+        elif flag == 2: # Root found, considered to be an success
+            return flag, t_err, z_err
+        else:
+            print('Error occured during computation. Solver returned with '
+                  'values:\nt_err=', t_err, '\nz_err=', z_err, '\nzp_err=',
+                  zp_err)
+            exit(1)
 
     t_retn_out = 0.0
 
