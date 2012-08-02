@@ -410,7 +410,11 @@ class Configuration:
 
         # read config files
         parser     = configparser.ConfigParser()
-        read_files = parser.read(cfgs_filenames)
+        try:
+            read_files = parser.read(cfgs_filenames)
+        except configparser.DuplicateOptionError as E:
+            print(E)
+            exit(0)
 
         if (len(read_files) != len(cfgs_filenames)):
             print('Warning: from expected files: ', str(cfgs_filenames),
