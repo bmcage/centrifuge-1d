@@ -8,12 +8,11 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
 
 class DirectSimulator:
     def __init__(self, model, residual_fn, algvars_idx = None, root_fn = None,
-                 nr_rootfns=None, first_step_size=1e-30):
+                 nr_rootfns=None):
 
         self.model = model
         self.residual_fn = residual_fn
 
-        self.first_step_size = first_step_size
         self.root_fn = root_fn
         if (not root_fn is None) and (nr_rootfns is None):
             raise Exception("Error: Function 'root_fn' was set in DirectSimulator, "
@@ -32,7 +31,7 @@ class DirectSimulator:
             model = self.model
             self.solver = ida.IDA(self.residual_fn,
                                   compute_initcond='yp0',
-                                  first_step_size=self.first_step_size,
+                                  first_step_size=model.first_step_size,
                                   atol=model.atol, rtol=model.rtol,
                                   max_step_size = model.max_step_size,
                                   max_steps = model.max_steps,

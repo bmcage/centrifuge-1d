@@ -249,8 +249,7 @@ def solve(model):
         RM[0] = calc_rm(t[0], u[0, :], mass_in, mass_out, s1, s2,
                         model)
 
-    direct_simulator = DirectSimulator(model, residual_fn, algvars_idx,
-                                       first_step_size=1e-30)
+    direct_simulator = DirectSimulator(model, residual_fn, algvars_idx)
 
     while model.next_iteration():
         i = model.iteration
