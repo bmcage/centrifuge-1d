@@ -121,7 +121,7 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 legend_data.extend(append_to_legend)
             else:
                 legend_data.append(append_to_legend)
-        print('Legend', append_to_legend, legend_data)
+
         plt.figlegend(lines, legend_data, 1, borderaxespad=0.0,
                       title="Time [min]", prop={'family': 'monospace'})
 
@@ -190,6 +190,8 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                    add_legend(h_lines, t, append_to_legend=append_to_legend)
                 if save_figures and separate_figures:
                     plt.savefig(OUT_DIR + 'Image-h-leg', dpi=300)
+
+                img_num = 2
 
             if not u is None:
                 if separate_figures:
