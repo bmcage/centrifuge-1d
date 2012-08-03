@@ -7,7 +7,9 @@ CONFIG_OPTIONS = {
                       'fh_duration', 'r0_fall',
                       'wt_out',
                       'include_acceleration',
+                      # solver options
                       'atol', 'rtol',
+                      'first_step_size',
                       'max_steps', 'max_step_size'
                       ],
         'defaults':  {'g': 981,

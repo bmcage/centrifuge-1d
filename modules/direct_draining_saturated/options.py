@@ -12,14 +12,14 @@ CONFIG_OPTIONS = {
         'dependent' : {'rb-2':
                          (lambda cfg: cfg.get_value('rb_type') == 2,
                           ['h_last']),
-                        'rb-4':
-                         (lambda cfg: cfg.get_value('rb_type') == 4,
-                          ['h_last', 'dip_height'])},
+                        'rb-3':
+                         (lambda cfg: cfg.get_value('rb_type') in [3, 4, 6],
+                          ['dip_height'])},
         'optional'  : ['n1', 'gamma1', 'n2', 'gamma2'],
         'additional': ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
                        'first_idx', 'last_idx', 's1_idx', 's2_idx',
                        'mass_in_idx', 'mass_out_idx', 'pq_idx', 'z_size',
-                       'h_last']
+                       'h_last', 'wm0']
         }
 
 EXCLUDE_FROM_MODEL = ['dtype']
@@ -57,14 +57,6 @@ def adjust_cfg(cfg):
     cfg.set_value('ldc2', ldc2)
     cfg.set_value('ldc3', ldc3)
 
-    if cfg.get_value('rb_type') == 4:
-        omega2g = (power(asarray(cfg.get_value('omega'), dtype=float), 2)
-                   /(2  * cfg.get_value('g')))
-        rL = asarray(cfg.get_value('r0'))+asarray(cfg.get_value('l0'))
-        h_last = omega2g * (power(rL
-                                  + asarray(cfg.get_value('fl2'), dtype=float),
-                                  2)
-                            - power(rL - asarray(cfg.get_value('dip_height'),
-                                                 dtype=float),
-                                    2))
-        cfg.set_value('h_last', h_last)
+    rb_type = cfg.get_value('rb_type')
+    if rb_type == 3:
+        cfg.set_value('h_end', 0.0)

@@ -9,7 +9,7 @@ def lagrangean_derivative_coefs(dx):
     ldc1 = np.concatenate(([-(2*dx[0]+dx[1])/(dx[0]*(dx[0]+dx[1]))],
                           -dx[1:]/(dx[:-1]*(dx[:-1]+dx[1:])),
                           [dx[-1]/(dx[-2]*(dx[-2]+dx[-1]))]))
-    ldc2 = np.concatenate(([dx[0]+dx[1]/(dx[1]*dx[0])],
+    ldc2 = -np.concatenate(([(dx[0]+dx[1])/(dx[1]*dx[0])],
                           (dx[1:] - dx[:-1])/dx[:-1]/dx[1:],
                           [(dx[-1]+dx[-2])/(dx[-2]*dx[-1])]))
     ldc3 = np.concatenate(([-dx[0]/(dx[1]*(dx[1]+dx[0]))],
@@ -18,12 +18,12 @@ def lagrangean_derivative_coefs(dx):
 
     return ldc1, ldc2, ldc3
 
-def lagrangean_derivative_coefs_rightpoint(dx12, fx13):
+def right_derivative(dx12, fx13):
     [dx1, dx2]      = dx12
     [fx1, fx2, fx3] = fx13
 
     derivative = (dx2/(dx1*(dx1+dx2)) * fx1
-                  + (dx2 + dx1)/(-dx1 * dx2) * fx2
+                  - (dx2 + dx1)/(dx1 * dx2) * fx2
                   + (2*dx2 + dx1)/(dx2*(dx1+dx2)) * fx3)
 
     return derivative

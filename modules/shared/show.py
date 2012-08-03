@@ -133,7 +133,6 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
         OUT_DIR = (FIGS_DIR + '/' + 'n=' + str(model.n) + ',gamma='
                    + str(model.gamma) + ',Ks=%g' % model.ks
                    + ',omega=%.2f' % (model.omega*30./pi) +'/')
-    print(OUT_DIR)
 
     if save_figures and (not path.exists(OUT_DIR)):
         makedirs(OUT_DIR)
@@ -143,12 +142,16 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
     if not separate_figures:
         plt.figure(fignum, figsize=(16, 8.5))
         plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
-
-        row = -1
     else:
-        fignum = fignum -1 # adjust as every separate figure increases +1
+        fignum = 1
 
-    if (not h is None) and (not u is None):
+    if separate_figures:
+        images_per_figure = 1
+    else:
+        images_per_figure = 6
+    img_num = 1
+
+    if (not h is None) or (not u is None):
         if (s1 is None) or (s2 is None) or (y is None):
             print('draw_graphs error: for ''h'' and/or ''u'' to be displayed '
                   'all ''s1'', ''s2'' and ''y'' have to be set.')
@@ -157,7 +160,6 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
 
             if not h is None:
                 if separate_figures:
-                    fignum = fignum + 1
                     plt.figure(fignum)
                 else:
                     plt.subplot(321)
@@ -180,35 +182,34 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
 
 
                 if save_figures and separate_figures:
-                    fname = OUT_DIR + 'Image-h'
-                    plt.savefig(fname, dpi=300)
+                    plt.savefig(OUT_DIR + 'Image-h', dpi=300)
+
+                add_legend(h_lines, t)
 
                 if separate_figures:
                    add_legend(h_lines, t, append_to_legend=append_to_legend)
                 if save_figures and separate_figures:
-                    fname = OUT_DIR + 'Image-h-leg'
-                    plt.savefig(fname, dpi=300)
+                    plt.savefig(OUT_DIR + 'Image-h-leg', dpi=300)
 
             if not u is None:
                 if separate_figures:
                     fignum = fignum + 1
                     plt.figure(fignum)
                 else:
-                    plt.subplot(322)
+                    plt.subplot(3,2,img_num)
                 u_lines = plt.plot(x.transpose(), u.transpose(), '.')
                 plt.xlabel('Sample length ''L'' [cm]')
                 plt.ylabel('Relative saturation ''u''')
 
                 if save_figures and separate_figures:
-                    fname = OUT_DIR + 'Image-u'
-                    plt.savefig(fname, dpi=300)
+                    plt.savefig(OUT_DIR + 'Image-u', dpi=300)
 
                 add_legend(u_lines, t)
-                if save_figures and separate_figures:
-                    fname = OUT_DIR + 'Image-u-leg'
-                    plt.savefig(fname, dpi=300)
 
-                row = 0
+                if save_figures and separate_figures:
+                    plt.savefig(OUT_DIR + 'Image-u-leg', dpi=300)
+
+            img_num = 3
 
     if (not s1 is None) and all(s1 == 0.0):   s1 = None
     if (not s2 is None) and all(s2 == s2[0]): s2 = None
@@ -222,45 +223,55 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                ('Interface s1 [cm]', 'Interface s2 [cm]'),
                ('Water mass [cm]', None))
 
-    for (v, ylabel) in zip(twins, ylabels):
-        if all(map(lambda vi: vi is None, v)): continue
+    pairs          = []
+    pairs_labels   = []
+    singles        = []
+    singles_labels = []
 
-        if not separate_figures:
-            if row == 2:
-                if save_figures:
-                    fname = OUT_DIR + ('Image-%i' % fignum)
-                    plt.savefig(fname, dpi=300)
-                fignum = fignum + 1
-                row = 0
+    # divide all display data into two categories - those to be shown
+    # in pairs (like s1 and s2) - aka in the same row; and then the rest
+    for (twin, twin_label) in zip(twins, ylabels):
+        if twin[0] is None or twin[1] is None:
+            singles.extend(twin)
+            singles_labels.extend(twin_label)
+        else:
+            pairs.extend(twin)
+            pairs_labels.extend(twin_label)
 
+    pairs.extend(singles)
+    pairs_labels.extend(singles_labels)
+    data = pairs
+    data_labels = pairs_labels
+
+    for (ydata, ydata_label) in zip(data, data_labels):
+        if ydata is None: continue
+
+        if img_num > images_per_figure:
+            if save_figures:
+                plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
+
+            img_num = 1
+            fignum = fignum + 1
+
+            if separate_figures:
+                plt.figure(fignum)
+            else:
                 plt.figure(fignum, figsize=(16, 8.5))
                 plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
-            else:
-                row = row + 1
 
-        column = 1
+        if not separate_figures:
+            plt.subplot(3,2,img_num)
 
-        for (v1, ylabel1) in zip(v, ylabel):
-            if not v1 is None:
-                if separate_figures:
-                    fignum = fignum + 1
-                    plt.figure(fignum)
-                else:
-                    plt.subplot(3,2,2*row + column)
-                plt.plot(t, v1, '.')
-                plt.xlabel('Time [min]')
-                plt.ylabel(ylabel1)
+        plt.plot(t, ydata, '.')
+        plt.xlabel('Time [min]')
+        plt.ylabel(ydata_label)
 
-                if save_figures and separate_figures:
-                    fname = OUT_DIR + ('Image-%i' % fignum)
-                    plt.savefig(fname, dpi=300)
+        img_num = img_num + 1
 
-                column = column + 1
+    if save_figures:
+        plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
 
     plt.show(block=False)
-    if save_figures:
-        fname = OUT_DIR + ('Image-%i' % fignum)
-        plt.savefig(fname, dpi=300)
 
     if save_as_text:
         filename = OUT_DIR +'data_as_text.txt'
