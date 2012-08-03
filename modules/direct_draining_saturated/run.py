@@ -5,7 +5,7 @@ from modules.shared.shared_functions import find_omega2g, right_derivative
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.direct_draining_saturated.characteristics import \
      water_mass, calc_gc, calc_rm
-from modules.shared.solver import simulate_direct
+from modules.shared.solver import DirectSimulator
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
@@ -249,15 +249,18 @@ def solve(model):
         RM[0] = calc_rm(t[0], u[0, :], mass_in, mass_out, s1, s2,
                         model)
 
+    direct_simulator = DirectSimulator(model, residual_fn, algvars_idx,
+                                       first_step_size=1e-30)
+
     while model.next_iteration():
         i = model.iteration
 
         z0 = z[i-1, :]
 
-        (flag, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0,
-                                                 algvars_idx)
+        (flag, t_out) = direct_simulator.run(model.duration, model.fh_duration,
+                                             z0, z[i, :])
 
-        t[i] = t[i-1] + t_out
+        t[i] = t_out
 
         u[i, :] = h2u(z[i, model.first_idx: model.last_idx+1],
                       model.n, model.m, model.gamma)
