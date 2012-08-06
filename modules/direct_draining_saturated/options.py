@@ -13,8 +13,8 @@ CONFIG_OPTIONS = {
                          (lambda cfg: cfg.get_value('rb_type') == 2,
                           ['h_last']),
                         'rb-3':
-                         (lambda cfg: cfg.get_value('rb_type') in [3, 4, 6],
-                          ['dip_height'])},
+                         (lambda cfg: cfg.get_value('rb_type') == 3,
+                          ['dip_height', 'h_last'])},
         'optional'  : ['n1', 'gamma1', 'n2', 'gamma2'],
         'additional': ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
                        'first_idx', 'last_idx', 's1_idx', 's2_idx',
@@ -57,6 +57,4 @@ def adjust_cfg(cfg):
     cfg.set_value('ldc2', ldc2)
     cfg.set_value('ldc3', ldc3)
 
-    rb_type = cfg.get_value('rb_type')
-    if rb_type == 3:
-        cfg.set_value('h_end', 0.0)
+    cfg.set_value('draw_graphs', False)
