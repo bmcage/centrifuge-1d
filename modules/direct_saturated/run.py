@@ -1,6 +1,6 @@
 import numpy as np
 
-from scikits.odes.sundials.common_defs import IDA_RhsFunction
+from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.shared_functions import find_omega2g
 from modules.shared.solver import simulate_direct
 

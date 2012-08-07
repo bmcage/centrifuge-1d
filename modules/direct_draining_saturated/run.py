@@ -1,6 +1,6 @@
 import numpy as np
 
-from scikits.odes.sundials.common_defs import IDA_RhsFunction
+from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.shared_functions import find_omega2g, right_derivative
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.direct_draining_saturated.characteristics import \
