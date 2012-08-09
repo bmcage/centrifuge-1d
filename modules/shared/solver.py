@@ -26,7 +26,7 @@ class DirectSimulator:
         self.solver = None
         self.t0 = 0.0
 
-    def run(self, duration, fh_duration, z0, z_retn):
+    def run(self, duration, fh_duration, z0, z_retn, force_restart=False):
         if self.z_previous is None:
             model = self.model
             self.solver = ida.IDA(self.residual_fn,
@@ -44,7 +44,7 @@ class DirectSimulator:
 
             self.z_previous = zeros(z0.shape, float)
 
-        if (self.z_previous is None) or (not all(self.z_previous == z0)):
+        if force_restart or (not all(self.z_previous == z0)):
             zp0 = zeros(z0.shape, float)
             self.solver.init_step(self.t0, z0, zp0)
 
