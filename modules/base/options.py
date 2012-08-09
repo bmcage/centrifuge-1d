@@ -19,6 +19,8 @@ CONFIG_OPTIONS = {
                       'draw_graphs': True,
                       'save_figures': True, 'separate_figures': True,
                       'save_as_text': True,
+                      # solver options
+                      'always_restart_solver': False
                      },
         'dependent': {'centrifugation':
                         (lambda cfg: not (cfg.get_value('duration') == 0.0),
