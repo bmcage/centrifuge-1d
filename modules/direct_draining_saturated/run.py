@@ -241,6 +241,10 @@ def solve(model):
         (flag, t_out) = direct_simulator.run(model.duration, model.fh_duration,
                                              z0, z[i, :])
 
+        if not flag:
+            print("Solver could not compute the solution... Exiting...")
+            exit(1)
+
         t[i] = t_out
 
         u[i, :] = h2u(z[i, model.first_idx: model.last_idx+1],
