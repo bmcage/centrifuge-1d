@@ -30,7 +30,11 @@ def parse_input():
     optparser.add_option('-l', '--list', dest='list', action="store_true",
                          default=False,
                          help="Lists all available experiments")
-    optparser.add_option('-m', '--modules-list', dest='modules_list',
+    optparser.add_option('-m', '--mask', dest='mask', default='',
+                         metavar='MASK_NAME',
+                         help=("Run given experiment with a mask MASK_NAME "
+                               "file. Used in conjuction with ''-t'' parameter."))
+    optparser.add_option('-d', '--modules-list', dest='modules_list',
                          action="store_true", default=False,
                          help=("Get the list of all available centrifuge "
                                "modules"))
@@ -100,7 +104,7 @@ def load_configuration(inifilename):
         return None
 
 def get_cfg(ini_dir, exp_id, first_experiment, last_experiment, tubes,
-            verbose = False):
+            mask, verbose = False):
 
     if verbose:
         print('\n\n GENERAL experiments informations'
@@ -135,7 +139,7 @@ def get_cfg(ini_dir, exp_id, first_experiment, last_experiment, tubes,
             tube_default_ini = filename_skelet % (str(exp_no) + tube_suffix
                                                   + '-defaults')
 
-            filename_ini = filename_skelet % (str(exp_no) + tube_suffix)
+            filename_ini = filename_skelet % (str(exp_no) + tube_suffix + '-general')
 
             if not exists(filename_ini):
                 print('File "%s" does not exist, skipping...' % filename_ini)
@@ -148,8 +152,19 @@ def get_cfg(ini_dir, exp_id, first_experiment, last_experiment, tubes,
 
             experiment_cfg = load_configuration(filename_ini)
 
+            if mask:
+                mask_filename_ini = filename_skelet % (str(exp_no) + tube_suffix
+                                                       + '-mask_' + mask)
+                mask_cfg = load_configuration(mask_filename_ini)
+                if not mask_cfg:
+                    print('Mask file "%s" does not exist.\nContinuing without '
+                          'the mask file...' % mask_filename_ini)
+            else:
+                mask_cfg = None
+
             cfg = Configuration().merge(default_cfg, group_default_cfg,
-                                        tube_default_cfg, experiment_cfg)
+                                        tube_default_cfg, experiment_cfg,
+                                        mask_cfg)
 
             yield cfg
 
@@ -159,7 +174,8 @@ def run_experiments(options):
 
     for cfg in get_cfg(INI_DIR, options.exp_id,
                        options.first_experiment, options.last_experiment,
-                       options.tubes, verbose = (not options.print_config_p)):
+                       options.tubes, options.mask,
+                       verbose = (not options.print_config_p)):
 
         if options.print_config_p:
             cfg.echo()

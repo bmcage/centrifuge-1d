@@ -180,7 +180,7 @@ def data2ini(data, output_dir):
             for (tube_no, exp_data) in exp_no_struct.items():
 
                 filename = (exp_out_dir + 'experiment_' + experiment_no
-                            + '-tube' + tube_no + '.ini')
+                            + '-tube' + tube_no + '-general.ini')
 
                 write2ini(exp_data, filename)
 
@@ -194,7 +194,7 @@ def data2ini(data, output_dir):
             print('\n        File "defaults.ini" already exists. Skipping...')
         else:
             fout = open(default_ini, mode='w', encoding='utf-8')
-            fout.write('[base]\n')
+            fout.write('[experiment]\n')
             # TODO: add some default stuff that will be added to the defaults
             print('Done.')
 
