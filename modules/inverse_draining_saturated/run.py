@@ -11,15 +11,15 @@ def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
     subexperiments = len(duration)
 
     if model.calc_wl_out:
-        wl_out  = asarray(model.get_iterable_value('wl_out'))
-        wl_out  = wl_out.cumsum()
-        wl_out[wl_out == 0.0] = 1.0e-10
+        wl_out_meas  = asarray(model.get_iterable_value('wl_out'))
+        wl_out_meas  = wl_out_meas.cumsum()
+        wl_out_meas[wl_out_meas == 0.0] = 1.0e-10
         print('WL_out_measured: ', subexperiments *  '% 8.6f'
-              % tuple(wl_out))
+              % tuple(wl_out_meas))
         print('WL_out_computed: ', subexperiments *  '% 8.6f'
               % tuple(wl_out_inv))
         print('Error (\%):  ', subexperiments * '    % 5.2f'
-              % tuple((wl_out_inv - wl_out) / wl_out * 100.))
+              % tuple((wl_out_inv - wl_out_meas) / wl_out_meas * 100.))
     if model.calc_gc:
         gc1  = asarray(model.get_iterable_value('gc1'), dtype=float)
         print('GC_measured: ', subexperiments *  '% 9.6f' % tuple(gc1))
@@ -85,8 +85,11 @@ def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
 
         if model.calc_wl_out:
             plt.subplot(rows, cols, current_column)
+            print('Display data:')
+            print('t', t_minutes, 't_inv', t_inv_minutes)
+            print('wl', wl_out_meas, 'wl_inv', wl_out_inv)
 
-            h_lines = plt.plot(t_minutes, wl_out, '.',
+            h_lines = plt.plot(t_minutes, wl_out_meas, '.',
                                t_inv_minutes, wl_out_inv, 'x')
             plt.xlabel(xlabel)
             plt.ylabel('Expelled water [cm]')
@@ -233,7 +236,11 @@ def solve(model):
 
             t = t_meas
         else:
-            (_flag, t, z, gc1, rm1) = solve_direct(model)
+            (flag, t, z, gc1, rm1) = solve_direct(model)
+
+            if not flag:
+                print('Solver could not continue. Exiting...')
+                exit(1)
 
             # we discard values at t=0 (for give measurement)
             if model.calc_wl_out:
