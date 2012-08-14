@@ -44,13 +44,20 @@ class DirectSimulator:
 
             self.z_previous = zeros(z0.shape, float)
 
+        verbosity = self.model.verbosity
+
         if self.model.always_restart_solver or (not all(self.z_previous == z0)):
             zp0 = zeros(z0.shape, float)
             self.solver.init_step(self.t0, z0, zp0)
 
         if duration > 0.0:
             t = self.t0 + duration
-            print(self.t0, duration, t)
+
+            if verbosity > 1:
+                print('Starting time: %8.1f  ' % self.t0,
+                      'Duration: %8.1f  ' % duration,
+                      'Expected end time: %8.1f' % t, '... ', end='')
+
             self.solver.set_options(tcrit=t)
             flag, t_out = self.solver.step(t, z_retn)
 
@@ -60,7 +67,8 @@ class DirectSimulator:
                       '\nExpected value of t:', t)
                 return (False, t_out)
 
-            print(self.t0, duration, t, t_out)
+            if verbosity > 1:
+                print('Computed end time: %8.1f' % t_out)
             self.t0 = t_out
             self.z_previous[:] = z_retn
 

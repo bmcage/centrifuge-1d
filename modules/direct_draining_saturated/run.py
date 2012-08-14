@@ -17,7 +17,6 @@ class centrifuge_residual(IDA_RhsFunction):
         #                + d[K(h)*(dh/dr - omega^2/g * r)]/dr
 
         #print('--------------------')
-        print('t', t)
         #print('z', z)
         #print('zdot', zdot)
         #print('--------------------')
@@ -100,7 +99,13 @@ class centrifuge_residual(IDA_RhsFunction):
                                                   + y[1:-1]*ds2dt))
             + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
 
-        print('s1', z[model.s1_idx], 's2', z[model.s2_idx])
+
+        verbosity = model.verbosity
+
+        if verbosity > 2:
+            print('t', t)
+            if verbosity > 3:
+                print('s1', z[model.s1_idx], 's2', z[model.s2_idx])
 
         if rb_type == 3:
             q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
@@ -113,8 +118,11 @@ class centrifuge_residual(IDA_RhsFunction):
                         + model.fl2/model.ks2))
 
             if q_sat < 0:
-                print(10*'-' + '\nQ_SAT =', q_sat, ' !!!\n' + 10*'-')
-                print(omega2g, rD, rI, L, s2, model.ks, model.ks2, model.ks1)
+                if verbosity > 1:
+                    print(10*'-' + '\nQ_SAT =', q_sat, ' !!!\n' + 10*'-')
+                    if verbosity > 2:
+                        print(omega2g, rD, rI, L, s2,
+                              model.ks, model.ks2, model.ks1)
                 #q_sat = 0.0
 
             u = h2u(h, n, m, gamma)

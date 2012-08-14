@@ -170,10 +170,11 @@ def solve(model):
         model.m     = 1-1/n
         model.gamma = gamma
 
-        if determine_all:
-            print('Ks:    ', model.ks)
-        print('n:     ', model.n)
-        print('gamma:', model.gamma)
+        if model.verbosity > 0:
+            if determine_all:
+                print('Ks:    ', model.ks)
+            print('n:     ', model.n)
+            print('gamma:', model.gamma)
         # input('ENTER...')
 
         ubounds = model.params_ubounds
@@ -256,8 +257,9 @@ def solve(model):
                 rm1 = rm1[1:]
                 scale_array(rm1, c_coef_rm, rm1)
 
-        print('gc_mes, wl_mes, t_exp', gc_meas, wl_out_meas, t_meas)
-        print('gc_com, wl_com, t_com', gc1, wl_out, t)
+        if model.verbosity > 0:
+            print('gc_mes, wl_mes, t_exp', gc_meas, wl_out_meas, t_meas)
+            print('gc_com, wl_com, t_com', gc1, wl_out, t)
 
         if retn_full_p:
             return (t, wl_out, gc1, rm1, z)
@@ -279,7 +281,6 @@ def solve(model):
 
     (t_inv, wl_out_inv, gc1_inv, rm1_inv, z) = \
       ip_direct_drainage(xdata, inv_params, retn_full_p = True)
-    print('z:', z[-1, :])
 
     if determine_all:
         (log_ks, log_n, log_gamma) = inv_params
