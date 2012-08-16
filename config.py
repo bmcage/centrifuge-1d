@@ -508,12 +508,17 @@ class Configuration:
                 return False
 
             if 'dependent' in config_parameters:
-                for (test_fn, dependent_options) \
-                  in config_parameters['dependent'].values():
+                for dependent_option in config_parameters['dependent'].values():
+                    test_fn = dependent_option[0]
 
                     if test_fn(self):
                         required_options = \
-                          handle_special_options(dependent_options)
+                          handle_special_options(dependent_option[1])
+                        if not check_options(required_options):
+                            return False
+                    elif len(dependent_option) == 3:
+                        required_options = \
+                          handle_special_options(dependent_option[2])
                         if not check_options(required_options):
                             return False
 
