@@ -445,7 +445,16 @@ class Configuration:
 
         def update_special_options(options_module):
             if hasattr(options_module, 'PROVIDE_OPTIONS'):
-                provided_options.update(options_module.PROVIDE_OPTIONS)
+                for provided_option in options_module.PROVIDE_OPTIONS:
+                    option_type = type(provided_option)
+                    if option_type == list or option_type == tuple:
+                        test_fn = provided_option[0]
+                        if test_fn(self):
+                            provided_options.update(provided_option[1])
+                        elif len(provided_option) == 3:
+                            provided_options.update(provided_option[2])
+                    else:
+                        provided_options.update([provided_option])
             if hasattr(options_module, 'BLACKLIST_OPTIONS'):
                 blacklisted_options.update(options_module.BLACKLIST_OPTIONS)
 
