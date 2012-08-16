@@ -456,6 +456,16 @@ class Configuration:
                     else:
                         provided_options.update([provided_option])
             if hasattr(options_module, 'BLACKLIST_OPTIONS'):
+                for blacklisted_option in options_module.BLACKLIST_OPTIONS:
+                    option_type = type(blacklisted_option)
+                    if option_type == list or option_type == tuple:
+                        test_fn = blacklisted_option[0]
+                        if test_fn(self):
+                            blacklisted_options.update(blacklisted_option[1])
+                        elif len(blacklisted_option) == 3:
+                            blacklisted_options.update(blacklisted_option[2])
+                    else:
+                        blacklisted_options.update([blacklisted_option])
                 blacklisted_options.update(options_module.BLACKLIST_OPTIONS)
 
         alien_options = set(self.list_options())
