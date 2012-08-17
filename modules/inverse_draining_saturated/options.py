@@ -2,17 +2,19 @@ PARENTAL_MODULES = ['direct_draining_saturated']
 
 CONFIG_OPTIONS = {
         'mandatory' : ['inv_init_params'],
-        'defaults'  : {},
+        'defaults'  : {'optimfn': 'leastsq'},
         'dependent' : {'inv_params':
                        (lambda cfg: len(cfg.get_value('inv_init_params')) == 2,
                         ['ks'])},
         'optional'  : ['wl_out', 'gc1', 'rm1', 'inv_ubounds', 'inv_lbounds'],
-        'additional': ['calc_wl_out', 'params_ubounds', 'params_lbounds']
+        'additional': ['calc_wl_out', 'params_ubounds', 'params_lbounds',
+                       'ks_inv_scale']
         }
 
 EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
 
-PROVIDE_OPTIONS = ['ks', 'n', 'gamma', 'calc_gc', 'calc_rm']
+PROVIDE_OPTIONS = [(lambda cfg: len(cfg.get_value('inv_init_params')) == 3, ['ks']),
+                   'n', 'gamma', 'calc_gc', 'calc_rm']
 
 NONITERABLE_LIST_OPTIONS = ['inv_init_params']
 
@@ -40,7 +42,7 @@ def check_cfg(cfg):
     return True
 
 def adjust_cfg(cfg):
-    from numpy import inf, asarray
+    from numpy import inf, asarray, power, trunc, log10
 
     cfg.set_value('calc_gc', not cfg.get_value('gc1') is None)
     cfg.set_value('calc_rm', not cfg.get_value('rm1') is None)
@@ -56,12 +58,17 @@ def adjust_cfg(cfg):
             params_ubounds = asarray([inf, inf, 0.])
         if params_lbounds is None:
             params_lbounds = asarray([0., 1., -inf])
+
+        ks_init = cfg.get_value('inv_init_params')[0]
+        cfg.set_value('ks_inv_scale', power(10, -trunc(log10(ks_init))))
+
     else:
         params_names = ['n', 'gamma']
         if params_ubounds is None:
             params_ubounds = asarray([inf, 0.])
         if params_lbounds is None:
             params_lbounds = asarray([1., -inf])
+        cfg.set_value('ks_inv_scale', 1.0)
 
     cfg.set_value('params_ubounds', dict(zip(params_names, params_ubounds)))
     cfg.set_value('params_lbounds', dict(zip(params_names, params_lbounds)))

@@ -2,7 +2,8 @@ from modules.direct_draining_saturated.run import solve as solve_direct
 from modules.shared.solver import simulate_inverse
 from modules.shared.shared_functions import (scale_array,
                                              determine_scaling_factor)
-from numpy import concatenate, asarray, empty, zeros, ones, log, exp, cumsum
+from numpy import (concatenate, asarray, empty, zeros, ones, log, exp, cumsum,
+                   sum, power)
 
 def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
                   ks_inv = None, display_graphs=True, fignum = 1):
@@ -14,18 +15,20 @@ def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
         wl_out_meas  = asarray(model.get_iterable_value('wl_out'))
         wl_out_meas  = wl_out_meas.cumsum()
         wl_out_meas[wl_out_meas == 0.0] = 1.0e-10
-        print('WL_out_measured: ', subexperiments *  '% 8.6f'
+        print('\nWL_out_measured: ', subexperiments *  '% 8.6f'
               % tuple(wl_out_meas))
         print('WL_out_computed: ', subexperiments *  '% 8.6f'
               % tuple(wl_out_inv))
         print('Error (\%):  ', subexperiments * '    % 5.2f'
               % tuple((wl_out_inv - wl_out_meas) / wl_out_meas * 100.))
+        print('LSQ error:', sum(power(wl_out_inv- wl_out_meas, 2)))
     if model.calc_gc:
         gc1  = asarray(model.get_iterable_value('gc1'), dtype=float)
         print('GC_measured: ', subexperiments *  '% 9.6f' % tuple(gc1))
         print('GC_computed: ', subexperiments *  '% 9.6f' % tuple(gc1_inv))
         print('Error (\%):  ', subexperiments * '    % 5.2f'
               % tuple((gc1_inv - gc1) / gc1 * 100.))
+        print('LSQ error:', sum(power(gc_inv- gc1, 2)))
 
     if model.calc_rm:
         rm1  = asarray(model.get_iterable_value('rm1'), dtype=float)
@@ -33,11 +36,14 @@ def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
         print('RM_computed: ', subexperiments *  '% 9.6f' % tuple(rm1_inv))
         print('Error (\%):  ', subexperiments * '    % 5.2f'
               % tuple((rm1_inv - rm1) / rm1 * 100.))
+        print('LSQ error:', sum(power(rm_inv- rm1, 2)))
 
     if not ks_inv is None:
         print('\nKs [cm/s] found: ', ks_inv)
-    print('n         found: ', n_inv)
-    print('gamma     found: ', gamma_inv)
+    if n_inv:
+        print('n         found: ', n_inv)
+    if gamma_inv:
+        print('gamma     found: ', gamma_inv)
 
     if display_graphs:
         import matplotlib.pyplot as plt
@@ -154,11 +160,11 @@ def solve(model):
     t_meas = cumsum([0] + model.get_iterable_value('duration'), dtype=float)
 
 
-
     def ip_direct_drainage(model, optim_args, retn_full_p = False):
+        print('\n', optim_args)
         if determine_all:
             (log_ks, log_n, log_gamma) = optim_args
-            ks = exp(log_ks)
+            ks = exp(log_ks) / model.ks_inv_scale
             model.ks = ks
         else:
             (log_n, log_gamma) = optim_args
@@ -171,6 +177,7 @@ def solve(model):
         model.gamma = gamma
 
         if model.verbosity > 0:
+            print()
             if determine_all:
                 print('Ks:    ', model.ks)
             print('n:     ', model.n)
@@ -258,8 +265,11 @@ def solve(model):
                 scale_array(rm1, c_coef_rm, rm1)
 
         if model.verbosity > 0:
-            print('gc_mes, wl_mes, t_exp', gc_meas, wl_out_meas, t_meas)
-            print('gc_com, wl_com, t_com', gc1, wl_out, t)
+            print_results(model, wl_out, gc1, t,
+                          n_inv=None, gamma_inv=None,ks_inv=None,
+                          display_graphs=False)
+            #            print('gc_mes, wl_mes, t_exp', gc_meas, wl_out_meas, t_meas)
+            #print('gc_com, wl_com, t_com', gc1, wl_out, t)
 
         if retn_full_p:
             return (t, wl_out, gc1, rm1, z)
@@ -271,13 +281,15 @@ def solve(model):
 
     if determine_all:
         (ks_init, n_init, gamma_init) = model.inv_init_params
+        ks_init = ks_init * model.ks_inv_scale
         init_params = (log(ks_init), log(n_init - 1.0), log(-gamma_init))
     else:
         (n_init, gamma_init) = model.inv_init_params
         init_params  = (log(n_init - 1.0), log(-gamma_init))
 
     inv_params, cov_ks = simulate_inverse(ip_direct_drainage, xdata,
-                                          data_measured, init_params)
+                                          data_measured, init_params,
+                                          optimfn=model.optimfn)
 
     (t_inv, wl_out_inv, gc1_inv, rm1_inv, z) = \
       ip_direct_drainage(xdata, inv_params, retn_full_p = True)
