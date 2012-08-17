@@ -1,6 +1,5 @@
 import scikits.odes.sundials.ida as ida
-from numpy import zeros, concatenate, all
-from scipy.optimize import curve_fit
+from numpy import zeros, concatenate, all, sum, power
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -49,14 +48,15 @@ class DirectSimulator:
         if self.model.always_restart_solver or (not all(self.z_previous == z0)):
             zp0 = zeros(z0.shape, float)
             self.solver.init_step(self.t0, z0, zp0)
-
         if duration > 0.0:
             t = self.t0 + duration
 
             if verbosity > 1:
-                print('Starting time: %8.1f  ' % self.t0,
+                if self.t0 == 0.0:
+                    print(28*' ', end='')
+                print(' ... Starting time: %8.1f  ' % self.t0,
                       'Duration: %8.1f  ' % duration,
-                      'Expected end time: %8.1f' % t, '... ', end='')
+                      'Expected end time: %8.1f' % t)
 
             self.solver.set_options(tcrit=t)
             flag, t_out = self.solver.step(t, z_retn)
@@ -68,7 +68,7 @@ class DirectSimulator:
                 return (False, t_out)
 
             if verbosity > 1:
-                print('Computed end time: %8.1f' % t_out)
+                print('Computed end time: %8.1f' % t_out, end='')
             self.t0 = t_out
             self.z_previous[:] = z_retn
 
@@ -170,11 +170,41 @@ def simulate_direct(model, residual_fn, z0, algvars_idx = None, root_fn = None,
 
     return (True, t_retn_out, z_out)
 
-def simulate_inverse(lsq_direct_fn, xdata, ydata, init_params):
+def simulate_inverse(direct_fn, xdata, ydata, init_params,
+                     optimfn='leastsq'):
 
     def lsq_wrapper_fn(xdata, *optim_args):
-        direct_results = lsq_direct_fn(xdata, optim_args)
-        #print('direct results:', direct_results)
+        direct_results = direct_fn(xdata, optim_args)
         return concatenate(direct_results)
 
-    return curve_fit(lsq_wrapper_fn, xdata, ydata, p0 = init_params)
+    def leastsq_wrapper_fn(xdata, *optim_args):
+        direct_results = direct_fn(xdata, optim_args)
+        return (concatenate(direct_results) - ydata)
+
+    def fmin_wrapper_fn(optim_args, *xdata):
+        direct_results = direct_fn(xdata[0], optim_args)
+        tmp = concatenate(direct_results)
+        return sum(power(tmp - ydata, 2))
+
+    if optimfntype == 'lsq':
+        from scipy.optimize import curve_fit
+        return leastsq(leastsq_wrapper_fn, xdata, ydata, p0 = init_params,
+                         epsfcn=1e-5,
+                         factor=0.1)
+    if optimfntype == 'leastsq':
+        from scipy.optimize import leastsq
+        return curve_fit(lsq_wrapper_fn, init_params, args=(xdata,),
+                         epsfcn=1e-5,
+                         factor=0.1)
+    elif optimfntype == 'fmin':
+        from scipy.optimize import fmin
+        return fmin(fmin_wrapper_fn, init_params, args=(xdata,))
+    elif optimfntype == 'fmin_powell':
+        from scipy.optimize import fmin_powell
+        return fmin_powell(fmin_wrapper_fn, init_params, args=(xdata,))
+    elif optimfntype == 'fmin_cg':
+        from scipy.optimize import fmin_cg
+        return fmin_cg(fmin_wrapper_fn, init_params, args=(xdata,))
+     elif optimfntype == 'fmin_bfgs':
+        from scipy.optimize import fmin_bfgs
+        return fmin_bfgs(fmin_wrapper_fn, init_params, args=(xdata,))
