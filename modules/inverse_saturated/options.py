@@ -1,14 +1,6 @@
 PARENTAL_MODULES = ['direct-saturated-heights']
 
-CONFIG_OPTIONS = {
-        'mandatory' : ['inv_init_params'],
-        'defaults'  : {},
-        'dependent' : {},
-        'optional'  : [],
-        'additional': []
-        }
-
-EXCLUDE_FROM_MODEL = []
+CONFIG_OPTIONS = ['inv_init_params']
 
 PROVIDE_OPTIONS = ['ks']
 

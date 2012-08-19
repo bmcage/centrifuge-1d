@@ -1,22 +1,23 @@
 PARENTAL_MODULES = ['direct_draining_saturated']
 
-CONFIG_OPTIONS = {
-        'mandatory' : ['inv_init_params'],
-        'defaults'  : {'optimfn': 'leastsq'},
-        'dependent' : {'inv_params':
-                       (lambda cfg: len(cfg.get_value('inv_init_params')) == 2,
-                        ['ks'])},
-        'optional'  : ['wl_out', 'gc1', 'rm1', 'inv_ubounds', 'inv_lbounds'],
-        'additional': ['calc_wl_out', 'params_ubounds', 'params_lbounds',
-                       'ks_inv_scale']
-        }
+CONFIG_OPTIONS = ['inv_init_params', 'inv_ubounds', 'inv_lbounds',
+                  ('optimfn', 'leastsq'),
+                  (lambda cfg: len(cfg.get_value('inv_init_params')) == 2,
+                    ['ks']),
+                  (lambda cfg: cfg.get_value('optimfn') == 'raster',
+                    ['raster_grid_size']),
+                  ('wl_out', None), ('gc1', None), ('rm1', None)
+                 ]
 
-EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
+INTERNAL_OPTIONS = ['calc_wl_out', 'params_ubounds', 'params_lbounds',
+                    'ks_inv_scale']
+#EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
 
 PROVIDE_OPTIONS = [(lambda cfg: len(cfg.get_value('inv_init_params')) == 3, ['ks']),
                    'n', 'gamma', 'calc_gc', 'calc_rm']
 
-NONITERABLE_LIST_OPTIONS = ['inv_init_params']
+NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'inv_ubounds', 'inv_lbounds',
+                            'raster_grid_size']
 
 def check_cfg(cfg):
     inv_params_len = len(cfg.get_value('inv_init_params'))
@@ -40,6 +41,9 @@ def check_cfg(cfg):
         return False
 
     return True
+
+def prior_adjust_cfg(cfg):
+    cfg.set_value('n', 1.0)
 
 def adjust_cfg(cfg):
     from numpy import inf, asarray, power, trunc, log10
@@ -72,3 +76,5 @@ def adjust_cfg(cfg):
 
     cfg.set_value('params_ubounds', dict(zip(params_names, params_ubounds)))
     cfg.set_value('params_lbounds', dict(zip(params_names, params_lbounds)))
+
+    cfg.set_value('draw_graphs', False)

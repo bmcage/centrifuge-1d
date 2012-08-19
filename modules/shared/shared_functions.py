@@ -1,4 +1,28 @@
 import numpy as np
+from math import sqrt
+
+def rpm2radps(x):
+    """
+      Converts rpm to rad.s^{-1}
+    """
+    # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
+    return x * np.pi/ 30.0
+
+
+def calc_omega_fall(r0_fall, g):
+    is_list_r0_fall = type(r0_fall) == list
+    is_list_g       = type(g) == list
+
+    if is_list_r0_fall and is_list_g:
+        omega_fall = [sqrt(g_f/r0_f) for (g_f, r0_f) in zip(g, r0_fall)]
+    elif is_list_r0_fall:
+        omega_fall = [sqrt(g/r0_f) for r0_f in r0_fall]
+    elif is_list_g:
+        omega_fall = [sqrt(g_f/r0_fall) for g_f in g]
+    else:
+        omega_fall = sqrt(g/r0_fall)
+
+    return omega_fall
 
 def lagrangean_derivative_coefs(dx):
     """
@@ -106,4 +130,3 @@ def find_omega2g(t_current, model, t_base = 0.0):
     #     return (np.power(model.omega_start  + (model.omega - model.omega_start)
     #                      *(1 - np.exp(-model.omega_gamma*t)), 2)
     #             / model.g)
-

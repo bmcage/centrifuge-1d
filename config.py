@@ -8,10 +8,9 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
-from numpy import pi, inf
+from numpy import inf
 from os import listdir
 from sys import modules as sysmodules
-from math import sqrt
 
 ##################################################################
 #                   ModulesManager class                         #
@@ -19,29 +18,6 @@ from math import sqrt
 
 def get_ancestors(options_module):
     return options_module.PARENTAL_MODULES
-
-
-def rpm2radps(x):
-    """
-      Converts rpm to rad.s^{-1}
-    """
-    # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
-    return x * pi/ 30.0
-
-def calc_omega_fall(r0_fall, g):
-    is_list_r0_fall = type(r0_fall) == list
-    is_list_g       = type(g) == list
-
-    if is_list_r0_fall and is_list_g:
-        omega_fall = [sqrt(g_f/r0_f) for (g_f, r0_f) in zip(g, r0_fall)]
-    elif is_list_r0_fall:
-        omega_fall = [sqrt(g/r0_f) for r0_f in r0_fall]
-    elif is_list_g:
-        omega_fall = [sqrt(g_f/r0_fall) for g_f in g]
-    else:
-        omega_fall = sqrt(g/r0_fall)
-
-    return omega_fall
 
 class ModulesManager():
     def __init__(self):
@@ -223,6 +199,7 @@ class Configuration:
 
         self._preserve_sections_p = preserve_sections_p
         self._cfg_dict = {}
+        self._config_definition = None
 
     def set_value(self, key, value, section = None):
 
@@ -235,21 +212,6 @@ class Configuration:
             cfg_dict = self._cfg_dict
 
         cfg_dict[key] = value
-
-        # Handle depending variables
-        if key == 'n':
-            if type(value) == list:
-                m = [1-1/n for n in value]
-            else:
-                m = 1 - 1/value
-            cfg_dict['m'] = m
-
-        elif key in ['r0_fall', 'g']:
-            if ((key == 'r0_fall' and 'g' in cfg_dict)
-                or (key == 'g' and 'r0_fall' in cfg_dict)):
-
-                cfg_dict['omega_fall'] = \
-                  calc_omega_fall(cfg_dict['r0_fall'], cfg_dict['g'])
 
     def get_value(self, key, section = None):
 
@@ -270,6 +232,13 @@ class Configuration:
                 return cfg_dict[key]
             else:
                 return None
+
+    def iterate_values(self, section = None):
+        if self._preserve_sections_p and section:
+            print('cfg:iterate_values: preserving sections is not implemented.')
+            exit(1)
+
+        return map(lambda value: value, self._cfg_dict.items())
 
     def missing_options(self, options, section = None):
 
@@ -320,35 +289,30 @@ class Configuration:
 
         cfg_dict = self._cfg_dict
 
-        blacklisted_options = set([])
+        if not self._config_definition:
+            self._load_config_definition(modman)
 
-        def update_special_options(options_module):
-            if hasattr(options_module, 'BLACKLIST_OPTIONS'):
-                blacklisted_options.update(options_module.BLACKLIST_OPTIONS)
+        defaults_options    = self._config_definition['default']
+        blacklisted_options = self._config_definition['blacklisted']
 
-        def set_defaults_from_module(options_module):
-            defaults_options = options_module.CONFIG_OPTIONS['defaults']
+        if not self._preserve_sections_p:
+            section = 'foo'
+        else:
+            raise NotImplementedError('Section preserving is not implemented.')
 
-            if not self._preserve_sections_p:
-                options = {'foo': defaults_options}
-
-            for (section, section_content) in options.items():
-                for (option, value) in section_content.items():
-                    if ((not option in cfg_dict)
-                        and (not option in blacklisted_options)):
-                        self.set_value(option, value, section)
-
-            return True
-
-        exp_type = self.get_value('exp_type')
-
-        modman.traverse_ancestors(exp_type, set_defaults_from_module,
-                                  submodule='options',
-                                  prehook=update_special_options)
+        for (option, value) in defaults_options:
+            if ((not option in cfg_dict)
+                and (not option in blacklisted_options)):
+                self.set_value(option, value, section)
 
         return self
 
     def adjust_cfg(self, modman):
+
+        def module_preadjust_cfg(module):
+            if hasattr(module, 'prior_adjust_cfg'):
+                module.prior_adjust_cfg(self)
+                return True
 
         def module_adjust_cfg(module):
             if hasattr(module, 'adjust_cfg'):
@@ -358,6 +322,7 @@ class Configuration:
         exp_type = self.get_value('exp_type')
 
         modman.traverse_ancestors(exp_type, module_adjust_cfg,
+                                  prehook=module_preadjust_cfg,
                                   submodule='options')
 
     def merge(self, *cfgs):
@@ -400,13 +365,18 @@ class Configuration:
               Handle specialy-treated values, that need to be transformed
               (e.g. into correct units)
             """
-            if key in ['omega', 'omega_start', 'omega_end']:
-                if type(value) == list:
-                  return [rpm2radps(omega) for omega in value]
-                else:
-                    return rpm2radps(value)
-            else:
-                return value
+            if (type(value) == list) or (type(value) == tuple):
+                v0 = value[0]
+                are_same = True
+                for v in value:
+                    if not v == v0:
+                        are_same = False
+                        break
+
+                if are_same:
+                    return v0
+
+            return value
 
         # read config files
         parser     = configparser.ConfigParser()
@@ -436,109 +406,105 @@ class Configuration:
                 value = transform_value(option, parse_value(raw_value))
                 self.set_value(option, value, section)
 
+        # we loaded new configuration so discare previous loaded definition
+        self._config_definition = None
+
         return self
 
-    def is_valid(self, modman):
+    def _load_config_definition(self, modman):
 
-        provided_options = set([])
+        def parse_options(options):
+            required_options = []
+            default_options = []
+
+            def classify_options(options):
+                for option in options:
+                    option_type = type(option)
+                    if option_type == str:
+                        required_options.append(option)
+                    elif (option_type == list) or (option_type == tuple):
+                        if hasattr(option[0], '__call__'):
+                            if option[0](self):
+                                classify_options(option[1])
+                            elif len(option) == 3:
+                                classify_options(option[2])
+                        else:
+                            default_options.append(option)
+                    else:
+                        print('Unknown option type:', option)
+                        exit(1)
+
+            classify_options(options)
+
+            return required_options, default_options
+
+        required_options    = set([])
+        default_options     = []
+        provided_options    = set([])
         blacklisted_options = set([])
+        internal_options    = set([])
+        excluded_options    = set([])
+        noniterable_options = set([])
 
-        def update_special_options(options_module):
-            if hasattr(options_module, 'PROVIDE_OPTIONS'):
-                for provided_option in options_module.PROVIDE_OPTIONS:
-                    option_type = type(provided_option)
-                    if option_type == list or option_type == tuple:
-                        test_fn = provided_option[0]
-                        if test_fn(self):
-                            provided_options.update(provided_option[1])
-                        elif len(provided_option) == 3:
-                            provided_options.update(provided_option[2])
-                    else:
-                        provided_options.update([provided_option])
-            if hasattr(options_module, 'BLACKLIST_OPTIONS'):
-                for blacklisted_option in options_module.BLACKLIST_OPTIONS:
-                    option_type = type(blacklisted_option)
-                    if option_type == list or option_type == tuple:
-                        test_fn = blacklisted_option[0]
-                        if test_fn(self):
-                            blacklisted_options.update(blacklisted_option[1])
-                        elif len(blacklisted_option) == 3:
-                            blacklisted_options.update(blacklisted_option[2])
-                    else:
-                        blacklisted_options.update([blacklisted_option])
-                blacklisted_options.update(options_module.BLACKLIST_OPTIONS)
+        def read_options_definition(options_module):
+            if hasattr(options_module, 'CONFIG_OPTIONS'):
+                (required, defaults) = parse_options(options_module.CONFIG_OPTIONS)
 
-        alien_options = set(self.list_options())
+                required_options.update(required)
+                default_options.extend(defaults)
 
-        def handle_special_options(options):
-            """
-              From 'options' remove provided and blacklisted options and
-              modify accordingly the 'alien_options' list.
-            """
+            options_name = 'PROVIDE_OPTIONS'
+            if hasattr(options_module, options_name):
+                (options, defaults) = \
+                  parse_options(getattr(options_module, options_name))
+                if defaults:
+                    raise ValueError("Options in '%s' cannot have a "
+                                     "default value: " % options_name,
+                                     getattr(options_module, options_name))
+                provided_options.update(options)
 
-            normal_options = set(options)
-            normal_options.difference_update(provided_options)
-            normal_options.difference_update(blacklisted_options)
+            options_name = 'BLACKLIST_OPTIONS'
+            if hasattr(options_module, options_name):
+                (options, defaults) = \
+                  parse_options(getattr(options_module, options_name))
+                if defaults:
+                    raise ValueError("Options in '%s' cannot have a "
+                                     "default value: " % options_name,
+                                     getattr(options_module, options_name))
+                blacklisted_options.update(options)
 
-            alien_options.difference_update(normal_options)
+            # options_name = 'INTERNAL_OPTIONS'
+            # if hasattr(options_module, options_name):
+            #     (options, defaults) = \
+            #       parse_options(getattr(options_module, options_name))
+            #     if defaults:
+            #         raise ValueError("Options in '%s' cannot have a "
+            #                          "default value: " % options_name,
+            #                          getattr(options_module, options_name))
+            #     internal_options.update(options)
 
-            return normal_options
 
-        def check_options(options):
-            """
-              Check whether all supplied 'options' in present configuration.
-              current configuration.
-            """
-            missing_options = self.missing_options(options)
-            if missing_options:
-                print('Following required options are not present: ')
-                for option in missing_options:
-                    print('  ', option)
+            options_name = 'EXCLUDE_FROM_MODEL'
+            if hasattr(options_module, options_name):
+                (options, defaults) = \
+                  parse_options(getattr(options_module, options_name))
+                if defaults:
+                    raise ValueError("Options in '%s' cannot have a "
+                                     "default value: " % options_name,
+                                     getattr(options_module, options_name))
+                excluded_options.update(options)
 
-                return False
-            return True
-
-        def primary_cfg_check(options_module):
-            config_parameters = options_module.CONFIG_OPTIONS
-
-            required_options = \
-              handle_special_options(config_parameters['mandatory'])
-
-            if not check_options(required_options):
-                return False
-
-            if 'dependent' in config_parameters:
-                for dependent_option in config_parameters['dependent'].values():
-                    test_fn = dependent_option[0]
-
-                    if test_fn(self):
-                        required_options = \
-                          handle_special_options(dependent_option[1])
-                        if not check_options(required_options):
-                            return False
-                    elif len(dependent_option) == 3:
-                        required_options = \
-                          handle_special_options(dependent_option[2])
-                        if not check_options(required_options):
-                            return False
-
-            if 'optional' in config_parameters:
-                handle_special_options(config_parameters['optional'])
-
-            if 'defaults' in config_parameters:
-                handle_special_options(config_parameters['defaults'])
-
-            if 'additional' in config_parameters:
-                handle_special_options(config_parameters['additional'])
+            options_name = 'NONITERABLE_LIST_OPTIONS'
+            if hasattr(options_module, options_name):
+                (options, defaults) = \
+                  parse_options(getattr(options_module, options_name))
+                if defaults:
+                    raise ValueError("Options in '%s' cannot have a "
+                                     'default value: ' % options_name,
+                                     getattr(options_module, options_name))
+                noniterable_options.update(options)
 
             return True
-
-        def custom_cfg_check(options_module):
-            if hasattr(options_module, 'check_cfg'):
-                return options_module.check_cfg(self)
-            else:
-                return True
-
 
         exp_type = self.get_value('exp_type')
 
@@ -550,35 +516,71 @@ class Configuration:
             print('\nExiting...')
             exit(1)
 
-        if not modman.traverse_ancestors(exp_type, primary_cfg_check,
-                                         submodule='options',
-                                         prehook=update_special_options):
+        if not modman.traverse_ancestors(exp_type, read_options_definition,
+                                         submodule='options'):
+            print('Could not parse options definitions... Exiting...')
+            exit(1)
+
+        # from required options remove blacklisted options
+        # and options provided by module
+        required_options.difference_update(provided_options)
+        required_options.difference_update(blacklisted_options)
+
+        self._config_definition = {'required': required_options,
+                                   'default': default_options,
+                                   'provided': provided_options,
+                                   'blacklisted': blacklisted_options,
+                                   #'internal', internal_options,
+                                   'excluded': excluded_options,
+                                   'noniterable': noniterable_options
+                                   }
+
+
+    def is_valid(self, modman):
+
+        def custom_cfg_check(options_module):
+            if hasattr(options_module, 'check_cfg'):
+                return options_module.check_cfg(self)
+            else:
+                return True
+
+        if not self._config_definition:
+            self.read_options_definition(modman)
+
+        cfg_definition      = self._config_definition
+        required_options    = cfg_definition['required']
+        default_options     = cfg_definition['default']
+        provided_options    = cfg_definition['provided']
+        blacklisted_options = cfg_definition['blacklisted']
+
+        missing_options = self.missing_options(required_options)
+        if missing_options:
+            print('Following required options are not present: ')
+            for option in missing_options:
+                print('  ', option)
+
             return False
 
-        if not modman.traverse_ancestors(exp_type, custom_cfg_check,
-                                         submodule='options'):
-            return False
+        alien_options = set(self.list_options())
+
+        alien_options.difference_update(required_options)
+        alien_options.difference_update([opt[0] for opt in default_options])
+        #alien_options.difference_update(internal_options)
 
         if alien_options:
             print('\nFound following alien options in configuration:')
 
-            provided_aliens = alien_options.intersection(provided_options)
-            if not provided_aliens.issubset([]):
-                print('\n  Options found in configuration, but PROVIDED by '
-                      'a centrifuge module:')
-                for option in provided_aliens:
-                    print('    ', option)
+            for (forbidden, name) in zip([provided_options, blacklisted_options],
+                                          ['PROVIDED', 'BLACKLISTED']):
 
-                alien_options.difference_update(provided_aliens)
+                found_aliens = alien_options.intersection(forbidden)
+                if found_aliens:
+                    print('\n  Options found in configuration, but %s by '
+                          'a centrifuge module:' % name)
+                    for option in found_aliens:
+                        print('    ', option)
 
-            blacklisted_aliens = alien_options.intersection(blacklisted_options)
-            if not blacklisted_aliens.issubset([]):
-                print('\n  Options found in configuration, but BLACKLISTED by '
-                      'a centrifuge module:')
-                for option in blacklisted_aliens:
-                    print('    ', option)
-
-                    alien_options.difference_update(blacklisted_aliens)
+                alien_options.difference_update(found_aliens)
 
             if alien_options:
                 print('\n Options found in configuration, but not specified'
@@ -588,7 +590,13 @@ class Configuration:
 
             return False
 
+        if not modman.traverse_ancestors(self.get_value('exp_type'),
+                                         custom_cfg_check, submodule='options'):
+            return False
+
         return True
+
+        ###alien_options.difference_update([opt[0] for opt in default_options])
 
 ##################################################################
 #                 ModelParameters class                          #
@@ -599,53 +607,19 @@ class ModelParameters:
     Parameters class for the centrifuge simulation.
     """
 
-    def __init__(self, cfg, modman):
-        self._cfg = cfg
+    def __init__(self, cfg):
+        self._cfg            = cfg
+        cfg_definition       = cfg._config_definition
+        excluded_options     = cfg_definition['excluded']
+        self._atomic_options = cfg_definition['noniterable']
+
         self._iterable_parameters = {}
         self.iteration            = 0
         self.iterations           = 0
-        self._atomic_options      = []
 
-        exclude_options = []
-        atoms           = self._atomic_options
-
-        def update_options_list(options_module):
-            #global exclude_options
-            if hasattr(options_module, 'EXCLUDE_FROM_MODEL'):
-                exclude_options.extend(options_module.EXCLUDE_FROM_MODEL)
-
-            if hasattr(options_module, 'NONITERABLE_LIST_OPTIONS'):
-                atoms.extend(options_module.NONITERABLE_LIST_OPTIONS)
-
-        def set_options(options_list):
-             for option in options_list:
-                if not option in exclude_options:
-                    self.set_value(option, cfg.get_value(option))
-
-        def set_options_from_config(options_module):
-            config_options = options_module.CONFIG_OPTIONS
-
-            set_options(config_options['mandatory'])
-            set_options(config_options['defaults'].keys())
-            set_options(config_options['additional'])
-
-            optional_options = set(config_options['optional'])
-            cfg_missing_options  = set(cfg.missing_options(optional_options))
-            optional_options.difference_update(cfg_missing_options)
-            set_options(list(optional_options))
-
-            for (test_fn, dependent_options) \
-              in config_options['dependent'].values():
-
-                if test_fn(cfg):
-                    set_options(dependent_options)
-
-            return True
-
-        modman.traverse_ancestors(cfg.get_value('exp_type'),
-                                  set_options_from_config,
-                                  prehook=update_options_list,
-                                  submodule='options')
+        for (option_name, value) in cfg.iterate_values():
+            if not option_name in excluded_options:
+                self.set_value(option_name, value)
 
         if self._iterable_parameters:
             iterations = -1

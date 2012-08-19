@@ -1,40 +1,39 @@
 PARENTAL_MODULES = []
 
-CONFIG_OPTIONS = {
-        'mandatory': ['exp_type',
-                      'ks',
-                      'r0', 'l0', 'duration',
-                      'fh_duration', 'r0_fall',
-                      'wt_out',
-                      'include_acceleration',
-                      # solver options
-                      'atol', 'rtol',
-                      'first_step_size',
-                      'max_steps', 'max_step_size'
-                      ],
-        'defaults':  {'g': 981,
-                      'omega_start': 0.0, 'omega_end': 0.0,
-                      'ks1': -1.0, 'fl1': 0.0, 'ks2': -1.0, 'fl2': 0.0,
-                      'density': 1.0, 'viscosity': 1.0,
-                      # output
-                      'draw_graphs': True,
-                      'save_figures': True, 'separate_figures': True,
-                      'save_as_text': True,
-                      'verbosity': 1,
-                      # solver options
-                      'always_restart_solver': False
-                     },
-        'dependent': {'centrifugation':
-                        (lambda cfg: not (cfg.get_value('duration') == 0.0),
-                         ['omega']),
-                      'acceleration':
-                        (lambda cfg: cfg.get_value('include_acceleration'),
-                         ['omega_start', 'omega_end', 'deceleration_duration'])
-                     },
-        'optional':  ['l1', 'measured_gc', 'measured_w', 'gc1', 'wl_out',
-                      'descr','re'],
-        'additional': ['omega_fall']
-        }
+CONFIG_OPTIONS = ['exp_type',
+                  'ks',
+                  'r0', 'l0', 'duration',
+                  'fh_duration', 'r0_fall',
+                  'wt_out',
+                  'include_acceleration',
+                  # solver options
+                  'atol', 'rtol',
+                  'first_step_size',
+                  'max_steps', 'max_step_size',
+                  # defaults
+                  ('g', 981),
+                  ('omega_start', 0.0), ('omega_end', 0.0),
+                  ('ks1', -1.0), ('fl1', 0.0), ('ks2', -1.0), ('fl2', 0.0),
+                  ('density', 1.0), ('viscosity', 1.0),
+                  # output
+                  ('draw_graphs', True),
+                  ('save_figures', True), ('separate_figures', True),
+                  ('save_as_text', True),
+                  ('verbosity', 1),
+                  # solver options
+                  ('always_restart_solver', False),
+
+                  # dependent options
+                  (lambda cfg: not (cfg.get_value('duration') == 0.0),
+                    ['omega']),
+                  (lambda cfg: cfg.get_value('include_acceleration'),
+                    ['omega_start', 'omega_end', 'deceleration_duration']),
+                  ('l1', None), ('measured_gc', None), ('measured_w', None),
+                  ('gc1', None), ('wl_out', None), ('descr', None),
+                  ('re', None)
+                 ]
+
+INTERNAL_OPTIONS = ['omega_fall', 'm']
 
 EXCLUDE_FROM_MODEL = []
 
@@ -59,4 +58,26 @@ def adjust_cfg(cfg):
        by configuration file(s), e.g. allocate the discretized interval
        based on the discretization type and number of inner points.
     """
-    pass
+    from modules.shared.shared_functions import rpm2radps, calc_omega_fall
+
+    # Handle depending variables
+    for key in ['omega', 'omega_start', 'omega_end']:
+        value = cfg.get_value(key)
+        if type(value) == list:
+            cfg.set_value(key, [rpm2radps(omega) for omega in value])
+        else:
+            cfg.set_value(key, rpm2radps(value))
+
+    cfg.set_value('omega_fall',
+                  calc_omega_fall(cfg.get_value('r0_fall'), cfg.get_value('g')))
+
+
+def prior_adjust_cfg(cfg):
+    """
+      This function is called prior to the adjust_cfg() function. It is intended
+      for pre-data initialization. Mainly, if a descendent module provides an
+      option, this option may not be present in the configuration, but the
+      parental module may need to use the value in adjust_cfg. So here the
+      needed value can be specified.
+    """
+    return True

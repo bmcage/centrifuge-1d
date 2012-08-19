@@ -196,7 +196,7 @@ def run_experiments(options):
         solver_module = modman.find_module(cfg.get_value('exp_type'),
                                                submodule='run')
 
-        model = ModelParameters(cfg, modman)
+        model = ModelParameters(cfg)
 
         results = solver_module.solve(model)
 

@@ -14,16 +14,11 @@ def should_theta_r_be_present(cfg):
                   and (cfg.get_value('theta_s') is None)))
     return result
 
-CONFIG_OPTIONS = {
-        'mandatory' : ['p', 'theta', 'inv_init_params'],
-        'defaults'  : {'rho': 1.0},
-        'dependent' : {'theta_s': (should_theta_s_be_present, ['theta_s']),
-                       'theta_r': (should_theta_r_be_present, ['theta_r'])},
-        'optional'  : ['sample_id', 'wl_out1'],
-        'additional': []
-        }
-
-EXCLUDE_FROM_MODEL = []
+CONFIG_OPTIONS = ['p', 'theta', 'inv_init_params',
+                  ('rho', 1.0),
+                  (should_theta_s_be_present, ['theta_s']),
+                  (should_theta_r_be_present, ['theta_r']),
+                  ('sample_id', None), ('wl_out1', None)]
 
 NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'p', 'theta']
 
