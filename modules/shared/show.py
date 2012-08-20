@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from numpy import alen, empty, pi
+from numpy import alen, empty, pi, ndarray
 from const import FIGS_DIR
 from os import makedirs, path
 
@@ -105,25 +105,36 @@ def nd2strlist(nd):
         result.append(str(value))
     return result
 
-def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
-                mass_out = None, mass_in = None,
-                GC = None, RM = None,  WM = None,
+def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
+                s1 = None, s1_ref=None, s2 = None, s2_ref=None,
+                mass_out = None, mass_out_ref = None,
+                mass_in = None, mass_in_ref = None,
+                GC = None, GC_ref = None,
+                RM = None,  RM_ref = None, WM = None, WM_ref = None,
                 fignum = 1, save_figures=False, separate_figures=False,
                 save_as_text=False, draw_equilibrium=False,
                 show_figures=False,
                 model=None):
 
-    def add_legend(lines, times, append_to_legend=None):
-        legend_data = ['% 7d' % ti for ti in times]
+    def has_data(x):
+        if x is None:
+            return False
+        elif isinstance(x, ndarray):
+            return not (x.size == 0)
+        else:
+            return bool(x)
 
-        if append_to_legend:
-            if type(append_to_legend)==list:
-                legend_data.extend(append_to_legend)
-            else:
-                legend_data.append(append_to_legend)
+    def add_legend(lines, legend_data=None, legend_title=None, legend_loc=1,
+                   legend_type='figlegend'):
+        if legend_type == 'figlegend':
+            legendfn = plt.figlegend
+        elif legend_type == 'legend':
+            legendfn = plt.legend
+        else:
+            raise ValueError('Unknown legend type: ', legend_type)
 
-        plt.figlegend(lines, legend_data, 1, borderaxespad=0.0,
-                      title="Time [min]", prop={'family': 'monospace'})
+        legendfn(lines, legend_data, legend_loc, borderaxespad=0.0,
+                          title=legend_title, prop={'family': 'monospace'})
 
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
 
@@ -139,6 +150,11 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
 
     t = [ti/60. for ti in times] # sec -> min
 
+    if t_ref:
+        t_ref = [ti/60. for ti in t_ref] # sec -> min
+    else:
+        t_ref = t
+
     if not separate_figures:
         plt.figure(fignum, figsize=(16, 8.5))
         plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
@@ -151,12 +167,15 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
         images_per_figure = 6
     img_num = 1
 
-    if (not h is None) or (not u is None):
-        if (s1 is None) or (s2 is None) or (y is None):
+    if has_data(h) or has_data(u):
+        if not (has_data(s1) and has_data(s2) and has_data(y)):
             print('draw_graphs error: for ''h'' and/or ''u'' to be displayed '
                   'all ''s1'', ''s2'' and ''y'' have to be set.')
         else:
             x = y2x(y, s1, s2)
+
+            legend_title = "Time [min]"
+            legend_data  = ['% 7d' % ti for ti in times]
 
             if not h is None:
                 if separate_figures:
@@ -172,10 +191,10 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                     h_lines = plt.plot(x.transpose(), h.transpose(), '.',
                                        x.transpose(), h_eqlib.transpose(), 'x')
 
-                    append_to_legend = ['h in equilibrium']
+                    h_eq_legend = legend_data + ['h in equilibrium']
                 else:
-                    append_to_legend = []
-                    h_lines = plt.plot(x.transpose(), h.transpose(), '.')
+                    h_eq_legend = legend_data
+                    h_lines  = plt.plot(x.transpose(), h.transpose(), '.')
 
                 plt.xlabel('Sample length ''L'' [cm]')
                 plt.ylabel('Piezometric head ''h'' [cm]')
@@ -184,10 +203,11 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 if save_figures and separate_figures:
                     plt.savefig(OUT_DIR + 'Image-h', dpi=300)
 
-                add_legend(h_lines, t)
+                add_legend(h_lines, legend_data=h_eq_legend, title=legend_title)
 
                 if separate_figures:
-                   add_legend(h_lines, t, append_to_legend=append_to_legend)
+                   add_legend(h_lines, legend_data=h_eq_legend,
+                              title=legend_title)
                 if save_figures and separate_figures:
                     plt.savefig(OUT_DIR + 'Image-h-leg', dpi=300)
 
@@ -206,7 +226,7 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
                 if save_figures and separate_figures:
                     plt.savefig(OUT_DIR + 'Image-u', dpi=300)
 
-                add_legend(u_lines, t)
+                add_legend(u_lines, legend_data=legend_data, title=legend_title)
 
                 if save_figures and separate_figures:
                     plt.savefig(OUT_DIR + 'Image-u-leg', dpi=300)
@@ -218,7 +238,9 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
     if (not mass_in  is None) and all(mass_in  == 0.0): mass_in  = None
     if (not mass_out is None) and all(mass_out == 0.0): mass_out = None
 
-    twins = ((mass_out, mass_in), (GC, RM), (s1, s2), (WM, None))
+    twins = (((mass_out, mass_out_ref), (mass_in, mass_in_ref)),
+             ((GC, GC_ref), (RM, RM_ref)),
+             ((s1, s1_ref), (s2, s2_ref)), ((WM, WM_ref), (None, None)))
     ylabels = (('Expelled water [cm]', 'Inflow water [cm]'),
                ('Gravitational center [cm]',
                 'Rotational momentum [kg.m.s$^{-1}$]'),
@@ -233,7 +255,7 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
     # divide all display data into two categories - those to be shown
     # in pairs (like s1 and s2) - aka in the same row; and then the rest
     for (twin, twin_label) in zip(twins, ylabels):
-        if twin[0] is None or twin[1] is None:
+        if twin[0][0] is None or twin[1][0] is None:
             singles.extend(twin)
             singles_labels.extend(twin_label)
         else:
@@ -245,9 +267,10 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
     data = pairs
     data_labels = pairs_labels
 
-    for (ydata, ydata_label) in zip(data, data_labels):
-        if ydata is None: continue
-
+    for ((ydata, ydata_ref), ydata_label) in zip(data, data_labels):
+        print(ydata, ydata_label, has_data(ydata))
+        if not has_data(ydata): continue
+        print(ydata_label, ydata, ydata_ref, t, t_ref)
         if img_num > images_per_figure:
             if save_figures:
                 plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
@@ -264,7 +287,14 @@ def draw_graphs(times, y = None, s1 = None, s2 = None, h = None, u = None,
         if not separate_figures:
             plt.subplot(3,2,img_num)
 
-        plt.plot(t, ydata, '.')
+        if has_data(ydata_ref):
+            ydata_lines = plt.plot(t, ydata, '.',
+                                   t_ref, ydata_ref, 'x')
+            add_legend(ydata_lines, legend_data = ['measured', 'computed'],
+                       legend_type='legend', legend_loc=4)
+        else:
+            plt.plot(t, ydata, '.')
+
         plt.xlabel('Time [min]')
         plt.ylabel(ydata_label)
 
