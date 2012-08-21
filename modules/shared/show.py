@@ -1,15 +1,15 @@
 import matplotlib.pyplot as plt
-from numpy import alen, empty, pi, ndarray
+import numpy as np
 from const import FIGS_DIR
 from os import makedirs, path
 
 def y2x(y, s1, s2):
-    s1_len = alen(s1)
-    if s1_len != alen(s2):
+    s1_len = np.alen(s1)
+    if s1_len != np.alen(s2):
         print('Interfaces array ''s1'' and ''s2'' have to be of the same'
               'lenght. Cannot proceed.')
         exit(1)
-    x = empty([s1_len, len(y)], float)
+    x = np.empty([s1_len, len(y)], float)
 
     ds = s2 - s1
 
@@ -119,7 +119,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
     def has_data(x):
         if x is None:
             return False
-        elif isinstance(x, ndarray):
+        elif isinstance(x, np.ndarray):
             return not (x.size == 0)
         else:
             return bool(x)
@@ -143,7 +143,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
     else:
         OUT_DIR = (FIGS_DIR + '/' + 'n=' + str(model.n) + ',gamma='
                    + str(model.gamma) + ',Ks=%g' % model.ks
-                   + ',omega=%.2f' % (model.omega*30./pi) +'/')
+                   + ',omega=%.2f' % (model.omega*30./np.pi) +'/')
 
     if save_figures and (not path.exists(OUT_DIR)):
         makedirs(OUT_DIR)
@@ -347,7 +347,7 @@ def disp_inv_results(model, t_inv, wl_out_inv=None, gc1_inv=None,
 
         i0 = 0
         in_row = 10
-        remaining = alen(data_computed)
+        remaining = np.alen(data_computed)
 
         error = (data_computed - data_measured) / data_measured * 100.
 
@@ -363,24 +363,24 @@ def disp_inv_results(model, t_inv, wl_out_inv=None, gc1_inv=None,
             print('%s computed: ' % name,
                   disp_items * '% >8.6f' % tuple(data_measured[i0:i0+disp_items]))
             print('Error (%):', name_len * ' ',
-                  disp_items * '   % >5.2f' % tuple(error[i0:i0+disp_items]))
+                  disp_items * '  % 6.2f' % tuple(error[i0:i0+disp_items]))
 
             remaining = remaining - disp_items
             print(108 * '-')
             i0 = i0 + in_row
 
-        print('LSQ error:', sum(power(data_computed - data_measured, 2)))
+        print('LSQ error:', np.sum(power(data_computed - data_measured, 2)))
 
     if model.calc_wl_out:
-        wl_out_meas  = asarray(model.get_iterable_value('wl_out'))
+        wl_out_meas  = np.asarray(model.get_iterable_value('wl_out'))
         wl_out_meas  = wl_out_meas.cumsum()
         wl_out_meas[wl_out_meas == 0.0] = 1.0e-10
         print_data('WL_out', wl_out_inv, wl_out_meas)
     if model.calc_gc:
-        gc1  = asarray(model.get_iterable_value('gc1'), dtype=float)
+        gc1  = np.asarray(model.get_iterable_value('gc1'), dtype=float)
         print_data('GC', gc1_inv, gc1)
     if model.calc_rm:
-        rm1  = asarray(model.get_iterable_value('rm1'), dtype=float)
+        rm1  = np.asarray(model.get_iterable_value('rm1'), dtype=float)
         print_data('RM', rm1_inv, rm1)
 
     if ks_inv:
@@ -400,8 +400,8 @@ def disp_inv_results(model, t_inv, wl_out_inv=None, gc1_inv=None,
         if not t_fh_duration:
             t_fh_duration = model.fh_duration
         # TODO: include deceleration duration
-        t_ref = cumsum((asarray(t_duration, dtype=float)
-                        + asarray(t_fh_duration, dtype=float)))
+        t_ref = cumsum((np.asarray(t_duration, dtype=float)
+                        + np.asarray(t_fh_duration, dtype=float)))
 
         draw_graphs(t_inv, t_ref=t_ref,
                     mass_out=wl_out_inv, mass_out_ref=wl_out_meas,
