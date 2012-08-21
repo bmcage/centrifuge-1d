@@ -2,133 +2,8 @@ from modules.direct_draining_saturated.run import solve as solve_direct
 from modules.shared.solver import simulate_inverse
 from modules.shared.shared_functions import (scale_array,
                                              determine_scaling_factor)
-from numpy import (concatenate, asarray, empty, zeros, ones, log, exp, cumsum,
-                   sum, power)
-
-def print_results(model, wl_out_inv, gc1_inv, t_inv, n_inv, gamma_inv,
-                  ks_inv = None, display_graphs=True, fignum = 1):
-    duration = model.get_iterable_value('duration')
-
-    subexperiments = len(duration)
-
-    if model.calc_wl_out:
-        wl_out_meas  = asarray(model.get_iterable_value('wl_out'))
-        wl_out_meas  = wl_out_meas.cumsum()
-        wl_out_meas[wl_out_meas == 0.0] = 1.0e-10
-        print('\nWL_out_measured: ', subexperiments *  '% 8.6f'
-              % tuple(wl_out_meas))
-        print('WL_out_computed: ', subexperiments *  '% 8.6f'
-              % tuple(wl_out_inv))
-        print('Error (\%):  ', subexperiments * '    % 5.2f'
-              % tuple((wl_out_inv - wl_out_meas) / wl_out_meas * 100.))
-        print('LSQ error:', sum(power(wl_out_inv- wl_out_meas, 2)))
-    if model.calc_gc:
-        gc1  = asarray(model.get_iterable_value('gc1'), dtype=float)
-        print('GC_measured: ', subexperiments *  '% 9.6f' % tuple(gc1))
-        print('GC_computed: ', subexperiments *  '% 9.6f' % tuple(gc1_inv))
-        print('Error (\%):  ', subexperiments * '    % 5.2f'
-              % tuple((gc1_inv - gc1) / gc1 * 100.))
-        print('LSQ error:', sum(power(gc_inv- gc1, 2)))
-
-    if model.calc_rm:
-        rm1  = asarray(model.get_iterable_value('rm1'), dtype=float)
-        print('RM_measured: ', subexperiments *  '% 9.6f' % tuple(rm1))
-        print('RM_computed: ', subexperiments *  '% 9.6f' % tuple(rm1_inv))
-        print('Error (\%):  ', subexperiments * '    % 5.2f'
-              % tuple((rm1_inv - rm1) / rm1 * 100.))
-        print('LSQ error:', sum(power(rm_inv- rm1, 2)))
-
-    if not ks_inv is None:
-        print('\nKs [cm/s] found: ', ks_inv)
-    if n_inv:
-        print('n         found: ', n_inv)
-    if gamma_inv:
-        print('gamma     found: ', gamma_inv)
-
-    if display_graphs:
-        import matplotlib.pyplot as plt
-
-        def add_legend(lines):
-            legend_data = ['measured', 'computed']
-
-            plt.figlegend(h_lines, legend_data, 1, borderaxespad=0.0,
-                          prop={'family': 'monospace'})
-
-        t_duration = model.get_iterable_value('duration')
-        if t_duration is None:
-            t_duration = model.duration
-        t_fh_duration = model.get_iterable_value('fh_duration')
-        if t_fh_duration is None:
-            t_fh_duration = model.fh_duration
-
-        t_minutes = cumsum((asarray(t_duration, dtype=float)
-                            + asarray(t_fh_duration, dtype=float))
-                            / 60)
-        t_inv_minutes = t_inv[1:] / 60
-
-        figures_count = (int(model.calc_wl_out) + int(model.calc_gc)
-                         + int(model.calc_gc))
-
-        xlabel = ('Time [min]')
-
-        if figures_count == 1:
-            plt.figure(fignum)
-            rows = 1
-            cols = 1
-
-        elif figures_count == 2:
-            plt.figure(fignum, figsize=(16, 4.5))
-            rows = 1
-            cols = 2
-        else:
-            plt.figure(fignum, figsize=(16, 8.5))
-            rows = 2
-            cols = 2
-
-        plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
-
-        current_column = 1
-
-        if model.calc_wl_out:
-            plt.subplot(rows, cols, current_column)
-            print('Display data:')
-            print('t', t_minutes, 't_inv', t_inv_minutes)
-            print('wl', wl_out_meas, 'wl_inv', wl_out_inv)
-
-            h_lines = plt.plot(t_minutes, wl_out_meas, '.',
-                               t_inv_minutes, wl_out_inv, 'x')
-            plt.xlabel(xlabel)
-            plt.ylabel('Expelled water [cm]')
-
-            add_legend(h_lines)
-
-            current_column = current_column + 1
-
-        if model.calc_gc:
-            plt.subplot(rows, cols, current_column)
-
-            h_lines = plt.plot(t_minutes, gc1, '.', t_inv_minutes, gc1_inv, 'x')
-            plt.xlabel(xlabel)
-            plt.ylabel('Gravitational centre [cm]')
-
-            add_legend(h_lines)
-
-            current_column = current_column + 1
-
-        if model.calc_rm:
-            if rows == 2:
-                current_column = 1
-
-            plt.subplot(rows, cols, current_column)
-
-            h_lines = plt.plot(t_minutes, rm1, '.', t_inv_minutes, rm1_inv, 'x')
-            plt.xlabel(xlabel)
-            plt.ylabel('Rotational momentum [cm]')
-
-            add_legend(h_lines)
-
-        plt.show(block=False)
-        input('Enter...')
+from modules.shared.show import disp_inv_results
+from numpy import concatenate, asarray, empty, log, exp, cumsum,
 
 def solve(model):
     # use all 3 parameters (Ks, n, gamma) or only two (n, gamma) ?
@@ -161,7 +36,7 @@ def solve(model):
 
 
     def ip_direct_drainage(model, optim_args, retn_full_p = False):
-        print('\n', optim_args)
+
         if determine_all:
             (log_ks, log_n, log_gamma) = optim_args
             ks = exp(log_ks) / model.ks_inv_scale
@@ -265,11 +140,9 @@ def solve(model):
                 scale_array(rm1, c_coef_rm, rm1)
 
         if model.verbosity > 0:
-            print_results(model, wl_out, gc1, t,
-                          n_inv=None, gamma_inv=None,ks_inv=None,
-                          display_graphs=False)
-            #            print('gc_mes, wl_mes, t_exp', gc_meas, wl_out_meas, t_meas)
-            #print('gc_com, wl_com, t_com', gc1, wl_out, t)
+            disp_inv_results(model, t, wl_out_inv=wl_out, gc1_inv=gc1,
+                             n_inv=None, gamma_inv=None,ks_inv=None,
+                             display_graphs=False)
 
         if retn_full_p:
             return (t, wl_out, gc1, rm1, z)

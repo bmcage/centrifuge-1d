@@ -337,3 +337,73 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
         fout.close()
 
     input('Press ENTER to continue...')
+
+def disp_inv_results(model, t_inv, wl_out_inv=None, gc1_inv=None,
+                     n_inv=None, gamma_inv=None, ks_inv = None,
+                     display_graphs=True, fignum = 1):
+
+    def print_data(name, data_computed, data_measured):
+        name_len = len(name)
+
+        i0 = 0
+        in_row = 10
+        remaining = alen(data_computed)
+
+        error = (data_computed - data_measured) / data_measured * 100.
+
+        print('\n')
+        while remaining > 0:
+            if remaining > in_row:
+                disp_items = in_row
+            else:
+                disp_items = remaining
+
+            print('%s measured: ' % name,
+                  disp_items * '% >8.6f' % tuple(data_computed[i0:i0+disp_items]))
+            print('%s computed: ' % name,
+                  disp_items * '% >8.6f' % tuple(data_measured[i0:i0+disp_items]))
+            print('Error (%):', name_len * ' ',
+                  disp_items * '   % >5.2f' % tuple(error[i0:i0+disp_items]))
+
+            remaining = remaining - disp_items
+            print(108 * '-')
+            i0 = i0 + in_row
+
+        print('LSQ error:', sum(power(data_computed - data_measured, 2)))
+
+    if model.calc_wl_out:
+        wl_out_meas  = asarray(model.get_iterable_value('wl_out'))
+        wl_out_meas  = wl_out_meas.cumsum()
+        wl_out_meas[wl_out_meas == 0.0] = 1.0e-10
+        print_data('WL_out', wl_out_inv, wl_out_meas)
+    if model.calc_gc:
+        gc1  = asarray(model.get_iterable_value('gc1'), dtype=float)
+        print_data('GC', gc1_inv, gc1)
+    if model.calc_rm:
+        rm1  = asarray(model.get_iterable_value('rm1'), dtype=float)
+        print_data('RM', rm1_inv, rm1)
+
+    if ks_inv:
+        print('\nKs [cm/s] found: ', ks_inv)
+    if n_inv:
+        print('n         found: ', n_inv)
+    if gamma_inv:
+        print('gamma     found: ', gamma_inv)
+
+    if display_graphs:
+        from modules.shared.show import draw_graphs
+
+        t_duration = model.get_iterable_value('duration')
+        if not t_duration:
+            t_duration = model.duration
+        t_fh_duration = model.get_iterable_value('fh_duration')
+        if not t_fh_duration:
+            t_fh_duration = model.fh_duration
+        # TODO: include deceleration duration
+        t_ref = cumsum((asarray(t_duration, dtype=float)
+                        + asarray(t_fh_duration, dtype=float)))
+
+        draw_graphs(t_inv, t_ref=t_ref,
+                    mass_out=wl_out_inv, mass_out_ref=wl_out_meas,
+                    GC=gc1_inv, GC_ref=gc1, RM=rm1_inv, RM_ref=rm1,
+                    model=model)
