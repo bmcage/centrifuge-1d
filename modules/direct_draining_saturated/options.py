@@ -1,4 +1,4 @@
-from modules.shared.shared_functions import lagrangean_derivative_coefs
+from modules.shared.functions import lagrangean_derivative_coefs
 from numpy import linspace, power, asarray
 
 PARENTAL_MODULES = ['base']

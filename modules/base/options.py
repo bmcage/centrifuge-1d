@@ -58,7 +58,7 @@ def adjust_cfg(cfg):
        by configuration file(s), e.g. allocate the discretized interval
        based on the discretization type and number of inner points.
     """
-    from modules.shared.shared_functions import rpm2radps, calc_omega_fall
+    from modules.shared.functions import rpm2radps, calc_omega_fall
 
     # Handle depending variables
     for key in ['omega', 'omega_start', 'omega_end']:

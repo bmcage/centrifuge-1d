@@ -1,7 +1,6 @@
 from modules.direct_draining_saturated.run import solve as solve_direct
 from modules.shared.solver import simulate_inverse
-from modules.shared.shared_functions import (scale_array,
-                                             determine_scaling_factor)
+from modules.shared.functions import (scale_array, determine_scaling_factor)
 from modules.shared.show import disp_inv_results
 from numpy import concatenate, asarray, empty, log, exp, cumsum
 
