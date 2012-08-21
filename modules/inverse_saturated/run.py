@@ -1,5 +1,5 @@
 from modules.direct_saturated.run import solve as direct_solve
-from modules.shared.solver import simulate_inverse
+from modules.shared.solver import simulate_inverse_old as simulate_inverse
 from numpy import concatenate, cumsum, asarray
 
 def print_results(model, Ks_inv, t_inv, wl1_inv):

@@ -170,7 +170,7 @@ def simulate_direct(model, residual_fn, z0, algvars_idx = None, root_fn = None,
 
     return (True, t_retn_out, z_out)
 
-def simulate_inverse(direct_fn, xdata, ydata, init_params,
+def simulate_inverse_old(direct_fn, xdata, ydata, init_params,
                      optimfn='leastsq'):
 
     def lsq_wrapper_fn(xdata, *optim_args):
