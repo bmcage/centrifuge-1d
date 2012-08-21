@@ -1,5 +1,5 @@
 import scikits.odes.sundials.ida as ida
-from numpy import zeros, concatenate, all, sum, power
+from numpy import zeros, concatenate, all, sum, power, isscalar, linspace
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -53,10 +53,10 @@ class DirectSimulator:
 
             if verbosity > 1:
                 if self.t0 == 0.0:
-                    print(28*' ', end='')
-                print(' ... Starting time: %8.1f  ' % self.t0,
-                      'Duration: %8.1f  ' % duration,
-                      'Expected end time: %8.1f' % t)
+                    print(27*' ', end='')
+                print(' ... Starting time: %9.1f  ' % self.t0,
+                      'Duration: %9.1f  ' % duration,
+                      'Expected end time: %9.1f' % t)
 
             self.solver.set_options(tcrit=t)
             flag, t_out = self.solver.step(t, z_retn)
@@ -170,6 +170,15 @@ def simulate_direct(model, residual_fn, z0, algvars_idx = None, root_fn = None,
 
     return (True, t_retn_out, z_out)
 
+def optimargs2transformed(optimargs, model):
+    if len(optimargs) == 3:
+        (ks_init, n_init, gamma_init) = model.inv_init_params
+        ks_init = ks_init * model.ks_inv_scale
+        init_params = (log(ks_init), log(n_init - 1.0), log(-gamma_init))
+    else:
+        (n_init, gamma_init) = model.inv_init_params
+        init_params  = (log(n_init - 1.0), log(-gamma_init))
+
 def simulate_inverse_old(direct_fn, xdata, ydata, init_params,
                      optimfn='leastsq'):
 
@@ -177,8 +186,8 @@ def simulate_inverse_old(direct_fn, xdata, ydata, init_params,
         direct_results = direct_fn(xdata, optim_args)
         return concatenate(direct_results)
 
-    def leastsq_wrapper_fn(xdata, *optim_args):
-        direct_results = direct_fn(xdata, optim_args)
+    def leastsq_wrapper_fn(optim_args, *xdata):
+        direct_results = direct_fn(xdata[0], optim_args)
         return (concatenate(direct_results) - ydata)
 
     def fmin_wrapper_fn(optim_args, *xdata):
@@ -186,25 +195,56 @@ def simulate_inverse_old(direct_fn, xdata, ydata, init_params,
         tmp = concatenate(direct_results)
         return sum(power(tmp - ydata, 2))
 
-    if optimfntype == 'lsq':
+    if optimfn == 'lsq':
         from scipy.optimize import curve_fit
-        return leastsq(leastsq_wrapper_fn, xdata, ydata, p0 = init_params,
+        return curve_fit(lsq_wrapper_fn, xdata, ydata, p0 = init_params,
                          epsfcn=1e-5,
                          factor=0.1)
-    if optimfntype == 'leastsq':
+    if optimfn == 'leastsq':
         from scipy.optimize import leastsq
-        return curve_fit(lsq_wrapper_fn, init_params, args=(xdata,),
-                         epsfcn=1e-5,
-                         factor=0.1)
-    elif optimfntype == 'fmin':
+        return leastsq(leastsq_wrapper_fn, init_params, args=(xdata,),
+                       epsfcn=1e-5,
+                       factor=0.1)
+    elif optimfn == 'fmin':
         from scipy.optimize import fmin
         return fmin(fmin_wrapper_fn, init_params, args=(xdata,))
-    elif optimfntype == 'fmin_powell':
+    elif optimfn == 'fmin_powell':
         from scipy.optimize import fmin_powell
         return fmin_powell(fmin_wrapper_fn, init_params, args=(xdata,))
-    elif optimfntype == 'fmin_cg':
+    elif optimfn == 'fmin_cg':
         from scipy.optimize import fmin_cg
         return fmin_cg(fmin_wrapper_fn, init_params, args=(xdata,))
-     elif optimfntype == 'fmin_bfgs':
+    elif optimfn == 'fmin_bfgs':
         from scipy.optimize import fmin_bfgs
         return fmin_bfgs(fmin_wrapper_fn, init_params, args=(xdata,))
+    elif optimfn == 'raster':
+        lbounds = xdata.inv_lbounds
+        ubounds = xdata.inv_ubounds
+        raster_size = xdata.raster_grid_size
+        nrlevels = len(lbounds)
+        if isscalar(raster_size):
+            raster_size = [raster_size] * nrlevels
+
+        optimargs = [0]* nrlevels
+        grid = []
+        output = []
+
+        from copy import copy
+        for (lb, ub, rsize) in zip(lbounds, ubounds, raster_size):
+            grid.append(linspace(float(lb), float(ub), float(rsize)))
+
+        def loopsingle(level):
+            for (ind, val) in enumerate(grid[level]):
+                optimargs[level] = val
+
+                if level == nrlevels - 1:
+                    output.append((fmin_wrapper_fn(optimargs, xdata),
+                                  copy(optimargs)))
+                else:
+                    loopsingle(level+1)
+
+        loopsingle(0)
+
+        print(output)
+        from  pickle import dump
+        dump(output, '/home/archetyp/Desktop/dump.bin')
