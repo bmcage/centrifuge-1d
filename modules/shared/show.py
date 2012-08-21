@@ -346,7 +346,7 @@ def disp_inv_results(model, t_inv, wl_out_inv=None, gc1_inv=None,
         name_len = len(name)
 
         i0 = 0
-        in_row = 10
+        in_row = 9
         remaining = np.alen(data_computed)
 
         error = (data_computed - data_measured) / data_measured * 100.
@@ -359,17 +359,17 @@ def disp_inv_results(model, t_inv, wl_out_inv=None, gc1_inv=None,
                 disp_items = remaining
 
             print('%s measured: ' % name,
-                  disp_items * '% >8.6f' % tuple(data_computed[i0:i0+disp_items]))
+                  disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
             print('%s computed: ' % name,
-                  disp_items * '% >8.6f' % tuple(data_measured[i0:i0+disp_items]))
+                  disp_items * '% 10.6f' % tuple(data_measured[i0:i0+disp_items]))
             print('Error (%):', name_len * ' ',
-                  disp_items * '  % 6.2f' % tuple(error[i0:i0+disp_items]))
+                  disp_items * '% 10.2f' % tuple(error[i0:i0+disp_items]))
 
             remaining = remaining - disp_items
             print(108 * '-')
             i0 = i0 + in_row
 
-        print('LSQ error:', np.sum(power(data_computed - data_measured, 2)))
+        print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
 
     if model.calc_wl_out:
         wl_out_meas  = np.asarray(model.get_iterable_value('wl_out'))
