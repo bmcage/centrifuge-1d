@@ -164,6 +164,14 @@ def parse_value(str_value):
                 else:
                     value.append(one_value)
             return value
+        elif raw_value[0] == "(" and raw_value[-1] == ")":
+            return \
+              tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
+        elif raw_value[0] == "{" and raw_value[-1] == "}":
+            # ...what an interesting parsing... but who is going to implement
+            # this again?
+            value = eval(raw_value)
+            return value
         elif ((raw_value[0] == "'" and raw_value[-1] == "'")
               or (raw_value[0] == '"' and raw_value[-1] == '"')):
             return raw_value[1:-1]
@@ -184,9 +192,6 @@ def parse_value(str_value):
             return [val for i in range(mul)]
         elif "." in raw_value or "e" in raw_value or "E" in raw_value:
             return float(raw_value)
-        elif raw_value[0] == "(" and raw_value[-1] == ")":
-            return \
-              tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
         else:
             return int(raw_value)
 
@@ -430,6 +435,8 @@ class Configuration:
                                 classify_options(option[2])
                         else:
                             default_options.append(option)
+                    elif hasattr(option, '__call__'):
+                        classify_options(option(self))
                     else:
                         print('Unknown option type:', option)
                         exit(1)
