@@ -1,5 +1,6 @@
 import scikits.odes.sundials.ida as ida
-from numpy import zeros, concatenate, all, sum, power, isscalar, linspace
+from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
+                   asarray, cumsum, min)
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -170,14 +171,198 @@ def simulate_direct(model, residual_fn, z0, algvars_idx = None, root_fn = None,
 
     return (True, t_retn_out, z_out)
 
-def optimargs2transformed(optimargs, model):
-    if len(optimargs) == 3:
-        (ks_init, n_init, gamma_init) = model.inv_init_params
-        ks_init = ks_init * model.ks_inv_scale
-        init_params = (log(ks_init), log(n_init - 1.0), log(-gamma_init))
+def simulate_inverse(times, direct_fn, model, init_parameters,
+                     wl_in_meas=None, wl_out_meas=None, gc_meas=None,
+                     rm_meas=None,
+                     optimfn='leastsq'):
+
+    from modules.shared.functions import determine_scaling_factor
+    from modules.shared.show import disp_inv_results
+    from numpy import empty, log, exp, alen
+
+    available_solvers = ['leastsq', 'fmin', 'fmin_power', 'fmin_cg',
+                         'fmin_bfgs', 'raster']
+    if not optimfn in available_solvers:
+        print("Unknown inverse method solver for 'optimfn': ", optimfn)
+        print("Available solvers are: ", available_solvers)
+        exit(1)
+
+
+    transform = {'ks': lambda ks: log(ks),
+                 'n':  lambda n: log(n - 1.0),
+                 'gamma': lambda gamma: log(-gamma)}
+    untransform = {'ks': lambda ks_transf: exp(ks_transf),
+                   'n': lambda n_transf: 1+exp(n_transf),
+                   'gamma': lambda gamma_transf: -exp(gamma_transf)}
+
+    optimized_parameters = []
+
+    def update_model(optim_params, model):
+        for (name, value) in zip(optimized_parameters, optim_params):
+            setattr(model, name, untransform[name](value))
+
+        if 'n' in optimized_parameters:
+            model.m = 1 - 1/model.n
+
+        if model.verbosity > 0:
+            for name in optimized_parameters:
+                print('%5s: %f' % (name, getattr(model, name)))
+
+    lbounds = {}
+    ubounds = {}
+
+    def penalize(model, when='out_of_bounds'):
+        penalization = 0.0
+
+        if when == 'out_of_bounds':
+            for param in optimized_parameters:
+                value = getattr(model, param)
+                if lbounds[param] > value:
+                    a = exp(value - lbounds[param])
+                    penalization = (penalization + 10 * (a + 1/a))
+                elif ubounds[param] < value:
+                    a = exp(value - ubounds[param])
+                    penalization = (penalization + 10 * (a + 1/a))
+        else:
+            for (param, value) in zip(optimized_parameters, optim_args):
+                a = exp(value - lbounds[param])
+                b = exp(value - ubounds[param])
+
+                penalization = (penalization + 10 * (a + 1/a) + 10 * (b + 1/b))
+
+        return penalization
+
+    calc_wl_in  = bool(wl_in_meas)
+    calc_wl_out = bool(wl_out_meas)
+    calc_gc     = bool(gc_meas)
+    calc_rm     = bool(rm_meas)
+
+    no_measurements = empty([0,], dtype=float)
+
+    if calc_wl_in:
+        wl_in_M = asarray(wl_in_meas, dtype=float)
+        wl_in_scale_coef = determine_scaling_factor(wl_in_meas)
+        wl_in_M[:] = wl_in_M * wl_in_scale_coef
     else:
-        (n_init, gamma_init) = model.inv_init_params
-        init_params  = (log(n_init - 1.0), log(-gamma_init))
+        wl_in_M = no_measurements
+
+    if calc_wl_out:
+        wl_out_M = cumsum(asarray(wl_out_meas, dtype=float))
+        wl_out_scale_coef = determine_scaling_factor(wl_out_M)
+        wl_out_M[:] = wl_out_M * wl_out_scale_coef
+    else:
+        wl_out_M = no_measurements
+
+    if calc_gc:
+        gc_M = np.asarray(gc_meas, dtype=float)
+        gc_scale_coef = determine_scaling_factor(gc_meas)
+        gc_M[:] = gc_M * gc_scale_coef
+    else:
+        gc_M = no_measurements
+
+    if calc_rm:
+        rm_M = np.asarray(rm_meas, dtype=float)
+        rm_scale_coef = determine_scaling_factor(rm_meas)
+        rm_M[:] = rm_M * rm_scale_coef
+    else:
+        rm_M = no_measurements
+
+    measurements = concatenate((wl_in_M, wl_out_M, gc_M, rm_M))
+
+    def optimfn_wrapper(optimargs):
+        update_model(optimargs, model)
+
+        penalization = penalize(model, when='out_of_bounds')
+
+        if penalization > 0.0:
+            if model.verbosity > 1:
+                print('Optimized arguments are out of bounds... Penalizing by ',
+                      penalization)
+
+            if optimfn == 'leastsq':
+                return penalization + measurements
+            else:
+                return penalization * alen(measurements)
+
+
+
+        (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
+
+        if flag:
+            # direct computation went O.K.
+            if calc_wl_in:
+                wl_in_C = wl_in * wl_in_scale_coef
+            else:
+                wl_in_C = no_measurements
+
+            if calc_wl_out:
+                wl_out_C = wl_out * wl_out_scale_coef
+            else:
+                wl_out_C = no_measurements
+
+            if calc_gc:
+                gc_C = gc * gc_scale_coef
+            else:
+                gc_C = no_measurements
+
+            if calc_rm:
+                rm_C = rm * rm_scale_coef
+            else:
+                rm_C = no_measurements
+
+            if model.verbosity > 0:
+                disp_inv_results(model, t, inv_params=None,
+                                 wl_in_inv=wl_in_C, wl_out_inv=wl_out_C,
+                                 gc1_inv=gc_C, rm1_inv=rm_C,
+                                 display_graphs=False)
+
+
+            computation = concatenate((wl_in_C, wl_out_C, gc_C, rm_C))
+
+            if optimfn == 'leastsq':
+                return (computation - measurements)
+            else:
+                return sum(power(computation - measurements, 2))
+
+        else:
+            # something is wrong, so penalize
+            penalization = min(penalize(model, when='always'), 1e10)
+            if model.verbosity > 1:
+                print('Direct problem did not converge for given optimization '
+                      'parameters... Penalizing by ', penalization)
+
+            if optimfn == 'leastsq':
+                return penalization + measurements
+            else:
+                return penalization * alen(measurements)
+
+            return penalization
+
+    init_values = []
+
+    for (param, value) in init_parameters.items():
+        if not value is None:
+            optimized_parameters.append(param)
+            (init_value, (lbound, ubound)) = value
+
+            init_values.append(transform[param](init_value))
+            lbounds[param] = lbound
+            ubounds[param] = ubound
+
+    import scipy.optimize
+
+    optimize = getattr(scipy.optimize, optimfn)
+
+    inv_params, cov = optimize(optimfn_wrapper, init_values)
+
+    # we now assume, that in the last run were used the optimal parameters
+    # and therefore are still set in the model
+    optim_params = {name: getattr(model, name) for name in optimized_parameters}
+    (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
+    disp_inv_results(model, t, inv_params=optim_params, cov=cov,
+                     wl_in_inv=wl_in, wl_out_inv=wl_out, gc1_inv=gc, rm1_inv=rm)
+
+    return inv_params
 
 def simulate_inverse_old(direct_fn, xdata, ydata, init_params,
                      optimfn='leastsq'):
