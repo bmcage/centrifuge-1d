@@ -1,7 +1,6 @@
 PARENTAL_MODULES = ['direct_draining_saturated']
 
-CONFIG_OPTIONS = ['inv_init_params', 'inv_ubounds', 'inv_lbounds',
-                  ('optimfn', 'leastsq'),
+CONFIG_OPTIONS = ['inv_init_params', ('optimfn', 'leastsq'),
                   'n', 'gamma',
                   (lambda cfg: cfg.get_value('optimfn') == 'raster',
                     ['raster_grid_size']),
@@ -12,8 +11,8 @@ INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in']
 
 #EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
 
-PROVIDE_OPTIONS = [(lambda cfg: len(cfg.get_value('inv_init_params')) == 3, ['ks']),
-                   'n', 'gamma', 'calc_gc', 'calc_rm']
+PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys()),
+                   'calc_gc', 'calc_rm']
 
 NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'inv_ubounds', 'inv_lbounds',
                             'raster_grid_size']
