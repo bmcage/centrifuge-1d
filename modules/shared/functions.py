@@ -24,6 +24,21 @@ def calc_omega_fall(r0_fall, g):
 
     return omega_fall
 
+def measurements_time(model):
+    t_duration = model.get_iterable_value('duration')
+    if not t_duration:
+        t_duration = model.duration
+    t_duration = np.asarray(t_duration, dtype=float)
+
+    if model.include_acceleration:
+        t_duration[:] = t_duration + model.deceleration_duration
+
+    t_fh_duration = model.get_iterable_value('fh_duration')
+    if not t_fh_duration:
+        t_fh_duration = model.fh_duration
+
+    return np.cumsum(t_duration + np.asarray(t_fh_duration, dtype=float))
+
 def lagrangean_derivative_coefs(dx):
     """
     Returns the coeficients for the Lagrangeand derivative of the differences
@@ -53,21 +68,7 @@ def right_derivative(dx12, fx13):
     return derivative
 
 def determine_scaling_factor(v):
-    return np.power(10, np.floor(np.log10(np.max(np.abs(v)))))
-
-def scale_array(v, c_coef, result=None):
-    """
-      Scale the values of array 'v' so that all elements are uniformely divided
-      by a scaling factor of 'c_coef'.
-      If 'result' is not None, store the resulting values there.
-    """
-    if c_coef == 1.0: return v
-
-    if result is None:
-        return v / c_coef
-    else:
-        result[:] = v / c_coef
-        return result
+    return np.power(10, -np.floor(np.log10(np.max(np.abs(v)))))
 
 def f1(t):
     return 1.7032046506 * np.power(t, 1.233644749)
