@@ -1,6 +1,6 @@
 PARENTAL_MODULES = ['base']
 
-CONFIG_OPTIONS = ['wl0', 'wl1'],
+CONFIG_OPTIONS = [],
 
 INTERNAL_OPTIONS = ['mass_in_idx', 'mass_out_idx']
 

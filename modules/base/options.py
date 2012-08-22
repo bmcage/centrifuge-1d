@@ -2,7 +2,7 @@ PARENTAL_MODULES = []
 
 CONFIG_OPTIONS = ['exp_type',
                   'ks',
-                  'r0', 'l0', 'duration',
+                  'r0', 'l0', ('l1', None), 'duration',
                   'fh_duration', 'r0_fall',
                   'wt_out',
                   'include_acceleration',
@@ -28,9 +28,9 @@ CONFIG_OPTIONS = ['exp_type',
                     ['omega']),
                   (lambda cfg: cfg.get_value('include_acceleration'),
                     ['omega_start', 'omega_end', 'deceleration_duration']),
-                  ('l1', None), ('measured_gc', None), ('measured_w', None),
-                  ('gc1', None), ('wl_out', None), ('descr', None),
-                  ('re', None)
+                  ('gc1', None), ('rm1', None ),
+                  ('wl0', None), ('wl1', None), ('wl_out', None),
+                  ('descr', None), ('re', None)
                  ]
 
 INTERNAL_OPTIONS = ['omega_fall', 'm']
