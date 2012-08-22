@@ -338,8 +338,9 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
     input('Press ENTER to continue...')
 
-def disp_inv_results(model, t_inv, wl_out_inv=None, gc1_inv=None,
-                     n_inv=None, gamma_inv=None, ks_inv = None,
+def disp_inv_results(model, t_inv, inv_params=None,
+                     wl_in_inv=None, wl_out_inv=None,
+                     gc1_inv=None, rm1_inv=None, cov=None,
                      display_graphs=True, fignum = 1):
 
     def print_data(name, data_computed, data_measured):
@@ -371,6 +372,9 @@ def disp_inv_results(model, t_inv, wl_out_inv=None, gc1_inv=None,
 
         print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
 
+    if model.calc_wl_in:
+        wl1  = np.asarray(model.get_iterable_value('wl1'), dtype=float)
+        print_data('WL_in', wl1_inv, wl1)
     if model.calc_wl_out:
         wl_out_meas  = np.asarray(model.get_iterable_value('wl_out'))
         wl_out_meas  = wl_out_meas.cumsum()
@@ -383,25 +387,21 @@ def disp_inv_results(model, t_inv, wl_out_inv=None, gc1_inv=None,
         rm1  = np.asarray(model.get_iterable_value('rm1'), dtype=float)
         print_data('RM', rm1_inv, rm1)
 
-    if ks_inv:
-        print('\nKs [cm/s] found: ', ks_inv)
-    if n_inv:
-        print('n         found: ', n_inv)
-    if gamma_inv:
-        print('gamma     found: ', gamma_inv)
+    print()
+    if inv_params:
+        for (name, value) in inv_params:
+            if name == 'ks':
+                print('Ks [cm/s] found: ', value)
+            else:
+                print('%10s' % name, value)
+    if cov:
+        print('Cov:\n', cov)
 
     if display_graphs:
         from modules.shared.show import draw_graphs
+        from modules.shared.functions import measurements_time
 
-        t_duration = model.get_iterable_value('duration')
-        if not t_duration:
-            t_duration = model.duration
-        t_fh_duration = model.get_iterable_value('fh_duration')
-        if not t_fh_duration:
-            t_fh_duration = model.fh_duration
-        # TODO: include deceleration duration
-        t_ref = cumsum((np.asarray(t_duration, dtype=float)
-                        + np.asarray(t_fh_duration, dtype=float)))
+        t_ref = measurements_time(model)
 
         draw_graphs(t_inv, t_ref=t_ref,
                     mass_out=wl_out_inv, mass_out_ref=wl_out_meas,
