@@ -250,8 +250,16 @@ def solve(model):
                                              z0, z[i, :])
 
         if not flag:
-            print("Solver could not compute the solution... Exiting...")
-            exit(1)
+            if model.calc_gc:
+                GC_r = GC[:i]
+            else:
+                GC_r = None
+
+            if model.calc_rm:
+                RM_r = RM[:i]
+            else:
+                RM_r = None
+            return (flag, t[:i], z[:i, :], GC_r, RM_r)
 
         t[i] = t_out
 
@@ -305,3 +313,10 @@ def solve(model):
         RM = np.asarray([], dtype=float)
 
     return (flag, t, z, GC, RM)
+
+def run(model):
+    (flag, t, z, GC, RM) = solve(model)
+
+    if not flag:
+        print("Solver could not compute the solution... Exiting...")
+        exit(1)

@@ -54,3 +54,6 @@ def solve(model):
     print_results(model, Ks_inv, t_inv[1:], wl1_inv)
 
     return Ks_inv
+
+def run(model):
+    return solve(model)

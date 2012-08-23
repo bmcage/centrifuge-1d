@@ -56,3 +56,6 @@ def solve(model):
     #print('z result:', z[:, :])
 
     return (success_p, t, z)
+
+def run(model):
+    return solve(model)

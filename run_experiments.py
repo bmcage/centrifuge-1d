@@ -198,7 +198,7 @@ def run_experiments(options):
 
         model = ModelParameters(cfg)
 
-        results = solver_module.solve(model)
+        results = solver_module.run(model)
 
         collector('collect', data=results)
 

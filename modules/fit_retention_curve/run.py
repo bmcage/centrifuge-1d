@@ -128,3 +128,6 @@ def draw_graphs(n, gamma, theta_s, theta_r, rho, g,
     plt.show(block=False)
 
     input('Press ENTER to continue...')
+
+def run(model):
+    return solve(model)

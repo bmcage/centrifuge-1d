@@ -106,3 +106,6 @@ def draw_graphs(n, gamma, theta_s, theta_r, rho, g,
     plt.xlabel('Water content \t$\theta$ ')
 
     plt.show()
+
+def run(model):
+    return solve(model)

@@ -250,3 +250,6 @@ def solve(model):
                     WM=WM)
 
     return (flag, t, z, GC)
+
+def run(model):
+    return solve(model)
