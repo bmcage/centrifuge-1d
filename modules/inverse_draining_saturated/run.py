@@ -38,7 +38,7 @@ def solve(model):
 
     t_meas = measurements_time(model)
 
-    inv_params, cov_ks = \
+    inv_params = \
       simulate_inverse(t_meas, ip_direct_drainage, model, model.inv_init_params,
                        wl_in_meas  = model.get_iterable_value('wl1'),
                        wl_out_meas = model.get_iterable_value('wl_out'),

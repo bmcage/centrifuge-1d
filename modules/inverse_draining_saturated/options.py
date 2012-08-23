@@ -1,10 +1,8 @@
 PARENTAL_MODULES = ['direct_draining_saturated']
 
 CONFIG_OPTIONS = ['inv_init_params', ('optimfn', 'leastsq'),
-                  'n', 'gamma',
                   (lambda cfg: cfg.get_value('optimfn') == 'raster',
                     ['raster_grid_size']),
-                  ('wl_out', None), ('gc1', None), ('rm1', None)
                  ]
 
 INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in']

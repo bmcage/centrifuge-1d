@@ -456,7 +456,6 @@ class Configuration:
         def read_options_definition(options_module):
             if hasattr(options_module, 'CONFIG_OPTIONS'):
                 (required, defaults) = parse_options(options_module.CONFIG_OPTIONS)
-
                 required_options.update(required)
                 default_options.extend(defaults)
 
@@ -552,7 +551,7 @@ class Configuration:
                 return True
 
         if not self._config_definition:
-            self.read_options_definition(modman)
+            self._load_config_definition(modman)
 
         cfg_definition      = self._config_definition
         required_options    = cfg_definition['required']
@@ -564,7 +563,7 @@ class Configuration:
         if missing_options:
             print('Following required options are not present: ')
             for option in missing_options:
-                print('  ', option)
+                print('  ', repr(option))
 
             return False
 

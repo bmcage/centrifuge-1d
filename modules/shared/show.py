@@ -150,7 +150,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
     t = [ti/60. for ti in times] # sec -> min
 
-    if t_ref:
+    if has_data(t_ref):
         t_ref = [ti/60. for ti in t_ref] # sec -> min
     else:
         t_ref = t
@@ -360,9 +360,9 @@ def disp_inv_results(model, t_inv, inv_params=None,
                 disp_items = remaining
 
             print('%s measured: ' % name,
-                  disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
-            print('%s computed: ' % name,
                   disp_items * '% 10.6f' % tuple(data_measured[i0:i0+disp_items]))
+            print('%s computed: ' % name,
+                  disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
             print('Error (%):', name_len * ' ',
                   disp_items * '% 10.2f' % tuple(error[i0:i0+disp_items]))
 
@@ -375,21 +375,31 @@ def disp_inv_results(model, t_inv, inv_params=None,
     if model.calc_wl_in:
         wl1  = np.asarray(model.get_iterable_value('wl1'), dtype=float)
         print_data('WL_in', wl1_inv, wl1)
+    else:
+        wl1 = None
+
     if model.calc_wl_out:
         wl_out_meas  = np.asarray(model.get_iterable_value('wl_out'))
         wl_out_meas  = wl_out_meas.cumsum()
         wl_out_meas[wl_out_meas == 0.0] = 1.0e-10
         print_data('WL_out', wl_out_inv, wl_out_meas)
+    else:
+        wl_out_meas = None
+
     if model.calc_gc:
         gc1  = np.asarray(model.get_iterable_value('gc1'), dtype=float)
         print_data('GC', gc1_inv, gc1)
+    else:
+        gc1 = None
     if model.calc_rm:
         rm1  = np.asarray(model.get_iterable_value('rm1'), dtype=float)
         print_data('RM', rm1_inv, rm1)
+    else:
+        rm1 = None
 
     print()
     if inv_params:
-        for (name, value) in inv_params:
+        for (name, value) in inv_params.items():
             if name == 'ks':
                 print('Ks [cm/s] found: ', value)
             else:
@@ -398,12 +408,11 @@ def disp_inv_results(model, t_inv, inv_params=None,
         print('Cov:\n', cov)
 
     if display_graphs:
-        from modules.shared.show import draw_graphs
         from modules.shared.functions import measurements_time
 
         t_ref = measurements_time(model)
 
-        draw_graphs(t_inv, t_ref=t_ref,
+        draw_graphs(t_inv[1:], t_ref=t_ref,
                     mass_out=wl_out_inv, mass_out_ref=wl_out_meas,
                     GC=gc1_inv, GC_ref=gc1, RM=rm1_inv, RM_ref=rm1,
                     model=model)

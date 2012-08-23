@@ -189,7 +189,7 @@ def solve(model):
         rtol[model.s2_idx] = 1e-4
 
     z0[model.first_idx:model.last_idx+1] = model.h_init
-    if model.rb_type in [2, 3, 4, 5, 6]:
+    if model.rb_type in [2, 3]:
         # do regularization for prescribed head on right boundary
         n_spanning_points = 15
 
@@ -274,6 +274,7 @@ def solve(model):
 
         # print('results', GC, z[:, model.mass_out_idx], u,
         #       z[:, :model.last_idx+1])
+    print()
 
     if model.rb_type > 3:
         model.atol = atol_orig

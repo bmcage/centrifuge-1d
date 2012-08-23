@@ -312,8 +312,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
             if model.verbosity > 0:
                 disp_inv_results(model, t, inv_params=None,
-                                 wl_in_inv=wl_in_C, wl_out_inv=wl_out_C,
-                                 gc1_inv=gc_C, rm1_inv=rm_C,
+                                 wl_in_inv=wl_in, wl_out_inv=wl_out,
+                                 gc1_inv=gc, rm1_inv=rm,
                                  display_graphs=False)
 
 
