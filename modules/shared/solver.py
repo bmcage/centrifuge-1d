@@ -205,8 +205,12 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
             model.m = 1 - 1/model.n
 
         if model.verbosity > 0:
+            print()
             for name in optimized_parameters:
-                print('%5s: %f' % (name, getattr(model, name)))
+                if name == 'ks':
+                    print('{:5}: {: .8g}'.format('Ks', getattr(model, name)))
+                else:
+                    print('{:5}: {: .8g}'.format(name, getattr(model, name)))
 
     lbounds = {}
     ubounds = {}
