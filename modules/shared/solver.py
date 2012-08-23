@@ -228,7 +228,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                     a = exp(value - ubounds[param])
                     penalization = (penalization + 10 * (a + 1/a))
         else:
-            for (param, value) in zip(optimized_parameters, optim_args):
+            for param in optimized_parameters:
+                value = getattr(model, param)
                 a = exp(value - lbounds[param])
                 b = exp(value - ubounds[param])
 

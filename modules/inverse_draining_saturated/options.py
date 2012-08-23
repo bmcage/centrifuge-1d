@@ -4,10 +4,13 @@ CONFIG_OPTIONS = ['inv_init_params',
                   # solver parameters
                   ('optimfn', 'leastsq'),
                   (lambda cfg: cfg.get_value('optimfn') == 'leastsq',
-                    ['epsfcn', 'factor']),
+                    ['epsfcn', 'factor',
+                     ('xtol', 1.49012e-8), ('ftol', 1.49012e-8)]),
                   (lambda cfg: cfg.get_value('optimfn') == 'raster',
                     ['raster_grid_size']),
-                  ('xtol', None), ('ftol', None)
+                  (lambda cfg: (cfg.get_value('optimfn')
+                                in ['fmin, fmin_powell']),
+                    [('xtol', 1e-4), ('ftol', 1e-4)]),
                  ]
 
 INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in']
