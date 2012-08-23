@@ -1,8 +1,13 @@
 PARENTAL_MODULES = ['direct_draining_saturated']
 
-CONFIG_OPTIONS = ['inv_init_params', ('optimfn', 'leastsq'),
+CONFIG_OPTIONS = ['inv_init_params',
+                  # solver parameters
+                  ('optimfn', 'leastsq'),
+                  (lambda cfg: cfg.get_value('optimfn') == 'leastsq',
+                    ['epsfcn', 'factor']),
                   (lambda cfg: cfg.get_value('optimfn') == 'raster',
                     ['raster_grid_size']),
+                  ('xtol', None), ('ftol', None)
                  ]
 
 INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in']
