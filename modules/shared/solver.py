@@ -371,7 +371,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     optim_params = {name: getattr(model, name) for name in optimized_parameters}
     (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
     disp_inv_results(model, t, inv_params=optim_params, cov=cov,
-                     wl_in_inv=wl_in, wl_out_inv=wl_out, gc1_inv=gc, rm1_inv=rm)
+                     wl_in_inv=wl_in, wl_out_inv=wl_out, gc1_inv=gc, rm1_inv=rm,
+                     disp_abserror=True)
 
     return inv_params
 

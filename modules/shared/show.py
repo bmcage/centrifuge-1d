@@ -341,7 +341,8 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 def disp_inv_results(model, t_inv, inv_params=None,
                      wl_in_inv=None, wl_out_inv=None,
                      gc1_inv=None, rm1_inv=None, cov=None,
-                     display_graphs=True, fignum = 1):
+                     display_graphs=True, disp_abserror=False,
+                     fignum = 1):
 
     def print_data(name, data_computed, data_measured):
         name_len = len(name)
@@ -350,6 +351,8 @@ def disp_inv_results(model, t_inv, inv_params=None,
         in_row = 9
         remaining = np.alen(data_computed)
 
+        if disp_abserror:
+            abs_error = np.abs(data_computed - data_measured)
         error = (data_computed - data_measured) / data_measured * 100.
 
         print('\n')
@@ -363,6 +366,9 @@ def disp_inv_results(model, t_inv, inv_params=None,
                   disp_items * '% 10.6f' % tuple(data_measured[i0:i0+disp_items]))
             print('%s computed: ' % name,
                   disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
+            if disp_abserror:
+                print('AbsError (%):', (name_len-3) * ' ',
+                  disp_items * '% 10.2f' % tuple(abs_error[i0:i0+disp_items]))
             print('Error (%):', name_len * ' ',
                   disp_items * '% 10.2f' % tuple(error[i0:i0+disp_items]))
 
