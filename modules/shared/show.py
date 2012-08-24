@@ -268,9 +268,8 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
     data_labels = pairs_labels
 
     for ((ydata, ydata_ref), ydata_label) in zip(data, data_labels):
-        print(ydata, ydata_label, has_data(ydata))
         if not has_data(ydata): continue
-        print(ydata_label, ydata, ydata_ref, t, t_ref)
+
         if img_num > images_per_figure:
             if save_figures:
                 plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
