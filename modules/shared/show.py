@@ -405,11 +405,12 @@ def disp_inv_results(model, t_inv, inv_params=None,
 
     print()
     if inv_params:
+        print('Found inverse parameters:')
         for (name, value) in inv_params.items():
             if name == 'ks':
-                print('Ks [cm/s] found: ', value)
+                print('  Ks [cm/s]: { .8g}'.format(value))
             else:
-                print('%10s' % name, value)
+                print('  {:9}: { .8g}'.format(name, value))
     if cov:
         print('Cov:\n', cov)
 
