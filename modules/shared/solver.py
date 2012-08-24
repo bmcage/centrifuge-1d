@@ -319,8 +319,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                 disp_inv_results(model, t, inv_params=None,
                                  wl_in_inv=wl_in, wl_out_inv=wl_out,
                                  gc1_inv=gc, rm1_inv=rm,
-                                 display_graphs=False)
-
+                                 display_graphs=False,
+                                 disp_abserror=(model.verbosity > 1))
 
             computation = concatenate((wl_in_C, wl_out_C, gc_C, rm_C))
 
