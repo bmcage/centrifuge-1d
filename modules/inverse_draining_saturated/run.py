@@ -1,6 +1,7 @@
 from modules.direct_draining_saturated.run import solve as solve_direct
 from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
+from modules.shared.vangenuchten import h2u
 from numpy import alen
 
 def solve(model):
@@ -8,6 +9,13 @@ def solve(model):
     no_measurements = []
 
     def ip_direct_drainage(model):
+        if model.dynamic_h_init:
+            model.h_init = min(model.c_gammah / model.gamma, model.h_init_max)
+            if model.verbosity > 1:
+                print('\nh_init: ', model.h_init,
+                      'u_init', h2u(model.h_init, model.n,
+                                    model.m, model.gamma), '\n')
+
         (flag, t, z, gc1, rm1) = solve_direct(model)
 
         contains_data = (alen(t) > 1)

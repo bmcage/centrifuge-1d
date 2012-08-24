@@ -11,6 +11,10 @@ CONFIG_OPTIONS = ['inv_init_params',
                   (lambda cfg: (cfg.get_value('optimfn')
                                 in ['fmin, fmin_powell']),
                     [('xtol', 1e-4), ('ftol', 1e-4)]),
+                  # experiment
+                  'dynamic_h_init',
+                  (lambda cfg: cfg.get_value('dynamic_h_init'),
+                   ['h_init_max', ('c_gammah', 1e-3)])
                  ]
 
 INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in']
@@ -18,7 +22,8 @@ INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in']
 #EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
 
 PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys()),
-                   'calc_gc', 'calc_rm']
+                   'calc_gc', 'calc_rm',
+                   (lambda cfg: cfg.get_value('dynamic_h_init'), ['h_init'])]
 
 NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'inv_ubounds', 'inv_lbounds',
                             'raster_grid_size']
