@@ -205,8 +205,10 @@ def solve(model):
     if model.rb_type < 3:
         s2 = model.l0
     else:
-        #s2 = model.l0 - model.dip_height
-        s2 = 1.00
+        if model.s2_0:
+            s2 = model.s2_0
+        else:
+            s2 = model.l0 - model.dip_height
 
     if model.rb_type == 6:
         algvars_idx = [model.s2_idx]

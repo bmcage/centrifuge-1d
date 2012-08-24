@@ -7,6 +7,7 @@ CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma', 'draw_graphs',
                   'h_init', 'porosity',
                   'calc_gc', 'calc_rm',
                   'rb_type',
+                  ('s2_0', None),
                   # dependent
                   (lambda cfg: cfg.get_value('rb_type') == 2,
                     ['h_last']),
