@@ -692,6 +692,14 @@ class ModelParameters:
         for (key, value) in self._iterable_parameters.items():
             setattr(self, key, value[0])
 
+    def set_iteration(self, i):
+        """
+          Assign i-th value of all parameters supplied (as of type) list
+        """
+        # values of the i-th iteration are stored at (i-1)-th place in list
+        for (key, value) in self._iterable_parameters.items():
+            setattr(self, key, value[i-1])
+
     def echo(self, iterable_only=False):
         """
           Print the parameters stored in the model.
