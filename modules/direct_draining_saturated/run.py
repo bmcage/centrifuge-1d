@@ -212,7 +212,7 @@ def solve(model):
         else:
             s2 = model.l0 - model.dip_height
 
-    if model.rb_type == 6:
+    if model.rb_type == 3:
         algvars_idx = [model.s2_idx]
     else:
         algvars_idx = None
