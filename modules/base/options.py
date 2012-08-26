@@ -27,7 +27,8 @@ CONFIG_OPTIONS = ['exp_type',
                   (lambda cfg: not (cfg.get_value('duration') == 0.0),
                     ['omega']),
                   (lambda cfg: cfg.get_value('include_acceleration'),
-                    ['omega_start', 'omega_end', 'deceleration_duration']),
+                    ['omega_start', 'omega_end', 'deceleration_duration']
+                    [('deceleration_duration', 0.0)]),
                   ('gc1', None), ('rm1', None ),
                   ('wl0', None), ('wl1', None), ('wl_out', None),
                   ('descr', None), ('re', None)
