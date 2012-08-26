@@ -102,10 +102,8 @@ class centrifuge_residual(IDA_RhsFunction):
 
         verbosity = model.verbosity
 
-        if verbosity > 2:
-            print('t', t)
-            if verbosity > 3:
-                print('s1', z[model.s1_idx], 's2', z[model.s2_idx])
+        if verbosity > 3:
+            print('t', t, 's1', z[model.s1_idx], 's2', z[model.s2_idx])
 
         if rb_type == 3:
             q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
@@ -117,12 +115,14 @@ class centrifuge_residual(IDA_RhsFunction):
                      / (model.fl1/model.ks1 + (L-s2)/model.ks
                         + model.fl2/model.ks2))
 
+            if verbosity > 3:
+                print('  q_sat', q_sat, 'rD', rD, 'rI', rI,
+                      'omega^2/g', omega2g)
+
             if q_sat < 0:
                 if verbosity > 1:
-                    print(10*'-' + '\nQ_SAT =', q_sat, ' !!!\n' + 10*'-')
-                    if verbosity > 2:
-                        print(omega2g, rD, rI, L, s2,
-                              model.ks, model.ks2, model.ks1)
+                    print('Q_SAT: ', q_sat, ' !!!')
+
                 #q_sat = 0.0
 
             u = h2u(h, n, m, gamma)
@@ -132,6 +132,8 @@ class centrifuge_residual(IDA_RhsFunction):
                                               z[model.s1_idx], z[model.s2_idx],
                                               model)
             result[last_idx]  = hdot[-1]
+            if verbosity > 2:
+                print('  WM: ', WM_total, 'WM0', model.wm0)
             result[model.s2_idx] = WM_total - model.wm0
             result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_sat
         else:
