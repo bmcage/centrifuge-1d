@@ -49,6 +49,14 @@ def check_cfg(cfg):
       Additional information informing user about failed test(s) should be
       supplied. The return value of this function is type boolean.
     """
+    if not cfg.get_value('include_acceleration'):
+        value = cfg.get_value('deceleration_duration')
+        is_list = (type(value) in [list, tuple])
+        if (is_list and any(value)) or (not is_list and value):
+            print("Option 'deceleration_duration' can't have a positive value "
+                  "if 'include_acceleration' is False.")
+            return False
+
     return True
 
 def adjust_cfg(cfg):
