@@ -366,8 +366,8 @@ def disp_inv_results(model, t_inv, inv_params=None,
             print('%s computed: ' % name,
                   disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
             if disp_abserror:
-                print('AbsError (%):', (name_len-3) * ' ',
-                  disp_items * '% 10.2f' % tuple(abs_error[i0:i0+disp_items]))
+                print('AbsError: ', name_len * ' ',
+                  disp_items * '% 10.6f' % tuple(abs_error[i0:i0+disp_items]))
             print('Error (%):', name_len * ' ',
                   disp_items * '% 10.2f' % tuple(error[i0:i0+disp_items]))
 
@@ -407,9 +407,9 @@ def disp_inv_results(model, t_inv, inv_params=None,
         print('Found inverse parameters:')
         for (name, value) in inv_params.items():
             if name == 'ks':
-                print('  Ks [cm/s]: { .8g}'.format(value))
+                print('  Ks [cm/s]: {: .8g}'.format(value))
             else:
-                print('  {:9}: { .8g}'.format(name, value))
+                print('  {:9}: {: .8g}'.format(name, value))
     if cov:
         print('Cov:\n', cov)
 
