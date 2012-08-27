@@ -6,170 +6,141 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
                       'Reached time: % 10.6f\nExpected time: % 10.6f')
 
-class DirectSimulator:
-    def __init__(self, model, residual_fn, algvars_idx = None, root_fn = None,
-                 nr_rootfns=None):
 
-        self.model = model
-        self.residual_fn = residual_fn
+def simulate_direct(initialize_z0, model, residual_fn,
+                    update_initial_condition=None,
+                    root_fn = None, nr_rootfns=None, algvars_idx=None):
 
-        self.root_fn = root_fn
-        if (not root_fn is None) and (nr_rootfns is None):
-            raise Exception("Error: Function 'root_fn' was set in DirectSimulator, "
-                            "but the number of root 'nr_rootfns' not.")
-        else:
-            self.nr_rootfns = nr_rootfns
-        self.algvars_idx = algvars_idx
+    # Check supplied arguments
+    if (not root_fn is None) and (nr_rootfns is None):
+        raise Exception("Error: Function 'root_fn' was set in "
+                        "simulate_inverse, but not the number of rooting "
+                        "functions 'nr_rootfns'.")
 
-        self.z_previous  = None
-        self.zp_previous = None
-        self.solver = None
-        self.t0 = 0.0
+    # Initialization
+    verbosity = model.verbosity
 
-    def run(self, duration, fh_duration, z0, z_retn):
-        if self.z_previous is None:
-            model = self.model
-            self.solver = ida.IDA(self.residual_fn,
-                                  compute_initcond='yp0',
-                                  first_step_size=model.first_step_size,
-                                  atol=model.atol, rtol=model.rtol,
-                                  max_step_size = model.max_step_size,
-                                  max_steps = model.max_steps,
-                                  algebraic_vars_idx=self.algvars_idx,
-                                  rootfn=self.root_fn,
-                                  nr_rootfns=self.nr_rootfns,
-                                  tcrit=duration,
-                                  #linsolver='band', uband=1, lband=1,
-                                  user_data=model)
+    measurements_nr = model.iterations + 1
 
-            self.z_previous = zeros(z0.shape, float)
+    t   = np.empty([measurements_nr, ], dtype=float)
+    z   = np.empty([measurements_nr, model.z_size], dtype=float)
 
-        verbosity = self.model.verbosity
+    t0 = 0.0
 
-        if self.model.always_restart_solver or (not all(self.z_previous == z0)):
-            zp0 = zeros(z0.shape, float)
-            self.solver.init_step(self.t0, z0, zp0)
-        if duration > 0.0:
-            t = self.t0 + duration
+    t[0]    = t0
+    u[0, :] = h2u(z0[model.first_idx: model.last_idx+1],
+                  model.n, model.m, model.gamma)
 
-            if verbosity > 1:
-                if self.t0 == 0.0:
-                    print(27*' ', end='')
-                print(' ... Starting time: %9.1f  ' % self.t0,
-                      'Duration: %9.1f  ' % duration,
-                      'Expected end time: %9.1f' % t)
+    if update_initial_condition:
+        z0 = np.empty([model.z_size, ], float)
+    else:
+        z0 = z[0, :]
+    zp0 = zeros(z0.shape, float)
 
-            self.solver.set_options(tcrit=t)
-            flag, t_out = self.solver.step(t, z_retn)
+    i = 1
+    model.set_iteration(i)   # set model for the first iteration
+    initialize_z0(z0, model) # and compute the initial state
+
+    if update_initial_condition: # as initial state can be modified at each
+        z[0, :] = z0             # restart, z0 was preallocated separately
+
+    solver = ida.IDA(self.residual_fn,
+                     compute_initcond='yp0',
+                     first_step_size=model.first_step_size,
+                     atol=model.atol, rtol=model.rtol,
+                     max_step_size = model.max_step_size,
+                     max_steps = model.max_steps,
+                     algebraic_vars_idx=algvars_idxs,
+                     rootfn=root_fn, nr_rootfns=nr_rootfns,
+                     #linsolver='band', uband=1, lband=1,
+                     user_data=model)
+
+    solver_initialized = False
+
+    # Run computation
+    out_s = '{: >4d}. {: 10.1f}  {: 10.1f}  {: 10.1f}'
+
+    iterations = model.iterations
+
+    if verbosity > 1:
+        capt_s = '{:>5} {:>10} {:>10} {:>10}'
+        print(capt_s.format('Run #', 'Start time', 'Duration', 'End time'))
+    while True:
+        if verbosity == 2:
+            total_duration = (model.duration + model.fh_duration
+                              + model.deceleration_duration)
+            print(out_s.format(i, t0, total_duration, t0 + total_duration))
+
+        for duration_type in ['duration', 'fh_duration',
+                              'deceleration_duration']:
+
+            duration = get_attr(model, duration_type)
+
+            if duration == 0.0: continue
+
+            if not solver_initialized:
+                solver.init_step(t0, z0, zp0)
+                solver_initialized = True
+
+            t = t0 + duration
+
+            solver.set_options(tcrit=t)
+
+            if verbosity > 2:
+                print(out_s.format(i, t0, duration, t))
+
+            if duration_type == 'fh_duration': # backup values
+                acceleration = model.include_acceleration
+                r0           = model.r0
+                omega        = model.omega
+                duration     = model.duration
+
+                model.include_acceleration = False
+                model.r0    = model.r0_fall
+                model.omega = model.omega_fall
+                model.duration = fh_duration
+
+            (flag, t_out) = self.solver.step(t, z[i, :])
 
             if t_out < t:
-                print('Error occured during computation. Solver returned with '
-                      'values:\nt_err=', t_out, '\nz_err=', z_retn,
-                      '\nExpected value of t:', t)
-                return (False, t_out)
+                if verbosity > 1:
+                    print('Error occured during computation. Solver failed '
+                          'at time\nt_err=', t_out,
+                          '\nExpected value of t:', t)
+                if verbosity > 2:
+                    print('Values at this time:\nz_err=', z_retn)
 
-            if verbosity > 1:
-                print('Computed end time: %8.1f' % t_out, end='')
-            self.t0 = t_out
-            self.z_previous[:] = z_retn
-
-        if fh_duration > 0.0:
-            t = self.t0 + fh_duration
-            self.solver.set_options(tcrit=t)
-
-            acceleration = model.include_acceleration
-            r0           = model.r0
-            omega        = model.omega
-            duration     = model.duration
-
-            model.include_acceleration = False
-            model.r0    = model.r0_fall
-            model.omega = model.omega_fall
-            model.duration = fh_duration
-
-            flag, t_out = self.solver.step(t, z_retn)
-
-            if flag < 0:
-                print('Error occured during computation. Solver returned with '
-                      'values:\nt_err=', t_out, '\nz_err=', z_retn,
-                      '\nExpected value of t:', t)
-                return (False, t_out)
-
-            self.t0 = t_out
-            self.z_previous[:] = z_retn
-
-            model.include_acceleration = acceleration
-            model.r0    = r0
-            model.omega = omega
-            model.duration = duration
-
-        return (True, t_out)
+                return (False, t[:i], z[:i, :])
 
 
-def simulate_direct(model, residual_fn, z0, algvars_idx = None, root_fn = None,
-                    nr_rootfns=None, first_step_size=1e-30):
+            t0 = t_out
 
-    def run_simulation(duration, z0):
-        solver = ida.IDA(residual_fn,
-                         compute_initcond='yp0',
-                         first_step_size=first_step_size,
-                         atol=model.atol, rtol=model.rtol,
-                         max_step_size = model.max_step_size,
-                         max_steps = model.max_steps,
-                         algebraic_vars_idx=algvars_idx,
-                         rootfn=root_fn, nr_rootfns=nr_rootfns,
-                         tcrit=duration,
-                         #linsolver='band', uband=1, lband=1,
-                         user_data=model)
+            if duration_type == 'fh_duration': # restore backuped values
+                model.include_acceleration = acceleration
+                model.r0    = r0
+                model.omega = omega
+                model.duration = duration
 
-        zp0 = zeros(z0.shape, float)
+        t[i] = t_out
 
-        flag, t, z, zp, t_err, z_err, zp_err = solver.solve([0.0, duration], z0, zp0)
+        if i == iterations: break
 
-        if flag == 0: # Success
-            return flag, t[1], z[1]
-        elif flag == 1: # TCrit reached,also success
-            return flag, t_err, z_err
-        elif flag == 2: # Root found, considered to be an success
-            return flag, t_err, z_err
+        # update values for the next iteration
+        i = i+1
+        model.set_iteration(i)
+
+        if update_initial_condition:
+            z0[:] = z[i-1, :]
+            update_initial_condition(i, z0, model)
+            if not all(z0 == z[i-1, :]):
+                solver_initialized = False
         else:
-            print('Error occured during computation. Solver returned with '
-                  'values:\nt_err=', t_err, '\nz_err=', z_err, '\nzp_err=',
-                  zp_err)
-            exit(1)
+            z0 = z[i-1, :]
 
-    t_retn_out = 0.0
+        if model.always_restart_solver:
+            solver_initialized = False
 
-    if model.duration > 0.:
-        duration = model.duration
-        flag, t_out, z_out = run_simulation(duration, z0)
-
-        if t_out < duration:
-            print(simulation_err_str % ('Centrifugation', t_out, duration))
-            return (False, t_out, z_out)
-        z0 = z_out
-        t_retn_out = t_out
-
-    if model.fh_duration > 0.:
-        acceleration = model.include_acceleration
-
-        model.include_acceleration = False
-        model.r0    = model.r0_fall
-        model.omega = model.omega_fall
-
-        duration = model.fh_duration
-        flag, t_fh_out, z_out = run_simulation(duration, z0)
-
-        model.include_acceleration = acceleration
-
-        t_retn_out = t_retn_out + t_fh_out
-
-        if t_fh_out < duration:
-            print(simulation_err_str % ('Falling head test',
-                                        t_fh_out, duration))
-            return (False, t_retn_out, z_out)
-
-    return (True, t_retn_out, z_out)
+    return (True, t, z)
 
 def simulate_inverse(times, direct_fn, model, init_parameters,
                      wl_in_meas=None, wl_out_meas=None, gc_meas=None,
