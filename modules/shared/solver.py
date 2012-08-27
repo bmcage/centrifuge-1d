@@ -245,7 +245,12 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
     measurements = concatenate((wl_in_M, wl_out_M, gc_M, rm_M))
 
+    iteration = 0
+
     def optimfn_wrapper(optimargs):
+        print(10 * '>', ' Iteration: ', iteration, 10 * '<')
+        iteration = iteration + 1
+
         update_model(optimargs, model)
 
         penalization = penalize(model, when='out_of_bounds')
