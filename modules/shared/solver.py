@@ -90,14 +90,10 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 print(out_s.format(i, t0, duration, t))
 
             if duration_type == 'fh_duration': # backup values
-                acceleration = model.include_acceleration
                 r0           = model.r0
-                omega        = model.omega
                 duration     = model.duration
 
-                model.include_acceleration = False
                 model.r0    = model.r0_fall
-                model.omega = model.omega_fall
                 model.duration = fh_duration
 
             (flag, t_out) = self.solver.step(t, z[i, :])
@@ -116,9 +112,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
             t0 = t_out
 
             if duration_type == 'fh_duration': # restore backuped values
-                model.include_acceleration = acceleration
                 model.r0    = r0
-                model.omega = omega
                 model.duration = duration
 
         t[i] = t_out
