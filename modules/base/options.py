@@ -34,9 +34,9 @@ CONFIG_OPTIONS = ['exp_type',
                   ('descr', None), ('re', None)
                  ]
 
-INTERNAL_OPTIONS = ['omega_fall', 'm']
+INTERNAL_OPTIONS = ['omega2g_fns', 'm', 'find_omega2g']
 
-EXCLUDE_FROM_MODEL = []
+EXCLUDE_FROM_MODEL = ['omega2g_fns']
 
 PROVIDE_OPTIONS = []
 
@@ -67,8 +67,8 @@ def adjust_cfg(cfg):
        by configuration file(s), e.g. allocate the discretized interval
        based on the discretization type and number of inner points.
     """
-    from modules.shared.functions import rpm2radps, calc_omega_fall
-
+    from modules.shared.functions import (rpm2radps, find_omega2g,
+                                          find_omega2g_fh, find_omega2g_dec)
     # Handle depending variables
     for key in ['omega', 'omega_start', 'omega_end']:
         value = cfg.get_value(key)
@@ -77,9 +77,9 @@ def adjust_cfg(cfg):
         else:
             cfg.set_value(key, rpm2radps(value))
 
-    cfg.set_value('omega_fall',
-                  calc_omega_fall(cfg.get_value('r0_fall'), cfg.get_value('g')))
-
+    cfg.set_value('omega2g_fns', {'centrifugation': find_omega2g,
+                                  'falling_head':   find_omega2g_fh,
+                                  'deceleration':   find_omega2g_dec})
 
 def prior_adjust_cfg(cfg):
     """
