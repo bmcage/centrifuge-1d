@@ -8,22 +8,6 @@ def rpm2radps(x):
     # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
     return x * np.pi/ 30.0
 
-
-def calc_omega_fall(r0_fall, g):
-    is_list_r0_fall = type(r0_fall) == list
-    is_list_g       = type(g) == list
-
-    if is_list_r0_fall and is_list_g:
-        omega_fall = [sqrt(g_f/r0_f) for (g_f, r0_f) in zip(g, r0_fall)]
-    elif is_list_r0_fall:
-        omega_fall = [sqrt(g/r0_f) for r0_f in r0_fall]
-    elif is_list_g:
-        omega_fall = [sqrt(g_f/r0_fall) for g_f in g]
-    else:
-        omega_fall = sqrt(g/r0_fall)
-
-    return omega_fall
-
 def measurements_time(model):
     t_duration = model.get_iterable_value('duration')
     if not t_duration:
@@ -77,33 +61,13 @@ def f2(t):
 def f3(t):
     return 0.1332308098 * np.log(t) + 9.5952480661
 
-def find_omega2g(t_current, model, t_base = 0.0):
-    """
-    Model includes the acceleration and deceleration of the centrifuge.
-    The acceleration model is based on data measured for the centrifuge
-    that accelerates to the 600 rpm (i.e. 10 rps) - the evolution of rotational
-    speed for other end-speeds is the done by scaling. Deceleration is
-    considered to be linear.
-    """
-    t         = t_current - t_base
-    t_end     = model.duration
-    omega_max = model.omega
-    #print('omg2g: ', model.omega, model._omega)
+def find_omega2g_fh(model, t):
+    return 1/model.r0_fall
 
+def find_omega2g(model, t):
     if model.include_acceleration:
-        if t > t_end:
-            if model.deceleration_duration > 0.:
-                if t > t_end + model.deceleration_duration:
-                    omega = model.omega_end
-                else:
-                    omega = (model.omega_end
-                             + (t_end + model.deceleration_duration - t)
-                               / model.deceleration_duration
-                               * (omega_max - model.omega_end))
-            else:
-                omega = omega_max
-        elif t > 21.0:
-            omega = omega_max
+        if t > 21.0:
+            omega = model.omega_max
         else:
             omega_base = 10.
 
@@ -120,14 +84,15 @@ def find_omega2g(t_current, model, t_base = 0.0):
             else:
                 omega = f1(t)
 
-            omega = omega/omega_base * omega_max
+            omega = omega/omega_base * model.omega_max
     else:
-        omega = omega_max
+        omega = model.omega_max
 
-        #print('omega: ', omega)
-    #print('t = ', t, 'omega = ', omega)
-    return np.power(omega, 2)/model.g
-    # Previous exponential acceleration:
-    #     return (np.power(model.omega_start  + (model.omega - model.omega_start)
-    #                      *(1 - np.exp(-model.omega_gamma*t)), 2)
-    #             / model.g)
+    return omega * omega / model.g
+
+def find_omega2g_dec(model, t):
+    duration = model.duration
+    # omega_end = 0.0, t_end == duration, t in [0, duration]
+    omega = (duration - t) / deceleration_duration * model.omega_max)
+
+    return omega * omega / model.g
