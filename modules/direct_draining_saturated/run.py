@@ -242,23 +242,28 @@ def solve(model):
     mass_in  = z[:, model.mass_in_idx]
     mass_out = z[:, model.mass_out_idx]
 
-    h  = z[model.first_idx: model.last_idx+1, :]
-    u  = np.empty([k, model.inner_points+2], dtype=float)
-    WM = np.empty(t.shape, dtype=float)
-    WM_in_tube = np.empty(t.shape, dtype=float)
-
-    u[0, :] = u0
-    WM[0]   = wm0
-    WM_in_tube[0] = wm_in_tube0
-    for i in range(1, k):
-        u[i, :] = h2u(h[i, :], model.n, model.m, model.gamma)
-
-        (wm_total, wm_in_tube) = water_mass(u[i, :], mass_in[i], mass_out[i],
-                                            s1[i], s2[i], model)
-        WM[i]         = wm_total
-        WM_in_tube[i] = wm_in_tube
-
     no_measurements = np.empty([], dtype=float)
+
+    if model.calc_wm:
+        h  = z[model.first_idx: model.last_idx+1, :]
+        u  = np.empty([k, model.inner_points+2], dtype=float)
+        WM = np.empty(t.shape, dtype=float)
+        WM_in_tube = np.empty(t.shape, dtype=float)
+
+        u[0, :] = u0
+        WM[0]   = wm0
+        WM_in_tube[0] = wm_in_tube0
+        for i in range(1, k):
+            u[i, :] = h2u(h[i, :], model.n, model.m, model.gamma)
+
+            (wm_total, wm_in_tube) = \
+              water_mass(u[i, :], mass_in[i], mass_out[i], s1[i], s2[i], model)
+            WM[i]         = wm_total
+            WM_in_tube[i] = wm_in_tube
+    else:
+        u          = no_measurements
+        WM         = no_measurements
+        WM_in_tube = no_measurements
 
     if model.calc_gc:
         GC = np.empty(t.shape, dtype=float)

@@ -5,7 +5,7 @@ PARENTAL_MODULES = ['base']
 
 CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma', 'draw_graphs',
                   'h_init', 'porosity',
-                  'calc_gc', 'calc_rm',
+                  'calc_gc', 'calc_rm', 'calc_wm',
                   'rb_type',
                   # dependent
                   (lambda cfg: cfg.get_value('rb_type') == 2,
@@ -67,3 +67,6 @@ def adjust_cfg(cfg):
     cfg.set_value('ldc1', ldc1)
     cfg.set_value('ldc2', ldc2)
     cfg.set_value('ldc3', ldc3)
+
+    cfg.set_value('calc_wm', cfg.get_value('calc_wm')
+                             or cfg.get_value('calc_gc'))
