@@ -11,6 +11,7 @@ except:
 from numpy import inf
 from os import listdir
 from sys import modules as sysmodules
+from types import MethodType
 
 ##################################################################
 #                   ModulesManager class                         #
@@ -623,6 +624,10 @@ class ModelParameters:
         self.iteration            = 0
         self.iterations           = 0
 
+        fns = cfg.get_value('omega2_fns')
+        self._omega2g_fns = \
+          {key: MethodType(fn, self) for (key, fn) in fns.items()}
+
         for (option_name, value) in cfg.iterate_values():
             if not option_name in excluded_options:
                 self.set_value(option_name, value)
@@ -726,3 +731,10 @@ class ModelParameters:
             options = ['iteration', 'iterations']
             for option in options:
                 print('  %-12s = %s' % (option, getattr(self, option)))
+
+    def find_omega2g(self, t):
+        """ Empty definition for omega^2/g function """
+        raise ValueError('This is an empty definition and has to be replaced.')
+
+    def set_omega2g_fn(self, fn_type):
+        self.find_omega2g = self._omega2g_fns[fn_type]
