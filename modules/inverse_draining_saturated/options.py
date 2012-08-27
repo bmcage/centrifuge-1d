@@ -17,7 +17,9 @@ CONFIG_OPTIONS = ['inv_init_params',
                    ['h_init_max', ('c_gammah', 1e-3)])
                  ]
 
-INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in']
+INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in',
+                    ('wl1_weights', None), ('wl_out_weights', None),
+                    ('gc1_weights', None), ('rm1_weights', None)]
 
 #EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
 
@@ -34,6 +36,26 @@ def check_cfg(cfg):
         print('No measured data (wl1, wl_out, gc1, rm1) is specified. Cannot '
               'run the inverse problem')
         return False
+
+    for meas_name in ['wl1', 'wl_out', 'gc1', 'rm1']:
+        weights = cfg.get_value(meas_name + '_weights')
+
+        if not weights: continue
+
+        meas = cfg.get_value(meas_name)
+        if meas:
+            print('Weight cannot be specified if measurement is not present: '
+                  '{}'.format(meas_name))
+            return False
+
+        if not type(weights) == list:
+            print('Weights has to be a list: {}'.format(meas_name))
+            return False
+
+        if not (len(weights) == len(meas)):
+            print('Weights have to be of the same length as measurement: '
+                  '{}'.format(meas_name))
+            return False
 
     return True
 

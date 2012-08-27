@@ -143,8 +143,10 @@ def simulate_direct(initialize_z0, model, residual_fn,
     return (True, t, z)
 
 def simulate_inverse(times, direct_fn, model, init_parameters,
-                     wl_in_meas=None, wl_out_meas=None, gc_meas=None,
-                     rm_meas=None,
+                     wl_in_meas=None, wl_out_meas=None,
+                     gc_meas=None, rm_meas=None,
+                     wl_in_weights=None, wl_out_weights=None
+                     gc_weights=None, rm_weights=None,
                      optimfn='leastsq'):
 
     from modules.shared.functions import determine_scaling_factor
@@ -213,12 +215,24 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     calc_gc     = bool(gc_meas)
     calc_rm     = bool(rm_meas)
 
+    if not ((wl_in_weights is None) and (wl_out_weights is None)
+            and (gc_weights is None) and (rm_weights is None)):
+        add_weights = True
+    else:
+        add_weights = False
+
     no_measurements = empty([0,], dtype=float)
 
     if calc_wl_in:
         wl_in_M = asarray(wl_in_meas, dtype=float)
         wl_in_scale_coef = determine_scaling_factor(wl_in_meas)
         wl_in_M[:] = wl_in_M * wl_in_scale_coef
+
+        if add_weights:
+            if wl_in_weights is None:
+                wl_in_wghts = no_measurements
+            else:
+                wl_in_wghts = asarray(wl_in_weights)
     else:
         wl_in_M = no_measurements
 
@@ -226,6 +240,12 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         wl_out_M = cumsum(asarray(wl_out_meas, dtype=float))
         wl_out_scale_coef = determine_scaling_factor(wl_out_M)
         wl_out_M[:] = wl_out_M * wl_out_scale_coef
+
+        if add_weights:
+            if wl_out_weights is None:
+                wl_out_wghts = no_measurements
+            else:
+                wl_out_wghts = asarray(wl_out_weights)
     else:
         wl_out_M = no_measurements
 
@@ -233,6 +253,12 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         gc_M = np.asarray(gc_meas, dtype=float)
         gc_scale_coef = determine_scaling_factor(gc_meas)
         gc_M[:] = gc_M * gc_scale_coef
+
+        if add_weights:
+            if gc_weights is None:
+                gc_wghts = no_measurements
+            else:
+            gc_wghts = asarray(gc_weights)
     else:
         gc_M = no_measurements
 
@@ -240,10 +266,19 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         rm_M = np.asarray(rm_meas, dtype=float)
         rm_scale_coef = determine_scaling_factor(rm_meas)
         rm_M[:] = rm_M * rm_scale_coef
+
+        if add_weights:
+            if rm_weights is None:
+                rm_wghts = no_measurements
+            else:
+                rm_wghts = asarray(rm_weights)
     else:
         rm_M = no_measurements
 
     measurements = concatenate((wl_in_M, wl_out_M, gc_M, rm_M))
+
+    if add_weights:
+        weights = concatenate((wl_in_wghts, wl_out_wghts, gc_wghts, rm_wghts))
 
     def optimfn_wrapper(optimargs):
         update_model(optimargs, model)
@@ -295,10 +330,15 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
             computation = concatenate((wl_in_C, wl_out_C, gc_C, rm_C))
 
+            error = computation - measurements
+
+            if add_weights:
+                error[:] = error * weights
+
             if optimfn == 'leastsq':
-                return (computation - measurements)
+                return error
             else:
-                return sum(power(computation - measurements, 2))
+                return sum(power(error, 2))
 
         else:
             # something is wrong, so penalize
