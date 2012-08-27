@@ -93,6 +93,6 @@ def find_omega2g(model, t):
 def find_omega2g_dec(model, t):
     duration = model.duration
     # omega_end = 0.0, t_end == duration, t in [0, duration]
-    omega = (duration - t) / deceleration_duration * model.omega_max)
+    omega = (duration - t) / deceleration_duration * model.omega_max
 
     return omega * omega / model.g
