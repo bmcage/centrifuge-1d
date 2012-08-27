@@ -1,11 +1,11 @@
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
-from modules.shared.functions import find_omega2g, right_derivative
+from modules.shared.functions import right_derivative
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.direct_draining_saturated.characteristics import \
      water_mass, calc_gc, calc_rm
-from modules.shared.solver import DirectSimulator
+from modules.shared.solver import simulate_direct
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
@@ -47,7 +47,7 @@ class centrifuge_residual(IDA_RhsFunction):
         hdot =  zdot[first_idx:last_idx+1]
         h12  = (h[1:] + h[:-1]) / 2
 
-        omega2g = find_omega2g(t, model)
+        omega2g = model.find_omega2g(t)
 
 
         Ks = model.ks
@@ -226,9 +226,9 @@ def solve(model):
         algvars_idx = None
 
     # Computation
-    (flag, t, z) = simulate_direct_new(initialize_z0, model, residual_fn,
-                                       root_fn = None, nr_rootfns=None,
-                                       algvars_idx=algvars_idx)
+    (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
+                                   root_fn = None, nr_rootfns=None,
+                                   algvars_idx=algvars_idx)
 
     # Restore modified values
     model.atol = atol_backup
