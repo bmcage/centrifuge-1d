@@ -79,13 +79,12 @@ def simulate_direct(initialize_z0, model, residual_fn,
             if not solver_initialized:
                 solver.init_step(t0, z0, zp0)
                 solver_initialized = True
+            t_end = t0 + duration
 
-            t = t0 + duration
-
-            solver.set_options(tstop=t)
+            solver.set_options(tstop=t_end)
 
             if verbosity > 2:
-                print(out_s.format(i, t0, duration, t))
+                print(out_s.format(i, t0, duration, t_end))
 
             if duration_type == 'duration':
                 model.set_omega2g_fn('centrifugation')
@@ -100,9 +99,10 @@ def simulate_direct(initialize_z0, model, residual_fn,
             else:
                 model.set_omega2g_fn('deceleration')
 
-            (flag, t_out) = self.solver.step(t, z[i, :])
 
-            if t_out < t:
+            (flag, t_out) = solver.step(t_end, z[i, :])
+
+            if t_out < t_end:
                 if verbosity > 1:
                     print('Error occured during computation. Solver failed '
                           'at time\nt_err=', t_out,
@@ -264,8 +264,6 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                 return penalization + measurements
             else:
                 return penalization * alen(measurements)
-
-
 
         (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
 
