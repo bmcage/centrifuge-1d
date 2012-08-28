@@ -216,11 +216,6 @@ def solve(model):
         atol[model.s2_idx] = model.s2_atol
         model.atol         = atol
 
-        rtol_backup        = model.rtol # backup value
-        rtol               = rtol_backup * np.ones([model.z_size,], dtype=float)
-        rtol[model.s2_idx] = model.s2_rtol
-        model.rtol         = rtol
-
         algvars_idx = [model.s2_idx]
     else:
         algvars_idx = None
@@ -232,7 +227,6 @@ def solve(model):
 
     # Restore modified values
     model.atol = atol_backup
-    model.rtol = rtol_backup
 
     # Results
     k  = t.shape
