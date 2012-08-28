@@ -67,7 +67,7 @@ def find_omega2g_fh(model, t):
 def find_omega2g(model, t):
     if model.include_acceleration:
         if t > 21.0:
-            omega = model.omega_max
+            omega = model.omega
         else:
             omega_base = 10.
 
@@ -84,15 +84,15 @@ def find_omega2g(model, t):
             else:
                 omega = f1(t)
 
-            omega = omega/omega_base * model.omega_max
+            omega = omega/omega_base * model.omega
     else:
-        omega = model.omega_max
+        omega = model.omega
 
     return omega * omega / model.g
 
 def find_omega2g_dec(model, t):
     duration = model.duration
     # omega_end = 0.0, t_end == duration, t in [0, duration]
-    omega = (duration - t) / deceleration_duration * model.omega_max
+    omega = (duration - t) / deceleration_duration * model.omega
 
     return omega * omega / model.g
