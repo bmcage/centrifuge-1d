@@ -28,8 +28,6 @@ def simulate_direct(initialize_z0, model, residual_fn,
     t0 = 0.0
 
     t[0]    = t0
-    u[0, :] = h2u(z0[model.first_idx: model.last_idx+1],
-                  model.n, model.m, model.gamma)
 
     if update_initial_condition:
         z0 = empty([model.z_size, ], float)
@@ -44,13 +42,13 @@ def simulate_direct(initialize_z0, model, residual_fn,
     if update_initial_condition: # as initial state can be modified at each
         z[0, :] = z0             # restart, z0 was preallocated separately
 
-    solver = ida.IDA(self.residual_fn,
+    solver = ida.IDA(residual_fn,
                      compute_initcond='yp0',
                      first_step_size=model.first_step_size,
                      atol=model.atol, rtol=model.rtol,
                      max_step_size = model.max_step_size,
                      max_steps = model.max_steps,
-                     algebraic_vars_idx=algvars_idxs,
+                     algebraic_vars_idx=algvars_idx,
                      rootfn=root_fn, nr_rootfns=nr_rootfns,
                      #linsolver='band', uband=1, lband=1,
                      user_data=model)
@@ -74,7 +72,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
         for duration_type in ['duration', 'fh_duration',
                               'deceleration_duration']:
 
-            duration = get_attr(model, duration_type)
+            duration = getattr(model, duration_type)
 
             if duration == 0.0: continue
 
