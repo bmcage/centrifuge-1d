@@ -121,7 +121,7 @@ class centrifuge_residual(IDA_RhsFunction):
 
             if q_sat < 0:
                 if verbosity > 1:
-                    print('Q_SAT: ', q_sat, ' !!!')
+                    print('       Q_SAT: ', q_sat, ' !!!')
 
                 #q_sat = 0.0
 

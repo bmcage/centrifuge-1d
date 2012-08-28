@@ -248,7 +248,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     def optimfn_wrapper(optimargs):
         nonlocal iteration
 
-        print(15 * '*', ' Iteration: {:4d}'.format(iteration), 15 * '*')
+        print(15 * '*', ' Iteration: {:4d}'.format(iteration), ' ', 15 * '*')
         iteration += 1
 
         update_model(optimargs, model)
