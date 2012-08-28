@@ -1,6 +1,6 @@
 import scikits.odes.sundials.ida as ida
 from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
-                   asarray, cumsum)
+                   asarray, cumsum, empty)
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -22,8 +22,8 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     measurements_nr = model.iterations + 1
 
-    t   = np.empty([measurements_nr, ], dtype=float)
-    z   = np.empty([measurements_nr, model.z_size], dtype=float)
+    t   = empty([measurements_nr, ], dtype=float)
+    z   = empty([measurements_nr, model.z_size], dtype=float)
 
     t0 = 0.0
 
@@ -32,7 +32,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                   model.n, model.m, model.gamma)
 
     if update_initial_condition:
-        z0 = np.empty([model.z_size, ], float)
+        z0 = empty([model.z_size, ], float)
     else:
         z0 = z[0, :]
     zp0 = zeros(z0.shape, float)
@@ -149,7 +149,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
     from modules.shared.functions import determine_scaling_factor
     from modules.shared.show import disp_inv_results
-    from numpy import empty, log, exp, alen
+    from numpy import log, exp, alen
 
     available_solvers = ['leastsq', 'fmin', 'fmin_power', 'fmin_cg',
                          'fmin_bfgs', 'raster']
