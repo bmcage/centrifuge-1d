@@ -84,7 +84,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
             t = t0 + duration
 
-            solver.set_options(tcrit=t)
+            solver.set_options(tstop=t)
 
             if verbosity > 2:
                 print(out_s.format(i, t0, duration, t))
