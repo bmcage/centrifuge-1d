@@ -624,7 +624,7 @@ class ModelParameters:
         self.iteration            = 0
         self.iterations           = 0
 
-        fns = cfg.get_value('omega2_fns')
+        fns = cfg.get_value('omega2g_fns')
         self._omega2g_fns = \
           {key: MethodType(fn, self) for (key, fn) in fns.items()}
 

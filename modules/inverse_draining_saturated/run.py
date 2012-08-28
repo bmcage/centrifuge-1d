@@ -16,7 +16,7 @@ def solve(model):
                       'u_init', h2u(model.h_init, model.n,
                                     model.m, model.gamma), '\n')
 
-        (flag, t, z, gc1, rm1) = solve_direct(model)
+        (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
 
         contains_data = (alen(t) > 1)
 
