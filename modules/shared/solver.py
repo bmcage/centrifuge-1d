@@ -76,9 +76,6 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
             if duration == 0.0: continue
 
-            if not solver_initialized:
-                solver.init_step(t0, z0, zp0)
-                solver_initialized = True
             t_end = t0 + duration
 
             solver.set_options(tstop=t_end)
@@ -99,6 +96,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
             else:
                 model.set_omega2g_fn('deceleration')
 
+            if not solver_initialized:
+                solver.init_step(t0, z0, zp0)
+                solver_initialized = True
 
             (flag, t_out) = solver.step(t_end, z[i, :])
 
