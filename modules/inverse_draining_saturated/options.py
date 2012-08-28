@@ -48,5 +48,3 @@ def adjust_cfg(cfg):
     cfg.set_value('calc_wm', False)
     cfg.set_value('calc_wl_in', bool(cfg.get_value('wl1')))
     cfg.set_value('calc_wl_out', bool(cfg.get_value('wl_out')))
-
-    cfg.set_value('draw_graphs', False)
