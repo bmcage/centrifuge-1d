@@ -56,13 +56,13 @@ def simulate_direct(initialize_z0, model, residual_fn,
     solver_initialized = False
 
     # Run computation
-    out_s = '{: >4d}. {: 10.1f}  {: 10.1f}  {: 10.1f}'
+    out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}'
 
     iterations = model.iterations
 
     if verbosity > 1:
-        capt_s = '{:>5} {:>10} {:>10} {:>10}'
-        print(capt_s.format('Run #', 'Start time', 'Duration', 'End time'))
+        capt_s = '{:>6} {:>12}  {:>12}  {:>12}'
+        print(capt_s.format('Run', 'Start time', 'Duration', 'End time'))
     while True:
         if verbosity == 2:
             total_duration = (model.duration + model.fh_duration
@@ -246,8 +246,10 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     iteration = 0
 
     def optimfn_wrapper(optimargs):
-        print(10 * '>', ' Iteration: ', iteration, 10 * '<')
-        iteration = iteration + 1
+        nonlocal iteration
+
+        print(15 * '*', ' Iteration: {:4d}'.format(iteration), 15 * '*')
+        iteration += 1
 
         update_model(optimargs, model)
 
