@@ -8,10 +8,8 @@ CONFIG_OPTIONS = ['inv_init_params',
                      ('xtol', 1.49012e-8), ('ftol', 1.49012e-8)]),
                   (lambda cfg: (cfg.get_value('optimfn')
                                 in ['fmin', 'fmin_powell']),
-                    [('xtol', 1e-4), ('ftol', 1e-4)]),
-                  (lambda cfg: cfg.get_value('optimfn') == 'fmin',
-                    [('max_fev', None), ('max_inv_iter', None),
-                     ('disp_inv_conv', True)]),
+                    [('xtol', 1e-4), ('ftol', 1e-4), ('max_fev', None),
+                     ('max_inv_iter', None), ('disp_inv_conv', True)]),
                   (lambda cfg: cfg.get_value('optimfn') == 'raster',
                     ['raster_grid_size']),
                   # experiment
