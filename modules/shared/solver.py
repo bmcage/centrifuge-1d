@@ -369,12 +369,18 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     optimize = getattr(scipy.optimize, optimfn)
 
     if optimfn == 'leastsq':
-        inv_params, cov = optimize(optimfn_wrapper, init_values,
-                                   epsfcn=model.epsfcn, factor=model.factor,
-                                   xtol=model.xtol, ftol=model.ftol)
+        (inv_params, cov, infodic, msg, ier) = \
+          optimize(optimfn_wrapper, init_values,
+                   epsfcn=model.epsfcn, factor=model.factor,
+                   xtol=model.xtol, ftol=model.ftol)
+
+        print('Info:', infodic, '\nMessage:', msg, '\nier:', ier)
     else:
-        inv_params, cov = optimize(optimfn_wrapper, init_values,
-                                   xtol=model.xtol, ftol=model.ftol)
+        (optim_params, fopt, iters, funcalls, warnflag, allvecs) = \
+          optimize(optimfn_wrapper, init_values,
+                   xtol=model.xtol, ftol=model.ftol)
+        print('Iterations:', iters, '\nfeval', funcalls, '\nOptValue:', fopt,
+              '\nWarnFlag:', warnflag, '\nAllVecs:\n', allvecs)
 
     # we now assume, that in the last run were used the optimal parameters
     # and therefore are still set in the model
