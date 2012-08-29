@@ -105,6 +105,15 @@ def nd2strlist(nd):
         result.append(str(value))
     return result
 
+
+def has_data(x):
+    if x is None:
+        return False
+    elif isinstance(x, np.ndarray):
+        return not (x.size == 0)
+    else:
+        return bool(x)
+
 def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 s1 = None, s1_ref=None, s2 = None, s2_ref=None,
                 mass_out = None, mass_out_ref = None,
@@ -115,14 +124,6 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 save_as_text=False, draw_equilibrium=False,
                 show_figures=False,
                 model=None):
-
-    def has_data(x):
-        if x is None:
-            return False
-        elif isinstance(x, np.ndarray):
-            return not (x.size == 0)
-        else:
-            return bool(x)
 
     def add_legend(lines, legend_data=None, legend_title=None, legend_loc=1,
                    legend_type='figlegend'):
@@ -410,7 +411,7 @@ def disp_inv_results(model, t_inv, inv_params=None,
                 print('  Ks [cm/s]: {: .8g}'.format(value))
             else:
                 print('  {:9}: {: .8g}'.format(name, value))
-    if cov:
+    if has_data(cov):
         print('Cov:\n', cov)
 
     if display_graphs:
