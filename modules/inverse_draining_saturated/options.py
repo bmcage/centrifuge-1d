@@ -12,7 +12,7 @@ CONFIG_OPTIONS = ['inv_init_params',
                   (lambda cfg: cfg.get_value('optimfn') == 'raster',
                     ['raster_grid_size']),
                   (lambda cfg: (cfg.get_value('optimfn')
-                                in ['fmin, fmin_powell']),
+                                in ['fmin', 'fmin_powell']),
                     [('xtol', 1e-4), ('ftol', 1e-4)]),
                   # experiment
                   'dynamic_h_init',
