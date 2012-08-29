@@ -368,22 +368,54 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
     optimize = getattr(scipy.optimize, optimfn)
 
+    # Initialize output variables that are not present for every solver
+    msg = None
+    cov = None
+    fvec = None
+    fopt = None
+    gopt = None
+    gcalls = None
+    fcalls = None
+
+    # Run optimization
     if optimfn == 'leastsq':
-        (inv_params, cov, infodic, msg, ier) = \
+        (opt_params, cov, infodic, msg, ier) = \
           optimize(optimfn_wrapper, init_values,
                    epsfcn=model.epsfcn, factor=model.factor,
-                   xtol=model.xtol, ftol=model.ftol)
-
-        print('Info:', infodic, '\nMessage:', msg, '\nier:', ier)
+                   xtol=model.xtol, ftol=model.ftol,
+                   full_output=True)
+        fcalls = infodic['nfev']
+        fvec   = infodic['fvec']
     else:
-        (optim_params, fopt, iters, funcalls, warnflag, allvecs) = \
+        # TODO: specialize output on solvers...
+        (opt_params, fopt, iters, funcalls, warnflag, allvecs) = \
           optimize(optimfn_wrapper, init_values,
                    xtol=model.xtol, ftol=model.ftol)
         print('Iterations:', iters, '\nfeval', funcalls, '\nOptValue:', fopt,
               '\nWarnFlag:', warnflag, '\nAllVecs:\n', allvecs)
 
-    # we now assume, that in the last run were used the optimal parameters
-    # and therefore are still set in the model
+    # Display inverse solver statistic
+    print('\nInverse problem statistics:\n')
+    if not msg is None:
+        print('\n', msg)
+    if not fvec is None:
+        print('\nOptimal value (for optimal parameters found):\n', fvec)
+    if not gopt is None:
+        print('\nGradient at optimum:\n', gopt, '\n')
+
+    results = [('fopt', fopt), ('iters', iteration),
+               ('fcalls', fcalls), ('gcalls', gcalls)]
+    for (name, value) in results:
+        if not value is None:
+            print(' |{:>8}'.format(name), end='')
+    print(' |')
+    for (name, value) in results:
+        if not value is None:
+            print(' |{:8d}'.format(value), end='')
+    print(' |')
+
+    # Run experiment once more with optimal values to display results at optimum
+    update_model(opt_params, model)
     optim_params = {name: getattr(model, name) for name in optimized_parameters}
     model_verbosity = model.verbosity # backup verbosity
     model.verbosity = 0
@@ -393,7 +425,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                      wl_in_inv=wl_in, wl_out_inv=wl_out, gc1_inv=gc, rm1_inv=rm,
                      disp_abserror=True)
 
-    return inv_params
+    return optim_params
 
 def simulate_inverse_old(direct_fn, xdata, ydata, init_params,
                      optimfn='leastsq'):
