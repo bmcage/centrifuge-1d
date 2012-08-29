@@ -51,6 +51,10 @@ def solve(model):
                        wl_out_meas = model.get_iterable_value('wl_out'),
                        gc_meas     = model.get_iterable_value('gc1'),
                        rm_meas     = model.get_iterable_value('rm1'),
+                       wl_in_weights  = model.get_iterable_value('wl1_weights'),
+                       wl_out_weights = model.get_iterable_value('wl_out_weights'),
+                       gc_weights     = model.get_iterable_value('gc1_weights'),
+                       rm_weights     = model.get_iterable_value('rm1_weights'),
                        optimfn=model.optimfn)
 
     return inv_params

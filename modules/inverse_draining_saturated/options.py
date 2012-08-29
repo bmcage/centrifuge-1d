@@ -14,12 +14,13 @@ CONFIG_OPTIONS = ['inv_init_params',
                   # experiment
                   'dynamic_h_init',
                   (lambda cfg: cfg.get_value('dynamic_h_init'),
-                   ['h_init_max', ('c_gammah', 1e-3)])
+                   ['h_init_max', ('c_gammah', 1e-3)]),
+                  # measurement weights
+                  ('wl1_weights', None), ('wl_out_weights', None),
+                  ('gc1_weights', None), ('rm1_weights', None)
                  ]
 
-INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in',
-                    ('wl1_weights', None), ('wl_out_weights', None),
-                    ('gc1_weights', None), ('rm1_weights', None)]
+INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in']
 
 #EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
 
@@ -43,7 +44,7 @@ def check_cfg(cfg):
         if not weights: continue
 
         meas = cfg.get_value(meas_name)
-        if meas:
+        if not meas:
             print('Weight cannot be specified if measurement is not present: '
                   '{}'.format(meas_name))
             return False

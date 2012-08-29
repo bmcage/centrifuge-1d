@@ -225,12 +225,6 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         wl_in_M = asarray(wl_in_meas, dtype=float)
         wl_in_scale_coef = determine_scaling_factor(wl_in_meas)
         wl_in_M[:] = wl_in_M * wl_in_scale_coef
-
-        if add_weights:
-            if wl_in_weights is None:
-                wl_in_wghts = no_measurements
-            else:
-                wl_in_wghts = asarray(wl_in_weights)
     else:
         wl_in_M = no_measurements
 
@@ -238,12 +232,6 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         wl_out_M = cumsum(asarray(wl_out_meas, dtype=float))
         wl_out_scale_coef = determine_scaling_factor(wl_out_M)
         wl_out_M[:] = wl_out_M * wl_out_scale_coef
-
-        if add_weights:
-            if wl_out_weights is None:
-                wl_out_wghts = no_measurements
-            else:
-                wl_out_wghts = asarray(wl_out_weights)
     else:
         wl_out_M = no_measurements
 
@@ -251,12 +239,6 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         gc_M = np.asarray(gc_meas, dtype=float)
         gc_scale_coef = determine_scaling_factor(gc_meas)
         gc_M[:] = gc_M * gc_scale_coef
-
-        if add_weights:
-            if gc_weights is None:
-                gc_wghts = no_measurements
-            else:
-                gc_wghts = asarray(gc_weights)
     else:
         gc_M = no_measurements
 
@@ -264,18 +246,32 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         rm_M = np.asarray(rm_meas, dtype=float)
         rm_scale_coef = determine_scaling_factor(rm_meas)
         rm_M[:] = rm_M * rm_scale_coef
-
-        if add_weights:
-            if rm_weights is None:
-                rm_wghts = no_measurements
-            else:
-                rm_wghts = asarray(rm_weights)
     else:
         rm_M = no_measurements
 
     measurements = concatenate((wl_in_M, wl_out_M, gc_M, rm_M))
 
     if add_weights:
+        if wl_in_weights is None:
+            wl_in_wghts = no_measurements
+        else:
+            wl_in_wghts = asarray(wl_in_weights)
+
+        if wl_out_weights is None:
+            wl_out_wghts = no_measurements
+        else:
+            wl_out_wghts = asarray(wl_out_weights)
+
+        if gc_weights is None:
+            gc_wghts = no_measurements
+        else:
+            gc_wghts = asarray(gc_weights)
+
+        if rm_weights is None:
+            rm_wghts = no_measurements
+        else:
+            rm_wghts = asarray(rm_weights)
+
         weights = concatenate((wl_in_wghts, wl_out_wghts, gc_wghts, rm_wghts))
 
     iteration = 0
