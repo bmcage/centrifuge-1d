@@ -10,6 +10,10 @@ CONFIG_OPTIONS = ['inv_init_params',
                                 in ['fmin', 'fmin_powell']),
                     [('xtol', 1e-4), ('ftol', 1e-4), ('max_fev', None),
                      ('max_inv_iter', None), ('disp_inv_conv', True)]),
+                  (lambda cfg:
+                       cfg.get_value('optimfn') in ['fmin_cg', 'fmin_bfgs'],
+                    [('gtol', 1e-5), ('max_inv_iter', None),
+                     ('disp_inv_conv', True)]),
                   (lambda cfg: cfg.get_value('optimfn') == 'raster',
                     ['raster_grid_size']),
                   # experiment
