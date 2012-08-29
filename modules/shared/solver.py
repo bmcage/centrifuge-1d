@@ -374,6 +374,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     gopt = None
     gcalls = None
     fcalls = None
+    iters  = iteration
 
     # Run optimization
     if optimfn == 'leastsq':
@@ -383,13 +384,31 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                    xtol=model.xtol, ftol=model.ftol,
                    full_output=True)
         fcalls = infodic['nfev']
-    else:
-        # TODO: specialize output on solvers...
-        (opt_params, fopt, iters, funcalls, warnflag, allvecs) = \
+    elif optimfn == 'fmin':
+        (opt_params, fopt, iters, fcalls, warnflag) = \
           optimize(optimfn_wrapper, init_values,
-                   xtol=model.xtol, ftol=model.ftol)
-        print('Iterations:', iters, '\nfeval', funcalls, '\nOptValue:', fopt,
-              '\nWarnFlag:', warnflag, '\nAllVecs:\n', allvecs)
+                   xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
+                   maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
+                   full_output=True, retall=False)
+    elif optimfn == 'fmin_powell':
+        (opt_params, fopt, direc, iters, fcalls, warnflag) = \
+          optimize(optimfn_wrapper, init_values,
+                   xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
+                   maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
+                   full_output=True, retall=False)
+    elif optimfn == 'fmin_cg':
+        (opt_params, fopt, fcalls, gcalls, warnflag) = \
+          optimize(optimfn_wrapper, init_values,
+                   maxiter=model.max_inv_iter, gtol=model.gtol,
+                   disp=model.disp_inv_conv,
+                   full_output=True, retall=False)
+    elif optimfn == 'fmin_bfgs':
+        (opt_params, fopt, gopt, Bopt, fcalls, gcalls, warnflag) = \
+          optimize(optimfn_wrapper, init_values,
+                   maxiter=model.max_inv_iter, gtol=model.gtol,
+                   disp=model.disp_inv_conv,
+                   full_output=True, retall=False)
+
 
     # Display inverse solver statistic
     print('\nInverse problem statistics:\n')
@@ -398,7 +417,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     if not gopt is None:
         print('\nGradient at optimum:\n', gopt, '\n')
 
-    results = [('iters', iteration), ('fcalls', fcalls), ('gcalls', gcalls)]
+    results = [('iters', iters), ('fcalls', fcalls), ('gcalls', gcalls)]
     for (name, value) in results:
         if not value is None:
             print(' |{:>8}'.format(name), end='')
