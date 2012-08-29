@@ -289,7 +289,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
         if has_data(ydata_ref):
             ydata_lines = plt.plot(t, ydata, '.',
                                    t_ref, ydata_ref, 'x')
-            add_legend(ydata_lines, legend_data = ['measured', 'computed'],
+            add_legend(ydata_lines, legend_data = ['computed', 'measured'],
                        legend_type='legend', legend_loc=4)
         else:
             plt.plot(t, ydata, '.')

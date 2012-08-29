@@ -16,7 +16,7 @@ def solve(model):
                       'u_init', h2u(model.h_init, model.n,
                                     model.m, model.gamma), '\n')
 
-        (flag, t, z, gc1, rm1) = solve_direct(model)
+        (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
 
         contains_data = (alen(t) > 1)
 
@@ -51,6 +51,10 @@ def solve(model):
                        wl_out_meas = model.get_iterable_value('wl_out'),
                        gc_meas     = model.get_iterable_value('gc1'),
                        rm_meas     = model.get_iterable_value('rm1'),
+                       wl_in_weights  = model.get_iterable_value('wl1_weights'),
+                       wl_out_weights = model.get_iterable_value('wl_out_weights'),
+                       gc_weights     = model.get_iterable_value('gc1_weights'),
+                       rm_weights     = model.get_iterable_value('rm1_weights'),
                        optimfn=model.optimfn)
 
     return inv_params

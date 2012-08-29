@@ -1,13 +1,12 @@
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
-from modules.shared.functions import find_omega2g
 from modules.shared.solver import simulate_direct
 
 class direct_saturated_rhs(IDA_RhsFunction):
     def evaluate(self, t, x, xdot, result, model):
 
-        omega2g = find_omega2g(t, model)
+        omega2g = model.find_omega2g(t)
 
         L = model.l0
         wl = x[0]
@@ -27,35 +26,26 @@ residual_fn = direct_saturated_rhs()
 
 def solve(model):
 
-    t  = np.empty([model.iterations+1, ], dtype=float)
-    z  = np.empty([model.iterations+1, 2], dtype=float) # z[wl_in, wl_out]
-    z0 = np.empty([2, ], dtype=float)
+    def initialize_z0(z0, model):
+        z0[model.mass_in_idx]  = model.wl0
+        z0[model.mass_out_idx] = 0.0
 
-    z0[1] = 0.0
-
-    model.init_iteration()
-
-    t[0] = 0.0
-    z[0, model.mass_in_idx]  = model.wl0
-    z[0, model.mass_out_idx] = 0.0
-
-    while model.next_iteration():
-        i = model.iteration
+    def update_init(z0, model):
         z0[0] = model.wl0
-        #print(i, z0)
 
-        (success_p, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0)
-        t[i] = t_out
-        #print('zi', z[i, :])
-        if not success_p: break
+    (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
+                                   update_initial_condition=update_init)
+
+
+    return (flag, t, z)
+
+def run(model):
+    (flag, t, z) = solve(model)
+
+    if not flag:
+        print('Error occured during computation... Computation exited.')
 
     if model.draw_graphs:
         from modules.shared.show import draw_graphs
-
-        draw_graphs(t, mass_in=z[:, mass_in_idx], mass_out=z[:, mass_out_idx])
-    #print('z result:', z[:, :])
-
-    return (success_p, t, z)
-
-def run(model):
-    return solve(model)
+        draw_graphs(t, mass_in=z[:, mass_in_idx], mass_out=z[:, mass_out_idx],
+                    model=model)

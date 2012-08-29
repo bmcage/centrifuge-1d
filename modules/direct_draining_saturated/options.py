@@ -12,7 +12,7 @@ CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma', 'draw_graphs',
                     ['h_last']),
                   (lambda cfg: cfg.get_value('rb_type') == 3,
                     ['dip_height', 'h_last',
-                     ('s2_0', None), ('s2_atol', 1e-8), ('s2_rtol', 1e-4)]),
+                     ('s2_0', None), ('s2_atol', 1e-8)]),
                   # optional
                   ('n1', None), ('gamma1', None),
                   ('n2', None), ('gamma2', None),

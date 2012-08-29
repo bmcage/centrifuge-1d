@@ -1,6 +1,6 @@
 import scikits.odes.sundials.ida as ida
 from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
-                   asarray, cumsum)
+                   asarray, cumsum, empty)
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -22,17 +22,15 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     measurements_nr = model.iterations + 1
 
-    t   = np.empty([measurements_nr, ], dtype=float)
-    z   = np.empty([measurements_nr, model.z_size], dtype=float)
+    t   = empty([measurements_nr, ], dtype=float)
+    z   = empty([measurements_nr, model.z_size], dtype=float)
 
     t0 = 0.0
 
     t[0]    = t0
-    u[0, :] = h2u(z0[model.first_idx: model.last_idx+1],
-                  model.n, model.m, model.gamma)
 
     if update_initial_condition:
-        z0 = np.empty([model.z_size, ], float)
+        z0 = empty([model.z_size, ], float)
     else:
         z0 = z[0, :]
     zp0 = zeros(z0.shape, float)
@@ -44,13 +42,13 @@ def simulate_direct(initialize_z0, model, residual_fn,
     if update_initial_condition: # as initial state can be modified at each
         z[0, :] = z0             # restart, z0 was preallocated separately
 
-    solver = ida.IDA(self.residual_fn,
+    solver = ida.IDA(residual_fn,
                      compute_initcond='yp0',
                      first_step_size=model.first_step_size,
                      atol=model.atol, rtol=model.rtol,
                      max_step_size = model.max_step_size,
                      max_steps = model.max_steps,
-                     algebraic_vars_idx=algvars_idxs,
+                     algebraic_vars_idx=algvars_idx,
                      rootfn=root_fn, nr_rootfns=nr_rootfns,
                      #linsolver='band', uband=1, lband=1,
                      user_data=model)
@@ -58,13 +56,13 @@ def simulate_direct(initialize_z0, model, residual_fn,
     solver_initialized = False
 
     # Run computation
-    out_s = '{: >4d}. {: 10.1f}  {: 10.1f}  {: 10.1f}'
+    out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}'
 
     iterations = model.iterations
 
     if verbosity > 1:
-        capt_s = '{:>5} {:>10} {:>10} {:>10}'
-        print(capt_s.format('Run #', 'Start time', 'Duration', 'End time'))
+        capt_s = '{:>6} {:>12}  {:>12}  {:>12}'
+        print(capt_s.format('Run', 'Start time', 'Duration', 'End time'))
     while True:
         if verbosity == 2:
             total_duration = (model.duration + model.fh_duration
@@ -74,20 +72,16 @@ def simulate_direct(initialize_z0, model, residual_fn,
         for duration_type in ['duration', 'fh_duration',
                               'deceleration_duration']:
 
-            duration = get_attr(model, duration_type)
+            duration = getattr(model, duration_type)
 
             if duration == 0.0: continue
 
-            if not solver_initialized:
-                solver.init_step(t0, z0, zp0)
-                solver_initialized = True
+            t_end = t0 + duration
 
-            t = t0 + duration
-
-            solver.set_options(tcrit=t)
+            solver.set_options(tstop=t_end)
 
             if verbosity > 2:
-                print(out_s.format(i, t0, duration, t))
+                print(out_s.format(i, t0, duration, t_end))
 
             if duration_type == 'duration':
                 model.set_omega2g_fn('centrifugation')
@@ -102,9 +96,13 @@ def simulate_direct(initialize_z0, model, residual_fn,
             else:
                 model.set_omega2g_fn('deceleration')
 
-            (flag, t_out) = self.solver.step(t, z[i, :])
+            if not solver_initialized:
+                solver.init_step(t0, z0, zp0)
+                solver_initialized = True
 
-            if t_out < t:
+            (flag, t_out) = solver.step(t_end, z[i, :])
+
+            if t_out < t_end:
                 if verbosity > 1:
                     print('Error occured during computation. Solver failed '
                           'at time\nt_err=', t_out,
@@ -143,13 +141,15 @@ def simulate_direct(initialize_z0, model, residual_fn,
     return (True, t, z)
 
 def simulate_inverse(times, direct_fn, model, init_parameters,
-                     wl_in_meas=None, wl_out_meas=None, gc_meas=None,
-                     rm_meas=None,
+                     wl_in_meas=None, wl_out_meas=None,
+                     gc_meas=None, rm_meas=None,
+                     wl_in_weights=None, wl_out_weights=None,
+                     gc_weights=None, rm_weights=None,
                      optimfn='leastsq'):
 
     from modules.shared.functions import determine_scaling_factor
     from modules.shared.show import disp_inv_results
-    from numpy import empty, log, exp, alen
+    from numpy import log, exp, alen
 
     available_solvers = ['leastsq', 'fmin', 'fmin_power', 'fmin_cg',
                          'fmin_bfgs', 'raster']
@@ -213,6 +213,12 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     calc_gc     = bool(gc_meas)
     calc_rm     = bool(rm_meas)
 
+    if not ((wl_in_weights is None) and (wl_out_weights is None)
+            and (gc_weights is None) and (rm_weights is None)):
+        add_weights = True
+    else:
+        add_weights = False
+
     no_measurements = empty([0,], dtype=float)
 
     if calc_wl_in:
@@ -245,7 +251,37 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
     measurements = concatenate((wl_in_M, wl_out_M, gc_M, rm_M))
 
+    if add_weights:
+        if wl_in_weights is None:
+            wl_in_wghts = no_measurements
+        else:
+            wl_in_wghts = asarray(wl_in_weights)
+
+        if wl_out_weights is None:
+            wl_out_wghts = no_measurements
+        else:
+            wl_out_wghts = asarray(wl_out_weights)
+
+        if gc_weights is None:
+            gc_wghts = no_measurements
+        else:
+            gc_wghts = asarray(gc_weights)
+
+        if rm_weights is None:
+            rm_wghts = no_measurements
+        else:
+            rm_wghts = asarray(rm_weights)
+
+        weights = concatenate((wl_in_wghts, wl_out_wghts, gc_wghts, rm_wghts))
+
+    iteration = 0
+
     def optimfn_wrapper(optimargs):
+        nonlocal iteration
+
+        print(15 * '*', ' Iteration: {:4d}'.format(iteration), ' ', 15 * '*')
+        iteration += 1
+
         update_model(optimargs, model)
 
         penalization = penalize(model, when='out_of_bounds')
@@ -259,8 +295,6 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                 return penalization + measurements
             else:
                 return penalization * alen(measurements)
-
-
 
         (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
 
@@ -295,10 +329,15 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
             computation = concatenate((wl_in_C, wl_out_C, gc_C, rm_C))
 
+            error = computation - measurements
+
+            if add_weights:
+                error[:] = error * weights
+
             if optimfn == 'leastsq':
-                return (computation - measurements)
+                return error
             else:
-                return sum(power(computation - measurements, 2))
+                return sum(power(error, 2))
 
         else:
             # something is wrong, so penalize
