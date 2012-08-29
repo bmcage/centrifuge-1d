@@ -151,7 +151,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     from modules.shared.show import disp_inv_results
     from numpy import log, exp, alen
 
-    available_solvers = ['leastsq', 'fmin', 'fmin_power', 'fmin_cg',
+    available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
                          'fmin_bfgs', 'raster']
     if not optimfn in available_solvers:
         print("Unknown inverse method solver for 'optimfn': ", optimfn)
