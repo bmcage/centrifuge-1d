@@ -371,8 +371,6 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     # Initialize output variables that are not present for every solver
     msg = None
     cov = None
-    fvec = None
-    fopt = None
     gopt = None
     gcalls = None
     fcalls = None
@@ -385,7 +383,6 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                    xtol=model.xtol, ftol=model.ftol,
                    full_output=True)
         fcalls = infodic['nfev']
-        fvec   = infodic['fvec']
     else:
         # TODO: specialize output on solvers...
         (opt_params, fopt, iters, funcalls, warnflag, allvecs) = \
@@ -398,13 +395,10 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     print('\nInverse problem statistics:\n')
     if not msg is None:
         print('\n', msg)
-    if not fvec is None:
-        print('\nOptimal value (for optimal parameters found):\n', fvec)
     if not gopt is None:
         print('\nGradient at optimum:\n', gopt, '\n')
 
-    results = [('fopt', fopt), ('iters', iteration),
-               ('fcalls', fcalls), ('gcalls', gcalls)]
+    results = [('iters', iteration), ('fcalls', fcalls), ('gcalls', gcalls)]
     for (name, value) in results:
         if not value is None:
             print(' |{:>8}'.format(name), end='')
