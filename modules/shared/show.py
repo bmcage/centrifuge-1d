@@ -347,7 +347,7 @@ def disp_inv_results(model, t_inv, inv_params=None,
         name_len = len(name)
 
         i0 = 0
-        in_row = 9
+        in_row = 10
         remaining = np.alen(data_computed)
 
         if disp_abserror:
