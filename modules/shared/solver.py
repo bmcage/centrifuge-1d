@@ -158,13 +158,14 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         print("Available solvers are: ", available_solvers)
         exit(1)
 
+    max_value = 1e150
 
-    transform = {'ks': lambda ks: log(ks),
-                 'n':  lambda n: log(n - 1.0),
-                 'gamma': lambda gamma: log(-gamma)}
-    untransform = {'ks': lambda ks_transf: exp(ks_transf),
-                   'n': lambda n_transf: 1+exp(n_transf),
-                   'gamma': lambda gamma_transf: -exp(gamma_transf)}
+    transform = {'ks': lambda ks: max(log(ks), -max_value),
+                 'n':  lambda n: max(log(n - 1.0), -max_value),
+                 'gamma': lambda gamma: max(log(-gamma), -max_value)}
+    untransform = {'ks': lambda ks_transf: min(exp(ks_transf), max_value),
+                   'n': lambda n_transf: 1+min(exp(n_transf), max_value),
+                   'gamma': lambda gamma_transf: -min(exp(gamma_transf), max_value)}
 
     optimized_parameters = []
 
@@ -187,24 +188,30 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     ubounds = {}
 
     def penalize(model, when='out_of_bounds'):
+        max_penalization = 1e50
+
         penalization = 0.0
 
         if when == 'out_of_bounds':
             for param in optimized_parameters:
                 value = getattr(model, param)
                 if lbounds[param] > value:
-                    a = exp(value - lbounds[param])
-                    penalization = (penalization + 10 * (a + 1/a))
+                    a = min(exp(value - lbounds[param]), max_penalization)
+                    penalization = (penalization
+                                    + min(10 * (a + 1/a), max_penalization))
                 elif ubounds[param] < value:
-                    a = exp(value - ubounds[param])
-                    penalization = (penalization + 10 * (a + 1/a))
+                    a = min(exp(value - ubounds[param]), max_penalization)
+                    penalization = (penalization
+                                    + min(10 * (a + 1/a), max_penalization))
         else:
             for param in optimized_parameters:
                 value = getattr(model, param)
-                a = exp(value - lbounds[param])
-                b = exp(value - ubounds[param])
+                a = min(exp(value - lbounds[param]), max_penalization)
+                b = min(exp(value - ubounds[param]), max_penalization)
 
-                penalization = (penalization + 10 * (a + 1/a) + 10 * (b + 1/b))
+                penalization = \
+                  (penalization + min(10 * (a + 1/a) + 10 * (b + 1/b),
+                                      max_penalization))
 
         return penalization
 
