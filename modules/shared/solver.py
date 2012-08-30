@@ -447,45 +447,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
     return optim_params
 
-def simulate_inverse_old(direct_fn, xdata, ydata, init_params,
-                     optimfn='leastsq'):
-
-    def lsq_wrapper_fn(xdata, *optim_args):
-        direct_results = direct_fn(xdata, optim_args)
-        return concatenate(direct_results)
-
-    def leastsq_wrapper_fn(optim_args, *xdata):
-        direct_results = direct_fn(xdata[0], optim_args)
-        return (concatenate(direct_results) - ydata)
-
-    def fmin_wrapper_fn(optim_args, *xdata):
-        direct_results = direct_fn(xdata[0], optim_args)
-        tmp = concatenate(direct_results)
-        return sum(power(tmp - ydata, 2))
-
-    if optimfn == 'lsq':
-        from scipy.optimize import curve_fit
-        return curve_fit(lsq_wrapper_fn, xdata, ydata, p0 = init_params,
-                         epsfcn=1e-5,
-                         factor=0.1)
-    if optimfn == 'leastsq':
-        from scipy.optimize import leastsq
-        return leastsq(leastsq_wrapper_fn, init_params, args=(xdata,),
-                       epsfcn=1e-5,
-                       factor=0.1)
-    elif optimfn == 'fmin':
-        from scipy.optimize import fmin
-        return fmin(fmin_wrapper_fn, init_params, args=(xdata,))
-    elif optimfn == 'fmin_powell':
-        from scipy.optimize import fmin_powell
-        return fmin_powell(fmin_wrapper_fn, init_params, args=(xdata,))
-    elif optimfn == 'fmin_cg':
-        from scipy.optimize import fmin_cg
-        return fmin_cg(fmin_wrapper_fn, init_params, args=(xdata,))
-    elif optimfn == 'fmin_bfgs':
-        from scipy.optimize import fmin_bfgs
-        return fmin_bfgs(fmin_wrapper_fn, init_params, args=(xdata,))
-    elif optimfn == 'raster':
+def compute_raster(model):
         lbounds = xdata.inv_lbounds
         ubounds = xdata.inv_ubounds
         raster_size = xdata.raster_grid_size
