@@ -1,11 +1,12 @@
 #!/usr/bin/python
 from sys import path as syspath, argv as sysargv
 from os.path import exists
-from shared import (make_collector, print_by_tube, generate_tubes_suffixes)
+from shared import (make_collector, print_by_tube, get_experiment_base_dirs,
+                    get_experiment_dir, get_tube_dirs, load_cfg_defaults,
+                    load_measurements_cfg, load_configuration_file)
 from config import ModulesManager, Configuration, ModelParameters
 from optparse import OptionParser
 from const import INI_DIR
-
 
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
@@ -97,13 +98,14 @@ def parse_input():
 
     return options
 
-def load_configuration(inifilename):
-     if exists(inifilename):
-        return Configuration().read_from_files(inifilename)
-     else:
-        return None
+def yn_prompt(question_str):
+    while True:
+        answ = input(question_str)
+        answ = answ.lower()
+        if answ in ['', 'y', 'yes']: return True
+        if answ in ['n', 'no']: return False
 
-def get_cfg(ini_dir, exp_id, first_experiment, last_experiment, tubes,
+def get_cfg(exp_id, first_experiment, last_experiment, tubes,
             mask, verbose = False):
 
     if verbose:
@@ -116,53 +118,37 @@ def get_cfg(ini_dir, exp_id, first_experiment, last_experiment, tubes,
               '\n---------------------------------------------------------'
               % (exp_id, first_experiment, last_experiment, ','.join(tubes)))
 
-    default_ini = ini_dir + '/' + exp_id + '/defaults.ini'
-    default_cfg = load_configuration(default_ini)
+    (base_dir, exp_base_dir) = get_experiment_base_dirs(exp_id)
 
-    (tubes_suffixes, tubes_identifiers) = generate_tubes_suffixes(tubes)
-
-    filename_skelet = ini_dir + '/' + exp_id + '/experiment_' + '%s' + '.ini'
+    default_cfg = load_cfg_defaults(base_dir, exp_base_dir)
 
     for exp_no in range(first_experiment, last_experiment+1):
 
-        group_default_ini = filename_skelet % (str(exp_no) + '-defaults')
-        group_default_cfg = load_configuration(group_default_ini)
+        exp_dir = get_experiment_dir(exp_base_dir, exp_no)
+        exp_default_cfg = load_cfg_defaults(exp_dir)
 
-        for (tube_suffix, tube_identifier) in zip(tubes_suffixes,
-                                                  tubes_identifiers):
-
+        for tube_number in tubes:
             if verbose:
                 print('\n', 60 * '=',
                       '\n   Executing experiment %s%s of the problem ''%s''.'
-                      % (str(exp_no), tube_identifier, exp_id), '\n', 60 * '=')
+                      % (str(exp_no), 'tube %s' % tube_number, exp_id),
+                      '\n', 60 * '=')
 
-            tube_default_ini = filename_skelet % (str(exp_no) + tube_suffix
-                                                  + '-defaults')
+            (tube_dir, masks_dir) = get_tube_dirs(exp_dir, tube_number)
+            tube_default_cfg = load_cfg_defaults(tube_dir)
 
-            filename_ini = filename_skelet % (str(exp_no) + tube_suffix + '-general')
+            experiment_cfg = load_measurements_cfg(tube_dir)
 
-            if not exists(filename_ini):
-                print('File "%s" does not exist, skipping...' % filename_ini)
-                continue
-
-            if tube_suffix:
-                tube_default_cfg = load_configuration(tube_default_ini)
-            else:
-                tube_default_cfg = None
-
-            experiment_cfg = load_configuration(filename_ini)
-
+            mask_cfg = None
             if mask:
-                mask_filename_ini = filename_skelet % (str(exp_no) + tube_suffix
-                                                       + '-mask_' + mask)
-                mask_cfg = load_configuration(mask_filename_ini)
+                mask_cfg = load_configuration_file(masks_dir, mask + '.ini')
                 if not mask_cfg:
-                    print('Mask file "%s" does not exist.\nContinuing without '
-                          'the mask file...' % mask_filename_ini)
-            else:
-                mask_cfg = None
+                    print('Mask file "{}" does not exist in expected location:'
+                          '\n{}.'.format(mask, masks_dir))
+                    if not yn_prompt('Do you wish to continue without the mask? [Y/n]'):
+                        exit(0)
 
-            cfg = Configuration().merge(default_cfg, group_default_cfg,
+            cfg = Configuration().merge(default_cfg, exp_default_cfg,
                                         tube_default_cfg, experiment_cfg,
                                         mask_cfg)
 
@@ -172,7 +158,7 @@ def run_experiments(options):
 
     collector = make_collector(options.tubes)
 
-    for cfg in get_cfg(INI_DIR, options.exp_id,
+    for cfg in get_cfg(options.exp_id,
                        options.first_experiment, options.last_experiment,
                        options.tubes, options.mask,
                        verbose = (not options.print_config_p)):
