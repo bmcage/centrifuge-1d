@@ -108,29 +108,36 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
               % (exp_id, first_experiment, last_experiment, ','.join(tubes)))
 
     if not print_cfg_only:
+        collector = make_collector(options.tubes)
 
         modman = ModulesManager()
 
     for exp_no in range(first_experiment, last_experiment+1):
-
         for tube_no in tubes:
             if verbose:
-                print('\n', 60 * '=',
-                      '\n   Executing experiment %s%s of the problem ''%s''.'
-                      % (str(exp_no), 'tube %s' % tube_number, exp_id),
-                      '\n', 60 * '=')
-
+                header = ("Executing experiment {} number {:d}, tube {}."
+                          "".format(exp_id, exp_no, tube_no))
+                print('\n', len(header) * '=', '\n', header,
+                      '\n', len(header) * '=')
 
             cfg = load_configuration(exp_id, exp_no, tube_no, mask)
 
+            if print_cfg_only:
+                header = ("Configuration file of experiment '{}' number {:d}, "
+                          "tube {}".format(exp_id, exp_no, tube_no))
+                print("\n", header, '\n', len(header) * '-')
+                cfg.echo()
+                continue
 
             cfg.set_defaults(modman)
 
+            if not cfg.is_valid(modman):
+                print('\n\nConfiguration is NOT VALID.\n'
+                      'The full configuration is:')
+                cfg.echo()
+                exit(1)
 
             cfg.adjust_cfg(modman)
-
-
-
 
             solver_module = modman.find_module(cfg.get_value('exp_type'),
                                                submodule='run')
@@ -141,6 +148,11 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
 
             collector('collect', data=results)
 
+    if not print_cfg_only:
+        print('Results summary:\n')
+        print_fn = lambda x: print(x[0])
+        collector('print', print_format_fn=print_fn)
+        #collector('print-by-tube', data=print_by_tube)
 
 if __name__ == "__main__":
     options = parse_input()
