@@ -8,13 +8,15 @@ class direct_saturated_rhs(IDA_RhsFunction):
 
         omega2g = model.find_omega2g(t)
 
-        L = model.l0
-        wl = x[0]
-        rS = model.r0 - model.fl1 - wl
-        rE = model.r0 + L + model.fl2
+        wl  = x[0]
+        rE  = model.re
+        L   = model.l0
+        fl2 = model.fl2
+        r0  = rE - fl2 - L
+        rS  = r0 - model.fl1 - wl
 
         qt = (omega2g/2. / (model.fl1/model.ks1 + L/model.ks
-                            + model.fl2/model.ks2)
+                            + fl2/model.ks2)
               * (rE*rE - rS*rS))
 
         result[model.mass_in_idx]  = xdot[model.mass_in_idx]  + qt

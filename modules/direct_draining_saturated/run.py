@@ -21,9 +21,11 @@ class centrifuge_residual(IDA_RhsFunction):
         #print('zdot', zdot)
         #print('--------------------')
 
-        r0 = model.r0
+        rE = model.re
         L  = model.l0
+        fl2 = model.fl2
         rb_type = model.rb_type
+        r0 = rE - fl2 - L
 
         s2 = z[model.s2_idx]
         s1 = z[model.s1_idx]
@@ -108,8 +110,8 @@ class centrifuge_residual(IDA_RhsFunction):
         if rb_type == 3:
             q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
 
-            rD = model.r0 + L - model.dip_height
-            rI = model.r0 + s2
+            rD = rE - model.dip_height
+            rI = r0 + s2
 
             q_sat = (omega2g/2. * (rD*rD - rI*rI)
                      / (model.fl1/model.ks1 + (L-s2)/model.ks

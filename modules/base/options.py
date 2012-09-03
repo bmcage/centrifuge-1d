@@ -2,7 +2,7 @@ PARENTAL_MODULES = []
 
 CONFIG_OPTIONS = ['exp_type',
                   'ks',
-                  'r0', 'l0', ('l1', None), 'duration',
+                  ('r0', None), ('re', None), 'l0', ('l1', None), 'duration',
                   'fh_duration', 'r0_fall',
                   'wt_out',
                   'include_acceleration',
@@ -36,7 +36,7 @@ CONFIG_OPTIONS = ['exp_type',
 
 INTERNAL_OPTIONS = ['omega2g_fns', 'm', 'find_omega2g']
 
-EXCLUDE_FROM_MODEL = ['omega2g_fns']
+EXCLUDE_FROM_MODEL = ['omega2g_fns', 'r0']
 
 PROVIDE_OPTIONS = []
 
@@ -57,6 +57,16 @@ def check_cfg(cfg):
             print("Option 'deceleration_duration' can't have a positive value "
                   "if 'include_acceleration' is False.")
             return False
+
+    r0 = cfg.get_value('r0')
+    rE = cfg.get_value('re')
+    print(r0, rE)
+    if r0 and rE:
+        print("Only one of 'r0' and 'rE' can be specified.")
+        return False
+    elif not (r0 or rE):
+        print("One of 'r0' and 'rE' has to be specified (but not both).")
+        return False
 
     return True
 
@@ -80,6 +90,19 @@ def adjust_cfg(cfg):
     cfg.set_value('omega2g_fns', {'centrifugation': find_omega2g,
                                   'falling_head':   find_omega2g_fh,
                                   'deceleration':   find_omega2g_dec})
+
+    # if r0 was set (but not rE), we set rE (and discard r0)
+    if not cfg.get_value('re'):
+        from numpy import asarray, isscalar
+
+        r0_np  = asarray(cfg.get_value('r0'), dtype=float)
+        l0_np  = asarray(cfg.get_value('l0'), dtype=float)
+        fl2_np = asarray(cfg.get_value('fl2'), dtype=float)
+
+        rE = r0_np + l0_np + fl2_np
+        if not isscalar(rE):
+            rE = list(rE)
+        cfg.set_value('re', rE)
 
 def prior_adjust_cfg(cfg):
     """

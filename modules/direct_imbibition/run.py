@@ -33,8 +33,10 @@ class centrifuge_residual(ResFunction):
         n  = model.n
         m  = model.m
         gamma = model.gamma
-        r0 = model.r0
-        L  = model.l0
+        rE  = model.re
+        L   = model.l0
+        fl2 = model.fl2
+        r0  = rE - fl2 - L
         porosity = model.porosity
 
 
@@ -111,10 +113,14 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype = 'all'):
     calc_gc = chtype in ['all', 'gc']
     calc_rm = chtype in ['all', 'rm']
 
+    rE  = model.re
+    L   = model.l0
+    fl2 = model.fl2
+    r0  = rE - fl2 - L
+
     porosity = model.porosity
     y  = model.y
     dy = model.dy
-    L  = model.l0
     l0_out = L + model.wt_out
     l_out  = L + model.wt_out - mass_out
 
@@ -133,7 +139,7 @@ def characteristics(t, u, mass_in, mass_out, s1, s2, model, chtype = 'all'):
     # GC is from the start of the sample (not from centr.axis)
     # sample = filter1 + soil + filter2
     r0_gc = model.fl1
-    r0_rm = model.r0
+    r0_rm = r0
 
      # Gravitational center
     r0 = r0_gc
