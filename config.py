@@ -358,7 +358,7 @@ class Configuration:
 
         return self
 
-    def read_from_files(self, cfg_dir, *cfgs_filenames):
+    def read_from_files(self, *cfgs_filenames):
         """
           Reads configuration from .ini files 'cfgs_filenames'.
           If preserve_sections_p is false, removes sections and leaves only
@@ -389,10 +389,9 @@ class Configuration:
 
         for fname in cfgs_filenames:
             # read config files
-            fullname = cfg_dir + fname
             parser   = configparser.ConfigParser()
             try:
-                read_files = parser.read(fullname)
+                read_files = parser.read(fname)
             except configparser.DuplicateOptionError as E:
                 print(E)
                 exit(0)
