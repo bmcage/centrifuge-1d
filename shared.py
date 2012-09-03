@@ -10,19 +10,6 @@ def yn_prompt(question_str):
         answ = answ.lower()
         if answ in ['', 'y', 'yes']: return True
         if answ in ['n', 'no']: return False
-def get_experiment_base_dirs(exp_id):
-    base_dir      = INI_DIR + '/'
-    exp_base_dir  = base_dir + exp_id + '/'
-
-    return (base_dir, exp_base_dir)
-
-def get_experiment_dir(exp_base_dir, exp_no):
-    return exp_base_dir + str(exp_no) + '/'
-
-def get_tube_dirs(experiment_dir, tube_number):
-    tube_dir  = experiment_dir + 'tube' + str(tube_number) + '/'
-    masks_dir = tube_dir + MASKS_DIRNAME + '/'
-    return (tube_dir, masks_dir)
 
 def load_configuration_file(basedir, *inifilenames):
     existing_files = list(filter(lambda fname: exists(basedir + fname),
@@ -32,18 +19,10 @@ def load_configuration_file(basedir, *inifilenames):
     else:
         return None
 
-def load_cfg_defaults(*cfg_dirs):
-    fullnames = list(map(lambda cfgdir: cfgdir + DEFAULTS_ININAME, cfg_dirs))
-    return load_configuration_file('', *fullnames)
 
-def load_measurements_cfg(meas_dir):
-    filenames = listdir(meas_dir)
 
     for fname in (DEFAULTS_ININAME, MASKS_DIRNAME):
-        if fname in filenames:
-            filenames.remove(fname)
 
-    return load_configuration_file(meas_dir, *filenames)
 
 def print_by_tube(tube_number, tube_data):
     print('Tube number: ', tube_number)
