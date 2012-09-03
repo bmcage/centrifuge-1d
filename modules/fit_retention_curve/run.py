@@ -95,7 +95,10 @@ def solve(model):
         params = ['n', 'gamma']
 
     for (param, value) in zip(params, inv_params):
-        print(' %-7s: % 8.5f' % (param, value))
+        if param == 'gamma':
+            print(' %-7s: % 8.5g' % (param, value))
+        else:
+            print(' %-7s: % 8.5f' % (param, value))
 
     print('\n Cov:\n%s\n' % cov_inv)
 
@@ -122,4 +125,9 @@ def draw_graphs(n, gamma, theta_s, theta_r, rho, g,
     plt.ylabel('Pressure $p$ [Pa]')
     plt.xlabel('Water content $\theta$ ')
 
-    plt.show()
+    plt.show(block=False)
+
+    input('Press ENTER to continue...')
+
+def run(model):
+    return solve(model)

@@ -1,4 +1,27 @@
 import numpy as np
+from math import sqrt
+
+def rpm2radps(x):
+    """
+      Converts rpm to rad.s^{-1}
+    """
+    # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
+    return x * np.pi/ 30.0
+
+def measurements_time(model):
+    t_duration = model.get_iterable_value('duration')
+    if not t_duration:
+        t_duration = model.duration
+    t_duration = np.asarray(t_duration, dtype=float)
+
+    if model.include_acceleration:
+        t_duration[:] = t_duration + model.deceleration_duration
+
+    t_fh_duration = model.get_iterable_value('fh_duration')
+    if not t_fh_duration:
+        t_fh_duration = model.fh_duration
+
+    return np.cumsum(t_duration + np.asarray(t_fh_duration, dtype=float))
 
 def lagrangean_derivative_coefs(dx):
     """
@@ -9,7 +32,7 @@ def lagrangean_derivative_coefs(dx):
     ldc1 = np.concatenate(([-(2*dx[0]+dx[1])/(dx[0]*(dx[0]+dx[1]))],
                           -dx[1:]/(dx[:-1]*(dx[:-1]+dx[1:])),
                           [dx[-1]/(dx[-2]*(dx[-2]+dx[-1]))]))
-    ldc2 = np.concatenate(([dx[0]+dx[1]/(dx[1]*dx[0])],
+    ldc2 = -np.concatenate(([(dx[0]+dx[1])/(dx[1]*dx[0])],
                           (dx[1:] - dx[:-1])/dx[:-1]/dx[1:],
                           [(dx[-1]+dx[-2])/(dx[-2]*dx[-1])]))
     ldc3 = np.concatenate(([-dx[0]/(dx[1]*(dx[1]+dx[0]))],
@@ -18,15 +41,18 @@ def lagrangean_derivative_coefs(dx):
 
     return ldc1, ldc2, ldc3
 
-def lagrangean_derivative_coefs_rightpoint(dx12, fx13):
+def right_derivative(dx12, fx13):
     [dx1, dx2]      = dx12
     [fx1, fx2, fx3] = fx13
 
     derivative = (dx2/(dx1*(dx1+dx2)) * fx1
-                  + (dx2 + dx1)/(-dx1 * dx2) * fx2
+                  - (dx2 + dx1)/(dx1 * dx2) * fx2
                   + (2*dx2 + dx1)/(dx2*(dx1+dx2)) * fx3)
 
     return derivative
+
+def determine_scaling_factor(v):
+    return np.power(10, -np.floor(np.log10(np.max(np.abs(v)))))
 
 def f1(t):
     return 1.7032046506 * np.power(t, 1.233644749)
@@ -35,33 +61,13 @@ def f2(t):
 def f3(t):
     return 0.1332308098 * np.log(t) + 9.5952480661
 
-def find_omega2g(t_current, model, t_base = 0.0):
-    """
-    Model includes the acceleration and deceleration of the centrifuge.
-    The acceleration model is based on data measured for the centrifuge
-    that accelerates to the 600 rpm (i.e. 10 rps) - the evolution of rotational
-    speed for other end-speeds is the done by scaling. Deceleration is
-    considered to be linear.
-    """
-    t         = t_current - t_base
-    t_end     = model.duration
-    omega_max = model.omega
-    #print('omg2g: ', model.omega, model._omega)
+def find_omega2g_fh(model, t):
+    return 1/model.r0_fall
 
+def find_omega2g(model, t):
     if model.include_acceleration:
-        if t > t_end:
-            if model.deceleration_duration > 0.:
-                if t > t_end + model.deceleration_duration:
-                    omega = model.omega_end
-                else:
-                    omega = (model.omega_end
-                             + (t_end + model.deceleration_duration - t)
-                               / model.deceleration_duration
-                               * (omega_max - model.omega_end))
-            else:
-                omega = omega_max
-        elif t > 21.0:
-            omega = omega_max
+        if t > 21.0:
+            omega = model.omega
         else:
             omega_base = 10.
 
@@ -78,15 +84,15 @@ def find_omega2g(t_current, model, t_base = 0.0):
             else:
                 omega = f1(t)
 
-            omega = omega/omega_base * omega_max
+            omega = omega/omega_base * model.omega
     else:
-        omega = omega_max
+        omega = model.omega
 
-        #print('omega: ', omega)
-    #print('t = ', t, 'omega = ', omega)
-    return np.power(omega, 2)/model.g
-    # Previous exponential acceleration:
-    #     return (np.power(model.omega_start  + (model.omega - model.omega_start)
-    #                      *(1 - np.exp(-model.omega_gamma*t)), 2)
-    #             / model.g)
+    return omega * omega / model.g
 
+def find_omega2g_dec(model, t):
+    duration = model.duration
+    # omega_end = 0.0, t_end == duration, t in [0, duration]
+    omega = (duration - t) / deceleration_duration * model.omega
+
+    return omega * omega / model.g

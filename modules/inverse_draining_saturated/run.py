@@ -1,86 +1,63 @@
 from modules.direct_draining_saturated.run import solve as solve_direct
+from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
-from numpy import concatenate, asarray
-
-def print_results(model, inv_params, t_inv, wl1_inv, gc1_inv):
-    duration = model.get_iterable_value('duration')
-    gc1  = model.get_iterable_value('gc1')
-    wl_out1  = model.get_iterable_value('wl_out1')
-
-    for i in range(model.iterations):
-        if wl_out1[i] == 0.0:
-            wl_out1[i] = 1.0e-10
-
-        print('Subexperiment %i:' % (i+1))
-        print('    GC_measured: % 9.6f wl_out_measured: % 8.6f'
-              ' t_end_expected: % 6.2f'
-              % (gc1[i],  wl_out1[i], duration[i]))
-        print('    GC_computed: % 9.6f wl_out_computed: % 8.6f'
-              ' t_end_computed: % 6.2f'
-              % (gc1_inv[i], wl_out1_inv, t_inv[i]))
-        print('    Error (%%):   % 5.2f                        % 5.2f'
-              '                  % 5.2f'
-              % ((gc1_inv[i] - gc1[i]) / gc1[i] * 100,
-                 (wl_out1[i] - wl_out1_inv) / wl_out1[i] * 100,
-                 (t_inv[i] - t[i]) / t[i] * 100))
-
-    if len(inv_params) == 3:
-        (Ks_inv, n_inv, gamma_inv) = inv_params
-        print('\nKs [cm/s] found: ', Ks_inv)
-    else:
-        (n_inv, gamma_inv) = inv_params
-    print('n         found: ', n_inv)
-    print('gamma     found: ', gamma_inv)
+from modules.shared.vangenuchten import h2u
+from numpy import alen
 
 def solve(model):
-    # use all 3 parameters (Ks, n, gamma) or only two (n, gamma) ?
-    determine_all = (len(model.inv_init_params) == 3)
 
-    def ip_direct_drainage(model, optim_args):
-        if determine_all:
-            (model.ks, model.n, model.gamma) = optim_args
+    no_measurements = []
+
+    def ip_direct_drainage(model):
+        if model.dynamic_h_init:
+            model.h_init = min(model.c_gammah / model.gamma, model.h_init_max)
+            if model.verbosity > 1:
+                print('\nh_init: ', model.h_init,
+                      'u_init', h2u(model.h_init, model.n,
+                                    model.m, model.gamma), '\n')
+
+        (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
+
+        contains_data = (alen(t) > 1)
+
+        # we discard values at t=0 (for given measurement)
+        if model.calc_wl_out and contains_data:
+            wl_out = z[1:, model.mass_out_idx].transpose()
         else:
-            (model.n, model.gamma) = optim_args
-        model.m = 1-1/model.n
+            wl_out = no_measurements
 
-        (_flag, t, z, gc1) = solve_direct(model)
+        if model.calc_wl_in and contains_data:
+            wl_in = z[1:, model.mass_in_idx].transpose()
+        else:
+            wl_in = no_measurements
 
-        wl_out1 = z[:, model.mass_out_idx]
+        if model.calc_gc and contains_data:
+            gc1 = gc1[1:]
+        else:
+            gc1 = no_measurements
 
-        print('\noptimization parameters: ', optim_args)
-        print('gc_mes, wl_mes: t_exp', model.get_iterable_value('gc1'),
-              model.get_iterable_value('wl_out1'),
-              model.get_iterable_value('duration'))
-        print('gc_com, wl_com: t_com', gc1[1:], wl_out1[1:], t)
+        if model.calc_rm and contains_data:
+            rm1 = rm1[1:]
+        else:
+            rm1 = no_measurements
 
-        return (t, gc1[1:], wl_out1.transpose()[1:]) # discard values at t=0
+        return (flag, t, wl_in, wl_out, gc1, rm1)
 
-    def lsq_ip_direct_drainage(xdata, *optim_args):
+    t_meas = measurements_time(model)
 
-        (t, gc1, wl_out1) = ip_direct_drainage(xdata, optim_args)
-
-        result = concatenate((gc1, wl_out1))
-
-        return result
-
-    if model.exp_type in ['ids', 'idsh']:
-        data_measured = \
-          concatenate((asarray(model.get_iterable_value('gc1'),
-                               dtype=float),
-                       asarray(model.get_iterable_value('wl_out1'),
-                               dtype=float)))
-
-        lsq_direct_fn = lsq_ip_direct_drainage
-        direct_fn     = ip_direct_drainage
-
-    xdata         = model
-    init_params   = model.inv_init_params
-
-    inv_params, cov_ks = simulate_inverse(lsq_direct_fn, xdata, data_measured,
-                                          init_params)
-
-    (t_inv, gc1_inv, wl_out1_inv) = direct_fn(xdata, inv_params)
-
-    print_results(model, inv_params, t_inv, wl_out1_inv, gc1_inv)
+    inv_params = \
+      simulate_inverse(t_meas, ip_direct_drainage, model, model.inv_init_params,
+                       wl_in_meas  = model.get_iterable_value('wl1'),
+                       wl_out_meas = model.get_iterable_value('wl_out'),
+                       gc_meas     = model.get_iterable_value('gc1'),
+                       rm_meas     = model.get_iterable_value('rm1'),
+                       wl_in_weights  = model.get_iterable_value('wl1_weights'),
+                       wl_out_weights = model.get_iterable_value('wl_out_weights'),
+                       gc_weights     = model.get_iterable_value('gc1_weights'),
+                       rm_weights     = model.get_iterable_value('rm1_weights'),
+                       optimfn=model.optimfn)
 
     return inv_params
+
+def run(model):
+    return solve(model)

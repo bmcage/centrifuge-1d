@@ -1,16 +1,23 @@
+"""
+Library for computing the characteristics for the sample.
+The default one in modules.shared.characteristics differs the meaning
+of s3 interface. Here the s3 interface is the inteface between the
+unsaturated part in <0, s3> and the saturated part in <s3, L>.
+"""
+
 import numpy as np
 
-def water_mass(u, mass_in, mass_out, s1, s2, model):
+def water_mass(u, mass_in, mass_out, s1, s3, model):
     """
       Determine the amount of water contained in the experiment.
       The amount is the sum of water in inflow chamber, outflow chamber,
-      saturated zone in <r0, s1> and unsaturates zone in <s1, s2>.
+      unsaturated zone in <r0, r0+s3> and saturates zone in <r0+s3, r0+L>.
     """
     dy = model.dy
-    ds = s2 - s1
+    ds = s3 - s1
 
     # Water mass
-    wm_sat   = s1
+    wm_sat   = model.l0 - s3
     wm_unsat = ds/2  * (dy[0]* u[0] + dy[-1]*u[-1]
                         + np.sum((dy[:-1] + dy[1:])*u[1:-1]))
 
@@ -19,7 +26,7 @@ def water_mass(u, mass_in, mass_out, s1, s2, model):
 
     return WM_total, WM_in_tube
 
-def calc_gc(u, mass_in, s1, s2, WM_in_tube, model):
+def calc_gc(u, mass_in, s1, s3, WM_in_tube, model):
     """
       Determine the gravitational center of water in the sample. The water
       on thi inflow is taken into account (but not water on the outflow).
@@ -28,7 +35,7 @@ def calc_gc(u, mass_in, s1, s2, WM_in_tube, model):
     """
     y  = model.y
     dy = model.dy
-    ds = s2 - s1
+    ds = s3 - s1
     L  = model.l0
 
     # sample = filter1 + soil + filter2
@@ -36,7 +43,7 @@ def calc_gc(u, mass_in, s1, s2, WM_in_tube, model):
 
     gc_unsat = (model.porosity * 1/2 * model.density * ds
                 * ((r0 + s1)*dy[0]*u[0]
-                   + (r0 + s2)*dy[-1]*u[-1]
+                   + (r0 + s3)*dy[-1]*u[-1]
                    + np.sum((dy[:-1]+dy[1:])
                             *(r0 + s1 + ds*y[1:-1])*u[1:-1])))
     gc_sat   = (1/2 * model.density
@@ -49,7 +56,7 @@ def calc_gc(u, mass_in, s1, s2, WM_in_tube, model):
 
     return GC
 
-def calc_rm(t, u, mass_in, mass_out, s1, s2, model):
+def calc_rm(t, u, mass_in, mass_out, s1, s3, model):
 
     porosity = model.porosity
     y  = model.y
@@ -58,7 +65,7 @@ def calc_rm(t, u, mass_in, mass_out, s1, s2, model):
     l0_out = L + model.wt_out
     l_out  = L + model.wt_out - mass_out
 
-    ds = s2 - s1
+    ds = s3 - s1
 
     P = np.pi * model.d / 4
     omega2g = find_omega2g(t, model.omega, model)
@@ -67,7 +74,7 @@ def calc_rm(t, u, mass_in, mass_out, s1, s2, model):
     r0 = model.r0
     rm_unsat = (porosity * 1/4 * model.density * ds
                 * (np.power(r0 + s1, 2)*dy[0]*u[0]
-                   + np.power(r0 + s2, 2)*dy[-1]*u[-1]
+                   + np.power(r0 + s3, 2)*dy[-1]*u[-1]
                    + np.sum((dy[:-1]+dy[1:]) * u[1:-1]
                             * np.power(r0 + s1 + ds*y[1:-1], 2))))
     rm_sat   = (1/6 * model.density

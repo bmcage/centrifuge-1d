@@ -1,16 +1,10 @@
 PARENTAL_MODULES = ['base', 'direct_draining_saturated']
 
-CONFIG_OPTIONS = {
-        'mandatory' : [],
-        'defaults'  : {'percent_in_saturation': 30},
-        'dependent' : {},
-        'optional'  : [],
-        'additional': ['saturated_idx']
-        }
+CONFIG_OPTIONS = ['percent_in_saturation', 30]
+
+INTERNAL_OPTIONS = ['saturated_idx']
 
 EXCLUDE_FROM_MODEL = ['percent_in_saturation']
-
-IGNORE_OPTIONS = []
 
 def check_cfg(cfg):
     value = cfg.get_value('percent_in_saturation')

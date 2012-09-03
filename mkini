@@ -1,13 +1,10 @@
 #!/usr/bin/python
 import csv
 
-from os import makedirs, path
+from os import makedirs, path, sep
 from optparse import OptionParser
 from config import ModulesManager
-
-base_dir = 'sources/'
-csv_dir  = base_dir + 'csv/'
-ini_dir  = base_dir + 'inifiles/'
+from const import CSV_DIR, INI_DIR
 
 modman = ModulesManager()
 
@@ -23,16 +20,24 @@ def parse_input():
          '\n        the file ''./sources/csv/<csv_ID>[.cvs]'' ')
 
     optparser = OptionParser(usage=usage_str)
+    optparser.add_option('-l', '--list', dest='list', action="store_true",
+                         default=False,
+                         help="Lists all available CSV files")
 
     (options, args) = optparser.parse_args()
 
     len_args = len(args)
 
     if len_args == 0:
-        optparser.print_help()
+        if options.list:
+            from os import listdir
+
+            print('\n'.join(sorted(listdir(CSV_DIR))))
+        else:
+            optparser.print_help()
         exit(0)
 
-    csv_filename = csv_dir + args[0]
+    csv_filename = CSV_DIR + sep + args[0]
 
     if path.exists(csv_filename):
             options.csv_filename = csv_filename
@@ -42,8 +47,8 @@ def parse_input():
         print('CSV file does not exist:{}'.format(csv_filename))
         exit(1)
 
-    if not path.exists(ini_dir):
-        makedirs(ini_dir)
+    if not path.exists(INI_DIR):
+        makedirs(INI_DIR)
 
     return options
 
@@ -151,8 +156,7 @@ def write2ini(experiment_data, filename):
         if descriptor == 'exp_type':
             fout.write("{:8} = '{}'\n".format(descriptor, value))
         else:
-            fout.write('{:8} = [{}]\n'.format(descriptor,
-                                                          ', '.join(value)))
+            fout.write('{:8} = [{}]\n'.format(descriptor, ', '.join(value)))
     fout.close()
 
 def data2ini(data, output_dir):
@@ -160,10 +164,7 @@ def data2ini(data, output_dir):
     print('\nCreating data inifiles...')
 
     for (experiment_id, exp_id_struct) in data.items():
-        exp_out_dir  = output_dir + experiment_id + '/'
-
-        if not path.exists(exp_out_dir):
-            makedirs(exp_out_dir)
+        exp_out_dir  = output_dir + sep + experiment_id + '/'
 
         print('    Processing experiment(s) with ID: %s...' % experiment_id)
 
@@ -173,9 +174,14 @@ def data2ini(data, output_dir):
                   % experiment_no, end="")
 
             for (tube_no, exp_data) in exp_no_struct.items():
+                file_dir = exp_out_dir + 'tube%s/' % str(tube_no)
 
-                filename = (exp_out_dir + 'experiment_' + experiment_no
-                            + '-tube' + tube_no + '.ini')
+                if not path.exists(file_dir):
+                    makedirs(file_dir)
+                    makedirs(file_dir, 'masks') # create empty masks directory
+
+
+                filename = (file_dir + 'measurements.ini')
 
                 write2ini(exp_data, filename)
 
@@ -189,7 +195,7 @@ def data2ini(data, output_dir):
             print('\n        File "defaults.ini" already exists. Skipping...')
         else:
             fout = open(default_ini, mode='w', encoding='utf-8')
-            fout.write('[base]\n')
+            fout.write('[experiment]\n')
             # TODO: add some default stuff that will be added to the defaults
             print('Done.')
 
@@ -199,4 +205,4 @@ if __name__ == "__main__":
     options = parse_input()
     data    = CSV2data(options.csv_filename)
 
-    data2ini(data, ini_dir)
+    data2ini(data, INI_DIR)

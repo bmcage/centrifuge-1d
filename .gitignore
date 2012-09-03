@@ -3,8 +3,9 @@
 *~
 \#*\#
 build/*
-sources*
+data*
 odes*
 *swp
 .emacs*
 .directory
+git*

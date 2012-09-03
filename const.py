@@ -1,65 +1,31 @@
-"""
-Provides constants for other modules
-
-To access:
-import const
-const.VALUE
-"""
+from os import sep, getcwd
+#from platform import python_version_tuple
 
 #-------------------------------------------------------------------------
 #
-# Standard python modules
+# Paths
 #
 #-------------------------------------------------------------------------
-import os
-import platform
+PROGRAM_DIR = getcwd()
+DATA_DIR    = PROGRAM_DIR + sep + 'data'
+CSV_DIR     = DATA_DIR    + sep + 'csv'
+INI_DIR     = DATA_DIR    + sep + 'inifiles'
+FIGS_DIR    = DATA_DIR    + sep + 'figures'
 
-#-------------------------------------------------------------------------
-#
-# Website
-#
-#-------------------------------------------------------------------------
-URL_HOMEPAGE    = "http://cage.ugent.be/~bm/progs"
-
-#-------------------------------------------------------------------------
-#
-# paths
-#
-#-------------------------------------------------------------------------
-USER_HOME = os.path.expanduser('~') 
-PROGRAM_DIR = os.getcwd()
-DATA_DIR  = PROGRAM_DIR + os.sep + 'centrifuge'
-
-# dirs that need to be created
-USER_DIRLIST = (DATA_DIR,)
-
+# Default names
+DEFAULTS_ININAME = 'defaults.ini'
+MASKS_DIRNAME    = 'masks'
 #-------------------------------------------------------------------------
 #
 # About box information
 #
 #-------------------------------------------------------------------------
-PROGRAM_NAME   = "Centrifuge"
-VERSION        = "0.0.1a"
-#COPYRIGHT_MSG  = u"\u00A9 2009 Pavol Kišon" \
-#                  u"\u00A9 2009 Benny Malengier"
-COMMENTS       = "Centrifuge is a simulator of an water infiltration "\
-                 "into soil sample put in a centrifuge"
-PYTHONVERSION  = platform.python_version_tuple()
+# URL_HOMEPAGE    = "http://cage.ugent.be/~bm/progs"
 
-#-------------------------------------------------------------------------
-#
-# Constants
-#
-#-------------------------------------------------------------------------
-
-INIFILE_DEFAULT = 'inifiles-defaults/parameters_default.ini'
-INIFILE_DEFAULT_EXT = 'inifiles-defaults/parameters_default_extended.ini'
-
-#-------------------------------------------------------------------------
-#
-# Options Constants
-#
-#-------------------------------------------------------------------------
-
-LONGOPTS = ['inifiles', 'outputdir', 'saveconfig']
-SHORTOPTS = 'i:o:s' 
+# PROGRAM_NAME   = "Centrifuge"
+# VERSION        = "0.1.1a"
+# #COPYRIGHT_MSG  = u"\u00A9 2009 Pavol Kišon" \
+# #                  u"\u00A9 2009 Benny Malengier"
+# COMMENTS       = "Centrifuge is a simulator of an water infiltration "\
+#                  "into soil sample put in a centrifuge"
+# PYTHONVERSION  = python_version_tuple()

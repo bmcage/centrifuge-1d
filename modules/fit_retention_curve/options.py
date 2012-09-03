@@ -3,30 +3,30 @@ PARENTAL_MODULES = ['base']
 def should_theta_s_be_present(cfg):
     inv_init_params_len = len(cfg.get_value('inv_init_params'))
     result = ((inv_init_params_len == 2)
-              or ((inv_init_params_len == 3) and cfg.get_value('thera_r')))
+              or ((inv_init_params_len == 3)
+                   and (cfg.get_value('theta_r') is None)))
     return result
 
 def should_theta_r_be_present(cfg):
     inv_init_params_len = len(cfg.get_value('inv_init_params'))
     result = ((inv_init_params_len == 2)
-              or ((inv_init_params_len == 3) and cfg.get_value('thera_r')))
+              or ((inv_init_params_len == 3)
+                  and (cfg.get_value('theta_s') is None)))
     return result
 
-CONFIG_OPTIONS = {
-        'mandatory' : ['p', 'theta', 'inv_init_params'],
-        'defaults'  : {'rho': 1.0},
-        'dependent' : {'theta_s': (should_theta_s_be_present, ['theta_s']),
-                       'theta_r': (should_theta_r_be_present, ['theta_r'])},
-        'optional'  : ['sample_id'],
-        'additional': []
-        }
-
-EXCLUDE_FROM_MODEL = []
+CONFIG_OPTIONS = ['p', 'theta', 'inv_init_params',
+                  ('rho', 1.0),
+                  (should_theta_s_be_present, ['theta_s']),
+                  (should_theta_r_be_present, ['theta_r']),
+                  ('sample_id', None), ('wl_out1', None)]
 
 NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'p', 'theta']
 
-IGNORE_OPTIONS = ['duration', 'ks', 'r0', 'l0', 'rtol', 'atol', 'wt_out',
+PROVIDE_OPTIONS = ['duration', 'ks', 'r0', 'l0', 'wt_out',
                   'omega']
+
+BLACKLIST_OPTIONS = ['rtol', 'atol', 'include_acceleration', 'max_step_size',
+                     'r0_fall', 'fh_duration', 'max_steps']
 
 def check_cfg(cfg):
     theta_s_p = not cfg.get_value('theta_s') is None

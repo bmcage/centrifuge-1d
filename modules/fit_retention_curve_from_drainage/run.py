@@ -50,7 +50,7 @@ def solve(model):
         xdata = (h, theta_s, theta_r)
 
     data_measured = theta
-    print('theta:', theta, theta_s, theta_r)
+    #print('theta:', theta, theta_s, theta_r)
 
     inv_params, cov_inv = curve_fit(lsq_fn, xdata,
                                     data_measured, p0 = inv_params_init)
@@ -106,3 +106,6 @@ def draw_graphs(n, gamma, theta_s, theta_r, rho, g,
     plt.xlabel('Water content \t$\theta$ ')
 
     plt.show()
+
+def run(model):
+    return solve(model)
