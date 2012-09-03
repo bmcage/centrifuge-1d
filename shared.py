@@ -28,9 +28,12 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
 
     search_dirs  = (base_dir, exp_base_dir, exp_dir, tube_dir)
 
-    defaults_files = list(filter(lambda fname: exists(fname),
-                                 map(lambda cfgdir: cfgdir + DEFAULTS_ININAME,
-                                     search_dirs)))
+    filter_existing = lambda fnames: list(filter(lambda fname: exists(fname),
+                                                 fnames))
+    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
+                                                dirs)
+    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
+                                                       search_dirs))
 
     # Measurements: 1. list filenames 2. remove 'defaults.ini' and 'mask' dir
     #               3. prefix filenames with path
