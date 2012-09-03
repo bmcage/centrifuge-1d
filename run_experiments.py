@@ -98,13 +98,6 @@ def parse_input():
 
     return options
 
-def yn_prompt(question_str):
-    while True:
-        answ = input(question_str)
-        answ = answ.lower()
-        if answ in ['', 'y', 'yes']: return True
-        if answ in ['n', 'no']: return False
-
 def get_cfg(exp_id, first_experiment, last_experiment, tubes,
             mask, verbose = False):
 

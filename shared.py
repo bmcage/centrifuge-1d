@@ -4,6 +4,12 @@ from os import listdir
 from os.path import exists
 from config import Configuration
 
+def yn_prompt(question_str):
+    while True:
+        answ = input(question_str)
+        answ = answ.lower()
+        if answ in ['', 'y', 'yes']: return True
+        if answ in ['n', 'no']: return False
 def get_experiment_base_dirs(exp_id):
     base_dir      = INI_DIR + '/'
     exp_base_dir  = base_dir + exp_id + '/'
