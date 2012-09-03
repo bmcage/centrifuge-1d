@@ -1,10 +1,3 @@
-"""
-Provides constants for other modules
-
-To access:
-import const
-const.VALUE
-"""
 from os import sep, getcwd
 #from platform import python_version_tuple
 
@@ -19,6 +12,9 @@ CSV_DIR     = DATA_DIR    + sep + 'csv'
 INI_DIR     = DATA_DIR    + sep + 'inifiles'
 FIGS_DIR    = DATA_DIR    + sep + 'figures'
 
+# Default names
+DEFAULTS_ININAME = 'defaults.ini'
+MASKS_DIRNAME    = 'masks'
 #-------------------------------------------------------------------------
 #
 # About box information

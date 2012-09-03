@@ -384,35 +384,32 @@ class Configuration:
 
             return value
 
-        # read config files
-        parser     = configparser.ConfigParser()
-        try:
-            read_files = parser.read(cfgs_filenames)
-        except configparser.DuplicateOptionError as E:
-            print(E)
-            exit(0)
-
-        if (len(read_files) != len(cfgs_filenames)):
-            print('Warning: from expected files: ', str(cfgs_filenames),
-                  'were successfully parsed only: ', str(read_files))
-
-        # Write data from parser to configuration
         cfg_dict = self._cfg_dict
         preserve_sections_p = self._preserve_sections_p
 
-        for psection in parser.sections():
-            section = psection.lower()
+        for fname in cfgs_filenames:
+            # read config files
+            parser   = configparser.ConfigParser()
+            try:
+                read_files = parser.read(fname)
+            except configparser.DuplicateOptionError as E:
+                print(E)
+                exit(0)
 
-            if preserve_sections_p and not (section in cfg_dict):
-                cfg_dict[section] = {}
+            # Write data from parser to configuration
+            for psection in parser.sections():
+                section = psection.lower()
 
-            for option in parser.options(psection):
-                raw_value = parser.get(psection, option).strip()
+                if preserve_sections_p and not (section in cfg_dict):
+                    cfg_dict[section] = {}
 
-                value = transform_value(option, parse_value(raw_value))
-                self.set_value(option, value, section)
+                for option in parser.options(psection):
+                    raw_value = parser.get(psection, option).strip()
 
-        # we loaded new configuration so discare previous loaded definition
+                    value = transform_value(option, parse_value(raw_value))
+                    self.set_value(option, value, section)
+
+        # we loaded new configuration so discard previously loaded definition
         self._config_definition = None
 
         return self

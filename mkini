@@ -156,8 +156,7 @@ def write2ini(experiment_data, filename):
         if descriptor == 'exp_type':
             fout.write("{:8} = '{}'\n".format(descriptor, value))
         else:
-            fout.write('{:8} = [{}]\n'.format(descriptor,
-                                                          ', '.join(value)))
+            fout.write('{:8} = [{}]\n'.format(descriptor, ', '.join(value)))
     fout.close()
 
 def data2ini(data, output_dir):
@@ -167,9 +166,6 @@ def data2ini(data, output_dir):
     for (experiment_id, exp_id_struct) in data.items():
         exp_out_dir  = output_dir + sep + experiment_id + '/'
 
-        if not path.exists(exp_out_dir):
-            makedirs(exp_out_dir)
-
         print('    Processing experiment(s) with ID: %s...' % experiment_id)
 
         for (experiment_no, exp_no_struct) in exp_id_struct.items():
@@ -178,9 +174,14 @@ def data2ini(data, output_dir):
                   % experiment_no, end="")
 
             for (tube_no, exp_data) in exp_no_struct.items():
+                file_dir = exp_out_dir + 'tube%s/' % str(tube_no)
 
-                filename = (exp_out_dir + 'experiment_' + experiment_no
-                            + '-tube' + tube_no + '-general.ini')
+                if not path.exists(file_dir):
+                    makedirs(file_dir)
+                    makedirs(file_dir, 'masks') # create empty masks directory
+
+
+                filename = (file_dir + 'measurements.ini')
 
                 write2ini(exp_data, filename)
 

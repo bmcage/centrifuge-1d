@@ -1,11 +1,8 @@
 #!/usr/bin/python
 from sys import path as syspath, argv as sysargv
-from os.path import exists
-from shared import (make_collector, print_by_tube, generate_tubes_suffixes)
-from config import ModulesManager, Configuration, ModelParameters
+from shared import (make_collector, print_by_tube, load_configuration)
+from config import ModulesManager, ModelParameters
 from optparse import OptionParser
-from const import INI_DIR
-
 
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
@@ -97,14 +94,15 @@ def parse_input():
 
     return options
 
-def load_configuration(inifilename):
-     if exists(inifilename):
-        return Configuration().read_from_files(inifilename)
-     else:
-        return None
+def process_global_constants(cfg, consts_cfg):
+    if not consts_cfg: return
 
-def get_cfg(ini_dir, exp_id, first_experiment, last_experiment, tubes,
-            mask, verbose = False):
+    for (name, value) in consts_cfg.iterate_values():
+        if not cfg.get_value(name):
+            cfg.set_value(name, value)
+
+def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
+                    verbose=True, print_cfg_only=False):
 
     if verbose:
         print('\n\n GENERAL experiments informations'
@@ -116,97 +114,61 @@ def get_cfg(ini_dir, exp_id, first_experiment, last_experiment, tubes,
               '\n---------------------------------------------------------'
               % (exp_id, first_experiment, last_experiment, ','.join(tubes)))
 
-    default_ini = ini_dir + '/' + exp_id + '/defaults.ini'
-    default_cfg = load_configuration(default_ini)
-
-    (tubes_suffixes, tubes_identifiers) = generate_tubes_suffixes(tubes)
-
-    filename_skelet = ini_dir + '/' + exp_id + '/experiment_' + '%s' + '.ini'
-
-    for exp_no in range(first_experiment, last_experiment+1):
-
-        group_default_ini = filename_skelet % (str(exp_no) + '-defaults')
-        group_default_cfg = load_configuration(group_default_ini)
-
-        for (tube_suffix, tube_identifier) in zip(tubes_suffixes,
-                                                  tubes_identifiers):
-
-            if verbose:
-                print('\n', 60 * '=',
-                      '\n   Executing experiment %s%s of the problem ''%s''.'
-                      % (str(exp_no), tube_identifier, exp_id), '\n', 60 * '=')
-
-            tube_default_ini = filename_skelet % (str(exp_no) + tube_suffix
-                                                  + '-defaults')
-
-            filename_ini = filename_skelet % (str(exp_no) + tube_suffix + '-general')
-
-            if not exists(filename_ini):
-                print('File "%s" does not exist, skipping...' % filename_ini)
-                continue
-
-            if tube_suffix:
-                tube_default_cfg = load_configuration(tube_default_ini)
-            else:
-                tube_default_cfg = None
-
-            experiment_cfg = load_configuration(filename_ini)
-
-            if mask:
-                mask_filename_ini = filename_skelet % (str(exp_no) + tube_suffix
-                                                       + '-mask_' + mask)
-                mask_cfg = load_configuration(mask_filename_ini)
-                if not mask_cfg:
-                    print('Mask file "%s" does not exist.\nContinuing without '
-                          'the mask file...' % mask_filename_ini)
-            else:
-                mask_cfg = None
-
-            cfg = Configuration().merge(default_cfg, group_default_cfg,
-                                        tube_default_cfg, experiment_cfg,
-                                        mask_cfg)
-
-            yield cfg
-
-def run_experiments(options):
-
-    collector = make_collector(options.tubes)
-
-    for cfg in get_cfg(INI_DIR, options.exp_id,
-                       options.first_experiment, options.last_experiment,
-                       options.tubes, options.mask,
-                       verbose = (not options.print_config_p)):
-
-        if options.print_config_p:
-            cfg.echo()
-            exit(0)
+    if not print_cfg_only:
+        collector = make_collector(options.tubes)
 
         modman = ModulesManager()
 
-        cfg.set_defaults(modman)
+    for exp_no in range(first_experiment, last_experiment+1):
+        for tube_no in tubes:
+            if verbose:
+                header = ("Executing experiment {} number {:d}, tube {}."
+                          "".format(exp_id, exp_no, tube_no))
+                print('\n', len(header) * '=', '\n', header,
+                      '\n', len(header) * '=')
 
-        if not cfg.is_valid(modman):
-            print('\n\nConfiguration is NOT VALID.\n'
-                  'The full configuration is:')
-            cfg.echo()
-            exit(1)
+            (cfg, consts_cfg) = load_configuration(exp_id, exp_no,
+                                                   tube_no, mask)
 
-        cfg.adjust_cfg(modman)
+            if print_cfg_only:
+                header = ("Configuration file of experiment '{}' number {:d}, "
+                          "tube {}".format(exp_id, exp_no, tube_no))
+                print("\n", header, '\n', len(header) * '-')
+                cfg.echo()
+                continue
 
-        solver_module = modman.find_module(cfg.get_value('exp_type'),
+            cfg.set_defaults(modman)
+
+            # Assign global values not present in (or based on) configuration
+            process_global_constants(cfg, consts_cfg)
+
+            if not cfg.is_valid(modman):
+                print('\n\nConfiguration is NOT VALID.\n'
+                      'The full configuration is:')
+                cfg.echo()
+                exit(1)
+
+            cfg.adjust_cfg(modman)
+
+            solver_module = modman.find_module(cfg.get_value('exp_type'),
                                                submodule='run')
 
-        model = ModelParameters(cfg)
+            model = ModelParameters(cfg)
 
-        results = solver_module.run(model)
+            results = solver_module.run(model)
 
-        collector('collect', data=results)
+            collector('collect', data=results)
 
-    print('Results summary:\n')
-    print_fn = lambda x: print(x[0])
-    collector('print', print_format_fn=print_fn)
-    #collector('print-by-tube', data=print_by_tube)
+    if not print_cfg_only:
+        print('Results summary:\n')
+        print_fn = lambda x: print(x[0])
+        collector('print', print_format_fn=print_fn)
+        #collector('print-by-tube', data=print_by_tube)
 
 if __name__ == "__main__":
     options = parse_input()
-    run_experiments(options)
+
+    print_cfg_only = options.print_config_p
+    run_experiments(options.exp_id, options.first_experiment,
+                    options.last_experiment, options.tubes, options.mask,
+                    verbose=(not print_cfg_only), print_cfg_only=print_cfg_only)
