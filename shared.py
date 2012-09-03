@@ -57,7 +57,16 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
 
     cfg_files = defaults_files + measurements_files + [mask_filename]
 
-    return Configuration().read_from_files(*cfg_files)
+    cfg = Configuration().read_from_files(*cfg_files)
+
+    # Handle CONSTANTS.ini files
+    constants_files = filter_existing(prefix_with_paths('CONSTANTS.ini',
+                                                        search_dirs))
+    consts_cfg = None
+    if constants_files:
+        consts_cfg = Configuration().read_from_files(*constants_files)
+
+    return (cfg, consts_cfg)
 
 def print_by_tube(tube_number, tube_data):
     print('Tube number: ', tube_number)

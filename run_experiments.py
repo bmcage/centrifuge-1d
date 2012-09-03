@@ -94,6 +94,13 @@ def parse_input():
 
     return options
 
+def process_global_constants(cfg, consts_cfg):
+    if not consts_cfg: return
+
+    for (name, value) in consts_cfg.iterate_values():
+        if not cfg.get_value(name):
+            cfg.set_value(name, value)
+
 def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
                     verbose=True, print_cfg_only=False):
 
@@ -120,7 +127,8 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
                 print('\n', len(header) * '=', '\n', header,
                       '\n', len(header) * '=')
 
-            cfg = load_configuration(exp_id, exp_no, tube_no, mask)
+            (cfg, consts_cfg) = load_configuration(exp_id, exp_no,
+                                                   tube_no, mask)
 
             if print_cfg_only:
                 header = ("Configuration file of experiment '{}' number {:d}, "
@@ -130,6 +138,9 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
                 continue
 
             cfg.set_defaults(modman)
+
+            # Assign global values not present in (or based on) configuration
+            process_global_constants(cfg, consts_cfg)
 
             if not cfg.is_valid(modman):
                 print('\n\nConfiguration is NOT VALID.\n'
