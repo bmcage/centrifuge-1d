@@ -16,10 +16,9 @@ def get_directories(dirs, exp_id, exp_no, tube_no):
     masks_dir    = tube_dir + MASKS_DIRNAME + '/'
 
     if not dirs: dirs = ('search')
-
     single_result = False
     if type(dirs) == str:
-         dirs = tuple(dirs)
+         dirs = (dirs,)
          single_result = True
     results = []
 
