@@ -1,8 +1,5 @@
 import numpy as np
-from const import INI_DIR, MASKS_DIRNAME, DEFAULTS_ININAME
-from os import listdir
-from os.path import exists
-from config import Configuration
+from const import INI_DIR, MASKS_DIRNAME
 
 def yn_prompt(question_str):
     while True:
@@ -11,62 +8,37 @@ def yn_prompt(question_str):
         if answ in ['', 'y', 'yes']: return True
         if answ in ['n', 'no']: return False
 
-def load_configuration_file(basedir, *inifilenames):
-    existing_files = list(filter(lambda fname: exists(basedir + fname),
-                                 inifilenames))
-    if existing_files:
-        return Configuration().read_from_files(basedir, *existing_files)
-    else:
-        return None
-
-def load_configuration(exp_id, exp_no, tube_no, mask=None):
+def get_directories(dirs, exp_id, exp_no, tube_no):
     base_dir     = INI_DIR + '/'
     exp_base_dir = base_dir + exp_id + '/'
     exp_dir      = exp_base_dir + str(exp_no) + '/'
     tube_dir     = exp_dir + 'tube' + str(tube_no) + '/'
     masks_dir    = tube_dir + MASKS_DIRNAME + '/'
 
-    search_dirs  = (base_dir, exp_base_dir, exp_dir, tube_dir)
+    if not dirs: dirs = ('search')
+    single_result = False
+    if type(dirs) == str:
+         dirs = (dirs,)
+         single_result = True
+    results = []
 
-    filter_existing = lambda fnames: list(filter(lambda fname: exists(fname),
-                                                 fnames))
-    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
-                                                dirs)
-    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
-                                                       search_dirs))
+    for dirtype in dirs:
+        if dirtype == 'search':
+            results.append((base_dir, exp_base_dir, exp_dir, tube_dir))
+        elif dirtype == 'masks':
+            results.append(masks_dir)
+        elif dirtype == 'data':
+            results.append(tube_dir)
+        elif dirtype == 'base':
+            results.append(base_dir)
+        elif dirtype == 'exp_base':
+            results.append(exp_base_dir)
+        else:
+            raise ValueError('Unknown value for get_directiories(): '
+                             '{}'.format(dirs))
 
-    # Measurements: 1. list filenames 2. remove 'defaults.ini' and 'mask' dir
-    #               3. prefix filenames with path
-    measurements_filenames = listdir(tube_dir)
-    for fname in (DEFAULTS_ININAME, MASKS_DIRNAME):
-        if fname in measurements_filenames:
-            measurements_filenames.remove(fname)
-    measurements_files = list(map(lambda fname: tube_dir + fname,
-                                  measurements_filenames))
-
-    if mask:
-        mask_filename = masks_dir + mask + '.ini'
-        if not exists(mask_filename):
-            print('Mask file "{}" does not exist in expected location:'
-                  '\n{}.'.format(mask, masks_dir))
-            if yn_prompt('Do you wish to continue without applying '
-                         'the mask? [Y/n]: '):
-                mask_filename = None
-            else:
-                exit(0)
-
-    cfg_files = defaults_files + measurements_files + [mask_filename]
-
-    cfg = Configuration().read_from_files(*cfg_files)
-
-    # Handle CONSTANTS.ini files
-    constants_files = filter_existing(prefix_with_paths('CONSTANTS.ini',
-                                                        search_dirs))
-    consts_cfg = None
-    if constants_files:
-        consts_cfg = Configuration().read_from_files(*constants_files)
-
-    return (cfg, consts_cfg)
+    if single_result: return results[0]
+    else: return results
 
 def print_by_tube(tube_number, tube_data):
     print('Tube number: ', tube_number)
