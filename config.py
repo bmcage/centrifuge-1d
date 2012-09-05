@@ -219,7 +219,7 @@ class Configuration:
 
         cfg_dict[key] = value
 
-    def get_value(self, key, section = None):
+    def get_value(self, key, section = None, not_found=None):
 
         cfg_dict = self._cfg_dict
 
@@ -232,12 +232,12 @@ class Configuration:
             if key in cfg_dict[section]:
                 return cfg_dict[section][key]
             else:
-                return None
+                return not_found
         else:
             if key in cfg_dict:
                 return cfg_dict[key]
             else:
-                return None
+                return not_found
 
     def iterate_values(self, section = None):
         if self._preserve_sections_p and section:
