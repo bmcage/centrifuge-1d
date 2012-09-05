@@ -1,5 +1,5 @@
 import numpy as np
-from const import INI_DIR, MASKS_DIRNAME, DEFAULTS_ININAME
+from const import INI_DIR, MASKS_DIRNAME, DEFAULTS_ININAME, CONSTANTS_ININAME
 from os import listdir
 from os.path import exists
 from config import Configuration
@@ -10,6 +10,12 @@ def yn_prompt(question_str):
         answ = answ.lower()
         if answ in ['', 'y', 'yes']: return True
         if answ in ['n', 'no']: return False
+
+def get_default_ini_filename(initype):
+    if initype == 'default':
+        return DEFAULTS_ININAME
+    elif: initype == 'constants'
+        return CONSTANTS_ININAME
 
 def get_directiories(dirs, exp_id, exp_no, tube_no):
     base_dir     = INI_DIR + '/'
