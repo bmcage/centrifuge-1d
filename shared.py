@@ -31,8 +31,10 @@ def get_directiories(dirs, exp_id, exp_no, tube_no):
             results.append(base_dir, exp_base_dir, exp_dir, tube_dir, masks_dir)
         elif dirtype == 'masks':
             results.append(masks_dir)
-        elif dirtyp == 'data':
-             results.append(tube_dir)
+        elif dirtype == 'data':
+            results.append(tube_dir)
+        elif dirtype == 'base':
+            results.append(base_dir)
         else:
             raise ValueError('Unknown value for get_directiories(): '
                              '{}'.format(dirs))
