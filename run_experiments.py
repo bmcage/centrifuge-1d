@@ -6,6 +6,7 @@ from shared import (make_collector, print_by_tube, get_directories, yn_prompt,
                     get_default_ini_filename)
 from config import ModulesManager, ModelParameters, Configuration
 from optparse import OptionParser
+from const import DEFAULTS_ININAME, CONSTANTS_ININAME
 
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
@@ -114,8 +115,7 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
     prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
                                                 dirs)
 
-    defaults_ininame = get_default_ini_filename('default')
-    defaults_files = filter_existing(prefix_with_paths(defaults_ininame,
+    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
                                                        search_dirs))
 
     measurements_filenames = listdir(data_dir)
@@ -124,7 +124,7 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
         print(fname)
         # valid measurement files are *.ini (i.e. >4 chars filename)
         # except for 'defaults.ini'
-        if ((fname == defaults_ininame) or (len(fname) <= 4)
+        if ((fname == DEFAULTS_ININAME) or (len(fname) <= 4)
             or (fname[-4:] != '.ini')):
             continue
 
@@ -146,8 +146,7 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
     cfg = Configuration().read_from_files(*cfg_files)
 
     # Handle CONSTANTS inifiles
-    constants_ininame = get_default_ini_filename('constants')
-    constants_files = filter_existing(prefix_with_paths(constants_ininame,
+    constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
                                                         search_dirs))
     consts_cfg = None
     if constants_files:
