@@ -17,7 +17,7 @@ def get_default_ini_filename(initype):
     elif: initype == 'constants'
         return CONSTANTS_ININAME
 
-def get_directiories(dirs, exp_id, exp_no, tube_no):
+def get_directories(dirs, exp_id, exp_no, tube_no):
     base_dir     = INI_DIR + '/'
     exp_base_dir = base_dir + exp_id + '/'
     exp_dir      = exp_base_dir + str(exp_no) + '/'

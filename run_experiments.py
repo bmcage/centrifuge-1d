@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from sys import path as syspath, argv as sysargv
-from shared import (make_collector, print_by_tube, load_configuration)
+from shared import (make_collector, print_by_tube, get_directories, yn_prompt,
+                    get_default_ini_filename)
 from config import ModulesManager, ModelParameters
 from optparse import OptionParser
 
@@ -56,7 +57,8 @@ def parse_input():
             from os import listdir
 
             if options.list:
-                print('\n'.join(sorted(listdir(INI_DIR))))
+                print('\n'.join(sorted(listdir(
+                    get_directories('base', None, None, None, None)))))
             if options.modules_list:
                 modman = ModulesManager()
                 modman.echo(options.verbose)
@@ -100,6 +102,55 @@ def process_global_constants(cfg, consts_cfg):
     for (name, value) in consts_cfg.iterate_values():
         if not cfg.get_value(name):
             cfg.set_value(name, value)
+
+def load_configuration(exp_id, exp_no, tube_no, mask=None):
+    (search_dirs, data_dir, masks_dir) = \
+      get_directories(['search', 'data', 'masks'], exp_id, exp_no, tube_no)
+
+    filter_existing = lambda fnames: list(filter(lambda fname: exists(fname),
+                                                 fnames))
+    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
+                                                dirs)
+
+    defaults_ininame = get_default_ini_filename('default')
+    defaults_files = filter_existing(prefix_with_paths(defaults_ininame,
+                                                       search_dirs))
+
+    measurements_filenames = listdir(data_dir)
+    masurements_files = []
+    for fname in measurements_filenames:
+        # valid measurement files are *.ini (i.e. >4 chars filename)
+        # except for 'defaults.ini'
+        if ((fname == defaults_ininame) or (len(fname) <= 4)
+            or (fname[-4:] != '.ini')):
+            continue
+
+        measurements_filenames.append(fname)
+
+    if mask:
+        mask_filename = masks_dir + mask + '.ini'
+        if not exists(mask_filename):
+            print('Mask file "{}" does not exist in expected location:'
+                  '\n{}.'.format(mask, masks_dir))
+            if yn_prompt('Do you wish to continue without applying '
+                         'the mask? [Y/n]: '):
+                mask_filename = None
+            else:
+                exit(0)
+
+    cfg_files = defaults_files + measurements_files + [mask_filename]
+
+    cfg = Configuration().read_from_files(*cfg_files)
+
+    # Handle CONSTANTS inifiles
+    constants_ininame = get_default_ini_filename('constants')
+    constants_files = filter_existing(prefix_with_paths(constants_ininame,
+                                                        search_dirs))
+    consts_cfg = None
+    if constants_files:
+        consts_cfg = Configuration().read_from_files(*constants_files)
+
+    return (cfg, consts_cfg)
 
 def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
                     verbose=True, print_cfg_only=False):
