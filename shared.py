@@ -19,14 +19,38 @@ def load_configuration_file(basedir, *inifilenames):
     else:
         return None
 
-def load_configuration(exp_id, exp_no, tube_no, mask=None):
+def get_directiories(dirs, exp_id, exp_no, tube_no):
     base_dir     = INI_DIR + '/'
     exp_base_dir = base_dir + exp_id + '/'
     exp_dir      = exp_base_dir + str(exp_no) + '/'
     tube_dir     = exp_dir + 'tube' + str(tube_no) + '/'
     masks_dir    = tube_dir + MASKS_DIRNAME + '/'
 
-    search_dirs  = (base_dir, exp_base_dir, exp_dir, tube_dir)
+    if not dirs: dirs = ('search')
+
+    single_result = False
+    if type(dirs) == str:
+         dirs = tuple(dirs)
+         single_result = True
+    results = []
+
+    for dirtype in dirs:
+        if dirstype == 'search':
+            results.append(base_dir, exp_base_dir, exp_dir, tube_dir, masks_dir)
+        elif dirtype == 'masks':
+            results.append(masks_dir)
+        elif dirtyp == 'data':
+             results.append(tube_dir)
+        else:
+            raise ValueError('Unknown value for get_directiories(): '
+                             '{}'.format(dirs))
+
+    if single_result: return results[0]
+    else return results
+
+def load_configuration(exp_id, exp_no, tube_no, mask=None):
+    (search_dirs, data_dir, masks_dir) = \
+      get_directiories(['search', 'data', 'masks'], exp_id, exp_no, tube_no)
 
     filter_existing = lambda fnames: list(filter(lambda fname: exists(fname),
                                                  fnames))
@@ -35,14 +59,16 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
     defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
                                                        search_dirs))
 
-    # Measurements: 1. list filenames 2. remove 'defaults.ini' and 'mask' dir
-    #               3. prefix filenames with path
-    measurements_filenames = listdir(tube_dir)
-    for fname in (DEFAULTS_ININAME, MASKS_DIRNAME):
-        if fname in measurements_filenames:
-            measurements_filenames.remove(fname)
-    measurements_files = list(map(lambda fname: tube_dir + fname,
-                                  measurements_filenames))
+    measurements_filenames = listdir(data_dir)
+    masurements_files = []
+    for fname in measurements_filenames:
+        # valid measurement files are *.ini (i.e. >4 chars filename)
+        # except for 'defaults.ini'
+        if ((fname == DEFAULTS_ININAME) or (len(fname) <= 4)
+            or (fname[-4:] != '.ini')):
+            continue
+
+        measurements_filenames.append(fname)
 
     if mask:
         mask_filename = masks_dir + mask + '.ini'
