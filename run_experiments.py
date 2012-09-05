@@ -120,7 +120,6 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
     measurements_filenames = listdir(data_dir)
     measurements_files = []
     for fname in measurements_filenames:
-        print(fname)
         # valid measurement files are *.ini (i.e. >4 chars filename)
         # except for 'defaults.ini'
         if ((fname == DEFAULTS_ININAME) or (len(fname) <= 4)
@@ -129,16 +128,17 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
 
         measurements_files.append(data_dir + fname)
 
+    mask_filename = ''
     if mask:
         mask_filename = masks_dir + mask + '.ini'
         if not exists(mask_filename):
             print('Mask file "{}" does not exist in expected location:'
                   '\n{}.'.format(mask, masks_dir))
-            if yn_prompt('Do you wish to continue without applying '
+            if not yn_prompt('Do you wish to continue without applying '
                          'the mask? [Y/n]: '):
-                mask_filename = None
-            else:
                 exit(0)
+
+            mask_filename = ''
 
     cfg_files = defaults_files + measurements_files + [mask_filename]
 
