@@ -1,8 +1,10 @@
 #!/usr/bin/python
 from sys import path as syspath, argv as sysargv
+from os import listdir
+from os.path import exists
 from shared import (make_collector, print_by_tube, get_directories, yn_prompt,
                     get_default_ini_filename)
-from config import ModulesManager, ModelParameters
+from config import ModulesManager, ModelParameters, Configuration
 from optparse import OptionParser
 
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
@@ -117,15 +119,16 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
                                                        search_dirs))
 
     measurements_filenames = listdir(data_dir)
-    masurements_files = []
+    measurements_files = []
     for fname in measurements_filenames:
+        print(fname)
         # valid measurement files are *.ini (i.e. >4 chars filename)
         # except for 'defaults.ini'
         if ((fname == defaults_ininame) or (len(fname) <= 4)
             or (fname[-4:] != '.ini')):
             continue
 
-        measurements_filenames.append(fname)
+        measurements_files.append(data_dir + fname)
 
     if mask:
         mask_filename = masks_dir + mask + '.ini'

@@ -1,8 +1,5 @@
 import numpy as np
 from const import INI_DIR, MASKS_DIRNAME, DEFAULTS_ININAME, CONSTANTS_ININAME
-from os import listdir
-from os.path import exists
-from config import Configuration
 
 def yn_prompt(question_str):
     while True:
@@ -14,7 +11,7 @@ def yn_prompt(question_str):
 def get_default_ini_filename(initype):
     if initype == 'default':
         return DEFAULTS_ININAME
-    elif: initype == 'constants'
+    elif initype == 'constants':
         return CONSTANTS_ININAME
 
 def get_directories(dirs, exp_id, exp_no, tube_no):
@@ -33,8 +30,8 @@ def get_directories(dirs, exp_id, exp_no, tube_no):
     results = []
 
     for dirtype in dirs:
-        if dirstype == 'search':
-            results.append(base_dir, exp_base_dir, exp_dir, tube_dir, masks_dir)
+        if dirtype == 'search':
+            results.append((base_dir, exp_base_dir, exp_dir, tube_dir))
         elif dirtype == 'masks':
             results.append(masks_dir)
         elif dirtype == 'data':
@@ -46,7 +43,7 @@ def get_directories(dirs, exp_id, exp_no, tube_no):
                              '{}'.format(dirs))
 
     if single_result: return results[0]
-    else return results
+    else: return results
 
 def print_by_tube(tube_number, tube_data):
     print('Tube number: ', tube_number)
