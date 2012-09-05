@@ -11,14 +11,6 @@ def yn_prompt(question_str):
         if answ in ['', 'y', 'yes']: return True
         if answ in ['n', 'no']: return False
 
-def load_configuration_file(basedir, *inifilenames):
-    existing_files = list(filter(lambda fname: exists(basedir + fname),
-                                 inifilenames))
-    if existing_files:
-        return Configuration().read_from_files(basedir, *existing_files)
-    else:
-        return None
-
 def get_directiories(dirs, exp_id, exp_no, tube_no):
     base_dir     = INI_DIR + '/'
     exp_base_dir = base_dir + exp_id + '/'
