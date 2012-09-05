@@ -48,52 +48,6 @@ def get_directiories(dirs, exp_id, exp_no, tube_no):
     if single_result: return results[0]
     else return results
 
-def load_configuration(exp_id, exp_no, tube_no, mask=None):
-    (search_dirs, data_dir, masks_dir) = \
-      get_directiories(['search', 'data', 'masks'], exp_id, exp_no, tube_no)
-
-    filter_existing = lambda fnames: list(filter(lambda fname: exists(fname),
-                                                 fnames))
-    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
-                                                dirs)
-    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
-                                                       search_dirs))
-
-    measurements_filenames = listdir(data_dir)
-    masurements_files = []
-    for fname in measurements_filenames:
-        # valid measurement files are *.ini (i.e. >4 chars filename)
-        # except for 'defaults.ini'
-        if ((fname == DEFAULTS_ININAME) or (len(fname) <= 4)
-            or (fname[-4:] != '.ini')):
-            continue
-
-        measurements_filenames.append(fname)
-
-    if mask:
-        mask_filename = masks_dir + mask + '.ini'
-        if not exists(mask_filename):
-            print('Mask file "{}" does not exist in expected location:'
-                  '\n{}.'.format(mask, masks_dir))
-            if yn_prompt('Do you wish to continue without applying '
-                         'the mask? [Y/n]: '):
-                mask_filename = None
-            else:
-                exit(0)
-
-    cfg_files = defaults_files + measurements_files + [mask_filename]
-
-    cfg = Configuration().read_from_files(*cfg_files)
-
-    # Handle CONSTANTS.ini files
-    constants_files = filter_existing(prefix_with_paths('CONSTANTS.ini',
-                                                        search_dirs))
-    consts_cfg = None
-    if constants_files:
-        consts_cfg = Configuration().read_from_files(*constants_files)
-
-    return (cfg, consts_cfg)
-
 def print_by_tube(tube_number, tube_data):
     print('Tube number: ', tube_number)
     for tdata in tube_data:
