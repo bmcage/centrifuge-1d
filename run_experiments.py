@@ -2,8 +2,7 @@
 from sys import path as syspath, argv as sysargv
 from os import listdir
 from os.path import exists
-from shared import (make_collector, print_by_tube, get_directories, yn_prompt,
-                    get_default_ini_filename)
+from shared import (make_collector, print_by_tube, get_directories, yn_prompt)
 from config import ModulesManager, ModelParameters, Configuration
 from optparse import OptionParser
 from const import DEFAULTS_ININAME, CONSTANTS_ININAME
