@@ -4,7 +4,8 @@ import csv
 from os import makedirs, path, sep
 from optparse import OptionParser
 from config import ModulesManager
-from const import CSV_DIR, INI_DIR
+from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME
+from shared import get_directories
 
 modman = ModulesManager()
 
@@ -147,59 +148,80 @@ def CSV2data(csv_filename):
 
     return data
 
-def write2ini(experiment_data, filename):
+def save_configuration(data, savedir='', filename='', section_name=''):
 
-    fout = open(filename, mode='w', encoding='utf-8')
-    fout.write('[experiment-data]\n')
+    if not path.exists(savedir):
+        makedirs(savedir)
 
-    for (descriptor, value) in experiment_data.items():
+    fout = open(savedir + filename, mode='w', encoding='utf-8')
+    fout.write('[{}]\n'.format(section_name))
+
+    for (descriptor, value) in data.items():
         if descriptor == 'exp_type':
             fout.write("{:8} = '{}'\n".format(descriptor, value))
         else:
             fout.write('{:8} = [{}]\n'.format(descriptor, ', '.join(value)))
     fout.close()
 
+def has_same_value(seq):
+    ref = seq[0]
+    for item in seq[1:]:
+        if item == ref: continue
+
+        return (False, None)
+
+    return (True, ref)
+
 def data2ini(data, output_dir):
 
     print('\nCreating data inifiles...')
 
-    for (experiment_id, exp_id_struct) in data.items():
-        exp_out_dir  = output_dir + sep + experiment_id + '/'
+    for (exp_id, exp_id_struct) in data.items():
+        print('\tProcessing experiment(s) with ID: %s...' % exp_id)
 
-        print('    Processing experiment(s) with ID: %s...' % experiment_id)
+        id_exp_type = None
 
-        for (experiment_no, exp_no_struct) in exp_id_struct.items():
-
-            print('\tProcessing experiment number: %s... '
-                  % experiment_no, end="")
+        for (exp_no, exp_no_struct) in exp_id_struct.items():
+            print('\t\tProcessing experiment number: %s... '
+                  % exp_no, end="")
 
             for (tube_no, exp_data) in exp_no_struct.items():
-                file_dir = exp_out_dir + 'tube%s/' % str(tube_no)
 
-                if not path.exists(file_dir):
-                    makedirs(file_dir)
-                    makedirs(file_dir, 'masks') # create empty masks directory
+                # Test whether 'exp_type' is the same for give 'exp_id';
+                # we save value in the common 'defaults.ini' file
+                if id_exp_type is None:
+                    id_exp_type = exp_data['exp_type']
+                elif id_exp_type != exp_data['exp_type']:
+                    raise ValueError("Experiment type 'exp_type' must be the "
+                                     "same for all experiments with given "
+                                     "'exp_id'. Exiting...")
+                del exp_data['exp_type'] # we don't save it with the rest
 
+                (data_dir, masks_dir)  = \
+                  get_directories(['data', 'masks'], exp_id, exp_no, tube_no)
 
-                filename = (file_dir + 'measurements.ini')
+                save_configuration(exp_data, savedir=data_dir,
+                                   filename='measurements.ini',
+                                   section_name='experiment-data')
+                if not path.exists(masks_dir):
+                    makedirs(masks_dir) # create empty masks directory
 
-                write2ini(exp_data, filename)
+            print('\tDone.')
 
-            print('Done.')
+        print("\tCreating default inifile for ID '{}'...".format(exp_id),
+              end = '')
+        exp_base_path = get_directories('exp_base', exp_id, None, None)
 
-        print('    Creating default inifile for ID %s...', end = '')
-
-        default_ini = exp_out_dir + '/defaults.ini'
-
-        if path.exists(default_ini):
-            print('\n        File "defaults.ini" already exists. Skipping...')
+        if path.exists(exp_base_path + DEFAULTS_ININAME):
+            print('\n\t\tFile exists. Skipping...'
+                  .format(DEFAULTS_ININAME))
         else:
-            fout = open(default_ini, mode='w', encoding='utf-8')
-            fout.write('[experiment]\n')
-            # TODO: add some default stuff that will be added to the defaults
+            save_configuration({'exp_type': id_exp_type},
+                               savedir=exp_base_path, filename=DEFAULTS_ININAME,
+                               section_name='experiment')
             print('Done.')
 
-    print('Done.')
+    print('All done.')
 
 if __name__ == "__main__":
     options = parse_input()
