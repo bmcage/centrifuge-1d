@@ -14,6 +14,7 @@ FIGS_DIR    = DATA_DIR    + sep + 'figures'
 
 # Default names
 DEFAULTS_ININAME = 'defaults.ini'
+CONSTANTS_ININAME = 'CONSTANTS.ini'
 MASKS_DIRNAME    = 'masks'
 #-------------------------------------------------------------------------
 #
