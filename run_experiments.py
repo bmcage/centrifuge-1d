@@ -34,6 +34,9 @@ def parse_input():
                          metavar='MASK_NAME',
                          help=("Run given experiment with a mask MASK_NAME "
                                "file. Used in conjuction with ''-t'' parameter."))
+    optparser.add_option('-c', '--compare', dest='compare_p', default=False,
+                         action='store_true',
+                         help=("Compare two configuration files."))
     optparser.add_option('-d', '--modules-list', dest='modules_list',
                          action="store_true", default=False,
                          help=("Get the list of all available centrifuge "
@@ -217,10 +220,80 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
         collector('print', print_format_fn=print_fn)
         #collector('print-by-tube', data=print_by_tube)
 
+def iterate_value(arg):
+
+    if type(arg) in [list, tuple]:
+        for value in arg:
+            yield value
+    elif type(arg) == dict:
+        for (key, value) in arg.items():
+            # dirty hack: we assume that only dict of list value is
+            # 'inv_init_params', so the value is (init, [range])
+            if type(value) in [tuple, list]:
+                yield key + ': ' + str(value[0])
+            else:
+                yield key + ': ' + str(value)
+    else:
+        yield arg
+
+    while True:
+        yield ''
+
+def compare2configs(options):
+    if len(options.tubes) > 1:
+        print('Only one tube can be specified. Exiting...')
+        exit(1)
+
+    print('Add information for the second configuration file:')
+    exp_id2  = input('Experiment ID  : ').strip()
+    exp_no2  = input('Experiment No. : ').strip()
+    tube_no2 = input('Tube No.       : ').strip()
+    mask2    = input('Mask (optional): ').strip()
+
+    (cfg1, const_cfg1) = \
+      load_configuration(options.exp_id, options.first_experiment,
+                         options.tubes[0], options.mask)
+    (cfg2, const_cfg2) = \
+      load_configuration(exp_id2, int(exp_no2), tube_no2, mask2)
+
+    all_parameters = sorted(set(cfg1.list_options() + cfg2.list_options()))
+
+    param_max_length = 15
+    value_max_length = 20
+    fstring = (' {:' + str(param_max_length) +'} | {:'
+               + str(value_max_length) +'} | {:'
+               + str(value_max_length) + '}')
+    print('\n', (param_max_length + 2*value_max_length + 6) * '-')
+    print(fstring.format('Option name', '1. config', '2. config'),
+          '\n', (param_max_length + 2*value_max_length + 6) * '-')
+
+    for parameter in all_parameters:
+        v1 = cfg1.get_value(parameter, not_found='')
+        v2 = cfg2.get_value(parameter, not_found='')
+
+        if not v1 == v2:
+            v1_iter = iterate_value(v1)
+            v2_iter = iterate_value(v2)
+
+            if len(parameter) > param_max_length:
+                parameter = parameter[:param_max_length]
+            print(fstring.format(parameter, next(v1_iter), next(v2_iter)))
+
+            while True:
+                v1_value = next(v1_iter)
+                v2_value = next(v2_iter)
+                if (v1_value == '') and (v2_value == ''): break
+
+                print(fstring.format('', v1_value, v2_value))
+
 if __name__ == "__main__":
     options = parse_input()
 
-    print_cfg_only = options.print_config_p
-    run_experiments(options.exp_id, options.first_experiment,
-                    options.last_experiment, options.tubes, options.mask,
-                    verbose=(not print_cfg_only), print_cfg_only=print_cfg_only)
+    if options.compare_p:
+        compare2configs(options)
+    else:
+        print_cfg_only = options.print_config_p
+        run_experiments(options.exp_id, options.first_experiment,
+                        options.last_experiment, options.tubes, options.mask,
+                        verbose=(not print_cfg_only),
+                        print_cfg_only=print_cfg_only)
