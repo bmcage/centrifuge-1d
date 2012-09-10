@@ -216,7 +216,7 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
 
     if not print_cfg_only:
         print('Results summary:\n')
-        print_fn = lambda x: print(x[0])
+        print_fn = lambda x: print(x)
         collector('print', print_format_fn=print_fn)
         #collector('print-by-tube', data=print_by_tube)
 

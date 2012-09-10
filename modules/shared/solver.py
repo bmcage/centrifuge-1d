@@ -108,7 +108,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                           'at time\nt_err=', t_out,
                           '\nExpected value of t:', t)
                 if verbosity > 2:
-                    print('Values at this time:\nz_err=', z_retn)
+                    print('Values at this time:\nz_err=', z[i, :])
 
                 return (False, t[:i], z[:i, :])
 
