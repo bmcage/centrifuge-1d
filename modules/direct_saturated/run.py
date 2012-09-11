@@ -47,7 +47,6 @@ def run(model):
     if not flag:
         print('Error occured during computation... Computation exited.')
 
-    if model.draw_graphs:
-        from modules.shared.show import draw_graphs
-        draw_graphs(t, mass_in=z[:, mass_in_idx], mass_out=z[:, mass_out_idx],
-                    model=model)
+    from modules.shared.show import draw_graphs
+    draw_graphs(t, mass_in=z[:, mass_in_idx], mass_out=z[:, mass_out_idx],
+                model=model, show_figures=model.show_figures)
