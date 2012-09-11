@@ -249,6 +249,7 @@ def solve(model):
     if model.calc_wm:
         h  = z[:, model.first_idx: model.last_idx+1]
         u  = np.empty([k, model.inner_points+2], dtype=float)
+
         WM = np.empty(t.shape, dtype=float)
         WM_in_tube = np.empty(t.shape, dtype=float)
 
