@@ -356,8 +356,16 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 def disp_inv_results(model, t_inv, inv_params=None,
                      wl_in_inv=None, wl_out_inv=None,
                      gc1_inv=None, rm1_inv=None, cov=None,
+                     # results of the direct problem
+                     y = None, h_inv = None, u_inv = None,
+                     s1_inv = None, s1_ref=None, s2_inv = None, s2_ref=None,
+                     wm=None,
+                     # other options
                      display_graphs=True, disp_abserror=False,
-                     fignum = 1):
+                     fignum = 1,
+                     save_figures=False, separate_figures=False,
+                     save_as_text=False, draw_equilibrium=False,
+                     show_figures=False):
 
     def print_data(name, data_computed, data_measured):
         name_len = len(name)
@@ -435,6 +443,13 @@ def disp_inv_results(model, t_inv, inv_params=None,
         t_ref = measurements_time(model)
 
         draw_graphs(t_inv, t_ref=t_ref,
+                    mass_in=wl_in_inv, mass_in_ref=wl1,
                     mass_out=wl_out_inv, mass_out_ref=wl_out_meas,
                     GC=gc1_inv, GC_ref=gc1, RM=rm1_inv, RM_ref=rm1,
-                    model=model)
+                    WM=wm, model=model,
+                    y=y, h=h_inv, u=u_inv,
+                    s1=s1_inv, s1_ref=s1_ref, s2=s2_inv , s2_ref=s2_ref,
+                    save_figures=model.save_figures,
+                    separate_figures=model.separate_figures,
+                    save_as_text=model.save_as_text, draw_equilibrium=False,
+                    show_figures=model.show_figures)
