@@ -45,7 +45,7 @@ def solve(model):
 
     t_meas = measurements_time(model)
 
-    inv_params = \
+    (inv_params, cov) = \
       simulate_inverse(t_meas, ip_direct_drainage, model, model.inv_init_params,
                        wl_in_meas  = model.get_iterable_value('wl1'),
                        wl_out_meas = model.get_iterable_value('wl_out'),
@@ -57,7 +57,9 @@ def solve(model):
                        rm_weights     = model.get_iterable_value('rm1_weights'),
                        optimfn=model.optimfn)
 
-    return inv_params
+    return (inv_params, cov)
 
 def run(model):
-    return solve(model)
+    (inv_params, cov) = solve(model)
+
+    return inv_params
