@@ -268,6 +268,9 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
     data = pairs
     data_labels = pairs_labels
 
+    nr_measurements     = np.alen(t)
+    nr_ref_measurements = np.alen(t_ref)
+
     for ((ydata, ydata_ref), ydata_label) in zip(data, data_labels):
         if not has_data(ydata): continue
 
@@ -287,13 +290,25 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
         if not separate_figures:
             plt.subplot(3,2,img_num)
 
+        # measurements like GC can miss the first (initial) value i.e.
+        # values (measurements) are taken only at the end of each centrifuge run
+        if np.alen(ydata) == (nr_measurements -1):
+            t_plot = t[1:]
+        else:
+            t_plot = t
+
         if has_data(ydata_ref):
-            ydata_lines = plt.plot(t, ydata, '.',
-                                   t_ref, ydata_ref, 'x')
+            if np.alen(ydata_ref) == (nr_ref_measurements -1):
+                t_ref_plot = t_ref[1:]
+            else:
+                t_ref_plot = t_ref
+
+            ydata_lines = plt.plot(t_plot, ydata, '.',
+                                   t_ref_plot, ydata_ref, 'x')
             add_legend(ydata_lines, legend_data = ['computed', 'measured'],
                        legend_type='legend', legend_loc=4)
         else:
-            plt.plot(t, ydata, '.')
+            plt.plot(t_plot, ydata, '.')
 
         plt.xlabel('Time [min]')
         plt.ylabel(ydata_label)
@@ -419,7 +434,7 @@ def disp_inv_results(model, t_inv, inv_params=None,
 
         t_ref = measurements_time(model)
 
-        draw_graphs(t_inv[1:], t_ref=t_ref,
+        draw_graphs(t_inv, t_ref=t_ref,
                     mass_out=wl_out_inv, mass_out_ref=wl_out_meas,
                     GC=gc1_inv, GC_ref=gc1, RM=rm1_inv, RM_ref=rm1,
                     model=model)
