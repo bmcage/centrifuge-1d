@@ -3,7 +3,7 @@ from numpy import linspace, power, asarray
 
 PARENTAL_MODULES = ['base']
 
-CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma', 'draw_graphs',
+CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma',
                   'h_init', 'porosity',
                   'calc_gc', 'calc_rm', 'calc_wm',
                   'rb_type',
