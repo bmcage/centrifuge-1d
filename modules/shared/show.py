@@ -215,7 +215,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
                 img_num = 2
 
-            if not u is None:
+            if has_data(u):
                 if separate_figures:
                     fignum = fignum + 1
                     plt.figure(fignum)
