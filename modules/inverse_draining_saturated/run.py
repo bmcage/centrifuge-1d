@@ -2,6 +2,7 @@ from modules.direct_draining_saturated.run import solve as solve_direct
 from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
+from modules.shared.show import disp_inv_results
 from numpy import alen
 
 def solve(model):
@@ -61,5 +62,22 @@ def solve(model):
 
 def run(model):
     (inv_params, cov) = solve(model)
+
+    # DISPLAY RESULTS:
+    if inv_params:
+        # run once again the direct problem with optimal parameters
+        model.calc_wm = True
+        model_verbosity = model.verbosity # backup verbosity
+        model.verbosity = 0
+        (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
+        model.verbosity = model_verbosity # restore verbosity
+
+        disp_inv_results(model, t, inv_params=inv_params, cov=cov,
+                         wl_in_inv=z[1:, model.mass_in_idx].transpose(),
+                         wl_out_inv=z[1:, model.mass_out_idx].transpose(),
+                         gc1_inv=gc1, rm1_inv=rm1, wm=wm, y=model.y,
+                         h_inv=z[:, model.first_idx:model.last_idx+1], u_inv=u,
+                         s1_inv=z[:, model.s1_idx], s2_inv=z[:, model.s2_idx],
+                         disp_abserror=True, display_graphs=True)
 
     return inv_params
