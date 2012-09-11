@@ -185,8 +185,12 @@ def solve(model):
 
     wm0 = wm_in_tube0 = 0.0
 
+    u0 = None
+
     # z0 inicialization
     def initialize_z0(z0, model):
+        nonlocal u0
+
         z0[model.first_idx:model.last_idx+1] = model.h_init
 
         if model.rb_type in [2, 3]:
