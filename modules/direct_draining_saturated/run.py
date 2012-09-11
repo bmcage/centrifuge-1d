@@ -146,13 +146,13 @@ class centrifuge_residual(IDA_RhsFunction):
             elif rb_type == 1:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                     -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
                 result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
                                      + 2 / dy[-1] / ds * (q_out - q12[-1]))
             elif rb_type == 2:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                     -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
                 result[last_idx]  = hdot[-1]
             else:
                 raise NotImplementedError('rb_type has to be 0 - 6')
