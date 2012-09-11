@@ -17,8 +17,8 @@ CONFIG_OPTIONS = ['exp_type',
                   ('density', 1.0), ('viscosity', 1.0),
                   # output
                   ('show_figures', True),
-                  ('save_figures', True), ('separate_figures', True),
-                  ('save_as_text', True),
+                  ('save_figures', False), ('separate_figures', False),
+                  ('save_as_text', False),
                   ('verbosity', 1),
                   # solver options
                   ('always_restart_solver', False),
