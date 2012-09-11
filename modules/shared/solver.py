@@ -437,15 +437,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     # Run experiment once more with optimal values to display results at optimum
     update_model(opt_params, model)
     optim_params = {name: getattr(model, name) for name in optimized_parameters}
-    model_verbosity = model.verbosity # backup verbosity
-    model.verbosity = 0
-    (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
-    model.verbosity = model_verbosity # restore verbosity
-    disp_inv_results(model, t, inv_params=optim_params, cov=cov,
-                     wl_in_inv=wl_in, wl_out_inv=wl_out, gc1_inv=gc, rm1_inv=rm,
-                     disp_abserror=True)
 
-    return optim_params
+    return (optim_params, cov)
 
 def compute_raster(model):
         lbounds = xdata.inv_lbounds
