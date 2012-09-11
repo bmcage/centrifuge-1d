@@ -135,7 +135,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
             raise ValueError('Unknown legend type: ', legend_type)
 
         legendfn(lines, legend_data, legend_loc, borderaxespad=0.0,
-                          title=legend_title, prop={'family': 'monospace'})
+                 title=legend_title, prop={'family': 'monospace'})
 
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
 
@@ -204,11 +204,12 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 if save_figures and separate_figures:
                     plt.savefig(OUT_DIR + 'Image-h', dpi=300)
 
-                add_legend(h_lines, legend_data=h_eq_legend, title=legend_title)
+                add_legend(h_lines, legend_data=h_eq_legend,
+                           legend_title=legend_title)
 
                 if separate_figures:
                    add_legend(h_lines, legend_data=h_eq_legend,
-                              title=legend_title)
+                              legend_title=legend_title)
                 if save_figures and separate_figures:
                     plt.savefig(OUT_DIR + 'Image-h-leg', dpi=300)
 
@@ -220,6 +221,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                     plt.figure(fignum)
                 else:
                     plt.subplot(3,2,img_num)
+
                 u_lines = plt.plot(x.transpose(), u.transpose(), '.')
                 plt.xlabel('Sample length ''L'' [cm]')
                 plt.ylabel('Relative saturation ''u''')
@@ -227,7 +229,8 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 if save_figures and separate_figures:
                     plt.savefig(OUT_DIR + 'Image-u', dpi=300)
 
-                add_legend(u_lines, legend_data=legend_data, title=legend_title)
+                add_legend(u_lines, legend_data=legend_data,
+                           legend_title=legend_title)
 
                 if save_figures and separate_figures:
                     plt.savefig(OUT_DIR + 'Image-u-leg', dpi=300)
