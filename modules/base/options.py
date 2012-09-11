@@ -16,7 +16,7 @@ CONFIG_OPTIONS = ['exp_type',
                   ('ks1', -1.0), ('fl1', 0.0), ('ks2', -1.0), ('fl2', 0.0),
                   ('density', 1.0), ('viscosity', 1.0),
                   # output
-                  ('draw_graphs', True),
+                  ('show_figures', True),
                   ('save_figures', True), ('separate_figures', True),
                   ('save_as_text', True),
                   ('verbosity', 1),

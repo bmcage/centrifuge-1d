@@ -24,7 +24,7 @@ CONFIG_OPTIONS = {
          'inner_point': ("How many (inner) point will be used for the sample "
                          "discretization. Type: integer")},
     'experiment': \
-        {'draw_graphs': "Draw graphs after computation. Type: boolean",
+        {'show_figures': "Draw graphs after computation. Type: boolean",
          'descr': "(optional) Description of the experiment. Type: string"}
     'solver' : \
       {'atol': "Set absolute tolerances for the solver",
