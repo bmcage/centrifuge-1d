@@ -71,8 +71,10 @@ def prior_adjust_cfg(cfg):
 def adjust_cfg(cfg):
     from numpy import inf, asarray, power, trunc, log10
 
-    cfg.set_value('calc_gc', bool(cfg.get_value('gc1')))
+    calc_gc = bool(cfg.get_value('gc1'))
+
+    cfg.set_value('calc_gc', calc_gc)
     cfg.set_value('calc_rm', bool(cfg.get_value('rm1')))
-    cfg.set_value('calc_wm', False)
+    cfg.set_value('calc_wm', calc_gc)
     cfg.set_value('calc_wl_in', bool(cfg.get_value('wl1')))
     cfg.set_value('calc_wl_out', bool(cfg.get_value('wl_out')))
