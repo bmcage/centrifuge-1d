@@ -237,8 +237,7 @@ def solve(model):
     model.atol = atol_backup
 
     # Results
-    k  = t.shape
-
+    k  = np.alen(t)
     s1 = z[:, model.s1_idx]
     s2 = z[:, model.s2_idx]
     mass_in  = z[:, model.mass_in_idx]
