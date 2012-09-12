@@ -5,18 +5,20 @@ from modules.shared.vangenuchten import h2u
 from modules.shared.show import disp_inv_results
 from numpy import alen
 
-def solve(model):
-
-    no_measurements = []
-
-    def ip_direct_drainage(model):
-        if model.dynamic_h_init:
+def update_runtime_variables(model):
+    if model.dynamic_h_init:
             model.h_init = min(model.c_gammah / model.gamma, model.h_init_max)
             if model.verbosity > 1:
                 print('\nh_init: ', model.h_init,
                       'u_init', h2u(model.h_init, model.n,
                                     model.m, model.gamma), '\n')
 
+def solve(model):
+
+    no_measurements = []
+
+    def ip_direct_drainage(model):
+        update_runtime_variables(model)
         (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
 
         contains_data = (alen(t) > 1)
