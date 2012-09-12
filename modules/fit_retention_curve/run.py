@@ -102,7 +102,7 @@ def solve(model):
 
     print('\n Cov:\n%s\n' % cov_inv)
 
-    if model.draw_graphs:
+    if model.show_figures:
         draw_graphs(n, gamma, theta_s, theta_r,
                     model.rho, model.g, model.p, model.theta)
 

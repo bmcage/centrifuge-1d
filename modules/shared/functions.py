@@ -21,7 +21,13 @@ def measurements_time(model):
     if not t_fh_duration:
         t_fh_duration = model.fh_duration
 
-    return np.cumsum(t_duration + np.asarray(t_fh_duration, dtype=float))
+    stop_times = np.cumsum(t_duration + np.asarray(t_fh_duration, dtype=float))
+
+    meas_times = np.empty(np.alen(stop_times)+1, dtype=float)
+    meas_times[0]  = 0.0
+    meas_times[1:] = stop_times
+
+    return meas_times
 
 def lagrangean_derivative_coefs(dx):
     """

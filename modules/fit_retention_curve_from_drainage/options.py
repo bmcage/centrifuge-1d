@@ -3,7 +3,7 @@ PARENTAL_MODULES = []
 CONFIG_OPTIONS = {
         'mandatory' : ['exp_type', 'omega', 'l0', 'l1', 'porosity',
                        'inv_init_params', 'wl_out1', 're',
-                       'draw_graphs'],
+                       'show_figures'],
         'defaults'  : {'rho': 1.0, 'g': 981.,
                        'max_steps': 800, 'max_step_size': 800.},
         'dependent' : {'theta_r':
