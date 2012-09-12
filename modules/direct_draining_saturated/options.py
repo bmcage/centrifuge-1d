@@ -16,7 +16,11 @@ CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma',
                   # optional
                   ('n1', None), ('gamma1', None),
                   ('n2', None), ('gamma2', None),
-                  'h_last'
+                  'h_last',
+                  (lambda cfg: cfg.get_value('fl1') > 0.0,
+                      ['fp1'], [('fp1', -1.0)]),
+                  (lambda cfg: cfg.get_value('fl2') > 0.0,
+                      ['fp2'], [('fp2', -1.0)])
                  ]
 
 INTERNAL_OPTIONS = ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',

@@ -13,7 +13,12 @@ CONFIG_OPTIONS = ['exp_type',
                   # defaults
                   ('g', 981),
                   ('omega_start', 0.0), ('omega_end', 0.0),
-                  ('ks1', -1.0), ('fl1', 0.0), ('ks2', -1.0), ('fl2', 0.0),
+                  'fl1',
+                  (lambda cfg: cfg.get_value('fl1') > 0.0,
+                      ['ks1'], [('ks1', -1.0)]),
+                  'fl2',
+                  (lambda cfg: cfg.get_value('fl2') > 0.0,
+                      ['ks2'], [('ks2', -1.0)]),
                   ('density', 1.0), ('viscosity', 1.0),
                   # output
                   ('show_figures', True),
