@@ -60,7 +60,7 @@ def check_cfg(cfg):
 
     r0 = cfg.get_value('r0')
     rE = cfg.get_value('re')
-    print(r0, rE)
+
     if r0 and rE:
         print("Only one of 'r0' and 'rE' can be specified.")
         return False

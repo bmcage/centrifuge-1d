@@ -105,7 +105,7 @@ class centrifuge_residual(IDA_RhsFunction):
         verbosity = model.verbosity
 
         if verbosity > 3:
-            print('t', t, 's1', z[model.s1_idx], 's2', z[model.s2_idx])
+            print('t', t, 's1', z[model.s1_idx], 's2', z[model.s2_idx], end='')
 
         if rb_type == 3:
             q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
@@ -117,9 +117,9 @@ class centrifuge_residual(IDA_RhsFunction):
                      / (model.fl1/model.ks1 + (L-s2)/model.ks
                         + model.fl2/model.ks2))
 
-            if verbosity > 3:
+            if verbosity > 4:
                 print('  q_sat', q_sat, 'rD', rD, 'rI', rI,
-                      'omega^2/g', omega2g)
+                      'omega^2/g', omega2g, end='')
 
             if q_sat < 0:
                 if verbosity > 1:
@@ -134,8 +134,8 @@ class centrifuge_residual(IDA_RhsFunction):
                                               z[model.s1_idx], z[model.s2_idx],
                                               model)
             result[last_idx]  = hdot[-1]
-            if verbosity > 2:
-                print('  WM: ', WM_total, 'WM0', model.wm0)
+            if verbosity > 4:
+                print('  WM: ', WM_total, 'WM0', model.wm0, end='')
             result[model.s2_idx] = WM_total - model.wm0
             result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_sat
         else:
@@ -146,13 +146,13 @@ class centrifuge_residual(IDA_RhsFunction):
             elif rb_type == 1:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                     -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
                 result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
                                      + 2 / dy[-1] / ds * (q_out - q12[-1]))
             elif rb_type == 2:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                     -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
                 result[last_idx]  = hdot[-1]
             else:
                 raise NotImplementedError('rb_type has to be 0 - 6')
@@ -163,6 +163,8 @@ class centrifuge_residual(IDA_RhsFunction):
         result[model.mass_in_idx]  = zdot[model.mass_in_idx]
         result[model.s1_idx]  = zdot[model.s1_idx]
         result[model.pq_idx]  = zdot[model.pq_idx]
+
+        if verbosity > 3: print()
 
         return 0
 
@@ -183,8 +185,12 @@ def solve(model):
 
     wm0 = wm_in_tube0 = 0.0
 
+    u0 = None
+
     # z0 inicialization
     def initialize_z0(z0, model):
+        nonlocal u0
+
         z0[model.first_idx:model.last_idx+1] = model.h_init
 
         if model.rb_type in [2, 3]:
@@ -231,18 +237,18 @@ def solve(model):
     model.atol = atol_backup
 
     # Results
-    k  = t.shape
-
+    k  = np.alen(t)
     s1 = z[:, model.s1_idx]
     s2 = z[:, model.s2_idx]
     mass_in  = z[:, model.mass_in_idx]
     mass_out = z[:, model.mass_out_idx]
 
-    no_measurements = np.empty([], dtype=float)
+    no_measurements = np.empty([0,], dtype=float)
 
     if model.calc_wm:
-        h  = z[model.first_idx: model.last_idx+1, :]
+        h  = z[:, model.first_idx: model.last_idx+1]
         u  = np.empty([k, model.inner_points+2], dtype=float)
+
         WM = np.empty(t.shape, dtype=float)
         WM_in_tube = np.empty(t.shape, dtype=float)
 
