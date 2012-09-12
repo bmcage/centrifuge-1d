@@ -140,6 +140,27 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     return (True, t, z)
 
+
+def set_optimized_variables(optim_params, model, untransform=None):
+    """ optim_params: dict of pairs param_name: param_value """
+    if untransform:
+        for (name, value) in optim_params.items():
+            setattr(model, name, untransform[name](value))
+    else:
+        for (name, value) in optim_params.items():
+            setattr(model, name, value)
+
+    if 'n' in optim_params:
+        model.m = 1 - 1/model.n
+
+    if model.verbosity > 0:
+        print()
+        for name in optim_params.keys():
+            if name == 'ks':
+                print('{:5}: {: .8g}'.format('Ks', getattr(model, name)))
+            else:
+                print('{:5}: {: .8g}'.format(name, getattr(model, name)))
+
 def simulate_inverse(times, direct_fn, model, init_parameters,
                      wl_in_meas=None, wl_out_meas=None,
                      gc_meas=None, rm_meas=None,
@@ -168,21 +189,6 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                    'gamma': lambda gamma_transf: -min(exp(gamma_transf), max_value)}
 
     optimized_parameters = []
-
-    def update_model(optim_params, model):
-        for (name, value) in zip(optimized_parameters, optim_params):
-            setattr(model, name, untransform[name](value))
-
-        if 'n' in optimized_parameters:
-            model.m = 1 - 1/model.n
-
-        if model.verbosity > 0:
-            print()
-            for name in optimized_parameters:
-                if name == 'ks':
-                    print('{:5}: {: .8g}'.format('Ks', getattr(model, name)))
-                else:
-                    print('{:5}: {: .8g}'.format(name, getattr(model, name)))
 
     lbounds = {}
     ubounds = {}
@@ -289,7 +295,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         print(15 * '*', ' Iteration: {:4d}'.format(iteration), ' ', 15 * '*')
         iteration += 1
 
-        update_model(optimargs, model)
+        set_optimized_variables(dict(zip(optimized_parameters, optimargs)),
+                                model, untransform=untransform)
 
         penalization = penalize(model, when='out_of_bounds')
 
@@ -435,7 +442,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     print(' |')
 
     # Run experiment once more with optimal values to display results at optimum
-    update_model(opt_params, model)
+    set_optimized_variables(dict(zip(optimized_parameters, opt_params)),
+                            model, untransform)
     optim_params = {name: getattr(model, name) for name in optimized_parameters}
 
     return (optim_params, cov)
