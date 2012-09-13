@@ -182,6 +182,31 @@ def get_noniterable_list(exp_type, modman):
 
     return noniterable_list
 
+def get_measurements_array_length(exp_type, data, modman):
+    noniterables = get_noniterable_list(exp_type, modman)
+
+    if noniterables:
+        measurements_list_length = -1
+
+        for (key, value) in data.items():
+            if (not type(value) == list) or (key in noniterables): continue
+
+            if measurements_list_length == -1:
+                ref_key = key
+                measurements_list_length = len(value)
+            else:
+                if len(value) != measurements_list_length:
+                    print("Option list '{}' has length: {:d}\n"
+                          "Reference list '{}' has length: {:d}\n:"
+                          "Cannot iterate over lists of unequal length. "
+                          "Aborting."
+                          .format(key, len(value), ref_key, iterations))
+                    exit(1)
+    else:
+        measurements_list_length = 1
+
+    return measurements_list_length
+
 def data2ini(data, output_dir):
 
     print('\nCreating data inifiles...')
