@@ -9,36 +9,41 @@ def yn_prompt(question_str):
         if answ in ['n', 'no']: return False
 
 def get_directories(dirs, exp_id, exp_no, tube_no):
-    base_dir     = INI_DIR + '/'
-    exp_base_dir = base_dir + exp_id + '/'
-    exp_dir      = exp_base_dir + str(exp_no) + '/'
-    tube_dir     = exp_dir + 'tube' + str(tube_no) + '/'
-    masks_dir    = tube_dir + MASKS_DIRNAME + '/'
+
+    dir_struct = ['exp_base', 'exp_no', 'tube', 'masks']
+    dir_values = (exp_id, str(exp_no), 'tube' + str(tube_no), MASKS_DIRNAME)
+
+    def get_dir(dir_type, base_dir):
+        k = dir_struct.index(dir_type)
+        return base_dir + '/' + '/'.join(dir_values[:k+1]) + '/'
+
+    def resolve_dirs(*dirs):
+        results = []
+        for dirtype in dirs:
+            if dirtype == 'base':
+                results.append(INI_DIR)
+            elif dirtype == 'exp_base':
+                results.append(get_dir('exp_base', INI_DIR))
+            elif dirtype == 'exp_no':
+                results.append(get_dir('exp_no', INI_DIR))
+            elif dirtype in ['data', 'tube']:
+                results.append(get_dir('tube', INI_DIR))
+            elif dirtype == 'masks':
+                results.append(get_dir('masks', INI_DIR))
+            elif dirtype == 'search':
+                results.append(resolve_dirs('base', 'exp_base', 'exp_no',
+                                            'tube'))
+            else:
+                raise ValueError('Unknown value for get_directiories(): '
+                                 '{}'.format(dirs))
+        return results
 
     if not dirs: dirs = ('search')
-    single_result = False
+
     if type(dirs) == str:
-         dirs = (dirs,)
-         single_result = True
-    results = []
-
-    for dirtype in dirs:
-        if dirtype == 'search':
-            results.append((base_dir, exp_base_dir, exp_dir, tube_dir))
-        elif dirtype == 'masks':
-            results.append(masks_dir)
-        elif dirtype == 'data':
-            results.append(tube_dir)
-        elif dirtype == 'base':
-            results.append(base_dir)
-        elif dirtype == 'exp_base':
-            results.append(exp_base_dir)
-        else:
-            raise ValueError('Unknown value for get_directiories(): '
-                             '{}'.format(dirs))
-
-    if single_result: return results[0]
-    else: return results
+        return resolve_dirs(dirs)[0]
+    else:
+        return resolve_dirs(*dirs)
 
 def print_by_tube(tube_number, tube_data):
     print('Tube number: ', tube_number)
