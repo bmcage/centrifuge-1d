@@ -63,7 +63,7 @@ def parse_input():
 
             if options.list:
                 print('\n'.join(sorted(listdir(
-                    get_directories('base', None, None, None, None)))))
+                    get_directories('base', '', '', '')))))
             if options.modules_list:
                 modman = ModulesManager()
                 modman.echo(options.verbose)
