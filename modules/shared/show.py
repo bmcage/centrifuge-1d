@@ -366,7 +366,7 @@ def disp_inv_results(model, t_inv, inv_params=None,
                      fignum = 1,
                      save_figures=False, separate_figures=False,
                      save_as_text=False, draw_equilibrium=False,
-                     show_figures=False):
+                     show_figures=False, save_dir=None):
 
     def print_data(name, data_computed, data_measured):
         name_len = len(name)
@@ -453,4 +453,4 @@ def disp_inv_results(model, t_inv, inv_params=None,
                     save_figures=model.save_figures,
                     separate_figures=model.separate_figures,
                     save_as_text=model.save_as_text, draw_equilibrium=False,
-                    show_figures=model.show_figures)
+                    show_figures=model.show_figures, save_dir=save_dir)
