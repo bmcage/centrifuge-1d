@@ -318,12 +318,12 @@ class Configuration:
         def module_preadjust_cfg(module):
             if hasattr(module, 'prior_adjust_cfg'):
                 module.prior_adjust_cfg(self)
-                return True
+            return True
 
         def module_adjust_cfg(module):
             if hasattr(module, 'adjust_cfg'):
                 module.adjust_cfg(self)
-                return True
+            return True
 
         exp_type = self.get_value('exp_type')
 
