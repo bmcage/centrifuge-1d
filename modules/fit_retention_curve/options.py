@@ -1,4 +1,4 @@
-PARENTAL_MODULES = ['base']
+PARENTAL_MODULES = []
 
 def should_theta_s_be_present(cfg):
     inv_init_params_len = len(cfg.get_value('inv_init_params'))
@@ -14,8 +14,8 @@ def should_theta_r_be_present(cfg):
                   and (cfg.get_value('theta_s') is None)))
     return result
 
-CONFIG_OPTIONS = ['p', 'theta', 'inv_init_params',
-                  ('rho', 1.0),
+CONFIG_OPTIONS = ['exp_type', 'g', 'p', 'theta', 'inv_init_params',
+                  ('rho', 1.0), 'show_figures',
                   (should_theta_s_be_present, ['theta_s']),
                   (should_theta_r_be_present, ['theta_r']),
                   ('sample_id', None), ('wl_out1', None),
@@ -25,13 +25,9 @@ CONFIG_OPTIONS = ['p', 'theta', 'inv_init_params',
 
 NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'p', 'theta']
 
-PROVIDE_OPTIONS = ['duration', 'ks', 'r0', 'l0', 'wt_out',
-                  'omega']
-
 EXCLUDE_FROM_MODEL = ['measurements_length']
 
-BLACKLIST_OPTIONS = ['rtol', 'atol', 'include_acceleration', 'max_step_size',
-                     'r0_fall', 'fh_duration', 'max_steps']
+INTERNAL_OPTIONS = []
 
 def check_cfg(cfg):
     theta_s_p = not cfg.get_value('theta_s') is None
