@@ -622,8 +622,9 @@ class ModelParameters:
         self.iterations           = 0
 
         fns = cfg.get_value('omega2g_fns')
-        self._omega2g_fns = \
-          {key: MethodType(fn, self) for (key, fn) in fns.items()}
+        if fns:
+            self._omega2g_fns = \
+              {key: MethodType(fn, self) for (key, fn) in fns.items()}
 
         for (option_name, value) in cfg.iterate_values():
             if not option_name in excluded_options:
