@@ -13,6 +13,11 @@ modman = ModulesManager()
 
 base_module = modman.find_module('base', submodule='csv_parse')
 
+# dynamicall created options: options added to generated measurements.ini
+# file, that are not specified by the csv file
+# {opt_name: gen_data_function} with 'gen_data_function(exp_type, data, modman)'
+DYNAMIC_OPTIONS = {'measurements_length': None}
+
 def parse_input():
 
     usage_str = (
@@ -207,6 +212,8 @@ def get_measurements_array_length(exp_type, data, modman):
 
     return measurements_list_length
 
+DYNAMIC_OPTIONS['measurements_length'] = get_measurements_array_length
+
 def data2ini(data, output_dir):
 
     print('\nCreating data inifiles...')
@@ -234,8 +241,8 @@ def data2ini(data, output_dir):
                 (data_dir, masks_dir)  = \
                   get_directories(['data', 'masks'], exp_id, exp_no, tube_no)
 
-                exp_data['measurements_length'] = \
-                  get_measurements_array_length(compr_exp_type, exp_data, modman)
+                for (name, dyndata_fn) in DYNAMIC_OPTIONS.items():
+                    exp_data[name] = dyndata_fn(compr_exp_type, exp_data, modman)
 
                 save_configuration(exp_data, savedir=data_dir,
                                    filename='measurements.ini',
