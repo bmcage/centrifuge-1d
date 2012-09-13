@@ -21,7 +21,7 @@ def get_directories(dirs, exp_id, exp_no, tube_no):
         results = []
         for dirtype in dirs:
             if dirtype == 'base':
-                results.append(INI_DIR)
+                results.append(INI_DIR + '/')
             elif dirtype == 'exp_base':
                 results.append(get_dir('exp_base', INI_DIR))
             elif dirtype == 'exp_no':
