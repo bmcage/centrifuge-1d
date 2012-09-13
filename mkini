@@ -169,6 +169,19 @@ def save_configuration(data, savedir='', filename='', section_name=''):
 
     fout.close()
 
+def get_noniterable_list(exp_type, modman):
+    noniterable_list = []
+
+    def extend_noniterables_list(module):
+        if hasattr(module, 'NONITERABLE_LIST_OPTIONS'):
+            noniterable_list.extend(module.NONITERABLE_LIST_OPTIONS)
+        return True
+
+    modman.traverse_ancestors(exp_type, extend_noniterables_list,
+                              submodule='options')
+
+    return noniterable_list
+
 def data2ini(data, output_dir):
 
     print('\nCreating data inifiles...')
