@@ -122,7 +122,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 RM = None,  RM_ref = None, WM = None, WM_ref = None,
                 fignum = 1, save_figures=False, separate_figures=False,
                 save_as_text=False, draw_equilibrium=False,
-                show_figures=False, save_dir=None,
+                show_figures=False, experiment_info=None,
                 model=None):
 
     def add_legend(lines, legend_data=None, legend_title=None, legend_loc=1,
@@ -140,12 +140,25 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
 
     if save_figures or save_as_text:
-        if not save_dir:
-            print('Path for saving figures was not specified. '
+        if not experiment_info:
+            print('Experiment information was not supplied. '
                   'Disabling saving figures.')
             save_figures = save_as_text = False
-        elif not path.exists(save_dir):
-            makedirs(save_dir)
+        else:
+            mask = experiment_info['mask']
+            if mask:
+                figs_dir_type = 'figs_masks'
+            else:
+                figs_dir_type = 'figs_data'
+
+            save_dir = get_directories(figs_dir_type, experiment_info['exp_id'],
+                                       experiment_info['exp_no'],
+                                       experiment_info['tube_no'])
+
+            if mask: save_dir += mask + '/'
+
+            if not path.exists(save_dir):
+                makedirs(save_dir)
 
     t = [ti/60. for ti in times] # sec -> min
 
@@ -366,7 +379,7 @@ def disp_inv_results(model, t_inv, inv_params=None,
                      fignum = 1,
                      save_figures=False, separate_figures=False,
                      save_as_text=False, draw_equilibrium=False,
-                     show_figures=False, save_dir=None):
+                     show_figures=False, experiment_info=None):
 
     def print_data(name, data_computed, data_measured):
         name_len = len(name)
@@ -453,4 +466,5 @@ def disp_inv_results(model, t_inv, inv_params=None,
                     save_figures=model.save_figures,
                     separate_figures=model.separate_figures,
                     save_as_text=model.save_as_text, draw_equilibrium=False,
-                    show_figures=model.show_figures, save_dir=save_dir)
+                    show_figures=model.show_figures,
+                    experiment_info=experiment_info)
