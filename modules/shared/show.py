@@ -122,7 +122,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 RM = None,  RM_ref = None, WM = None, WM_ref = None,
                 fignum = 1, save_figures=False, separate_figures=False,
                 save_as_text=False, draw_equilibrium=False,
-                show_figures=False,
+                show_figures=False, save_dir=None,
                 model=None):
 
     def add_legend(lines, legend_data=None, legend_title=None, legend_loc=1,
@@ -139,15 +139,13 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
 
-    if model is None:
-        OUT_DIR = FIGS_DIR + '/'
-    else:
-        OUT_DIR = (FIGS_DIR + '/' + 'n=' + str(model.n) + ',gamma='
-                   + str(model.gamma) + ',Ks=%g' % model.ks
-                   + ',omega=%.2f' % (model.omega*30./np.pi) +'/')
-
-    if save_figures and (not path.exists(OUT_DIR)):
-        makedirs(OUT_DIR)
+    if save_figures or save_as_text:
+        if not save_dir:
+            print('Path for saving figures was not specified. '
+                  'Disabling saving figures.')
+            save_figures = save_as_text = False
+        elif not path.exists(save_dir):
+            makedirs(save_dir)
 
     t = [ti/60. for ti in times] # sec -> min
 
@@ -202,7 +200,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
 
                 if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-h', dpi=300)
+                    plt.savefig(save_dir + 'Image-h', dpi=300)
 
                 add_legend(h_lines, legend_data=h_eq_legend,
                            legend_title=legend_title)
@@ -211,7 +209,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                    add_legend(h_lines, legend_data=h_eq_legend,
                               legend_title=legend_title)
                 if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-h-leg', dpi=300)
+                    plt.savefig(save_dir + 'Image-h-leg', dpi=300)
 
                 img_num = 2
 
@@ -227,13 +225,13 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 plt.ylabel('Relative saturation ''u''')
 
                 if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-u', dpi=300)
+                    plt.savefig(save_dir + 'Image-u', dpi=300)
 
                 add_legend(u_lines, legend_data=legend_data,
                            legend_title=legend_title)
 
                 if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-u-leg', dpi=300)
+                    plt.savefig(save_dir + 'Image-u-leg', dpi=300)
 
             img_num = 3
 
@@ -279,7 +277,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
         if img_num > images_per_figure:
             if save_figures:
-                plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
+                plt.savefig(save_dir + ('Image-%i' % fignum), dpi=300)
 
             img_num = 1
             fignum = fignum + 1
@@ -319,12 +317,12 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
         img_num = img_num + 1
 
     if save_figures:
-        plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
+        plt.savefig(save_dir + ('Image-%i' % fignum), dpi=300)
 
     plt.show(block=False)
 
     if save_as_text:
-        filename = OUT_DIR +'data_as_text.txt'
+        filename = save_dir +'data_as_text.txt'
         fout = open(filename, mode='w', encoding='utf-8')
 
         if not h is None:
