@@ -234,6 +234,9 @@ def data2ini(data, output_dir):
                 (data_dir, masks_dir)  = \
                   get_directories(['data', 'masks'], exp_id, exp_no, tube_no)
 
+                exp_data['measurements_length'] = \
+                  get_measurements_array_length(compr_exp_type, exp_data, modman)
+
                 save_configuration(exp_data, savedir=data_dir,
                                    filename='measurements.ini',
                                    section_name='experiment-data')
