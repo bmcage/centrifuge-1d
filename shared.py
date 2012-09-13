@@ -1,5 +1,5 @@
 import numpy as np
-from const import INI_DIR, MASKS_DIRNAME
+from const import INI_DIR, MASKS_DIRNAME, FIGS_DIR
 
 def yn_prompt(question_str):
     while True:
@@ -30,6 +30,8 @@ def get_directories(dirs, exp_id, exp_no, tube_no):
                 results.append(get_dir('tube', INI_DIR))
             elif dirtype == 'masks':
                 results.append(get_dir('masks', INI_DIR))
+            elif dirtype == 'figs':
+                results.append(get_dir('tube', FIGS_DIR))
             elif dirtype == 'search':
                 results.append(resolve_dirs('base', 'exp_base', 'exp_no',
                                             'tube'))
