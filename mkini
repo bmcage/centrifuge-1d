@@ -221,11 +221,11 @@ def data2ini(data, output_dir):
 
             for (tube_no, exp_data) in exp_no_struct.items():
 
-                (flag, cvalue) = compress_seq(exp_data['exp_type'])
+                (flag, compr_exp_type) = compress_seq(exp_data['exp_type'])
                 if not flag:
                     raise ValueError("Experiment type 'exp_type' must be the "
                                      "same for given experiment. Exiting...")
-                id_exp_type.append(cvalue)
+                id_exp_type.append(compr_exp_type)
 
                 # Remove identificators
                 for field in REQUIRED_FIELDS:
