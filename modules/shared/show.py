@@ -332,6 +332,8 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                            loc=plot['legend_loc'], title=plot['legend_title'],
                            bbox_to_anchor=plot['legend_bbox'])
 
+            img_num += 1
+
 
     if plots:
         nplots = narrow_plots(plots)
