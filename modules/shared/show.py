@@ -261,8 +261,6 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
             i1 = narrowed_plots[i1_id]
             i2 = narrowed_plots[i2_id]
 
-            print('i', i1, i2, ordered_plots, single_plots)
-
             if i1 and i2:
                 ordered_plots.extend(i1)
                 ordered_plots.extend(i2)
@@ -293,7 +291,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
             plt.figure(fignum, figsize=(16, 8.5))
             plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
 
-        fig_num = fignum
+        print('fn', fignum)
         img_num = 1
 
         for plot in ordered_plots:
@@ -315,9 +313,6 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 plt.subplot(3,2,img_num)
 
             # plot the supplied data
-            print('fn', plot, '\n')
-
-
             plot_id = plot['id']
             for plot_data in plot['data']:
                 (xdata, ydata, data_label, plot_style) = plot_data
@@ -338,8 +333,6 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
     if plots:
         nplots = narrow_plots(plots)
         oplots = order_plots(nplots)
-        print('pl', oplots)
-
         plot_data(oplots)
 
         plt.show(block=False)
