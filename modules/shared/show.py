@@ -134,6 +134,31 @@ DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
 
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 
+def mk_plot_item(xdata, ydata, label=None, line_opts=None):
+    if line_opts is None:
+        item = (xdata, ydata, label)
+    else
+        item = (xdata, ydata, label, line_opts)
+
+    return item
+
+def mk_plot(plot_id, plot_items, legend_loc=None, axes_labels=None,
+            legend_title=None, legend_bbox=None):
+
+    plot = {'id': plot_id, 'data': plot_items}
+    if not legend_loc is None:
+        plot['legend_loc'] = legend_loc
+    if not axes_labels is None:
+        plot['axes_labels'] = axes_labels
+    if not legend_title is None:
+        plot['legend_title'] = legend_title
+    if not legend_bbox is None:
+        plot['legend_bbox'] = legend_bbox
+    if not show_legend is None:
+        plot['show_legend'] = show_legend
+
+    return item
+
 def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 s1 = None, s1_ref=None, s2 = None, s2_ref=None,
                 mass_out = None, mass_out_ref = None,
