@@ -282,7 +282,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
         return ordered_plots
 
-    def plot_data(ordered_plots):
+    def display_plots(ordered_plots):
         nonlocal fignum
 
         if separate_figures:
@@ -335,7 +335,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
     if plots:
         nplots = narrow_plots(plots)
         oplots = order_plots(nplots)
-        plot_data(oplots)
+        display_plots(oplots)
 
         plt.show(block=False)
         input('Press ENTER to continue...')
