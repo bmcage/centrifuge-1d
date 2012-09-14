@@ -124,8 +124,8 @@ DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
                   'RM': (dg_label_time, "Rotational momentum [kg.m.s$^{-1}$]"),
                   's1': (dg_label_time, "Interface s1 [cm]"),
                   's2': (dg_label_time, "Interface s2 [cm]"),
-                  'WM': (dg_label_time, "Water mass [cm]")}
-                  # '': (dg_label_time, ""),
+                  'WM': (dg_label_time, "Water mass [cm]"),
+                  'RC': ("Water content $\\theta$", "Pressure $p$ [Pa]")}
               # '': (dg_label_time, ""),
               # '': (dg_label_time, ""),
               # '': (dg_label_time, ""),
