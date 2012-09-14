@@ -127,7 +127,7 @@ def solve(model):
                                       theta_s, theta_r, model.rho, model.g)
             plot_items.append(mk_plot_item(theta_ref, p_calc, line_opts='-'))
 
-        draw_graphs(show_figures=True,
+        draw_graphs(show_figures=True, separate_figures=True,
                     plots=[mk_plot('RC', plot_items, legend_loc=1,
                                    yscale='log')])
 
