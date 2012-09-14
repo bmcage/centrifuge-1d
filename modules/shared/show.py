@@ -114,6 +114,26 @@ def has_data(x):
     else:
         return bool(x)
 
+dg_label_time = "Time [min]"
+dg_label_length = "Sample length $L$ [cm]"
+DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
+                  'u': (dg_label_length, "Relative saturation $u$"),
+                  'MO': (dg_label_time, "Expelled water [cm]"),
+                  'MI': (dg_label_time, "Inflow water [cm]"),
+                  'GC': (dg_label_time, "Gravitational center [cm]"),
+                  'RM': (dg_label_time, "Rotational momentum [kg.m.s$^{-1}$]"),
+                  's1': (dg_label_time, "Interface s1 [cm]"),
+                  's2': (dg_label_time, "Interface s2 [cm]"),
+                  'WM': (dg_label_time, "Water mass [cm]")}
+                  # '': (dg_label_time, ""),
+              # '': (dg_label_time, ""),
+              # '': (dg_label_time, ""),
+              # '': (dg_label_time, ""),
+              # '': (dg_label_time, ""),
+              # '': (dg_label_time, ""),
+
+DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
+
 def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 s1 = None, s1_ref=None, s2 = None, s2_ref=None,
                 mass_out = None, mass_out_ref = None,
@@ -123,6 +143,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 fignum = 1, save_figures=False, separate_figures=False,
                 save_as_text=False, draw_equilibrium=False,
                 show_figures=False, experiment_info=None,
+                plots = None,
                 model=None):
 
     def add_legend(lines, legend_data=None, legend_title=None, legend_loc=1,
@@ -139,6 +160,194 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
 
+    if not plots:
+        print('No data suplied. Nothing to display.')
+        exit(0)
+
+    def narrow_plots(plots):
+        conformed_plots = {key: [] for key in DG_AXES_LABELS.keys()}
+
+        # item: {'id':string, 'data':item_data_list
+        #        [, 'labels':(xlabel, ylabel)][, 'legend_loc':loc]
+        #        [, 'legend_bbox': bbox_desc][, 'legend_title': string]}
+        # item_data: (x, y[, label[, draw_opts]])
+        for item in plots:
+            item_id   = item['id']
+            item_data = item['data']
+
+            if not (item_data and has_data(item_data[0][1])): continue
+
+            # create a duplicate of item and fill optional values
+            new_item = {'id': item_id, 'labels': None, 'data': [],
+                        'legend_loc': 4, 'legend_bbox': None}
+
+            # fill axes labels
+            if 'label' in item:
+                new_item['axes_labels'] = item['axes_labels']
+            else:
+                new_item['axes_labels'] = DG_AXES_LABELS[item_id]
+
+            # fill legend location
+            if 'legend_loc' in item:
+                new_item['legend_loc'] = item['legend_loc']
+            else:
+                if item_id in ['h', 'u']:
+                    new_item['legend_loc'] = 2
+                else:
+                    new_item['legend_loc'] = 4
+
+            # fill legend title
+            if 'legend_loc' in item:
+                new_item['legend_title'] = item['legend_title']
+            else:
+                if item_id in ['h', 'u']:
+                    new_item['legend_title'] = dg_label_time
+                else:
+                    new_item['legend_title'] = ''
+
+            # fill legend bbox_to_anchor
+            if 'legend_bbox' in item:
+                new_item['legend_bbox'] = item['legend_bbox']
+            else:
+                if item_id in ['h', 'u']:
+                    new_item['legend_bbox'] = (1., 1.)
+                else:
+                    new_item['legend_bbox'] = None
+
+            # fill data
+            ref_num = 1
+            for (idx, data_item) in enumerate(item_data):
+                # copy each item_data and fill with mandatory x and y data
+
+                item_data_len = len(item_data)
+
+                # resolve label of the plot line
+                if (item_data_len >=3) and (data_item[2] is not None):
+                    new_data_item_label = data_item[2]
+                else:
+                    if idx == 0:
+                        new_data_item_label = 'computed'
+                    elif idx == 1:
+                        new_data_item_label = 'measured'
+                    else:
+                        new_data_item_label = 'reference ' + str(ref_num)
+                        ref_num += 1
+
+                # resolve plot style of the plot line
+                if item_data_len >=4:
+                    new_data_item_style = data_item[3]
+                else:
+                    if item_id in ['h', 'u']:
+                        new_data_item_style = '-'
+                    else:
+                        if idx == 0:
+                            new_data_item_style = '.'
+                        else:
+                            new_data_item_style = 'x'
+
+                # append the newly created data_item
+                new_data_item = (data_item[0], data_item[1],
+                                 new_data_item_label, new_data_item_style)
+
+                new_item['data'].append(new_data_item)
+
+            conformed_plots[item_id].append(new_item)
+
+        return conformed_plots
+
+    def order_plots(narrowed_plots):
+        ordered_plots = []
+        single_plots  = []
+
+        # first order pairs (and queue singles from pairs)
+        for (i1_id, i2_id) in DG_PAIRS:
+            i1 = narrowed_plots[i1_id]
+            i2 = narrowed_plots[i2_id]
+
+            print('i', i1, i2, ordered_plots, single_plots)
+
+            if i1 and i2:
+                ordered_plots.extend(i1)
+                ordered_plots.extend(i2)
+            elif i1:
+                single_plots.extend(i1)
+            elif i2:
+                single_plots.extend(i2)
+
+            del narrowed_plots[i1_id]
+            del narrowed_plots[i2_id]
+
+        # append singles
+        ordered_plots.extend(single_plots)
+        # append remaning singles that are not part of any pair
+        for plot in narrowed_plots.values():
+            if plot: ordered_plots.append(plot)
+
+        return ordered_plots
+
+    def plot_data(ordered_plots):
+        nonlocal fignum
+
+        if separate_figures:
+            images_per_figure = 1
+        else:
+            images_per_figure = 6
+
+            plt.figure(fignum, figsize=(16, 8.5))
+            plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
+
+        fig_num = fignum
+        img_num = 1
+
+        for plot in ordered_plots:
+            # resolve figure and subplot
+            if img_num > images_per_figure:
+                if save_figures:
+                    plt.savefig(save_dir + ('Image-%i' % fignum), dpi=300)
+
+                    img_num = 1
+                    fignum = fignum + 1
+
+                if separate_figures:
+                    plt.figure(fignum)
+                else:
+                    plt.figure(fignum, figsize=(16, 8.5))
+                    plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
+
+            if not separate_figures:
+                plt.subplot(3,2,img_num)
+
+            # plot the supplied data
+            print('fn', plot, '\n')
+
+
+            plot_id = plot['id']
+            for plot_data in plot['data']:
+                (xdata, ydata, data_label, plot_style) = plot_data
+                plt.plot(xdata, ydata, plot_style, label=data_label)
+
+            (xlabel, ylabel) = plot['axes_labels']
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
+
+            plt.legend(borderaxespad=0.0, prop={'family': 'monospace'},
+                       loc=plot['legend_loc'], title=plot['legend_title'],
+                       bbox_to_anchor=plot['legend_bbox'])
+
+
+    if plots:
+        nplots = narrow_plots(plots)
+        oplots = order_plots(nplots)
+        print('pl', oplots)
+
+        plot_data(oplots)
+
+        plt.show(block=False)
+        input('Press ENTER to continue...')
+
+        return
+
+    ############################## ORIGINAL CODE ##############################
     if save_figures or save_as_text:
         if not experiment_info:
             print('Experiment information was not supplied. '
