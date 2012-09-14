@@ -157,7 +157,7 @@ def mk_plot(plot_id, plot_items, legend_loc=None, axes_labels=None,
     if not show_legend is None:
         plot['show_legend'] = show_legend
 
-    return item
+    return plot
 
 def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 s1 = None, s1_ref=None, s2 = None, s2_ref=None,
