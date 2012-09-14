@@ -208,8 +208,8 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 else:
                     new_item['legend_bbox'] = None
 
-             if not 'show_legend' in item:      # fill show legend
-                 new_item['show_legend'] = True
+            if not 'show_legend' in item:      # fill show legend
+                new_item['show_legend'] = True
 
             # fill data that contains also optional values
             ref_num = 1
