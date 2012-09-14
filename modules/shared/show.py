@@ -177,44 +177,37 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
             if not (item_data and has_data(item_data[0][1])): continue
 
-            # create a duplicate of item and fill optional values
-            new_item = {'id': item_id, 'labels': None, 'data': [],
-                        'legend_loc': 4, 'legend_bbox': None}
+            # create a duplicate of existing values...
+            new_item = {}
+            for (key, value) in item.items():
+                if key in ['data']: continue
+                new_item[key] = value
 
-            # fill axes labels
-            if 'label' in item:
-                new_item['axes_labels'] = item['axes_labels']
-            else:
+            #  ..and fill optional values:
+
+            if not 'label' in item:            # fill axes labels
                 new_item['axes_labels'] = DG_AXES_LABELS[item_id]
 
-            # fill legend location
-            if 'legend_loc' in item:
-                new_item['legend_loc'] = item['legend_loc']
-            else:
+
+            if not 'legend_loc' in item:       # fill legend location
                 if item_id in ['h', 'u']:
                     new_item['legend_loc'] = 2
                 else:
                     new_item['legend_loc'] = 4
 
-            # fill legend title
-            if 'legend_loc' in item:
-                new_item['legend_title'] = item['legend_title']
-            else:
+            if not 'legend_title' in item:     # fill legend title
                 if item_id in ['h', 'u']:
                     new_item['legend_title'] = dg_label_time
                 else:
                     new_item['legend_title'] = ''
 
-            # fill legend bbox_to_anchor
-            if 'legend_bbox' in item:
-                new_item['legend_bbox'] = item['legend_bbox']
-            else:
+            if not 'legend_bbox' in item:      # fill legend bbox_to_anchor
                 if item_id in ['h', 'u']:
-                    new_item['legend_bbox'] = (1., 1.)
+                    new_item['legend_bbox'] = (1.01, 1.)
                 else:
                     new_item['legend_bbox'] = None
 
-            # fill data
+            # fill data that contains also optional values
             ref_num = 1
             for (idx, data_item) in enumerate(item_data):
                 # copy each item_data and fill with mandatory x and y data
