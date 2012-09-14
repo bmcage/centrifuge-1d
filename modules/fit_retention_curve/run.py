@@ -119,7 +119,6 @@ def solve(model):
         if model.p and model.theta:
             plot_items.append(mk_plot_item(model.theta, model.p,
                                            line_opts='x'))
-
         # referencing data
         n_ref     = model.n_ref
         gamma_ref = model.gamma_ref
@@ -130,7 +129,7 @@ def solve(model):
 
         draw_graphs(show_figures=True,
                     plots=[mk_plot('RC', plot_items, legend_loc=1,
-                                   yscale='log')]|)
+                                   yscale='log')])
 
     return inv_params
 
