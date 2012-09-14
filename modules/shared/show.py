@@ -142,8 +142,9 @@ def mk_plot_item(xdata, ydata, label=None, line_opts=None):
 
     return item
 
-def mk_plot(plot_id, plot_items, legend_loc=None, axes_labels=None,
-            legend_title=None, legend_bbox=None):
+def mk_plot(plot_id, plot_items, legend_loc=None, show_legend=None,
+            legend_title=None, legend_bbox=None, xscale=None, yscale=None,
+            axes_labels=None):
 
     plot = {'id': plot_id, 'data': plot_items}
     if not legend_loc is None:
@@ -156,6 +157,8 @@ def mk_plot(plot_id, plot_items, legend_loc=None, axes_labels=None,
         plot['legend_bbox'] = legend_bbox
     if not show_legend is None:
         plot['show_legend'] = show_legend
+    plot['xscale'] = xscale
+    plot['yscale'] = yscale
 
     return plot
 
@@ -389,6 +392,10 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
             (xlabel, ylabel) = plot['axes_labels']
             plt.xlabel(xlabel)
             plt.ylabel(ylabel)
+            if plot['xscale']:
+                plt.xscale(plot['xscale'])
+            if plot['yscale']:
+                plt.yscale(plot['yscale'])
 
             if plot['show_legend']:
                 plt.legend(borderaxespad=0.0, prop={'family': 'monospace'},
