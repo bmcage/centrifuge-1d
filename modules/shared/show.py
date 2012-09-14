@@ -293,7 +293,6 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
             plt.figure(fignum, figsize=(16, 8.5))
             plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
 
-        print('fn', fignum)
         img_num = 1
 
         for plot in ordered_plots:
