@@ -305,8 +305,8 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
         # append singles
         ordered_plots.extend(single_plots)
         # append remaning singles that are not part of any pair
-        for plot in narrowed_plots.values():
-            if plot: ordered_plots.append(plot)
+        for plots_id in narrowed_plots.values():
+            if plots_id: ordered_plots.extend(plots_id)
 
         return ordered_plots
 
