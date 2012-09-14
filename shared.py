@@ -34,11 +34,11 @@ def get_directories(dirs, exp_id, exp_no, tube_no):
                 results.append(resolve_dirs('base', 'exp_base', 'exp_no',
                                             'tube'))
             else:
-                raise ValueError('Unknown value for get_directiories(): '
+                raise ValueError('Unknown value for get_directories(): '
                                  '{}'.format(dirs))
         return results
 
-    if not dirs: dirs = ('search')
+    if not dirs: dirs = 'search'
 
     if type(dirs) == str:
         return resolve_dirs(dirs)[0]
