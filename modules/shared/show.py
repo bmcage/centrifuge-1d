@@ -282,29 +282,70 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
         return ordered_plots
 
+    def save_text(savedir, plots):
+        filename = savedir +'data_as_text.txt'
+        fout = open(filename, mode='w', encoding='utf-8')
+
+        for plot in plots:
+            plot_id = plot['id']
+            ref_num = 1
+
+            for (idx, item) in enumerate(plot['data']):
+                if idx == 0:
+                    id_suffix = '_comp'
+                elif idx == 1:
+                    id_suffix = '_meas'
+                else:
+                    idx_suffix = '_ref' + str(ref_num)
+                    ref_num += 1
+
+                fout.write('{:8} = [{}]\n'.format(plot_id + id_suffix + '_x',
+                                                  ', '.join(nd2strlist(item[0]))))
+                fout.write('{:8} = [{}]\n'.format(plot_id + id_suffix + '_y',
+                                                  ', '.join(nd2strlist(item[1]))))
+        fout.close()
+
     def display_plots(ordered_plots):
-        nonlocal fignum
+        nonlocal fignum, save_figures, save_as_text
+
+        if save_figures or save_as_text:
+            from shared import get_directories
+
+            if not experiment_info:
+                print('Experiment information was not supplied. '
+                      'Disabling saving figures.')
+                save_figures = save_as_text = False
+            else:
+                mask = experiment_info['mask']
+                if mask:
+                    figs_dir_type = 'figs_masks'
+                else:
+                    figs_dir_type = 'figs_data'
+
+                save_dir = get_directories(figs_dir_type,
+                                           experiment_info['exp_id'],
+                                           experiment_info['exp_no'],
+                                           experiment_info['tube_no'])
+                if mask: save_dir += mask + '/'
+
+                if not path.exists(save_dir):
+                    makedirs(save_dir)
 
         if separate_figures:
             images_per_figure = 1
         else:
             images_per_figure = 6
 
-            plt.figure(fignum, figsize=(16, 8.5))
-            plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
-
-        img_num = 1
+        fignum -= 1
+        img_num = 2^20 # high initialization, so that first fig is created
 
         for plot in ordered_plots:
             plot_id = plot['id']
 
             # resolve figure and subplot
             if img_num > images_per_figure:
-                if save_figures:
-                    plt.savefig(save_dir + ('Image-%i' % fignum), dpi=300)
-
-                    img_num = 1
-                    fignum = fignum + 1
+                img_num = 1
+                fignum += 1
 
                 if separate_figures:
                     plt.figure(fignum)
@@ -329,8 +370,19 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                            loc=plot['legend_loc'], title=plot['legend_title'],
                            bbox_to_anchor=plot['legend_bbox'])
 
+            if save_figures and (img_num == images_per_figure):
+                if separate_figures: img_suffix = plot_id
+                else: img_suffix = str(fignum)
+
+                plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
+
             img_num += 1
 
+        if save_figures and (img_num < images_per_figure):
+            plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
+
+        if save_as_text:
+            save_text(save_dir, ordered_plots)
 
     if plots:
         nplots = narrow_plots(plots)
