@@ -212,6 +212,8 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 new_item['show_legend'] = True
 
             # fill data that contains also optional values
+            new_item['data'] = []
+
             ref_num = 1
             for (idx, data_item) in enumerate(item_data):
                 # copy each item_data and fill with mandatory x and y data
