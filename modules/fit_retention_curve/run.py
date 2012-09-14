@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import modules.base.run as base
 from modules.shared.vangenuchten import h2u
+from modules.shared.show import mk_plot_item, mk_plot, draw_graphs
 
 def solve(model):
     def lsq_fn(xdata, *optim_args):
@@ -102,16 +103,49 @@ def solve(model):
 
     print('\n Cov:\n%s\n' % cov_inv)
 
+    def compute_theta(p, n, m, gamma, theta_s, theta_r, rho,g):
+        theta_calc = theta_r + (theta_s - theta_r) * h2u(-10.*p/rho/g,
+                                                         n, 1.-1./n, gamma)
+        return theta_calc
+
     if model.show_figures:
-        draw_graphs(n, gamma, theta_s, theta_r,
-                    model.rho, model.g, model.p, model.theta,
-                    n_ref=model.n_ref, gamma_ref=model.gamma_ref)
+        p_calc = np.arange(0, 10000000, 100)
+
+        # computed data
+        plot_items = [mk_plot_item(compute_theta(p_calc, n, 1-1/n, gamma,
+                                                 theta_s, theta_r,
+                                                 model.rho, model.g),
+                                   p_calc,
+                                   line_opts='-')]
+        # measured data
+        if model.p and model.theta:
+            plot_items.append(mk_plot_item(model.theta, model.p,
+                                           line_opts='x'))
+
+        # referencing data
+        n_ref = model.n_ref
+        gamma_ref = model.gamma_ref
+        if n_ref and gamma_ref:
+            plot_items.append(mk_plot_item(compute_theta(p_calc, n_ref,
+                                                         1-1/n_ref, gamma_ref,
+                                                         theta_s, theta_r,
+                                                         model.rho, model.g),
+                                           p_calc,
+                                           line_opts='-'))
+
+        draw_graphs(None,
+                    plots=[mk_plot('RC', plot_items, legend_loc=1, yscale='log')],
+                    show_figures=True)
+
+        # draw_graphs(n, gamma, theta_s, theta_r,
+        #             model.rho, model.g, model.p, model.theta,
+        #             n_ref=model.n_ref, gamma_ref=model.gamma_ref)
 
     return inv_params
 
-def draw_graphs(n, gamma, theta_s, theta_r, rho, g,
-                p_measured = None, theta_measured = None,
-                n_ref=None, gamma_ref=None, fignum = 1):
+def draw_graphs_old(n, gamma, theta_s, theta_r, rho, g,
+                    p_measured = None, theta_measured = None,
+                    n_ref=None, gamma_ref=None, fignum = 1):
     import matplotlib.pyplot as plt
 
     plt.figure(fignum, figsize=(8, 4.5))
