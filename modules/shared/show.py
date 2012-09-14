@@ -162,7 +162,7 @@ def mk_plot(plot_id, plot_items, legend_loc=None, show_legend=None,
 
     return plot
 
-def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
+def draw_graphs(times=None, t_ref = None, y = None, h = None, u = None,
                 s1 = None, s1_ref=None, s2 = None, s2_ref=None,
                 mass_out = None, mass_out_ref = None,
                 mass_in = None, mass_in_ref = None,
