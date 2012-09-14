@@ -749,3 +749,73 @@ def disp_inv_results(model, t_inv, inv_params=None,
                     save_as_text=model.save_as_text, draw_equilibrium=False,
                     show_figures=model.show_figures,
                     experiment_info=experiment_info)
+
+def mk_status_item(data_id, data_computed, data_measured = []):
+   return {'id': data_id, 'data': (data,computed, data_measured)}
+
+def disp_status(data_plots=None, params=None, cov=None):
+
+    def compare_data(name, data_computed, data_measured, relerror, abserror):
+        name_len = len(name)
+        disp_all = (not data_measured is None)
+
+        i0 = 0
+        in_row = 10
+        remaining = np.alen(data_computed)
+
+        print('\n')
+        while remaining > 0:
+            if remaining > in_row:
+                disp_items = in_row
+            else:
+                disp_items = remaining
+
+            print('%s measured: ' % name,
+                  disp_items * '% 10.6f' % tuple(data_measured[i0:i0+disp_items]))
+            if disp_all:
+                print('%s computed: ' % name,
+                      disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
+                print('AbsError: ', name_len * ' ',
+                      disp_items * '% 10.6f' % tuple(abs_error[i0:i0+disp_items]))
+                print('Error (%):', name_len * ' ',
+                      disp_items * '% 10.2f' % tuple(relerror[i0:i0+disp_items]))
+
+            remaining = remaining - disp_items
+            print(108 * '-')
+            i0 = i0 + in_row
+
+        print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
+
+    if data_plots:
+        for plot in data_plots:
+            plot_id = plot['id']
+
+            data_items_nr = len(plot['data'])
+            if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
+                continue
+
+            if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
+                value_computed = plot['data'][0]
+                value_measured = rel_error = abs_error = None
+            else:
+                value_computed = np.asarray(plot['data'][0])
+                value_measured = np.asarray(plot['data'][1])
+                norm_measured = value_measured[:]
+                norm_measured[norm_measured == 0.0] = 1.0e-10
+                rel_error = ((value_computed - value_measured)
+                             / norm_measured * 100.)
+                abs_error = np.abs(value_computed - value_measured)
+
+            compare_data(plot_id, value_computed, value_measured,
+                         rel_error, abs_error)
+
+    if params:
+        print('Parameters:')
+        for (name, value) in inv_params.items():
+            if name == 'ks':
+                print('  Ks [cm/s]: {: .8g}'.format(value))
+            else:
+                print('  {:9}: {: .8g}'.format(name, value))
+
+    if has_data(cov):
+        print('Cov:\n', cov)
