@@ -137,42 +137,7 @@ def solve(model):
                     plots=[mk_plot('RC', plot_items, legend_loc=1, yscale='log')],
                     show_figures=True)
 
-        # draw_graphs(n, gamma, theta_s, theta_r,
-        #             model.rho, model.g, model.p, model.theta,
-        #             n_ref=model.n_ref, gamma_ref=model.gamma_ref)
-
     return inv_params
-
-def draw_graphs_old(n, gamma, theta_s, theta_r, rho, g,
-                    p_measured = None, theta_measured = None,
-                    n_ref=None, gamma_ref=None, fignum = 1):
-    import matplotlib.pyplot as plt
-
-    plt.figure(fignum, figsize=(8, 4.5))
-
-    p_calc = np.arange(0, 10000000, 100)
-
-    theta_calc = theta_r + (theta_s - theta_r) * h2u(-10.*p_calc/rho/g,
-                                                     n, 1.-1./n, gamma)
-    plt.plot(theta_calc, p_calc, '-', label='computed')
-
-    if n_ref and gamma_ref:
-        theta_calc_ref = (theta_r
-                          + (theta_s - theta_r) * h2u(-10.*p_calc/rho/g, n_ref,
-                                                      1.-1./n_ref, gamma_ref))
-        plt.plot(theta_calc_ref, p_calc, '-', label='referenced')
-
-    if p_measured and theta_measured:
-        plt.plot(theta_measured, p_measured, 'x', label='measured')
-
-    plt.legend(loc=1, borderaxespad=0.)
-    plt.yscale('log')
-    plt.ylabel('Pressure $p$ [Pa]')
-    plt.xlabel('Water content $\\theta$ ')
-
-    plt.show(block=False)
-
-    input('Press ENTER to continue...')
 
 def run(model):
     return solve(model)
