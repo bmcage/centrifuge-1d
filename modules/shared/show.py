@@ -169,7 +169,8 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
         # item: {'id':string, 'data':item_data_list
         #        [, 'labels':(xlabel, ylabel)][, 'legend_loc':loc]
-        #        [, 'legend_bbox': bbox_desc][, 'legend_title': string]}
+        #        [, 'legend_bbox': bbox_desc][, 'legend_title': string]
+        #        [, 'show_legend': bool]}
         # item_data: (x, y[, label[, draw_opts]])
         for item in plots:
             item_id   = item['id']
@@ -206,6 +207,9 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                     new_item['legend_bbox'] = (1.01, 1.)
                 else:
                     new_item['legend_bbox'] = None
+
+             if not 'show_legend' in item:      # fill show legend
+                 new_item['show_legend'] = True
 
             # fill data that contains also optional values
             ref_num = 1
@@ -323,9 +327,10 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
             plt.xlabel(xlabel)
             plt.ylabel(ylabel)
 
-            plt.legend(borderaxespad=0.0, prop={'family': 'monospace'},
-                       loc=plot['legend_loc'], title=plot['legend_title'],
-                       bbox_to_anchor=plot['legend_bbox'])
+            if plot['show_legend']:
+                plt.legend(borderaxespad=0.0, prop={'family': 'monospace'},
+                           loc=plot['legend_loc'], title=plot['legend_title'],
+                           bbox_to_anchor=plot['legend_bbox'])
 
 
     if plots:
