@@ -112,26 +112,21 @@ def solve(model):
         p_calc = np.arange(0, 10000000, 100)
 
         # computed data
-        plot_items = [mk_plot_item(compute_theta(p_calc, n, 1-1/n, gamma,
-                                                 theta_s, theta_r,
-                                                 model.rho, model.g),
-                                   p_calc,
-                                   line_opts='-')]
+        theta_calc = compute_theta(p_calc, n, 1-1/n, gamma,
+                                   theta_s, theta_r, model.rho, model.g)
+        plot_items = [mk_plot_item(theta_calc, p_calc, line_opts='-')]
         # measured data
         if model.p and model.theta:
             plot_items.append(mk_plot_item(model.theta, model.p,
                                            line_opts='x'))
 
         # referencing data
-        n_ref = model.n_ref
+        n_ref     = model.n_ref
         gamma_ref = model.gamma_ref
         if n_ref and gamma_ref:
-            plot_items.append(mk_plot_item(compute_theta(p_calc, n_ref,
-                                                         1-1/n_ref, gamma_ref,
-                                                         theta_s, theta_r,
-                                                         model.rho, model.g),
-                                           p_calc,
-                                           line_opts='-'))
+            theta_ref = compute_theta(p_calc, n_ref, 1-1/n_ref, gamma_ref,
+                                      theta_s, theta_r, model.rho, model.g)
+            plot_items.append(mk_plot_item(theta_ref, p_calc, line_opts='-'))
 
         draw_graphs(None,
                     plots=[mk_plot('RC', plot_items, legend_loc=1, yscale='log')],
