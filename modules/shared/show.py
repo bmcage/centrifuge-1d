@@ -243,38 +243,38 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
             new_item['data'] = []
 
             ref_num = 1
-            for (idx, data_item) in enumerate(item_data):
+            for (idx, subitem_data) in enumerate(item_data):
                 # copy each item_data and fill with mandatory x and y data
 
-                item_data_len = len(item_data)
+                subitem_data_len = len(subitem_data)
 
                 # resolve label of the plot line
-                if (item_data_len >=3) and (data_item[2] is not None):
-                    new_data_item_label = data_item[2]
+                if (subitem_data_len >=3) and (subitem_data[2] is not None):
+                    new_data_subitem_label = subitem_data[2]
                 else:
                     if idx == 0:
-                        new_data_item_label = 'computed'
+                        new_data_subitem_label = 'computed'
                     elif idx == 1:
-                        new_data_item_label = 'measured'
+                        new_data_subitem_label = 'measured'
                     else:
-                        new_data_item_label = 'reference ' + str(ref_num)
+                        new_data_subitem_label = 'reference ' + str(ref_num)
                         ref_num += 1
 
                 # resolve plot style of the plot line
-                if item_data_len >=4:
-                    new_data_item_style = data_item[3]
+                if subitem_data_len >=4:
+                    new_data_subitem_style = subitem_data[3]
                 else:
                     if item_id in ['h', 'u']:
-                        new_data_item_style = '-'
+                        new_data_subitem_style = '-'
                     else:
                         if idx == 0:
-                            new_data_item_style = '.'
+                            new_data_subitem_style = '.'
                         else:
-                            new_data_item_style = 'x'
+                            new_data_subitem_style = 'x'
 
                 # append the newly created data_item
-                new_data_item = (data_item[0], data_item[1],
-                                 new_data_item_label, new_data_item_style)
+                new_data_item = (subitem_data[0], subitem_data[1],
+                                 new_data_subitem_label, new_data_subitem_style)
 
                 new_item['data'].append(new_data_item)
 
