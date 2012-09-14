@@ -296,6 +296,8 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
         img_num = 1
 
         for plot in ordered_plots:
+            plot_id = plot['id']
+
             # resolve figure and subplot
             if img_num > images_per_figure:
                 if save_figures:
@@ -314,7 +316,6 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 plt.subplot(3,2,img_num)
 
             # plot the supplied data
-            plot_id = plot['id']
             for plot_data in plot['data']:
                 (xdata, ydata, data_label, plot_style) = plot_data
                 plt.plot(xdata, ydata, plot_style, label=data_label)
