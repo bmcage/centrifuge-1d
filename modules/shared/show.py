@@ -137,7 +137,7 @@ DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 def mk_plot_item(xdata, ydata, label=None, line_opts=None):
     if line_opts is None:
         item = (xdata, ydata, label)
-    else
+    else:
         item = (xdata, ydata, label, line_opts)
 
     return item
