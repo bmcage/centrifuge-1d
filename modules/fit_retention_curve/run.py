@@ -111,7 +111,7 @@ def solve(model):
     if model.show_figures:
         p_calc = np.arange(0, 10000000, 100)
 
-        dplot = make_dplot('RC', legend_loc=1, yscale='log')
+        dplot = make_dplot('RC', legend_loc=1, yscale='log', legend_title=None)
 
         # computed data
         theta_calc = compute_theta(p_calc, n, 1-1/n, gamma,
