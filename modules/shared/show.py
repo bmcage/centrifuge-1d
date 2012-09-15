@@ -150,8 +150,8 @@ def make_dplot(dplot_id, legend_loc=None, show_legend=None, legend_bbox=None,
     return dplot
 
 def display_dplot(dplots,save_figures=False, separate_figures=False,
-                  save_as_text=False, draw_equilibrium=False,
-                  show_figures=False, experiment_info=None, fignum = 1):
+                  save_as_text=False,show_figures=False, experiment_info=None,
+                  fignum = 1):
 
     if not dplots: return
 
