@@ -128,11 +128,13 @@ DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
                   'RC': ("Water content $\\theta$", "Pressure $p$ [Pa]")}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 
-def mk_plot_item(xdata, ydata, label=None, line_opts=None):
+def add_plotline(dplot, xdata, ydata, label=None, line_opts=None):
     if line_opts is None:
         item = (xdata, ydata, label)
     else:
         item = (xdata, ydata, label, line_opts)
+
+    plot['data'].append(item)
 
     return item
 
