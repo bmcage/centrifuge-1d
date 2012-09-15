@@ -262,8 +262,8 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
         fignum -= 1
         img_num = 2^20 # high initialization, so that first fig is created
 
-        for plot in ordered_dplots:
-            plot_id = plot['id']
+        for dplot in ordered_dplots:
+            dplot_id = dplot['id']
 
             # resolve figure and subplot
             if img_num > images_per_figure:
@@ -280,25 +280,25 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
                 plt.subplot(3,2,img_num)
 
             # plot the supplied data
-            for plot_data in plot['data']:
-                (xdata, ydata, data_label, plot_style) = plot_data
+            for dplot_data in dplot['data']:
+                (xdata, ydata, data_label, plot_style) = dplot_data
                 plt.plot(xdata, ydata, plot_style, label=data_label)
 
-            (xlabel, ylabel) = plot['axes_labels']
+            (xlabel, ylabel) = dplot['axes_labels']
             plt.xlabel(xlabel)
             plt.ylabel(ylabel)
-            if plot['xscale']:
-                plt.xscale(plot['xscale'])
-            if plot['yscale']:
-                plt.yscale(plot['yscale'])
+            if dplot['xscale']:
+                plt.xscale(dplot['xscale'])
+            if dplot['yscale']:
+                plt.yscale(dplot['yscale'])
 
-            if plot['show_legend']:
+            if dplot['show_legend']:
                 plt.legend(borderaxespad=0.0, prop={'family': 'monospace'},
-                           loc=plot['legend_loc'], title=plot['legend_title'],
-                           bbox_to_anchor=plot['legend_bbox'])
+                           loc=dplot['legend_loc'], title=dplot['legend_title'],
+                           bbox_to_anchor=dplot['legend_bbox'])
 
             if save_figures and (img_num == images_per_figure):
-                if separate_figures: img_suffix = plot_id
+                if separate_figures: img_suffix = dplot_id
                 else: img_suffix = str(fignum)
 
                 plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
