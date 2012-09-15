@@ -279,7 +279,11 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
             if dplot['yscale']:
                 plt.yscale(dplot['yscale'])
 
-            if dplot['show_legend']:
+            show_legend = dplot['show_legend']
+            if show_legend is None:
+                if (len(dplot['data']) > 1) or (np.ndim(ydata) > 1):
+                 show_legend = True
+            if show_legend:
                 plt.legend(borderaxespad=0.0, prop={'family': 'monospace'},
                            loc=dplot['legend_loc'], title=dplot['legend_title'],
                            bbox_to_anchor=dplot['legend_bbox'])
