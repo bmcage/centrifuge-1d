@@ -163,6 +163,8 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
         for dplot in dplots:
             dplot_id = dplot['id']
 
+            if not dplot['data']: continue
+
             if dplot_id in dplots_bucket:
                 dplots_bucket[dplot_id].append(dplot)
             else:
