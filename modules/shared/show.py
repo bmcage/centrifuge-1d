@@ -131,11 +131,11 @@ DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 def add_plotline(dplot, xdata, ydata, label=None, line_opts='.'):
     if label is None:
         label = 'reference ' + str(dplot['_ref_num'])
-        dplot['_refnum'] += 1
+        dplot['_ref_num'] += 1
 
     item = (xdata, ydata, label, line_opts)
 
-    plot['data'].append(item)
+    dplot['data'].append(item)
 
     return item
 
