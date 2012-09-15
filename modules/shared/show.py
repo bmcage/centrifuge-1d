@@ -114,6 +114,211 @@ def has_data(x):
     else:
         return bool(x)
 
+dg_label_time = "Time [min]"
+dg_label_length = "Sample length $L$ [cm]"
+DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
+                  'u': (dg_label_length, "Relative saturation $u$"),
+                  'MO': (dg_label_time, "Expelled water [cm]"),
+                  'MI': (dg_label_time, "Inflow water [cm]"),
+                  'GC': (dg_label_time, "Gravitational center [cm]"),
+                  'RM': (dg_label_time, "Rotational momentum [kg.m.s$^{-1}$]"),
+                  's1': (dg_label_time, "Interface s1 [cm]"),
+                  's2': (dg_label_time, "Interface s2 [cm]"),
+                  'WM': (dg_label_time, "Water mass [cm]"),
+                  'RC': ("Water content $\\theta$", "Pressure $p$ [Pa]")}
+DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
+
+def add_dplotline(dplot, xdata, ydata, label=None, line_opts='.'):
+    if label is None:
+        label = 'reference ' + str(dplot['_ref_num'])
+        dplot['_ref_num'] += 1
+
+    item = (xdata, ydata, label, line_opts)
+
+    dplot['data'].append(item)
+
+    return item
+
+def make_dplot(dplot_id, legend_loc=None, show_legend=True, legend_bbox=None,
+            legend_title=dg_label_time, xscale=None, yscale=None,
+            axes_labels=None):
+
+    if axes_labels is None: # try to set default value
+        if dplot_id in DG_AXES_LABELS:
+            axes_labels = DG_AXES_LABELS[dplot_id]
+
+    if ((dplot_id in ['h', 'u']) and ('legend_bbox' is None)
+        and (legend_loc is None)):
+        legend_bbox = (1.01, 1.)
+        legend_loc = 2
+
+    if legend_loc is None:
+        legend_loc = 4
+
+    dplot = {'id': dplot_id, 'data': [], 'axes_labels': axes_labels,
+             'legend_title': legend_title, 'legend_bbox': legend_bbox,
+             'show_legend': show_legend, 'xscale': xscale, 'yscale': yscale,
+             'legend_loc': legend_loc, '_ref_num': 1}
+
+    return dplot
+
+def display_dplot(dplots,save_figures=False, separate_figures=False,
+                  save_as_text=False, draw_equilibrium=False,
+                  show_figures=False, experiment_info=None, fignum = 1):
+
+    if not dplots: return
+
+    def order_dplots(dplots):
+        ordered_dplots = []
+        single_dplots  = []
+
+        dplots_bucket = {}
+        for dplot in dplots:
+            dplot_id = dplot['id']
+
+            if dplot_id in dplots_bucket:
+                dplots_bucket[dplot_id].append(dplot)
+            else:
+                dplots_bucket[dplot_id] = [dplot]
+
+        # first order pairs (and queue singles from pairs)
+        for (i1_id, i2_id) in DG_PAIRS:
+            i1p = (i1_id in dplots_bucket)
+            i2p = (i2_id in dplots_bucket)
+
+            if i1p and i2p:
+                ordered_dplots.extend(dplots_bucket[i1_id])
+                ordered_dplots.extend(dplots_bucket[i2_id])
+            elif i1p:
+                single_dplots.extend(dplots_bucket[i1_id])
+            elif i2p:
+                single_dplots.extend(dplots_bucket[i2_id])
+
+            if i1p: del dplots_bucket[i1_id]
+            if i2p: del dplots_bucket[i2_id]
+
+        # append singles
+        ordered_dplots.extend(single_dplots)
+        # append remaning singles that are not part of any pair
+        for remaining_dplots in dplots_bucket.values():
+            ordered_dplots.extend(remaining_dplots)
+
+        return ordered_dplots
+
+    def save_text(savedir, dplots):
+        filename = savedir +'data_as_text.txt'
+        fout = open(filename, mode='w', encoding='utf-8')
+
+        for plot in dplots:
+            plot_id = plot['id']
+            ref_num = 1
+
+            for (idx, item) in enumerate(plot['data']):
+                if idx == 0:
+                    id_suffix = '_comp'
+                elif idx == 1:
+                    id_suffix = '_meas'
+                else:
+                    idx_suffix = '_ref' + str(ref_num)
+                    ref_num += 1
+
+                fout.write('{:8} = [{}]\n'.format(plot_id + id_suffix + '_x',
+                                                  ', '.join(nd2strlist(item[0]))))
+                fout.write('{:8} = [{}]\n'.format(plot_id + id_suffix + '_y',
+                                                  ', '.join(nd2strlist(item[1]))))
+        fout.close()
+
+    def display_dplots(ordered_dplots):
+        nonlocal fignum, save_figures, save_as_text
+
+        if save_figures or save_as_text:
+            from shared import get_directories
+
+            if not experiment_info:
+                print('Experiment information was not supplied. '
+                      'Disabling saving figures.')
+                save_figures = save_as_text = False
+            else:
+                mask = experiment_info['mask']
+                if mask:
+                    figs_dir_type = 'figs_masks'
+                else:
+                    figs_dir_type = 'figs_data'
+
+                save_dir = get_directories(figs_dir_type,
+                                           experiment_info['exp_id'],
+                                           experiment_info['exp_no'],
+                                           experiment_info['tube_no'])
+                if mask: save_dir += mask + '/'
+
+                if not path.exists(save_dir):
+                    makedirs(save_dir)
+
+        if separate_figures:
+            images_per_figure = 1
+        else:
+            images_per_figure = 6
+
+        fignum -= 1
+        img_num = 2^20 # high initialization, so that first fig is created
+
+        for dplot in ordered_dplots:
+            dplot_id = dplot['id']
+
+            # resolve figure and subplot
+            if img_num > images_per_figure:
+                img_num = 1
+                fignum += 1
+
+                if separate_figures:
+                    plt.figure(fignum)
+                else:
+                    plt.figure(fignum, figsize=(16, 8.5))
+                    plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
+
+            if not separate_figures:
+                plt.subplot(3,2,img_num)
+
+            # plot the supplied data
+            for dplot_data in dplot['data']:
+                (xdata, ydata, data_label, plot_style) = dplot_data
+                plt.plot(xdata, ydata, plot_style, label=data_label)
+
+            (xlabel, ylabel) = dplot['axes_labels']
+            plt.xlabel(xlabel)
+            plt.ylabel(ylabel)
+            if dplot['xscale']:
+                plt.xscale(dplot['xscale'])
+            if dplot['yscale']:
+                plt.yscale(dplot['yscale'])
+
+            if dplot['show_legend']:
+                plt.legend(borderaxespad=0.0, prop={'family': 'monospace'},
+                           loc=dplot['legend_loc'], title=dplot['legend_title'],
+                           bbox_to_anchor=dplot['legend_bbox'])
+
+            if save_figures and (img_num == images_per_figure):
+                if separate_figures: img_suffix = dplot_id
+                else: img_suffix = str(fignum)
+
+                plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
+
+            img_num += 1
+
+        if save_figures and (img_num < images_per_figure):
+            plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
+
+        if save_as_text:
+            save_text(save_dir, ordered_dplots)
+
+    if type(dplots) == dict: # we have single dplot item
+        dplots = (dplots, )
+    ord_dplots = order_dplots(dplots)
+    display_dplots(ord_dplots)
+
+    plt.show(block=False)
+    input('Press ENTER to continue...')
+
 def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 s1 = None, s1_ref=None, s2 = None, s2_ref=None,
                 mass_out = None, mass_out_ref = None,
@@ -122,7 +327,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 RM = None,  RM_ref = None, WM = None, WM_ref = None,
                 fignum = 1, save_figures=False, separate_figures=False,
                 save_as_text=False, draw_equilibrium=False,
-                show_figures=False,
+                show_figures=False, experiment_info=None,
                 model=None):
 
     def add_legend(lines, legend_data=None, legend_title=None, legend_loc=1,
@@ -139,15 +344,26 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
     print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
 
-    if model is None:
-        OUT_DIR = FIGS_DIR + '/'
-    else:
-        OUT_DIR = (FIGS_DIR + '/' + 'n=' + str(model.n) + ',gamma='
-                   + str(model.gamma) + ',Ks=%g' % model.ks
-                   + ',omega=%.2f' % (model.omega*30./np.pi) +'/')
+    if save_figures or save_as_text:
+        if not experiment_info:
+            print('Experiment information was not supplied. '
+                  'Disabling saving figures.')
+            save_figures = save_as_text = False
+        else:
+            mask = experiment_info['mask']
+            if mask:
+                figs_dir_type = 'figs_masks'
+            else:
+                figs_dir_type = 'figs_data'
 
-    if save_figures and (not path.exists(OUT_DIR)):
-        makedirs(OUT_DIR)
+            save_dir = get_directories(figs_dir_type, experiment_info['exp_id'],
+                                       experiment_info['exp_no'],
+                                       experiment_info['tube_no'])
+
+            if mask: save_dir += mask + '/'
+
+            if not path.exists(save_dir):
+                makedirs(save_dir)
 
     t = [ti/60. for ti in times] # sec -> min
 
@@ -202,7 +418,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
 
                 if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-h', dpi=300)
+                    plt.savefig(save_dir + 'Image-h', dpi=300)
 
                 add_legend(h_lines, legend_data=h_eq_legend,
                            legend_title=legend_title)
@@ -211,7 +427,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                    add_legend(h_lines, legend_data=h_eq_legend,
                               legend_title=legend_title)
                 if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-h-leg', dpi=300)
+                    plt.savefig(save_dir + 'Image-h-leg', dpi=300)
 
                 img_num = 2
 
@@ -227,13 +443,13 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 plt.ylabel('Relative saturation ''u''')
 
                 if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-u', dpi=300)
+                    plt.savefig(save_dir + 'Image-u', dpi=300)
 
                 add_legend(u_lines, legend_data=legend_data,
                            legend_title=legend_title)
 
                 if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-u-leg', dpi=300)
+                    plt.savefig(save_dir + 'Image-u-leg', dpi=300)
 
             img_num = 3
 
@@ -279,7 +495,7 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
 
         if img_num > images_per_figure:
             if save_figures:
-                plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
+                plt.savefig(save_dir + ('Image-%i' % fignum), dpi=300)
 
             img_num = 1
             fignum = fignum + 1
@@ -319,12 +535,12 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
         img_num = img_num + 1
 
     if save_figures:
-        plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
+        plt.savefig(save_dir + ('Image-%i' % fignum), dpi=300)
 
     plt.show(block=False)
 
     if save_as_text:
-        filename = OUT_DIR +'data_as_text.txt'
+        filename = save_dir +'data_as_text.txt'
         fout = open(filename, mode='w', encoding='utf-8')
 
         if not h is None:
@@ -368,7 +584,7 @@ def disp_inv_results(model, t_inv, inv_params=None,
                      fignum = 1,
                      save_figures=False, separate_figures=False,
                      save_as_text=False, draw_equilibrium=False,
-                     show_figures=False):
+                     show_figures=False, experiment_info=None):
 
     def print_data(name, data_computed, data_measured):
         name_len = len(name)
@@ -455,4 +671,75 @@ def disp_inv_results(model, t_inv, inv_params=None,
                     save_figures=model.save_figures,
                     separate_figures=model.separate_figures,
                     save_as_text=model.save_as_text, draw_equilibrium=False,
-                    show_figures=model.show_figures)
+                    show_figures=model.show_figures,
+                    experiment_info=experiment_info)
+
+def mk_status_item(data_id, data_computed, data_measured = []):
+   return {'id': data_id, 'data': (data,computed, data_measured)}
+
+def disp_status(data_plots=None, params=None, cov=None):
+
+    def compare_data(name, data_computed, data_measured, relerror, abserror):
+        name_len = len(name)
+        disp_all = (not data_measured is None)
+
+        i0 = 0
+        in_row = 10
+        remaining = np.alen(data_computed)
+
+        print('\n')
+        while remaining > 0:
+            if remaining > in_row:
+                disp_items = in_row
+            else:
+                disp_items = remaining
+
+            print('%s measured: ' % name,
+                  disp_items * '% 10.6f' % tuple(data_measured[i0:i0+disp_items]))
+            if disp_all:
+                print('%s computed: ' % name,
+                      disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
+                print('AbsError: ', name_len * ' ',
+                      disp_items * '% 10.6f' % tuple(abs_error[i0:i0+disp_items]))
+                print('Error (%):', name_len * ' ',
+                      disp_items * '% 10.2f' % tuple(relerror[i0:i0+disp_items]))
+
+            remaining = remaining - disp_items
+            print(108 * '-')
+            i0 = i0 + in_row
+
+        print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
+
+    if data_plots:
+        for plot in data_plots:
+            plot_id = plot['id']
+
+            data_items_nr = len(plot['data'])
+            if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
+                continue
+
+            if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
+                value_computed = plot['data'][0]
+                value_measured = rel_error = abs_error = None
+            else:
+                value_computed = np.asarray(plot['data'][0])
+                value_measured = np.asarray(plot['data'][1])
+                norm_measured = value_measured[:]
+                norm_measured[norm_measured == 0.0] = 1.0e-10
+                rel_error = ((value_computed - value_measured)
+                             / norm_measured * 100.)
+                abs_error = np.abs(value_computed - value_measured)
+
+            compare_data(plot_id, value_computed, value_measured,
+                         rel_error, abs_error)
+
+    if params:
+        print('Parameters:')
+        for (name, value) in inv_params.items():
+            if name == 'ks':
+                print('  Ks [cm/s]: {: .8g}'.format(value))
+            else:
+                print('  {:9}: {: .8g}'.format(name, value))
+
+    if has_data(cov):
+        print('Cov:\n', cov)

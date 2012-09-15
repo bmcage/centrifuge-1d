@@ -210,6 +210,9 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
 
             model = ModelParameters(cfg)
 
+            model.experiment_information = {'exp_id': exp_id, 'exp_no': exp_no,
+                                            'tube_no': tube_no, 'mask': mask}
+
             results = solver_module.run(model)
 
             collector('collect', data=results)
