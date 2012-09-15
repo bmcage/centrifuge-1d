@@ -162,11 +162,11 @@ def make_dplot(dplot_id, legend_loc=None, show_legend=True, legend_bbox=None,
 
     return dplot
 
-def display_plot(dplot,save_figures=False, separate_figures=False,
-                save_as_text=False, draw_equilibrium=False,
-                show_figures=False, experiment_info=None, fignum = 1):
+def display_dplot(dplots,save_figures=False, separate_figures=False,
+                  save_as_text=False, draw_equilibrium=False,
+                  show_figures=False, experiment_info=None, fignum = 1):
 
-    if not dplot: return
+    if not dplots: return
 
     def order_plots(narrowed_plots):
         ordered_plots = []
@@ -302,14 +302,13 @@ def display_plot(dplot,save_figures=False, separate_figures=False,
         if save_as_text:
             save_text(save_dir, ordered_plots)
 
-    if plots:
-        oplots = order_plots(dplots)
-        display_plots(oplots)
+    if type(dplots) == dict: # we have single dplot item
+        dplots = (dplots, )
+    ord_dplots = order_plots(dplots)
+    display_plots(ord_dplots)
 
-        plt.show(block=False)
-        input('Press ENTER to continue...')
-
-        return
+    plt.show(block=False)
+    input('Press ENTER to continue...')
 
 def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
                 s1 = None, s1_ref=None, s2 = None, s2_ref=None,
