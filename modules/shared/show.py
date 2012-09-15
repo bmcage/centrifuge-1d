@@ -138,7 +138,7 @@ def add_plotline(dplot, xdata, ydata, label=None, line_opts=None):
 
     return item
 
-def mk_plot(plot_id, plot_items, legend_loc=None, show_legend=None,
+def make_dplot(plot_id, plot_items, legend_loc=None, show_legend=None,
             legend_title=None, legend_bbox=None, xscale=None, yscale=None,
             axes_labels=None):
 
