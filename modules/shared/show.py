@@ -126,7 +126,7 @@ def add_dplotline(dplot, xdata, ydata, label=None, line_opts='.'):
 
     return item
 
-def make_dplot(dplot_id, legend_loc=None, show_legend=True, legend_bbox=None,
+def make_dplot(dplot_id, legend_loc=None, show_legend=None, legend_bbox=None,
             legend_title=dg_label_time, xscale=None, yscale=None,
             axes_labels=None):
 
