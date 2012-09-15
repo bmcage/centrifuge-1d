@@ -287,12 +287,94 @@ def solve(model):
 
     return (flag, t, z, GC, RM, u, WM, WM_in_tube)
 
-def run(model):
-    (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
+def display_graphs(models, options):
+    from collections import defaultdict
+    print('step 0')
+    collected_results = []
+    for model in models:
+        (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
 
+        if not flag:
+            print('For given model the solver did not find results. Skipping.')
+            continue
+
+        s1 = z[:, model.s1_idx]
+        s2 = z[:, model.s2_idx]
+        x = y2x(model.y, s1, s2).transpose()
+        h = z[:, model.first_idx:model.last_idx+1].transpose()
+        u = u.transpose()
+        MO = z[:, model.mass_out_idx]
+        MI = z[:, model.mass_in_idx]
+        collected_results.append(((t, h, u, GC, RM, WM, MI, MO, s1, s2, x)))
+
+    dplots_names = ['h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO', 's1', 's2']
+    dplots_bucket = {name: make_dplot(name, legend_loc=1, legend_title=None)
+                     for name in dplots_names}
+    for name in ['h', 'u']:
+        dplots_bucket[name]['legend_title'] = 'Time [min]'
+        dplots_bucket[name]['show_legend'] = False
+
+    meas_names = ('t', 'h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO', 's1', 's2', 'x')
+    line_label = 'computed'
+
+    for (idx, measurement_data) in enumerate(collected_results):
+        measurement = dict(zip(meas_names, measurement_data))
+
+        t = [ti/60. for ti in measurement['t']] # sec -> min
+        t_legend = ['% 7d' % ti for ti in t]
+
+        if idx == 0:
+            # dirty hack, for now we take as 't' for measurements for models[0]
+            # of the first model
+            t_meas = t
+
+            # ok, h and u we display only from the first model
+            for m in ['h', 'u']:
+                add_dplotline(dplots_bucket[m], measurement['x'],
+                              measurement[m],
+                              label=t_legend, line_opts='-')
+
+            # and the subsequent lines will be labeled as Reference (default)
+            line_label = None
+
+        for m in dplots_names[2:]:
+            add_dplotline(dplots_bucket[m], t, measurement[m],
+                          label=line_label, line_opts='.')
+
+    # Now include also measurements
+    t1_meas = t_meas[1:]
+    add_dplotline(dplots_bucket['GC'], t1_meas, model.get_iterable_value('GC'),
+                  label='measured', line_opts='x')
+    add_dplotline(dplots_bucket['RM'], t1_meas, model.get_iterable_value('RM'),
+                  label='measured', line_opts='x')
+    add_dplotline(dplots_bucket['MI'], t1_meas, model.get_iterable_value('wl1'),
+                  label='measured', line_opts='x')
+    add_dplotline(dplots_bucket['MO'], t1_meas, model.get_iterable_value('wl_out'),
+                  label='measured', line_opts='x')
+
+    # put it together and display
+    dplots = list(dplots_bucket.values())
+    display_dplot(dplots, save_figures=options['save_figures'],
+                  separate_figures=options['separate_figures'],
+                  save_as_text=options['save_as_text'],
+                  show_figures=options['show_figures'],
+                  experiment_info=options['experiment_info'])
+
+
+def run(model):
+    #(flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
+    flag = True
     if not flag:
         print("Solver could not compute the solution... Exiting...")
         exit(1)
+
+    display_options = {'save_figures': model.save_figures,
+                       'separate_figures': model.separate_figures,
+                       'save_as_text': model.save_as_text,
+                       'show_figures': model.show_figures,
+                       'experiment_info': model.experiment_information}
+    display_graphs([model], display_options)
+    return
 
     t = [ti/60. for ti in ts] # sec -> min
     t1 = t[1:]
