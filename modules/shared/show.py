@@ -158,35 +158,11 @@ def make_dplot(plot_id, plot_items, legend_loc=None, show_legend=None,
 
     return plot
 
-def draw_graphs(times=None, t_ref = None, y = None, h = None, u = None,
-                s1 = None, s1_ref=None, s2 = None, s2_ref=None,
-                mass_out = None, mass_out_ref = None,
-                mass_in = None, mass_in_ref = None,
-                GC = None, GC_ref = None,
-                RM = None,  RM_ref = None, WM = None, WM_ref = None,
-                fignum = 1, save_figures=False, separate_figures=False,
+def display_plot(dplot,save_figures=False, separate_figures=False,
                 save_as_text=False, draw_equilibrium=False,
-                show_figures=False, experiment_info=None,
-                plots = None,
-                model=None):
+                show_figures=False, experiment_info=None, fignum = 1):
 
-    def add_legend(lines, legend_data=None, legend_title=None, legend_loc=1,
-                   legend_type='figlegend'):
-        if legend_type == 'figlegend':
-            legendfn = plt.figlegend
-        elif legend_type == 'legend':
-            legendfn = plt.legend
-        else:
-            raise ValueError('Unknown legend type: ', legend_type)
-
-        legendfn(lines, legend_data, legend_loc, borderaxespad=0.0,
-                 title=legend_title, prop={'family': 'monospace'})
-
-    print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
-
-    if not plots:
-        print('No data suplied. Nothing to display.')
-        exit(0)
+    if not dplot: return
 
     def narrow_plots(plots):
         conformed_plots = {key: [] for key in DG_AXES_LABELS.keys()}
@@ -422,7 +398,31 @@ def draw_graphs(times=None, t_ref = None, y = None, h = None, u = None,
 
         return
 
-    ############################## ORIGINAL CODE ##############################
+def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
+                s1 = None, s1_ref=None, s2 = None, s2_ref=None,
+                mass_out = None, mass_out_ref = None,
+                mass_in = None, mass_in_ref = None,
+                GC = None, GC_ref = None,
+                RM = None,  RM_ref = None, WM = None, WM_ref = None,
+                fignum = 1, save_figures=False, separate_figures=False,
+                save_as_text=False, draw_equilibrium=False,
+                show_figures=False, experiment_info=None,
+                model=None):
+
+    def add_legend(lines, legend_data=None, legend_title=None, legend_loc=1,
+                   legend_type='figlegend'):
+        if legend_type == 'figlegend':
+            legendfn = plt.figlegend
+        elif legend_type == 'legend':
+            legendfn = plt.legend
+        else:
+            raise ValueError('Unknown legend type: ', legend_type)
+
+        legendfn(lines, legend_data, legend_loc, borderaxespad=0.0,
+                 title=legend_title, prop={'family': 'monospace'})
+
+    print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
+
     if save_figures or save_as_text:
         if not experiment_info:
             print('Experiment information was not supplied. '
