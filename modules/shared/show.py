@@ -168,9 +168,9 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
 
     if not dplots: return
 
-    def order_plots(dplots):
-        ordered_plots = []
-        single_plots  = []
+    def order_dplots(dplots):
+        ordered_dplots = []
+        single_dplots  = []
 
         dplots_bucket = {}
         for dplot in dplots:
@@ -187,29 +187,29 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
             i2p = (i2_id in dplots_bucket)
 
             if i1p and i2p:
-                ordered_plots.extend(dplots_bucket[i1_id])
-                ordered_plots.extend(dplots_bucket[i2_id])
+                ordered_dplots.extend(dplots_bucket[i1_id])
+                ordered_dplots.extend(dplots_bucket[i2_id])
             elif i1p:
-                single_plots.extend(dplots_bucket[i1_id])
+                single_dplots.extend(dplots_bucket[i1_id])
             elif i2p:
-                single_plots.extend(dplots_bucket[i2_id])
+                single_dplots.extend(dplots_bucket[i2_id])
 
             if i1p: del dplots_bucket[i1_id]
             if i2p: del dplots_bucket[i2_id]
 
         # append singles
-        ordered_plots.extend(single_plots)
+        ordered_dplots.extend(single_dplots)
         # append remaning singles that are not part of any pair
         for remaining_dplots in dplots_bucket.values():
-            ordered_plots.extend(remaining_dplots)
+            ordered_dplots.extend(remaining_dplots)
 
-        return ordered_plots
+        return ordered_dplots
 
-    def save_text(savedir, plots):
+    def save_text(savedir, dplots):
         filename = savedir +'data_as_text.txt'
         fout = open(filename, mode='w', encoding='utf-8')
 
-        for plot in plots:
+        for plot in dplots:
             plot_id = plot['id']
             ref_num = 1
 
@@ -228,7 +228,7 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
                                                   ', '.join(nd2strlist(item[1]))))
         fout.close()
 
-    def display_plots(ordered_plots):
+    def display_dplots(ordered_dplots):
         nonlocal fignum, save_figures, save_as_text
 
         if save_figures or save_as_text:
@@ -262,7 +262,7 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
         fignum -= 1
         img_num = 2^20 # high initialization, so that first fig is created
 
-        for plot in ordered_plots:
+        for plot in ordered_dplots:
             plot_id = plot['id']
 
             # resolve figure and subplot
@@ -309,12 +309,12 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
             plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
 
         if save_as_text:
-            save_text(save_dir, ordered_plots)
+            save_text(save_dir, ordered_dplots)
 
     if type(dplots) == dict: # we have single dplot item
         dplots = (dplots, )
-    ord_dplots = order_plots(dplots)
-    display_plots(ord_dplots)
+    ord_dplots = order_dplots(dplots)
+    display_dplots(ord_dplots)
 
     plt.show(block=False)
     input('Press ENTER to continue...')
