@@ -168,31 +168,40 @@ def display_dplot(dplots,save_figures=False, separate_figures=False,
 
     if not dplots: return
 
-    def order_plots(narrowed_plots):
+    def order_plots(dplots):
         ordered_plots = []
         single_plots  = []
 
+        dplots_bucket = {}
+        for dplot in dplots:
+            dplot_id = dplot['id']
+
+            if dplot_id in dplots_bucket:
+                dplots_bucket[dplot_id].append(dplot)
+            else:
+                dplots_bucket[dplot_id] = [dplot]
+
         # first order pairs (and queue singles from pairs)
         for (i1_id, i2_id) in DG_PAIRS:
-            i1 = narrowed_plots[i1_id]
-            i2 = narrowed_plots[i2_id]
+            i1p = (i1_id in dplots_bucket)
+            i2p = (i2_id in dplots_bucket)
 
-            if i1 and i2:
-                ordered_plots.extend(i1)
-                ordered_plots.extend(i2)
-            elif i1:
-                single_plots.extend(i1)
-            elif i2:
-                single_plots.extend(i2)
+            if i1p and i2p:
+                ordered_plots.extend(dplots_bucket[i1_id])
+                ordered_plots.extend(dplots_bucket[i2_id])
+            elif i1p:
+                single_plots.extend(dplots_bucket[i1_id])
+            elif i2p:
+                single_plots.extend(dplots_bucket[i2_id])
 
-            del narrowed_plots[i1_id]
-            del narrowed_plots[i2_id]
+            if i1p: del dplots_bucket[i1_id]
+            if i2p: del dplots_bucket[i2_id]
 
         # append singles
         ordered_plots.extend(single_plots)
         # append remaning singles that are not part of any pair
-        for plots_id in narrowed_plots.values():
-            if plots_id: ordered_plots.extend(plots_id)
+        for remaining_dplots in dplots_bucket.values():
+            ordered_plots.extend(remaining_dplots)
 
         return ordered_plots
 
