@@ -362,60 +362,9 @@ def display_graphs(models, options):
 
 
 def run(model):
-    #(flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
-    flag = True
-    if not flag:
-        print("Solver could not compute the solution... Exiting...")
-        exit(1)
-
     display_options = {'save_figures': model.save_figures,
                        'separate_figures': model.separate_figures,
                        'save_as_text': model.save_as_text,
                        'show_figures': model.show_figures,
                        'experiment_info': model.experiment_information}
-    display_graphs([model], display_options)
-    return
-
-    t = [ti/60. for ti in ts] # sec -> min
-    t1 = t[1:]
-
-    t_legend = ['% 7d' % ti for ti in t]
-
-    dplots = []
-
-    # plot h, u
-    x = y2x(model.y, z[:, model.s1_idx], z[:, model.s2_idx]).transpose()
-    h = z[:, model.first_idx:model.last_idx+1].transpose()
-
-    t_legend = 'omg'
-    dplot_h = make_dplot('h', legend_title=None, legend_loc=1, show_legend=False)
-    add_dplotline(dplot_h, x, h, label=t_legend, line_opts='-')
-
-    dplot_u = make_dplot('u', legend_title=None, legend_loc=1, show_legend=False)
-    add_dplotline(dplot_u, x, u.transpose(), label=t_legend, line_opts='-')
-    dplots.extend((dplot_h, dplot_u))
-
-
-    MI = z[:, model.mass_in_idx].transpose()
-    MO = z[:, model.mass_out_idx].transpose()
-    for (d_id, x, y) in (('GC', t, GC), ('RM', t, RM),
-                         ('WM', t, WM), ('MI', t, MI), ('MO', t, MO)):
-        dplot = make_dplot(d_id, legend_title=None, legend_loc=1)
-
-        if d_id == 'MI':
-            y_ref = model.get_iterable_value('wl0')
-        elif d_id == 'MO':
-            y_ref = model.get_iterable_value('wl1')
-        else:
-            y_ref = model.get_iterable_value(d_id)
-
-        add_dplotline(dplot, x, y, label='computed', line_opts='.')
-        add_dplotline(dplot, x, y_ref, label='measured', line_opts='x')
-
-        dplots.append(dplot)
-
-    display_dplot(dplots,save_figures=model.save_figures,
-                  separate_figures=model.separate_figures,
-                  save_as_text=model.save_as_text,
-                  show_figures=model.show_figures,
-                  experiment_info=model.experiment_information)
+    return display_graphs([model], display_options)
