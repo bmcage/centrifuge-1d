@@ -3,21 +3,6 @@ import numpy as np
 from const import FIGS_DIR
 from os import makedirs, path
 
-def y2x(y, s1, s2):
-    s1_len = np.alen(s1)
-    if s1_len != np.alen(s2):
-        print('Interfaces array ''s1'' and ''s2'' have to be of the same'
-              'lenght. Cannot proceed.')
-        exit(1)
-    x = np.empty([s1_len, len(y)], float)
-
-    ds = s2 - s1
-
-    for i in range(s1_len):
-        x[i, :] = s1[i] + y * ds[i]
-
-    return x
-
 def display_table(t_measured=None, t_computed=None,
                   wl_out1_measured=None, wl_out1_computed=None,
                   gc1_measured=None, gc1_computed=None,
