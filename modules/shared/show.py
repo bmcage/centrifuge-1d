@@ -114,6 +114,8 @@ DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 
 def add_dplotline(dplot, xdata, ydata, label=None, line_opts='.'):
+    if not (has_data(xdata) and has_data(ydata)): return None
+
     if label is None:
         label = 'reference ' + str(dplot['_ref_num'])
         dplot['_ref_num'] += 1
