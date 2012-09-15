@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import modules.base.run as base
 from modules.shared.vangenuchten import h2u
-from modules.shared.show import mk_plot_item, mk_plot, draw_graphs
+from modules.shared.show import make_dplot, add_dplotline, display_dplot
 
 def solve(model):
     def lsq_fn(xdata, *optim_args):
@@ -111,25 +111,27 @@ def solve(model):
     if model.show_figures:
         p_calc = np.arange(0, 10000000, 100)
 
+        dplot = make_dplot('RC', legend_loc=1, yscale='log')
+
         # computed data
         theta_calc = compute_theta(p_calc, n, 1-1/n, gamma,
                                    theta_s, theta_r, model.rho, model.g)
-        plot_items = [mk_plot_item(theta_calc, p_calc, line_opts='-')]
+        add_dplotline(dplot, theta_calc, p_calc, line_opts='-',
+                      label='computed')
         # measured data
         if model.p and model.theta:
-            plot_items.append(mk_plot_item(model.theta, model.p,
-                                           line_opts='x'))
+            add_dplotline(dplot, model.theta, model.p, line_opts='x',
+                          label='measured')
+
         # referencing data
         n_ref     = model.n_ref
         gamma_ref = model.gamma_ref
         if n_ref and gamma_ref:
             theta_ref = compute_theta(p_calc, n_ref, 1-1/n_ref, gamma_ref,
                                       theta_s, theta_r, model.rho, model.g)
-            plot_items.append(mk_plot_item(theta_ref, p_calc, line_opts='-'))
+            add_dplotline(dplot, theta_ref, p_calc, line_opts='-')
 
-        draw_graphs(show_figures=True, separate_figures=True,
-                    plots=[mk_plot('RC', plot_items, legend_loc=1,
-                                   yscale='log')])
+        display_dplot(dplot, show_figures=True, separate_figures=True,)
 
     return inv_params
 
