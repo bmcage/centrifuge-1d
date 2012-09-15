@@ -128,131 +128,45 @@ DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
                   'RC': ("Water content $\\theta$", "Pressure $p$ [Pa]")}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 
-def add_plotline(dplot, xdata, ydata, label=None, line_opts=None):
-    if line_opts is None:
-        item = (xdata, ydata, label)
-    else:
-        item = (xdata, ydata, label, line_opts)
+def add_plotline(dplot, xdata, ydata, label=None, line_opts='.'):
+    if label is None:
+        label = 'reference ' + str(dplot['_ref_num'])
+        dplot['_refnum'] += 1
+
+    item = (xdata, ydata, label, line_opts)
 
     plot['data'].append(item)
 
     return item
 
-def make_dplot(plot_id, plot_items, legend_loc=None, show_legend=None,
-            legend_title=None, legend_bbox=None, xscale=None, yscale=None,
+def make_dplot(dplot_id, legend_loc=None, show_legend=True, legend_bbox=None,
+            legend_title=dg_label_time, xscale=None, yscale=None,
             axes_labels=None):
 
-    plot = {'id': plot_id, 'data': plot_items}
-    if not legend_loc is None:
-        plot['legend_loc'] = legend_loc
-    if not axes_labels is None:
-        plot['axes_labels'] = axes_labels
-    if not legend_title is None:
-        plot['legend_title'] = legend_title
-    if not legend_bbox is None:
-        plot['legend_bbox'] = legend_bbox
-    if not show_legend is None:
-        plot['show_legend'] = show_legend
-    plot['xscale'] = xscale
-    plot['yscale'] = yscale
+    if axes_labels is None: # try to set default value
+        if dplot_id in DG_AXES_LABELS:
+            axes_labels = DG_AXES_LABELS[dplot_id]
 
-    return plot
+    if ((dplot_id in ['h', 'u']) and ('legend_bbox' is None)
+        and (legend_loc is None)):
+        legend_bbox = (1.01, 1.)
+        legend_loc = 2
+
+    if legend_loc is None:
+        legend_loc = 4
+
+    dplot = {'id': dplot_id, 'data': [], 'axes_labels': axes_labels,
+             'legend_title': legend_title, 'legend_bbox': legend_bbox,
+             'show_legend': show_legend, 'xscale': xscale, 'yscale': yscale,
+             'legend_loc': legend_loc, '_ref_num': 1}
+
+    return dplot
 
 def display_plot(dplot,save_figures=False, separate_figures=False,
                 save_as_text=False, draw_equilibrium=False,
                 show_figures=False, experiment_info=None, fignum = 1):
 
     if not dplot: return
-
-    def narrow_plots(plots):
-        conformed_plots = {key: [] for key in DG_AXES_LABELS.keys()}
-
-        # item: {'id':string, 'data':item_data_list
-        #        [, 'labels':(xlabel, ylabel)][, 'legend_loc':loc]
-        #        [, 'legend_bbox': bbox_desc][, 'legend_title': string]
-        #        [, 'show_legend': bool]}
-        # item_data: (x, y[, label[, draw_opts]])
-        for item in plots:
-            item_id   = item['id']
-            item_data = item['data']
-
-            if not (item_data and has_data(item_data[0][1])): continue
-
-            # create a duplicate of existing values...
-            new_item = {}
-            for (key, value) in item.items():
-                if key in ['data']: continue
-                new_item[key] = value
-
-            #  ..and fill optional values:
-
-            if not 'label' in item:            # fill axes labels
-                new_item['axes_labels'] = DG_AXES_LABELS[item_id]
-
-
-            if not 'legend_loc' in item:       # fill legend location
-                if item_id in ['h', 'u']:
-                    new_item['legend_loc'] = 2
-                else:
-                    new_item['legend_loc'] = 4
-
-            if not 'legend_title' in item:     # fill legend title
-                if item_id in ['h', 'u']:
-                    new_item['legend_title'] = dg_label_time
-                else:
-                    new_item['legend_title'] = ''
-
-            if not 'legend_bbox' in item:      # fill legend bbox_to_anchor
-                if item_id in ['h', 'u']:
-                    new_item['legend_bbox'] = (1.01, 1.)
-                else:
-                    new_item['legend_bbox'] = None
-
-            if not 'show_legend' in item:      # fill show legend
-                new_item['show_legend'] = True
-
-            # fill data that contains also optional values
-            new_item['data'] = []
-
-            ref_num = 1
-            for (idx, subitem_data) in enumerate(item_data):
-                # copy each item_data and fill with mandatory x and y data
-
-                subitem_data_len = len(subitem_data)
-
-                # resolve label of the plot line
-                if (subitem_data_len >=3) and (subitem_data[2] is not None):
-                    new_data_subitem_label = subitem_data[2]
-                else:
-                    if idx == 0:
-                        new_data_subitem_label = 'computed'
-                    elif idx == 1:
-                        new_data_subitem_label = 'measured'
-                    else:
-                        new_data_subitem_label = 'reference ' + str(ref_num)
-                        ref_num += 1
-
-                # resolve plot style of the plot line
-                if subitem_data_len >=4:
-                    new_data_subitem_style = subitem_data[3]
-                else:
-                    if item_id in ['h', 'u']:
-                        new_data_subitem_style = '-'
-                    else:
-                        if idx == 0:
-                            new_data_subitem_style = '.'
-                        else:
-                            new_data_subitem_style = 'x'
-
-                # append the newly created data_item
-                new_data_item = (subitem_data[0], subitem_data[1],
-                                 new_data_subitem_label, new_data_subitem_style)
-
-                new_item['data'].append(new_data_item)
-
-            conformed_plots[item_id].append(new_item)
-
-        return conformed_plots
 
     def order_plots(narrowed_plots):
         ordered_plots = []
@@ -389,8 +303,7 @@ def display_plot(dplot,save_figures=False, separate_figures=False,
             save_text(save_dir, ordered_plots)
 
     if plots:
-        nplots = narrow_plots(plots)
-        oplots = order_plots(nplots)
+        oplots = order_plots(dplots)
         display_plots(oplots)
 
         plt.show(block=False)
