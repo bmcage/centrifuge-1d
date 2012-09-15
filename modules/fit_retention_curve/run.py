@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import modules.base.run as base
 from modules.shared.vangenuchten import h2u
+from modules.shared.show import make_dplot, add_dplotline, display_dplot
 
 def solve(model):
     def lsq_fn(xdata, *optim_args):
@@ -102,32 +103,37 @@ def solve(model):
 
     print('\n Cov:\n%s\n' % cov_inv)
 
+    def compute_theta(p, n, m, gamma, theta_s, theta_r, rho,g):
+        theta_calc = theta_r + (theta_s - theta_r) * h2u(-10.*p/rho/g,
+                                                         n, 1.-1./n, gamma)
+        return theta_calc
+
     if model.show_figures:
-        draw_graphs(n, gamma, theta_s, theta_r,
-                    model.rho, model.g, model.p, model.theta)
+        p_calc = np.arange(0, 10000000, 100)
+
+        dplot = make_dplot('RC', legend_loc=1, yscale='log', legend_title=None)
+
+        # computed data
+        theta_calc = compute_theta(p_calc, n, 1-1/n, gamma,
+                                   theta_s, theta_r, model.rho, model.g)
+        add_dplotline(dplot, theta_calc, p_calc, line_opts='-',
+                      label='computed')
+        # measured data
+        if model.p and model.theta:
+            add_dplotline(dplot, model.theta, model.p, line_opts='x',
+                          label='measured')
+
+        # referencing data
+        n_ref     = model.n_ref
+        gamma_ref = model.gamma_ref
+        if n_ref and gamma_ref:
+            theta_ref = compute_theta(p_calc, n_ref, 1-1/n_ref, gamma_ref,
+                                      theta_s, theta_r, model.rho, model.g)
+            add_dplotline(dplot, theta_ref, p_calc, line_opts='-')
+
+        display_dplot(dplot, show_figures=True, separate_figures=True,)
 
     return inv_params
-
-def draw_graphs(n, gamma, theta_s, theta_r, rho, g,
-                p_measured = None, theta_measured = None, fignum = 1):
-    import matplotlib.pyplot as plt
-
-    plt.figure(fignum, figsize=(8, 4.5))
-
-    p_calc = np.arange(0, 10000000, 100)
-    theta_calc = theta_r + (theta_s - theta_r) * h2u(-10.*p_calc/rho/g,
-                                                     n, 1.-1./n, gamma)
-
-    plt.plot(theta_calc, p_calc, '-')
-    if p_measured and theta_measured:
-        plt.plot(theta_measured, p_measured, 'x',)
-    plt.yscale('log')
-    plt.ylabel('Pressure $p$ [Pa]')
-    plt.xlabel('Water content $\theta$ ')
-
-    plt.show(block=False)
-
-    input('Press ENTER to continue...')
 
 def run(model):
     return solve(model)
