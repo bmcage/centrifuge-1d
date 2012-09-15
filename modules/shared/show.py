@@ -128,7 +128,7 @@ DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
                   'RC': ("Water content $\\theta$", "Pressure $p$ [Pa]")}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 
-def add_plotline(dplot, xdata, ydata, label=None, line_opts='.'):
+def add_dplotline(dplot, xdata, ydata, label=None, line_opts='.'):
     if label is None:
         label = 'reference ' + str(dplot['_ref_num'])
         dplot['_ref_num'] += 1
