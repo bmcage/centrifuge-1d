@@ -189,7 +189,7 @@ def solve(model):
 
     # z0 inicialization
     def initialize_z0(z0, model):
-        nonlocal u0
+        nonlocal u0, wm0, wm_in_tube0
 
         z0[model.first_idx:model.last_idx+1] = model.h_init
 
