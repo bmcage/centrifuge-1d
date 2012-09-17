@@ -679,16 +679,16 @@ class ModelParameters:
         """
           Assign the next value of the parameters that were given as type list
         """
+        self.iteration += 1
+
         i = self.iteration
+
         if i == self.iterations: return False
 
         for (key, value) in self._iterable_parameters.items():
             setattr(self, key, value[i])
 
-        self.iteration = i+1
-
         return True
-
 
     def echo(self, iterable_only=False):
         """
