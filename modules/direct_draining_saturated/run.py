@@ -341,12 +341,13 @@ def display_graphs(models, options):
                               measurement[m],
                               label=t_legend, line_opts='-')
 
-            # and the subsequent lines will be labeled as Reference (default)
-            line_label = None
-
         for m in dplots_names[2:]:
             add_dplotline(dplots_bucket[m], t, measurement[m],
                           label=line_label, line_opts='.')
+
+        if idx == 0:
+            # and the subsequent lines will be labeled as Reference (default)
+            line_label = None
 
     # Now include also measurements
     t1_meas = t_meas[1:]
