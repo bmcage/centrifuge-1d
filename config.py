@@ -682,8 +682,6 @@ class ModelParameters:
         i = self.iteration
         if i == self.iterations: return False
 
-        cfg = self._cfg
-
         for (key, value) in self._iterable_parameters.items():
             setattr(self, key, value[i])
 
