@@ -18,8 +18,7 @@ CONFIG_OPTIONS = {
 
 EXCLUDE_FROM_MODEL = ['measurements_length']
 
-NONITERABLE_LIST_OPTIONS = \
-  (CONFIG_OPTIONS['mandatory'] + CONFIG_OPTIONS['optional'])
+OPTIONS_ITERABLE_LISTS = []
 
 PROVIDE_OPTIONS = []
 

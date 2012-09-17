@@ -36,8 +36,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
     zp0 = zeros(z0.shape, float)
 
     i = 1
-    model.set_iteration(i)   # set model for the first iteration
-    initialize_z0(z0, model) # and compute the initial state
+    initialize_z0(z0, model) # compute the initial state
 
     if update_initial_condition: # as initial state can be modified at each
         z[0, :] = z0             # restart, z0 was preallocated separately
@@ -123,11 +122,10 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
         t[i] = t_out
 
-        if i == iterations: break
+        if not model.next_iteration(): break
 
         # update values for the next iteration
         i = i+1
-        model.set_iteration(i)
 
         if update_initial_condition:
             z0[:] = z[i-1, :]

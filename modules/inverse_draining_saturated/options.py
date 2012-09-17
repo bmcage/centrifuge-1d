@@ -33,8 +33,7 @@ PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys()),
                    'calc_gc', 'calc_rm', 'calc_wm',
                    (lambda cfg: cfg.get_value('dynamic_h_init'), ['h_init'])]
 
-NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'inv_ubounds', 'inv_lbounds',
-                            'raster_grid_size']
+OPTIONS_ITERABLE_LISTS = []
 
 def check_cfg(cfg):
     if ((cfg.get_value('wl_out') is None) and (cfg.get_value('gc1') is None)

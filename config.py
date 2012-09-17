@@ -449,7 +449,7 @@ class Configuration:
         blacklisted_options = set([])
         internal_options    = set([])
         excluded_options    = set([])
-        noniterable_options = set([])
+        iterable_options    = set([])
 
         def read_options_definition(options_module):
             if hasattr(options_module, 'CONFIG_OPTIONS'):
@@ -498,7 +498,7 @@ class Configuration:
                                      getattr(options_module, options_name))
                 excluded_options.update(options)
 
-            options_name = 'NONITERABLE_LIST_OPTIONS'
+            options_name = 'OPTIONS_ITERABLE_LISTS'
             if hasattr(options_module, options_name):
                 (options, defaults) = \
                   parse_options(getattr(options_module, options_name))
@@ -506,7 +506,7 @@ class Configuration:
                     raise ValueError("Options in '%s' cannot have a "
                                      'default value: ' % options_name,
                                      getattr(options_module, options_name))
-                noniterable_options.update(options)
+                iterable_options.update(options)
 
             return True
 
@@ -536,7 +536,7 @@ class Configuration:
                                    'blacklisted': blacklisted_options,
                                    #'internal', internal_options,
                                    'excluded': excluded_options,
-                                   'noniterable': noniterable_options
+                                   'iterable': iterable_options
                                    }
 
 
@@ -615,7 +615,7 @@ class ModelParameters:
         self._cfg            = cfg
         cfg_definition       = cfg._config_definition
         excluded_options     = cfg_definition['excluded']
-        self._atomic_options = cfg_definition['noniterable']
+        self._iterable_options_names = cfg_definition['iterable']
 
         self._iterable_parameters = {}
         self.iteration            = 0
@@ -626,6 +626,8 @@ class ModelParameters:
             self._omega2g_fns = \
               {key: MethodType(fn, self) for (key, fn) in fns.items()}
 
+        # read values from cfg and add them to model; if a value is an iterable
+        # option, the set_value() method updates self._iterable_parameters
         for (option_name, value) in cfg.iterate_values():
             if not option_name in excluded_options:
                 self.set_value(option_name, value)
@@ -661,47 +663,32 @@ class ModelParameters:
           Set the value of parameter given as 'key'.
         """
 
-        # Keep self._itarable_parameters up-to-date; if we set a list-type value
-        # should be stored, if an atom, should be removed
-        if (type(value) == list) and (not key in self._atomic_options):
-            self._iterable_parameters[key] = value
-        else:
-            # Now is value an atom, so remove it from iterables if present
-            if key in self._iterable_parameters:
-                del(self._iterable_parameters[key])
+        # Keep self._itarable_parameters up-to-date
+        if key in self._iterable_options_names:
+            if type(value) in [list, tuple]:
+                self._iterable_parameters[key] = value
+                value = value[0] # initialize with first value
+            else:
+                # if previously was a list value and now is an atom, remove it
+                if key in self._iterable_parameters:
+                    del(self._iterable_parameters[key])
 
-            # Handle the rest of supplied variable
-            setattr(self, key, value)
+        setattr(self, key, value)
 
     def next_iteration(self):
         """
           Assign the next value of the parameters that were given as type list
         """
-        i = self.iteration
-        if i == self.iterations: return False
+        self.iteration += 1
 
-        cfg = self._cfg
+        i = self.iteration
+
+        if i == self.iterations: return False
 
         for (key, value) in self._iterable_parameters.items():
             setattr(self, key, value[i])
 
-        self.iteration = i+1
-
         return True
-
-    def init_iteration(self):
-        self.iteration = 0
-
-        for (key, value) in self._iterable_parameters.items():
-            setattr(self, key, value[0])
-
-    def set_iteration(self, i):
-        """
-          Assign i-th value of all parameters supplied (as of type) list
-        """
-        # values of the i-th iteration are stored at (i-1)-th place in list
-        for (key, value) in self._iterable_parameters.items():
-            setattr(self, key, value[i-1])
 
     def echo(self, iterable_only=False):
         """

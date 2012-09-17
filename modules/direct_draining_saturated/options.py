@@ -32,6 +32,8 @@ EXCLUDE_FROM_MODEL = ['dtype']
 
 PROVIDE_OPTIONS = []
 
+OPTIONS_ITERABLE_LISTS = ['porosity']
+
 def adjust_cfg(cfg):
     # Handle depending variables
     value = cfg.get_value('n')
