@@ -97,7 +97,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 model.set_omega2g_fn('deceleration')
 
             if not solver_initialized:
-                solver.init_step(t0, z0, zp0)
+                (flag, t_init) = solver.init_step(t0, z0, zp0)
+                if not flag:
+                    return (False, t, z)
                 solver_initialized = True
 
             (flag, t_out) = solver.step(t_end, z[i, :])
