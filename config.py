@@ -689,12 +689,6 @@ class ModelParameters:
 
         return True
 
-    def init_iteration(self):
-        self.iteration = 0
-
-        for (key, value) in self._iterable_parameters.items():
-            setattr(self, key, value[0])
-
     def set_iteration(self, i):
         """
           Assign i-th value of all parameters supplied (as of type) list
