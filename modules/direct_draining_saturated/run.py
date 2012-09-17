@@ -291,7 +291,6 @@ def display_graphs(models, options):
     from collections import defaultdict
 
     any_data = False
-    print('step 0')
     collected_results = []
     for model in models:
         (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
