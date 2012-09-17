@@ -289,6 +289,8 @@ def solve(model):
 
 def display_graphs(models, options):
     from collections import defaultdict
+
+    any_data = False
     print('step 0')
     collected_results = []
     for model in models:
@@ -297,6 +299,8 @@ def display_graphs(models, options):
         if not flag:
             print('For given model the solver did not find results. Skipping.')
             continue
+        else:
+            any_data = True
 
         s1 = z[:, model.s1_idx]
         s2 = z[:, model.s2_idx]
@@ -306,6 +310,9 @@ def display_graphs(models, options):
         MO = z[:, model.mass_out_idx]
         MI = z[:, model.mass_in_idx]
         collected_results.append(((t, h, u, GC, RM, WM, MI, MO, s1, s2, x)))
+
+    if not any_data:
+        return
 
     dplots_names = ['h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO', 's1', 's2']
     dplots_bucket = {name: make_dplot(name, legend_loc=1, legend_title=None)
