@@ -8,7 +8,7 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
 
 
 def simulate_direct(initialize_z0, model, residual_fn,
-                    update_initial_condition=None, zp0=None,
+                    update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None):
 
     # Check supplied arguments
@@ -34,12 +34,12 @@ def simulate_direct(initialize_z0, model, residual_fn,
     else:
         z0 = z[0, :]
 
-    if zp0 is None: zp0 = zeros(z0.shape, float)
-    else: zp0 = asarray(zp0, dtype=float)
-
-    i = 1
     initialize_z0(z0, model) # compute the initial state
 
+    zp0 = zeros(z0.shape, float)
+    if not initialize_zp0 is None: initialize_zp0(zp0, z0, model)
+
+    i = 1
     if update_initial_condition: # as initial state can be modified at each
         z[0, :] = z0             # restart, z0 was preallocated separately
 
