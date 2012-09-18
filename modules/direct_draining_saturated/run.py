@@ -106,7 +106,8 @@ class centrifuge_residual(IDA_RhsFunction):
         verbosity = model.verbosity
 
         if verbosity > 3:
-            print('t', t, 's1', z[model.s1_idx], 's2', z[model.s2_idx], end='')
+            print('t: %10.6g' % t, 's1: %8.6g' % z[model.s1_idx],
+                  's2: %8.6g' % z[model.s2_idx], '%10.6g' % ds2dt, end='')
 
         if rb_type == 3:
             q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
