@@ -218,6 +218,73 @@ def solve(model):
         (wm0, wm_in_tube0) = water_mass(u0, mass_in, mass_out, s1, s2, model)
         model.wm0 = wm0
 
+    def initialize_zp0(zp0, z0, model):
+        (Ks, n, m, gamma) = (model.ks, model.n, model.m, model.gamma)
+        (first_idx, last_idx) = (model.first_idx, model.last_idx)
+        h    =  z0[first_idx:last_idx+1]
+        h12  = (h[1:] + h[:-1]) / 2
+        Kh12 = h2Kh(h12, n, m, gamma, Ks)
+
+        t = 0.0
+        omega2g = model.find_omega2g(t)
+        (y, dy)  = (model.y, model.dy)
+        dhdy12 = (h[1:] - h[:-1]) / dy
+        dhdy = np.empty([model.inner_points+2,], dtype=float)
+        dhdy[0] = (model.ldc1[0]*h[0] + model.ldc2[0]*h[1] + model.ldc3[0]*h[2])
+        dhdy[1:-1] = (model.ldc1[1:-1]*h[:-2] + model.ldc2[1:-1] * h[1:-1]
+                     + model.ldc3[1:-1] * h[2:])
+        dhdy[-1] = (model.ldc1[-1]*h[-3] + model.ldc2[-1]*h[-2]
+                    + model.ldc3[-1]* h[-1])
+
+        s1    = z0[model.s1_idx]
+        s2    = z0[model.s2_idx]
+        ds    = s2 - s1
+        ds1dt = 0.0
+
+        (rE, fl2, L)= (model.re, model.fl2, model.l0)
+        r0 = rE - fl2 - L
+
+        q_first = 0.
+        q12 = -Kh12 * (dhdy12/ds  - omega2g*(r0 + s1 + ds * model.y12))
+
+        porosity = model.porosity
+        du_dh = dudh(h, n, m, gamma)
+
+        rb_type = model.rb_type
+        if rb_type == 3:
+            (rD, rI) = (rE - model.dip_height, r0 + s2)
+            q_sat = (omega2g/2. * (rD*rD - rI*rI)
+                     / (model.fl1/model.ks1 + (L-s2)/model.ks
+                        + fl2/model.ks2))
+
+            dmodt = q_sat
+            zp0_last = 0.0
+            ds2dt = +0.1 # some constant for derivation estimate
+        else:
+            if rb_type == 2:
+                zp0_last = 0.0
+            else:
+                if rb_type == 1:
+                    Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+                    q_out  = np.maximum(1e-12,
+                                        -Kh_last*(dhdy_last/ds - omega2g*(r0 + L)))
+                else:
+                    q_out = 0.0
+                zp0_last = \
+                  (-2./(porosity * du_dh[-1] * dy[-1]*ds) * (q_out - q12[-1]))
+            ds2dt = 0.0
+
+        zp0[last_idx] = zp0_last
+        zp0[model.mass_in_idx] = zp0[model.s1_idx] = 0.0
+        zp0[model.mass_out_idx] = dmodt
+        zp0[model.s2_idx] = ds2dt
+
+        zp0[first_idx] = \
+          dhdy[0]/ds*ds1dt - 2./(porosity*du_dh[0]* dy[0]*ds) * (q12[0] - q_first)
+        zp0[first_idx+1:last_idx] = \
+          (dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt + y[1:-1]*ds2dt)
+           - 2./(porosity*du_dh[1:-1]*(dy[:-1] + dy[1:])*ds) * (q12[1:] - q12[:-1]))
+
     # Initialization
     if model.rb_type == 3:
         atol_backup        = model.atol # backup value
@@ -235,6 +302,7 @@ def solve(model):
     # Computation
     (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
                                    root_fn = None, nr_rootfns=None,
+                                   initialize_zp0=initialize_zp0,
                                    algvars_idx=algvars_idx)
 
     # Restore modified values
