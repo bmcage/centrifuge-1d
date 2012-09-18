@@ -371,17 +371,6 @@ class Configuration:
               Handle specialy-treated values, that need to be transformed
               (e.g. into correct units)
             """
-            if (type(value) == list) or (type(value) == tuple):
-                v0 = value[0]
-                are_same = True
-                for v in value:
-                    if not v == v0:
-                        are_same = False
-                        break
-
-                if are_same:
-                    return v0
-
             return value
 
         cfg_dict = self._cfg_dict
