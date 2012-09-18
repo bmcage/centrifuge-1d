@@ -221,7 +221,10 @@ def solve(model):
     # Initialization
     if model.rb_type == 3:
         atol_backup        = model.atol # backup value
-        atol               = atol_backup * np.ones([model.z_size,], dtype=float)
+        if type(atol_backup) == list:
+            atol = np.asarray(atol_backup, dtype=float)
+        else:
+            atol = atol_backup * np.ones([model.z_size,], dtype=float)
         atol[model.s2_idx] = model.s2_atol
         model.atol         = atol
 
