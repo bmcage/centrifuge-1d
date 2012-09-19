@@ -149,9 +149,9 @@ def make_dplot(dplot_id, legend_loc=None, show_legend=None, legend_bbox=None,
 
     return dplot
 
-def display_dplot(dplots, save_figures=False, separate_figures=False,
-                  save_as_text=False,show_figures=False, experiment_info=None,
-                  fignum = 1):
+def display_dplots(dplots, save_figures=False, separate_figures=False,
+                   save_as_text=False,show_figures=False, experiment_info=None,
+                   fignum = 1):
 
     if not dplots: return
 
@@ -217,7 +217,7 @@ def display_dplot(dplots, save_figures=False, separate_figures=False,
                                                   ', '.join(nd2strlist(item[1]))))
         fout.close()
 
-    def display_dplots(ordered_dplots):
+    def show_dplots(ordered_dplots):
         nonlocal fignum, save_figures, save_as_text
 
         if save_figures or save_as_text:
@@ -307,7 +307,7 @@ def display_dplot(dplots, save_figures=False, separate_figures=False,
     if type(dplots) == dict: # we have single dplot item
         dplots = (dplots, )
     ord_dplots = order_dplots(dplots)
-    display_dplots(ord_dplots)
+    show_dplots(ord_dplots)
 
     plt.show(block=False)
     input('Press ENTER to continue...')
