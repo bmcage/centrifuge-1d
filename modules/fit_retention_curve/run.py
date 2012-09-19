@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import modules.base.run as base
 from modules.shared.vangenuchten import h2u
-from modules.shared.show import make_dplot, add_dplotline, display_dplot
+from modules.shared.show import make_dplot, add_dplotline, display_dplots
 
 def solve(model):
     def lsq_fn(xdata, *optim_args):
@@ -131,7 +131,7 @@ def solve(model):
                                       theta_s, theta_r, model.rho, model.g)
             add_dplotline(dplot, theta_ref, p_calc, line_opts='-')
 
-        display_dplot(dplot, show_figures=True, separate_figures=True,)
+        display_dplots(dplot, show_figures=True, separate_figures=True,)
 
     return inv_params
 
