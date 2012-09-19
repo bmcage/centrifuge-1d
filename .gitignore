@@ -1,6 +1,7 @@
 *.pyc
 *.pyo
 *~
+.#*
 \#*\#
 build/*
 data*
