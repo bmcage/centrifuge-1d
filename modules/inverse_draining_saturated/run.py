@@ -1,4 +1,5 @@
-from modules.direct_draining_saturated.run import solve as solve_direct
+from modules.direct_draining_saturated.run import solve as solve_direct, \
+     display_graphs, multiple_solves
 from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
@@ -85,16 +86,16 @@ def run(model):
         # run once again the direct problem with optimal parameters
         model.calc_wm = True
         model_verbosity = model.verbosity # backup verbosity
-        model.verbosity = 0
-        (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
-        model.verbosity = model_verbosity # restore verbosity
+        (results, annotation) = multiple_solves([model])
 
-        disp_inv_results(model, t, inv_params=inv_params, cov=cov,
-                         wl_in_inv=z[1:, model.mass_in_idx].transpose(),
-                         wl_out_inv=z[1:, model.mass_out_idx].transpose(),
-                         gc1_inv=gc1, rm1_inv=rm1, wm=wm, y=model.y,
-                         h_inv=z[:, model.first_idx:model.last_idx+1], u_inv=u,
-                         s1_inv=z[:, model.s1_idx], s2_inv=z[:, model.s2_idx],
-                         disp_abserror=True, display_graphs=True)
+        ds_options = {'save_figures': model.save_figures,
+                      'separate_figures': model.separate_figures,
+                      'save_as_text': model.save_as_text,
+                      'show_figures': model.show_figures,
+                      'experiment_info': model.experiment_information}
+        display_graphs(results, dg_options)
+        display_status(data_plots=make_status_plots(results, annotation, model),
+                       params=inv_params, cov=cov)
+        model.verbosity = model_verbosity # restore verbosity
 
     return inv_params
