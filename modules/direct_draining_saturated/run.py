@@ -359,11 +359,14 @@ def solve(model):
 
     return (flag, t, z, GC, RM, u, WM, WM_in_tube)
 
-def display_graphs(models, options):
-    from collections import defaultdict
+def multiple_solves(models):
 
-    any_data = False
-    collected_results = []
+    single_result = False
+    if not type(models) in [list, tuple]:
+        models = (models, )
+        single_result = True
+
+    collected_computations = []
     for model in models:
         (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
 
@@ -380,10 +383,19 @@ def display_graphs(models, options):
         u = u.transpose()
         MO = z[:, model.mass_out_idx]
         MI = z[:, model.mass_in_idx]
-        collected_results.append(((t, h, u, GC, RM, WM, MI, MO, s1, s2, x)))
+        collected_computations.append(((t, h, u, GC, RM, WM, MI, MO, s1, s2, x)))
 
-    if not any_data:
-        return
+        data_annotation = ('t', 'h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO',
+                           's1', 's2', 'x')
+
+    if single_result: collected_computations = collected_computations[0]
+
+    return (collected_computations, data_annotation)
+
+def display_graphs(computations, annotation, options):
+    from collections import defaultdict
+
+    if not results: return
 
     dplots_names = ['h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO', 's1', 's2']
     dplots_bucket = {name: make_dplot(name, legend_loc=1, legend_title=None)
@@ -392,11 +404,10 @@ def display_graphs(models, options):
         dplots_bucket[name]['legend_title'] = 'Time [min]'
         dplots_bucket[name]['show_legend'] = False
 
-    meas_names = ('t', 'h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO', 's1', 's2', 'x')
     line_label = 'computed'
 
-    for (idx, measurement_data) in enumerate(collected_results):
-        measurement = dict(zip(meas_names, measurement_data))
+    for (idx, computed_data) in enumerate(compuatations):
+        measurement = dict(zip(annotation, computed__data))
 
         t = [ti/60. for ti in measurement['t']] # sec -> min
         t_legend = ['% 7d' % ti for ti in t]
@@ -441,9 +452,10 @@ def display_graphs(models, options):
 
 
 def run(model):
+    (results, annotation) = multiple_solves([model])
     display_options = {'save_figures': model.save_figures,
                        'separate_figures': model.separate_figures,
                        'save_as_text': model.save_as_text,
                        'show_figures': model.show_figures,
                        'experiment_info': model.experiment_information}
-    return display_graphs([model], display_options)
+    display_graphs(results, annotation, display_options)
