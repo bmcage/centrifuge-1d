@@ -50,14 +50,14 @@ def solve(model):
 
     (inv_params, cov) = \
       simulate_inverse(t_meas, ip_direct_drainage, model, model.inv_init_params,
-                       wl_in_meas  = model.get_iterable_value('wl1'),
-                       wl_out_meas = model.get_iterable_value('wl_out'),
-                       gc_meas     = model.get_iterable_value('gc1'),
-                       rm_meas     = model.get_iterable_value('rm1'),
-                       wl_in_weights  = model.get_iterable_value('wl1_weights'),
-                       wl_out_weights = model.get_iterable_value('wl_out_weights'),
-                       gc_weights     = model.get_iterable_value('gc1_weights'),
-                       rm_weights     = model.get_iterable_value('rm1_weights'),
+                       wl_in_meas  = model.wl1,
+                       wl_out_meas = model.wl_out,
+                       gc_meas     = model.gc1,
+                       rm_meas     = model.rm1,
+                       wl_in_weights  = model.wl1_weights,
+                       wl_out_weights = model.wl_out_weights,
+                       gc_weights     = model.gc1_weights,
+                       rm_weights     = model.rm1_weights,
                        optimfn=model.optimfn)
 
     return (inv_params, cov)
