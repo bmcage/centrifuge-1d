@@ -6,7 +6,7 @@ from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.direct_draining_saturated.characteristics import \
      water_mass, calc_gc, calc_rm
 from modules.shared.solver import simulate_direct
-from modules.shared.show import make_dplot, add_dplotline, display_dplot
+from modules.shared.show import make_dplot, add_dplotline, display_dplots
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
@@ -433,11 +433,11 @@ def display_graphs(models, options):
 
     # put it together and display
     dplots = list(dplots_bucket.values())
-    display_dplot(dplots, save_figures=options['save_figures'],
-                  separate_figures=options['separate_figures'],
-                  save_as_text=options['save_as_text'],
-                  show_figures=options['show_figures'],
-                  experiment_info=options['experiment_info'])
+    display_dplots(dplots, save_figures=options['save_figures'],
+                   separate_figures=options['separate_figures'],
+                   save_as_text=options['save_as_text'],
+                   show_figures=options['show_figures'],
+                   experiment_info=options['experiment_info'])
 
 
 def run(model):
