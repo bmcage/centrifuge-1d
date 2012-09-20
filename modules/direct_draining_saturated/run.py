@@ -432,6 +432,8 @@ def display_graphs(model, computations, annotation, options):
         dplots_bucket[name]['legend_bbox'] = (1.02, 1.)
         dplots_bucket[name]['legend_loc'] = 2
 
+    dplots_bucket['MO']['legend_loc'] = 4
+
     line_label = 'computed'
 
     for (idx, computed_data) in enumerate(computations):
