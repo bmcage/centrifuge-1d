@@ -15,6 +15,7 @@ CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma',
                   'h_init', 'porosity',
                   'calc_gc', 'calc_rm', 'calc_wm',
                   'rb_type',
+                  'estimate_zp0',
                   dtype_deps,
                   # dependent
                   (lambda cfg: cfg.get_value('rb_type') == 2,

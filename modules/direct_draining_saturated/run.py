@@ -301,10 +301,15 @@ def solve(model):
     else:
         algvars_idx = None
 
+    if model.estimate_zp0:
+        zp0_init = intialize_zp0
+    else:
+        zp0_init = None
+
     # Computation
     (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
                                    root_fn = None, nr_rootfns=None,
-                                   initialize_zp0=initialize_zp0,
+                                   initialize_zp0=zp0_init,
                                    algvars_idx=algvars_idx)
 
     # Restore modified values
