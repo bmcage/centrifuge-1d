@@ -397,8 +397,11 @@ def display_graphs(model, computations, annotation, options):
     dplots_bucket = {name: make_dplot(name, legend_loc=1, legend_title=None)
                      for name in dplots_names}
     for name in ['h', 'u']:
+        if (not model.separate_figures) and (name == 'h'):
+            dplots_bucket[name]['show_legend'] = False
         dplots_bucket[name]['legend_title'] = 'Time [min]'
-        dplots_bucket[name]['show_legend'] = False
+        dplots_bucket[name]['legend_bbox'] = (1.02, 1.)
+        dplots_bucket[name]['legend_loc'] = 2
 
     line_label = 'computed'
 
