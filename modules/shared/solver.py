@@ -313,29 +313,29 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
             else:
                 return penalization * alen(measurements_sc)
 
-        (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
+        (flag, t, wl_in_C, wl_out_C, gc_C, rm_C) = direct_fn(model)
 
         if flag:
             # direct computation went O.K.
             if calc_wl_in:
-                wl_in_C = wl_in * wl_in_scale_coef
+                wl_in_C_sc = wl_in_C * wl_in_scale_coef
             else:
-                wl_in_C = no_measurements
+                wl_in_C_sc = no_measurements
 
             if calc_wl_out:
-                wl_out_C = wl_out * wl_out_scale_coef
+                wl_out_C_sc = wl_out_C * wl_out_scale_coef
             else:
-                wl_out_C = no_measurements
+                wl_out_C_sc = no_measurements
 
             if calc_gc:
-                gc_C = gc * gc_scale_coef
+                gc_C_sc = gc_C * gc_scale_coef
             else:
-                gc_C = no_measurements
+                gc_C_sc = no_measurements
 
             if calc_rm:
-                rm_C = rm * rm_scale_coef
+                rm_C_sc = rm_C * rm_scale_coef
             else:
-                rm_C = no_measurements
+                rm_C_sc = no_measurements
 
             if model.verbosity > 0:
                 disp_inv_results(model, t, inv_params=None,
@@ -344,7 +344,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                                  display_graphs=False,
                                  disp_abserror=(model.verbosity > 1))
 
-            computation = concatenate((wl_in_C, wl_out_C, gc_C, rm_C))
+
+            computation_sc = concatenate((wl_in_C_sc, wl_out_C_sc, gc_C_sc, rm_C_sc))
 
             error = computation - measurements
 
