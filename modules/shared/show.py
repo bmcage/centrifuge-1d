@@ -134,7 +134,7 @@ def make_dplot(dplot_id, legend_loc=None, show_legend=None, legend_bbox=None,
         if dplot_id in DG_AXES_LABELS:
             axes_labels = DG_AXES_LABELS[dplot_id]
 
-    if ((dplot_id in ['h', 'u']) and ('legend_bbox' is None)
+    if ((dplot_id in ['h', 'u']) and (legend_bbox is None)
         and (legend_loc is None)):
         legend_bbox = (1.01, 1.)
         legend_loc = 2
