@@ -172,7 +172,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                      optimfn='leastsq'):
 
     from modules.shared.functions import determine_scaling_factor
-    from modules.shared.show import disp_inv_results
+    from modules.shared.show import disp_status as display_status, \
+     mk_status_item
     from numpy import log, exp, alen
 
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
@@ -240,32 +241,32 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     if calc_wl_in:
         wl_in_M = asarray(wl_in_meas, dtype=float)
         wl_in_scale_coef = determine_scaling_factor(wl_in_meas)
-        wl_in_M[:] = wl_in_M * wl_in_scale_coef
+        wl_in_M_sc = wl_in_M * wl_in_scale_coef
     else:
-        wl_in_M = no_measurements
+        wl_in_M_sc = no_measurements
 
     if calc_wl_out:
         wl_out_M = cumsum(asarray(wl_out_meas, dtype=float))
         wl_out_scale_coef = determine_scaling_factor(wl_out_M)
-        wl_out_M[:] = wl_out_M * wl_out_scale_coef
+        wl_out_M_sc = wl_out_M * wl_out_scale_coef
     else:
-        wl_out_M = no_measurements
+        wl_out_M_sc = no_measurements
 
     if calc_gc:
         gc_M = np.asarray(gc_meas, dtype=float)
         gc_scale_coef = determine_scaling_factor(gc_meas)
-        gc_M[:] = gc_M * gc_scale_coef
+        gc_M_sc = gc_M * gc_scale_coef
     else:
-        gc_M = no_measurements
+        gc_M_sc = no_measurements
 
     if calc_rm:
         rm_M = np.asarray(rm_meas, dtype=float)
         rm_scale_coef = determine_scaling_factor(rm_meas)
-        rm_M[:] = rm_M * rm_scale_coef
+        rm_M_sc = rm_M * rm_scale_coef
     else:
-        rm_M = no_measurements
+        rm_M_sc = no_measurements
 
-    measurements = concatenate((wl_in_M, wl_out_M, gc_M, rm_M))
+    measurements_sc = concatenate((wl_in_M_sc, wl_out_M_sc, gc_M_sc, rm_M_sc))
 
     if add_weights:
         if wl_in_weights is None:
@@ -309,44 +310,50 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                       penalization)
 
             if optimfn == 'leastsq':
-                return penalization + measurements
+                return penalization + measurements_sc
             else:
-                return penalization * alen(measurements)
+                return penalization * alen(measurements_sc)
 
-        (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
+        (flag, t, wl_in_C, wl_out_C, gc_C, rm_C) = direct_fn(model)
 
         if flag:
             # direct computation went O.K.
             if calc_wl_in:
-                wl_in_C = wl_in * wl_in_scale_coef
+                wl_in_C_sc = wl_in_C * wl_in_scale_coef
             else:
-                wl_in_C = no_measurements
+                wl_in_C_sc = no_measurements
 
             if calc_wl_out:
-                wl_out_C = wl_out * wl_out_scale_coef
+                wl_out_C_sc = wl_out_C * wl_out_scale_coef
             else:
-                wl_out_C = no_measurements
+                wl_out_C_sc = no_measurements
 
             if calc_gc:
-                gc_C = gc * gc_scale_coef
+                gc_C_sc = gc_C * gc_scale_coef
             else:
-                gc_C = no_measurements
+                gc_C_sc = no_measurements
 
             if calc_rm:
-                rm_C = rm * rm_scale_coef
+                rm_C_sc = rm_C * rm_scale_coef
             else:
-                rm_C = no_measurements
+                rm_C_sc = no_measurements
 
             if model.verbosity > 0:
-                disp_inv_results(model, t, inv_params=None,
-                                 wl_in_inv=wl_in, wl_out_inv=wl_out,
-                                 gc1_inv=gc, rm1_inv=rm,
-                                 display_graphs=False,
-                                 disp_abserror=(model.verbosity > 1))
+                status_items = []
+                if calc_wl_in:
+                    status_items.append(mk_status_item('MI', wl_in_C, wl_in_M))
+                if calc_wl_out:
+                    status_items.append(mk_status_item('MO', wl_out_C, wl_out_M))
+                if calc_gc:
+                    status_items.append(mk_status_item('GC', gc_C, gc_M))
+                if calc_rm:
+                    status_items.append(mk_status_item('RM', rm_C, rm_M))
 
-            computation = concatenate((wl_in_C, wl_out_C, gc_C, rm_C))
+                display_status(data_plots=status_items)
 
-            error = computation - measurements
+            computation_sc = concatenate((wl_in_C_sc, wl_out_C_sc, gc_C_sc, rm_C_sc))
+
+            error = computation_sc - measurements_sc
 
             if add_weights:
                 error[:] = error * weights
