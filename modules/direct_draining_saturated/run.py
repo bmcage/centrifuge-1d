@@ -387,10 +387,10 @@ def multiple_solves(c_model, referencing_models=[]):
 
     return (collected_computations, data_annotation)
 
-def display_graphs(computations, annotation, options):
+def display_graphs(model, computations, annotation, options):
     from collections import defaultdict
 
-    if not results: return
+    if not computations: return
 
     dplots_names = ['h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO', 's1', 's2']
     dplots_bucket = {name: make_dplot(name, legend_loc=1, legend_title=None)
@@ -401,8 +401,8 @@ def display_graphs(computations, annotation, options):
 
     line_label = 'computed'
 
-    for (idx, computed_data) in enumerate(compuatations):
-        measurement = dict(zip(annotation, computed__data))
+    for (idx, computed_data) in enumerate(computations):
+        measurement = dict(zip(annotation, computed_data))
 
         t = [ti/60. for ti in measurement['t']] # sec -> min
         t_legend = ['% 7d' % ti for ti in t]
@@ -447,10 +447,10 @@ def display_graphs(computations, annotation, options):
 
 
 def run(model):
-    (results, annotation) = multiple_solves([model])
+    (results, annotation) = multiple_solves(model)
     display_options = {'save_figures': model.save_figures,
                        'separate_figures': model.separate_figures,
                        'save_as_text': model.save_as_text,
                        'show_figures': model.show_figures,
                        'experiment_info': model.experiment_information}
-    display_graphs(results, annotation, display_options)
+    display_graphs(model, results, annotation, display_options)

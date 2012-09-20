@@ -88,12 +88,12 @@ def run(model):
         model_verbosity = model.verbosity # backup verbosity
         (results, annotation) = multiple_solves([model])
 
-        ds_options = {'save_figures': model.save_figures,
+        dg_options = {'save_figures': model.save_figures,
                       'separate_figures': model.separate_figures,
                       'save_as_text': model.save_as_text,
                       'show_figures': model.show_figures,
                       'experiment_info': model.experiment_information}
-        display_graphs(results, dg_options)
+        display_graphs(model, results, annotation, dg_options)
         display_status(data_plots=make_status_plots(results, annotation, model),
                        params=inv_params, cov=cov)
         model.verbosity = model_verbosity # restore verbosity
