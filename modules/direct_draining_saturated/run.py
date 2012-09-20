@@ -384,8 +384,7 @@ def get_refencing_models(model):
 
             yield model
 
-            for (key, value) in backup_params.items(): # restore
-                setattr(model, key, value)
+            model.set_parameters(backup_params) # restore
 
     if not model.params_ref:
         return None
