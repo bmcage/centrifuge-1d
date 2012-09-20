@@ -4,7 +4,7 @@ from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
 from modules.shared.show import disp_status as display_status
-from numpy import alen
+from numpy import alen, cumsum
 
 def update_runtime_variables(model):
     if model.dynamic_h_init:
@@ -76,6 +76,10 @@ def make_status_plots(results, annotation, model):
         data_m = getattr(model, model_id)
 
         if not data_m: continue
+
+        if data_id == 'MO':
+            data_m = cumsum(data_m)
+
         if data_m: status_items.append(mk_status_item(data_id, data_c, data_m))
 
     return status_items
