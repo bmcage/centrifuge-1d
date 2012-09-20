@@ -382,9 +382,8 @@ def multiple_solves(c_model, referencing_models=[]):
         MI = z[:, model.mass_in_idx]
         collected_computations.append(((t, h, u, GC, RM, WM, MI, MO, s1, s2, x)))
 
-        data_annotation = ('t', 'h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO',
-                           's1', 's2', 'x')
-
+    data_annotation = ('t', 'h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO',
+                       's1', 's2', 'x')
 
     return (collected_computations, data_annotation)
 
