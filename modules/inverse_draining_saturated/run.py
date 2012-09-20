@@ -67,6 +67,8 @@ def make_status_plots(results, annotation, model):
     status_items = []
     for (data_id, data_c) in zip(annotation, results):
 
+        if not data_id in ['MI', 'MO', 'GC', 'RM']: continue
+
         if data_id == 'MI': model_id = 'wl1'
         elif data_id == 'MO': model_id = 'wl_out'
         else: model_id = data_id
