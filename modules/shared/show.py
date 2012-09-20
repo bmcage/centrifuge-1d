@@ -134,7 +134,7 @@ def make_dplot(dplot_id, legend_loc=None, show_legend=None, legend_bbox=None,
         if dplot_id in DG_AXES_LABELS:
             axes_labels = DG_AXES_LABELS[dplot_id]
 
-    if ((dplot_id in ['h', 'u']) and ('legend_bbox' is None)
+    if ((dplot_id in ['h', 'u']) and (legend_bbox is None)
         and (legend_loc is None)):
         legend_bbox = (1.01, 1.)
         legend_loc = 2
@@ -269,9 +269,11 @@ def display_dplots(dplots, save_figures=False, separate_figures=False,
                 plt.subplot(3,2,img_num)
 
             # plot the supplied data
+            plot_labels = []
             for dplot_data in dplot['data']:
                 (xdata, ydata, data_label, plot_style) = dplot_data
-                plt.plot(xdata, ydata, plot_style, label=data_label)
+                plt.plot(xdata, ydata, plot_style)
+                plot_labels.extend(data_label)
 
             (xlabel, ylabel) = dplot['axes_labels']
             plt.xlabel(xlabel)
@@ -286,7 +288,7 @@ def display_dplots(dplots, save_figures=False, separate_figures=False,
                 if (len(dplot['data']) > 1) or (np.ndim(ydata) > 1):
                  show_legend = True
             if show_legend:
-                plt.legend(borderaxespad=0.0, prop={'family': 'monospace'},
+                plt.legend(plot_labels, borderaxespad=0.0, prop={'family': 'monospace'},
                            loc=dplot['legend_loc'], title=dplot['legend_title'],
                            bbox_to_anchor=dplot['legend_bbox'])
 
