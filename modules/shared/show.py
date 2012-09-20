@@ -728,7 +728,7 @@ def disp_status(data_plots=None, params=None, cov=None):
 
     if params:
         print('Parameters:')
-        for (name, value) in inv_params.items():
+        for (name, value) in params.items():
             if name == 'ks':
                 print('  Ks [cm/s]: {: .8g}'.format(value))
             else:
