@@ -673,7 +673,7 @@ def disp_inv_results(model, t_inv, inv_params=None,
                     experiment_info=experiment_info)
 
 def mk_status_item(data_id, data_computed, data_measured = []):
-   return {'id': data_id, 'data': (data,computed, data_measured)}
+   return {'id': data_id, 'data': (data_computed, data_measured)}
 
 def disp_status(data_plots=None, params=None, cov=None):
 
