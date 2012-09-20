@@ -42,7 +42,7 @@ CONFIG_OPTIONS = ['exp_type',
                   ('measurements_length', -1)
                  ]
 
-INTERNAL_OPTIONS = ['omega2g_fns', 'm', 'find_omega2g', 't0']
+INTERNAL_OPTIONS = ['omega2g_fns', 'm', 'find_omega2g', 't0', 'omega_start']
 
 EXCLUDE_FROM_MODEL = ['measurements_length', 'omega2g_fns', 'r0']
 

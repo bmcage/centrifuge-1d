@@ -73,7 +73,8 @@ def find_omega2g_fh(model, t):
 def find_omega2g(model, t_total):
     if model.include_acceleration:
         t = t_total - model.t0
-        if t > 21.0:
+
+        if (model.omega == model.omega_start) or (t > 21.0):
             omega = model.omega
         else:
             omega_base = 10.
@@ -91,7 +92,9 @@ def find_omega2g(model, t_total):
             else:
                 omega = f1(t)
 
-            omega = omega/omega_base * model.omega
+            omega_start = model.omega_start
+            omega_rel = model.omega - omega_start
+            omega = omega_start + omega/omega_base * (model.omega - omega_start)
     else:
         omega = model.omega
 

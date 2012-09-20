@@ -29,7 +29,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     t[0]    = t0
 
+    model.set_value('omega_start', 0.0)
     model.set_value('t0', t0)
+
     if update_initial_condition:
         z0 = empty([model.z_size, ], float)
     else:
@@ -121,7 +123,12 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
             t0 = t_out
 
-            if duration_type == 'fh_duration': # restore backuped values
+            if duration_type == 'duration':
+                model.omega_start = model.omega
+            elif duration_type == 'deceleration':
+                model.omega_start = 0.0
+            else:
+                # restore backuped values for 'fh_duration'
                 model.r0    = r0
                 model.duration = duration
 
