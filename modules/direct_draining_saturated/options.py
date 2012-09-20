@@ -52,7 +52,7 @@ def adjust_cfg(cfg):
         m = [1-1/n for n in value]
     else:
         m = 1 - 1/value
-    cfg.set_value('m', value)
+    cfg.set_value('m', m)
 
     # Set array indexes
     inner_points = cfg.get_value('inner_points')
@@ -83,7 +83,6 @@ def adjust_cfg(cfg):
     else:
         print('Unsupported discretization type:', dtype)
         exit(1)
-
 
     cfg.set_value('y', y)
     cfg.set_value('y12', (y[1:]+y[:-1])/2.)
