@@ -437,14 +437,15 @@ def display_graphs(model, computations, annotation, options):
 
     # Now include also measurements
     t1_meas = t_meas[1:]
-    add_dplotline(dplots_bucket['GC'], t1_meas, model.get_iterable_value('GC'),
+    add_dplotline(dplots_bucket['GC'], t1_meas, model.gc1,
                   label='measured', line_opts='x')
-    add_dplotline(dplots_bucket['RM'], t1_meas, model.get_iterable_value('RM'),
+    add_dplotline(dplots_bucket['RM'], t1_meas, model.rm1,
                   label='measured', line_opts='x')
-    add_dplotline(dplots_bucket['MI'], t1_meas, model.get_iterable_value('wl1'),
+    add_dplotline(dplots_bucket['MI'], t1_meas, model.wl1,
                   label='measured', line_opts='x')
-    add_dplotline(dplots_bucket['MO'], t1_meas, model.get_iterable_value('wl_out'),
-                  label='measured', line_opts='x')
+    if model.wl_out:
+        add_dplotline(dplots_bucket['MO'], t1_meas, np.cumsum(model.wl_out),
+                      label='measured', line_opts='x')
 
     # put it together and display
     dplots = list(dplots_bucket.values())
