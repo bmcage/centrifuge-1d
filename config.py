@@ -691,7 +691,7 @@ class ModelParameters:
         """
         # values of the i-th iteration are stored at (i-1)-th place in list
         for (key, value) in self._iterable_parameters.items():
-            setattr(self, key, value[i-1])
+            setattr(self, key, value[i])
 
     def echo(self, iterable_only=False):
         """
