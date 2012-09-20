@@ -273,7 +273,10 @@ def display_dplots(dplots, save_figures=False, separate_figures=False,
             for dplot_data in dplot['data']:
                 (xdata, ydata, data_label, plot_style) = dplot_data
                 plt.plot(xdata, ydata, plot_style)
-                plot_labels.extend(data_label)
+                if type(data_label) == str:
+                    plot_labels.append(data_label)
+                else:
+                    plot_labels.extend(data_label)
 
             (xlabel, ylabel) = dplot['axes_labels']
             plt.xlabel(xlabel)
