@@ -669,6 +669,10 @@ class ModelParameters:
 
         setattr(self, key, value)
 
+    def set_parameters(self, parameters_dict):
+        for (key, value) in parameters_dict.items():
+            setattr(self, key, value)
+
     def next_iteration(self):
         """
           Assign the next value of the parameters that were given as type list
