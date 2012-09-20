@@ -380,6 +380,8 @@ def get_refencing_models(model):
                     exit(1)
                 backup_params[key] = getattr(model, key)
 
+            model.set_parameters(ref)
+
             yield model
 
             for (key, value) in backup_params.items(): # restore
@@ -392,9 +394,21 @@ def get_refencing_models(model):
 
 
 def multiple_solves(c_model, referencing_models=[]):
-    collected_computations = [solve(c_model)]
+    def iterate_models():
+        yield c_model
 
-    for model in referencing_models:
+        if referencing_models:
+            for model in referencing_models:
+                yield model
+        else:
+            yield None
+
+    collected_computations = []
+
+    for model in iterate_models():
+
+        if not  model: break
+
         (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
 
         if not flag:
