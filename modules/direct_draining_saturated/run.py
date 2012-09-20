@@ -359,12 +359,9 @@ def solve(model):
 
     return (flag, t, z, GC, RM, u, WM, WM_in_tube)
 
-def multiple_solves(models):
-
-    single_result = False
-    if not type(models) in [list, tuple]:
-        models = (models, )
-        single_result = True
+def multiple_solves(c_model, referencing_models=[]):
+    models = [c_model]
+    models.extend(referencing_models)
 
     collected_computations = []
     for model in models:
@@ -388,7 +385,6 @@ def multiple_solves(models):
         data_annotation = ('t', 'h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO',
                            's1', 's2', 'x')
 
-    if single_result: collected_computations = collected_computations[0]
 
     return (collected_computations, data_annotation)
 
