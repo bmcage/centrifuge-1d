@@ -172,7 +172,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                      optimfn='leastsq'):
 
     from modules.shared.functions import determine_scaling_factor
-    from modules.shared.show import disp_inv_results
+    from modules.shared.show import disp_status as display_status, \
+     mk_status_item
     from numpy import log, exp, alen
 
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
@@ -338,12 +339,17 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                 rm_C_sc = no_measurements
 
             if model.verbosity > 0:
-                disp_inv_results(model, t, inv_params=None,
-                                 wl_in_inv=wl_in, wl_out_inv=wl_out,
-                                 gc1_inv=gc, rm1_inv=rm,
-                                 display_graphs=False,
-                                 disp_abserror=(model.verbosity > 1))
+                status_items = []
+                if calc_wl_in:
+                    status_items.append(mk_status_item('MI', wl_in_C, wl_in_M))
+                if calc_wl_out:
+                    status_items.append(mk_status_item('MO', wl_out_C, wl_out_M))
+                if calc_gc:
+                    status_items.append(mk_status_item('GC', gc_C, gc_M))
+                if calc_rm:
+                    status_items.append(mk_status_item('RM', rm_C, rm_M))
 
+                display_status(data_plots=status_items)
 
             computation_sc = concatenate((wl_in_C_sc, wl_out_C_sc, gc_C_sc, rm_C_sc))
 
