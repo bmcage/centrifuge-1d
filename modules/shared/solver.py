@@ -55,6 +55,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                      user_data=model)
 
     solver_initialized = False
+    model.init_iteration() # Re-initialize iterable variables
 
     # Run computation
     out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}'

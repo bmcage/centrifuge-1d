@@ -675,14 +675,23 @@ class ModelParameters:
         """
         self.iteration += 1
 
-        i = self.iteration
+        if self.iteration == self.iterations: return False
 
-        if i == self.iterations: return False
-
-        for (key, value) in self._iterable_parameters.items():
-            setattr(self, key, value[i])
+        self._set_iteration(self.iteration)
 
         return True
+
+    def init_iteration(self):
+        self.iteration = 0
+        self._set_iteration(self.iteration)
+
+    def _set_iteration(self, i):
+        """
+          Assign i-th value of all parameters supplied (as of type) list
+        """
+        # values of the i-th iteration are stored at (i-1)-th place in list
+        for (key, value) in self._iterable_parameters.items():
+            setattr(self, key, value[i])
 
     def echo(self, iterable_only=False):
         """
