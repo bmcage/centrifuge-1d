@@ -86,6 +86,7 @@ def run(model):
         # run once again the direct problem with optimal parameters
         model.calc_wm = True
         model_verbosity = model.verbosity # backup verbosity
+        model.verbosity = 0
         (results, annotation) = multiple_solves(model)
 
         dg_options = {'save_figures': model.save_figures,
