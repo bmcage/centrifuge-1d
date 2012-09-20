@@ -73,9 +73,9 @@ def make_status_plots(results, annotation, model):
         elif data_id == 'MO': model_id = 'wl_out'
         else: model_id = data_id
 
-        if not model_id in model: continue
-
         data_m = getattr(model, model_id)
+
+        if not data_m: continue
         if data_m: status_items.append(mk_status_item(data_id, data_c, data_m))
 
     return status_items
