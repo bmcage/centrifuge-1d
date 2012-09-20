@@ -1,9 +1,10 @@
-from modules.direct_draining_saturated.run import solve as solve_direct
+from modules.direct_draining_saturated.run import solve as solve_direct, \
+     display_graphs, multiple_solves, get_refencing_models
 from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
-from modules.shared.show import disp_inv_results
-from numpy import alen
+from modules.shared.show import disp_status as display_status
+from numpy import alen, cumsum
 
 def update_runtime_variables(model):
     if model.dynamic_h_init:
@@ -50,17 +51,38 @@ def solve(model):
 
     (inv_params, cov) = \
       simulate_inverse(t_meas, ip_direct_drainage, model, model.inv_init_params,
-                       wl_in_meas  = model.get_iterable_value('wl1'),
-                       wl_out_meas = model.get_iterable_value('wl_out'),
-                       gc_meas     = model.get_iterable_value('gc1'),
-                       rm_meas     = model.get_iterable_value('rm1'),
-                       wl_in_weights  = model.get_iterable_value('wl1_weights'),
-                       wl_out_weights = model.get_iterable_value('wl_out_weights'),
-                       gc_weights     = model.get_iterable_value('gc1_weights'),
-                       rm_weights     = model.get_iterable_value('rm1_weights'),
+                       wl_in_meas  = model.wl1,
+                       wl_out_meas = model.wl_out,
+                       gc_meas     = model.gc1,
+                       rm_meas     = model.rm1,
+                       wl_in_weights  = model.wl1_weights,
+                       wl_out_weights = model.wl_out_weights,
+                       gc_weights     = model.gc1_weights,
+                       rm_weights     = model.rm1_weights,
                        optimfn=model.optimfn)
 
     return (inv_params, cov)
+
+def make_status_plots(results, annotation, model):
+    status_items = []
+    for (data_id, data_c) in zip(annotation, results):
+
+        if not data_id in ['MI', 'MO', 'GC', 'RM']: continue
+
+        if data_id == 'MI': model_id = 'wl1'
+        elif data_id == 'MO': model_id = 'wl_out'
+        else: model_id = data_id
+
+        data_m = getattr(model, model_id)
+
+        if not data_m: continue
+
+        if data_id == 'MO':
+            data_m = cumsum(data_m)
+
+        if data_m: status_items.append(mk_status_item(data_id, data_c, data_m))
+
+    return status_items
 
 def run(model):
     (inv_params, cov) = solve(model)
@@ -71,15 +93,17 @@ def run(model):
         model.calc_wm = True
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
-        (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
-        model.verbosity = model_verbosity # restore verbosity
+        referencing_models = get_refencing_models(model)
+        (results, annotation) = multiple_solves(model, referencing_models)
 
-        disp_inv_results(model, t, inv_params=inv_params, cov=cov,
-                         wl_in_inv=z[1:, model.mass_in_idx].transpose(),
-                         wl_out_inv=z[1:, model.mass_out_idx].transpose(),
-                         gc1_inv=gc1, rm1_inv=rm1, wm=wm, y=model.y,
-                         h_inv=z[:, model.first_idx:model.last_idx+1], u_inv=u,
-                         s1_inv=z[:, model.s1_idx], s2_inv=z[:, model.s2_idx],
-                         disp_abserror=True, display_graphs=True)
+        dg_options = {'save_figures': model.save_figures,
+                      'separate_figures': model.separate_figures,
+                      'save_as_text': model.save_as_text,
+                      'show_figures': model.show_figures,
+                      'experiment_info': model.experiment_information}
+        display_graphs(model, results, annotation, dg_options)
+        display_status(data_plots=make_status_plots(results, annotation, model),
+                       params=inv_params, cov=cov)
+        model.verbosity = model_verbosity # restore verbosity
 
     return inv_params

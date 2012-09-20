@@ -1,11 +1,12 @@
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
-from modules.shared.functions import right_derivative
+from modules.shared.functions import right_derivative, y2x
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.direct_draining_saturated.characteristics import \
      water_mass, calc_gc, calc_rm
 from modules.shared.solver import simulate_direct
+from modules.shared.show import make_dplot, add_dplotline, display_dplots
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
@@ -105,7 +106,9 @@ class centrifuge_residual(IDA_RhsFunction):
         verbosity = model.verbosity
 
         if verbosity > 3:
-            print('t', t, 's1', z[model.s1_idx], 's2', z[model.s2_idx], end='')
+            print('t: %10.6g' % t, 's1: %8.6g' % z[model.s1_idx],
+                  's2: %8.6g' % z[model.s2_idx], 'ds2dt: %10.6g' % ds2dt,
+                  end='')
 
         if rb_type == 3:
             q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
@@ -189,7 +192,7 @@ def solve(model):
 
     # z0 inicialization
     def initialize_z0(z0, model):
-        nonlocal u0
+        nonlocal u0, wm0, wm_in_tube0
 
         z0[model.first_idx:model.last_idx+1] = model.h_init
 
@@ -217,10 +220,80 @@ def solve(model):
         (wm0, wm_in_tube0) = water_mass(u0, mass_in, mass_out, s1, s2, model)
         model.wm0 = wm0
 
+    def initialize_zp0(zp0, z0, model):
+        (Ks, n, m, gamma) = (model.ks, model.n, model.m, model.gamma)
+        (first_idx, last_idx) = (model.first_idx, model.last_idx)
+        h    =  z0[first_idx:last_idx+1]
+        h12  = (h[1:] + h[:-1]) / 2
+        Kh12 = h2Kh(h12, n, m, gamma, Ks)
+
+        t = 0.0
+        omega2g = model.find_omega2g(t)
+        (y, dy)  = (model.y, model.dy)
+        dhdy12 = (h[1:] - h[:-1]) / dy
+        dhdy = np.empty([model.inner_points+2,], dtype=float)
+        dhdy[0] = (model.ldc1[0]*h[0] + model.ldc2[0]*h[1] + model.ldc3[0]*h[2])
+        dhdy[1:-1] = (model.ldc1[1:-1]*h[:-2] + model.ldc2[1:-1] * h[1:-1]
+                     + model.ldc3[1:-1] * h[2:])
+        dhdy[-1] = (model.ldc1[-1]*h[-3] + model.ldc2[-1]*h[-2]
+                    + model.ldc3[-1]* h[-1])
+
+        s1    = z0[model.s1_idx]
+        s2    = z0[model.s2_idx]
+        ds    = s2 - s1
+        ds1dt = 0.0
+
+        (rE, fl2, L)= (model.re, model.fl2, model.l0)
+        r0 = rE - fl2 - L
+
+        q_first = 0.
+        q12 = -Kh12 * (dhdy12/ds  - omega2g*(r0 + s1 + ds * model.y12))
+
+        porosity = model.porosity
+        du_dh = dudh(h, n, m, gamma)
+
+        rb_type = model.rb_type
+        if rb_type == 3:
+            (rD, rI) = (rE - model.dip_height, r0 + s2)
+            q_sat = (omega2g/2. * (rD*rD - rI*rI)
+                     / (model.fl1/model.ks1 + (L-s2)/model.ks
+                        + fl2/model.ks2))
+
+            dmodt = q_sat
+            zp0_last = 0.0
+            ds2dt = +0.1 # some constant for derivation estimate
+        else:
+            if rb_type == 2:
+                zp0_last = 0.0
+            else:
+                if rb_type == 1:
+                    Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+                    q_out  = np.maximum(1e-12,
+                                        -Kh_last*(dhdy_last/ds - omega2g*(r0 + L)))
+                else:
+                    q_out = 0.0
+                zp0_last = \
+                  (-2./(porosity * du_dh[-1] * dy[-1]*ds) * (q_out - q12[-1]))
+            ds2dt = 0.0
+
+        zp0[last_idx] = zp0_last
+        zp0[model.mass_in_idx] = zp0[model.s1_idx] = 0.0
+        zp0[model.mass_out_idx] = dmodt
+        zp0[model.s2_idx] = ds2dt
+
+        zp0[first_idx] = \
+          dhdy[0]/ds*ds1dt - 2./(porosity*du_dh[0]* dy[0]*ds) * (q12[0] - q_first)
+        zp0[first_idx+1:last_idx] = \
+          (dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt + y[1:-1]*ds2dt)
+           - 2./(porosity*du_dh[1:-1]*(dy[:-1] + dy[1:])*ds) * (q12[1:] - q12[:-1]))
+
     # Initialization
     if model.rb_type == 3:
         atol_backup        = model.atol # backup value
-        atol               = atol_backup * np.ones([model.z_size,], dtype=float)
+        if type(atol_backup) == list:
+            atol = np.asarray(atol_backup, dtype=float)
+        else:
+            atol = atol_backup * np.ones([model.z_size,], dtype=float)
         atol[model.s2_idx] = model.s2_atol
         model.atol         = atol
 
@@ -228,9 +301,15 @@ def solve(model):
     else:
         algvars_idx = None
 
+    if model.estimate_zp0:
+        zp0_init = initialize_zp0
+    else:
+        zp0_init = None
+
     # Computation
     (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
                                    root_fn = None, nr_rootfns=None,
+                                   initialize_zp0=zp0_init,
                                    algvars_idx=algvars_idx)
 
     # Restore modified values
@@ -286,9 +365,142 @@ def solve(model):
 
     return (flag, t, z, GC, RM, u, WM, WM_in_tube)
 
-def run(model):
-    (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
+def get_refencing_models(model):
 
-    if not flag:
-        print("Solver could not compute the solution... Exiting...")
-        exit(1)
+    def models_generator(ref_params):
+        if type(ref_params) == dict: # single reference
+            ref_params = [ref_params]
+
+        for ref in ref_params:
+            backup_params = {}
+            for (key, value) in ref.items(): # backup
+                if key in model._iterable_parameters:
+                    print('Referencing model cannot have different iterable '
+                          'parameters than original model:', key)
+                    exit(1)
+                backup_params[key] = getattr(model, key)
+
+            model.set_parameters(ref)
+
+            yield model
+
+            model.set_parameters(backup_params) # restore
+
+    if not model.params_ref:
+        return None
+    else:
+        return models_generator(model.params_ref)
+
+
+def multiple_solves(c_model, referencing_models=[]):
+    def iterate_models():
+        yield c_model
+
+        if referencing_models:
+            for model in referencing_models:
+                yield model
+        else:
+            yield None
+
+    collected_computations = []
+
+    for model in iterate_models():
+
+        if not  model: break
+
+        (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
+
+        if not flag:
+            print('For given model the solver did not find results. Skipping.')
+            continue
+        else:
+            any_data = True
+
+        s1 = z[:, model.s1_idx]
+        s2 = z[:, model.s2_idx]
+        x = y2x(model.y, s1, s2).transpose()
+        h = z[:, model.first_idx:model.last_idx+1].transpose()
+        u = u.transpose()
+        MO = z[:, model.mass_out_idx]
+        MI = z[:, model.mass_in_idx]
+        collected_computations.append(((t, h, u, GC, RM, WM, MI, MO, s1, s2, x)))
+
+    data_annotation = ('t', 'h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO',
+                       's1', 's2', 'x')
+
+    return (collected_computations, data_annotation)
+
+def display_graphs(model, computations, annotation, options):
+    from collections import defaultdict
+
+    if not computations: return
+
+    dplots_names = ['h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO', 's1', 's2']
+    dplots_bucket = {name: make_dplot(name, legend_loc=1, legend_title=None)
+                     for name in dplots_names}
+    for name in ['h', 'u']:
+        if (not model.separate_figures) and (name == 'h'):
+            dplots_bucket[name]['show_legend'] = False
+        dplots_bucket[name]['legend_title'] = 'Time [min]'
+        dplots_bucket[name]['legend_bbox'] = (1.02, 1.)
+        dplots_bucket[name]['legend_loc'] = 2
+
+    dplots_bucket['MO']['legend_loc'] = 4
+
+    line_label = 'computed'
+
+    for (idx, computed_data) in enumerate(computations):
+        measurement = dict(zip(annotation, computed_data))
+
+        t = [ti/60. for ti in measurement['t']] # sec -> min
+        t_legend = ['% 7d' % ti for ti in t]
+
+        if idx == 0:
+            # dirty hack, for now we take as 't' for measurements for models[0]
+            # of the first model
+            t_meas = t
+
+            # ok, h and u we display only from the first model
+            for m in ['h', 'u']:
+                add_dplotline(dplots_bucket[m], measurement['x'],
+                              measurement[m],
+                              label=t_legend, line_opts='-')
+
+        for m in dplots_names[2:]:
+            add_dplotline(dplots_bucket[m], t, measurement[m],
+                          label=line_label, line_opts='.')
+
+        if idx == 0:
+            # and the subsequent lines will be labeled as Reference (default)
+            line_label = None
+
+    # Now include also measurements
+    t1_meas = t_meas[1:]
+    add_dplotline(dplots_bucket['GC'], t1_meas, model.gc1,
+                  label='measured', line_opts='x')
+    add_dplotline(dplots_bucket['RM'], t1_meas, model.rm1,
+                  label='measured', line_opts='x')
+    add_dplotline(dplots_bucket['MI'], t1_meas, model.wl1,
+                  label='measured', line_opts='x')
+    if model.wl_out:
+        add_dplotline(dplots_bucket['MO'], t1_meas, np.cumsum(model.wl_out),
+                      label='measured', line_opts='x')
+
+    # put it together and display
+    dplots = list(dplots_bucket.values())
+    display_dplots(dplots, save_figures=options['save_figures'],
+                   separate_figures=options['separate_figures'],
+                   save_as_text=options['save_as_text'],
+                   show_figures=options['show_figures'],
+                   experiment_info=options['experiment_info'])
+
+
+def run(model):
+    referencing_models = get_refencing_models(model)
+    (results, annotation) = multiple_solves(model, referencing_models)
+    display_options = {'save_figures': model.save_figures,
+                       'separate_figures': model.separate_figures,
+                       'save_as_text': model.save_as_text,
+                       'show_figures': model.show_figures,
+                       'experiment_info': model.experiment_information}
+    display_graphs(model, results, annotation, display_options)
