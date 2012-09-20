@@ -3,7 +3,7 @@ from modules.direct_draining_saturated.run import solve as solve_direct, \
 from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
-from modules.shared.show import disp_inv_results
+from modules.shared.show import disp_status as display_status
 from numpy import alen
 
 def update_runtime_variables(model):
