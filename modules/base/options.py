@@ -48,7 +48,7 @@ EXCLUDE_FROM_MODEL = ['measurements_length', 'omega2g_fns', 'r0']
 
 PROVIDE_OPTIONS = []
 
-OPTIONS_ITERABLE_LISTS = ['r0', 're', 'l0', 'duration', 'fh_duration']
+OPTIONS_ITERABLE_LISTS = ['r0', 're', 'l0', 'duration', 'fh_duration', 'omega']
 
 def check_cfg(cfg):
     """
