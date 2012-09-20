@@ -1,5 +1,5 @@
 from modules.direct_draining_saturated.run import solve as solve_direct, \
-     display_graphs, multiple_solves
+     display_graphs, multiple_solves, get_refencing_models
 from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
@@ -87,7 +87,8 @@ def run(model):
         model.calc_wm = True
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
-        (results, annotation) = multiple_solves(model)
+        referencing_models = get_refencing_models(model)
+        (results, annotation) = multiple_solves(model, referencing_models)
 
         dg_options = {'save_figures': model.save_figures,
                       'separate_figures': model.separate_figures,

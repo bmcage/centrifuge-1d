@@ -365,12 +365,36 @@ def solve(model):
 
     return (flag, t, z, GC, RM, u, WM, WM_in_tube)
 
-def multiple_solves(c_model, referencing_models=[]):
-    models = [c_model]
-    models.extend(referencing_models)
+def get_refencing_models(model):
 
-    collected_computations = []
-    for model in models:
+    def models_generator(ref_params):
+        if type(ref_params) == dict: # single reference
+            ref_params = [ref_params]
+
+        for ref in ref_params:
+            backup_params = {}
+            for (key, value) in ref.items(): # backup
+                if key in model._iterable_parameters:
+                    print('Referencing model cannot have different iterable '
+                          'parameters than original model:', key)
+                    exit(1)
+                backup_params[key] = getattr(model, key)
+
+            yield model
+
+            for (key, value) in backup_params.items(): # restore
+                setattr(model, key, value)
+
+    if not model.params_ref:
+        return None
+    else:
+        return models_generator(model.params_ref)
+
+
+def multiple_solves(c_model, referencing_models=[]):
+    collected_computations = [solve(c_model)]
+
+    for model in referencing_models:
         (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
 
         if not flag:
@@ -457,7 +481,8 @@ def display_graphs(model, computations, annotation, options):
 
 
 def run(model):
-    (results, annotation) = multiple_solves(model)
+    referencing_models = get_refencing_models(model)
+    (results, annotation) = multiple_solves(model, referencing_models)
     display_options = {'save_figures': model.save_figures,
                        'separate_figures': model.separate_figures,
                        'save_as_text': model.save_as_text,
