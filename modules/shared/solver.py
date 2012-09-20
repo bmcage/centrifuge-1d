@@ -72,8 +72,8 @@ def simulate_direct(initialize_z0, model, residual_fn,
                               + model.deceleration_duration)
             print(out_s.format(i, t0, total_duration, t0 + total_duration))
 
-        for duration_type in ['duration', 'fh_duration',
-                              'deceleration_duration']:
+        for duration_type in ['duration', 'deceleration_duration',
+                              'fh_duration']:
 
             duration = getattr(model, duration_type)
 
