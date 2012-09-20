@@ -273,7 +273,10 @@ def display_dplots(dplots, save_figures=False, separate_figures=False,
             for dplot_data in dplot['data']:
                 (xdata, ydata, data_label, plot_style) = dplot_data
                 plt.plot(xdata, ydata, plot_style)
-                plot_labels.extend(data_label)
+                if type(data_label) == str:
+                    plot_labels.append(data_label)
+                else:
+                    plot_labels.extend(data_label)
 
             (xlabel, ylabel) = dplot['axes_labels']
             plt.xlabel(xlabel)
@@ -670,7 +673,7 @@ def disp_inv_results(model, t_inv, inv_params=None,
                     experiment_info=experiment_info)
 
 def mk_status_item(data_id, data_computed, data_measured = []):
-   return {'id': data_id, 'data': (data,computed, data_measured)}
+   return {'id': data_id, 'data': (data_computed, data_measured)}
 
 def disp_status(data_plots=None, params=None, cov=None):
 
