@@ -347,7 +347,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
             computation_sc = concatenate((wl_in_C_sc, wl_out_C_sc, gc_C_sc, rm_C_sc))
 
-            error = computation - measurements
+            error = computation_sc - measurements_sc
 
             if add_weights:
                 error[:] = error * weights
