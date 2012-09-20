@@ -302,7 +302,7 @@ def solve(model):
         algvars_idx = None
 
     if model.estimate_zp0:
-        zp0_init = intialize_zp0
+        zp0_init = initialize_zp0
     else:
         zp0_init = None
 
