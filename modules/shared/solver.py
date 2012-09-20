@@ -29,6 +29,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     t[0]    = t0
 
+    model.set_value('t0', t0)
     if update_initial_condition:
         z0 = empty([model.z_size, ], float)
     else:
@@ -78,6 +79,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
             if duration == 0.0: continue
 
+            model.t0 = t0
             t_end = t0 + duration
 
             solver.set_options(tstop=t_end)

@@ -70,8 +70,9 @@ def f3(t):
 def find_omega2g_fh(model, t):
     return 1/model.r0_fall
 
-def find_omega2g(model, t):
+def find_omega2g(model, t_total):
     if model.include_acceleration:
+        t = t_total - model.t0
         if t > 21.0:
             omega = model.omega
         else:
