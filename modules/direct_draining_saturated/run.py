@@ -17,11 +17,6 @@ class centrifuge_residual(IDA_RhsFunction):
         # F(t,h,dh/dt) = porosity * du/dh * dh/dt
         #                + d[K(h)*(dh/dr - omega^2/g * r)]/dr
 
-        #print('--------------------')
-        #print('z', z)
-        #print('zdot', zdot)
-        #print('--------------------')
-
         rE = model.re
         L  = model.l0
         fl2 = model.fl2
@@ -43,7 +38,6 @@ class centrifuge_residual(IDA_RhsFunction):
 
         if np.any(h > 0): # positive pressure - we want to refine the step
             return 1
-        #print('h: ', h)
 
         dhdy = np.empty([model.inner_points+2,], dtype=float)
 
@@ -62,9 +56,6 @@ class centrifuge_residual(IDA_RhsFunction):
 
         Kh12 = h2Kh(h12, n, m, gamma, Ks)
 
-        #Kh12 = cProfile.run('h2Kh(h12, n, m, gamma, Ks)', 'h2kh1')
-        #Kh_last =  cProfile.run('h2Kh(h[-1], n, m, gamma, Ks)', 'h2kh2')
-
         y  = model.y
         dy = model.dy
 
@@ -79,14 +70,9 @@ class centrifuge_residual(IDA_RhsFunction):
                      + model.ldc2[-1] * h[-2]
                      + model.ldc3[-1] * h[-1])
 
-        #dhdy[:-1] = 0.
-        #print('dhdy', dhdy, 'h[1:3]', h[0:3])
-        #print('ldc', model.ldc1[:10], model.ldc2[:10], model.ldc3[:10])
         q_first = 0.
         q12 = -Kh12 * (dhdy12/ds  - omega2g*(r0 + s1 + ds * model.y12))
 
-        #print('ql:', q_last)
-        #print('q_out', q_last)
         ds1dt = zdot[model.s1_idx]
         ds2dt = zdot[model.s2_idx]
 
