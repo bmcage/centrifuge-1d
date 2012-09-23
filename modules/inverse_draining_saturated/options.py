@@ -67,4 +67,4 @@ def prior_adjust_cfg(cfg):
     cfg.set_value('n', 1.0)
 
 def adjust_cfg(cfg):
-    from numpy import inf, asarray, power, trunc, log10
+    pass
