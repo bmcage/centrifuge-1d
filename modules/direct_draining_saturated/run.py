@@ -29,7 +29,7 @@ class centrifuge_residual(IDA_RhsFunction):
             print('refine, s2EQ=', L - model.dip_height, 's2=', s2)
             return 1
 
-       (first_idx, last_idx) = (model.first_idx, model.last_idx)
+        (first_idx, last_idx) = (model.first_idx, model.last_idx)
 
         h    =  z[first_idx:last_idx+1]
 
