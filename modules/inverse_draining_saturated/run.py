@@ -16,36 +16,26 @@ def update_runtime_variables(model):
 
 def solve(model):
 
-    no_measurements = []
-
-    def ip_direct_drainage(model):
+    def ip_direct_drainage(model, measurements_names):
         update_runtime_variables(model)
         (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
 
         contains_data = (alen(t) > 1)
 
-        # we discard values at t=0 (for given measurement)
-        if model.calc_wl_out and contains_data:
-            wl_out = z[1:, model.mass_out_idx].transpose()
-        else:
-            wl_out = no_measurements
+        result = [flag, t]
 
-        if model.calc_wl_in and contains_data:
-            wl_in = z[1:, model.mass_in_idx].transpose()
-        else:
-            wl_in = no_measurements
+        for name in measurements_names:
+            # we discard values at t=0 (for given measurement)
+            if name == 'MO':
+                result.append(z[1:, model.mass_out_idx].transpose())
+            elif name == 'MI':
+                result.append(z[1:, model.mass_in_idx].transpose())
+            elif name == 'GC':
+                result.append(gc1[1:])
+            elif name == 'RM':
+                result.append(rm1[1:])
 
-        if model.calc_gc and contains_data:
-            gc1 = gc1[1:]
-        else:
-            gc1 = no_measurements
-
-        if model.calc_rm and contains_data:
-            rm1 = rm1[1:]
-        else:
-            rm1 = no_measurements
-
-        return (flag, t, wl_in, wl_out, gc1, rm1)
+        return result
 
     t_meas = measurements_time(model)
 

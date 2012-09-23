@@ -1,6 +1,6 @@
 import scikits.odes.sundials.ida as ida
 from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
-                   asarray, cumsum, empty)
+                   asarray, cumsum, empty, ones)
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -234,71 +234,41 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
         return penalization
 
-    calc_wl_in  = bool(wl_in_meas)
-    calc_wl_out = bool(wl_out_meas)
-    calc_gc     = bool(gc_meas)
-    calc_rm     = bool(rm_meas)
-
     if not ((wl_in_weights is None) and (wl_out_weights is None)
             and (gc_weights is None) and (rm_weights is None)):
         add_weights = True
     else:
         add_weights = False
 
-    no_measurements = empty([0,], dtype=float)
+    (measurements_names, data_M, measurements_scales) = ([], [], [])
+    measurements_weights = []
+    for (data, name, weights) in zip((wl_in_meas, wl_out_meas, gc_meas, rm_meas),
+                                     ('MI', 'MO', 'GC', 'RM'),
+                                     (wl_in_weights, wl_out_weights, gc_weights,
+                                      rm_weights)):
+        if not bool(data): continue
 
-    if calc_wl_in:
-        wl_in_M = asarray(wl_in_meas, dtype=float)
-        wl_in_scale_coef = determine_scaling_factor(wl_in_meas)
-        wl_in_M_sc = wl_in_M * wl_in_scale_coef
-    else:
-        wl_in_M_sc = no_measurements
+        measurement = asarray(data, dtype=float)
+        if name == 'MO':
+            measurement = cumsum(measurement)
+        data_scale_coef = determine_scaling_factor(measurement)
+        data_scale = data_scale_coef * ones(measurement.shape, dtype=float)
 
-    if calc_wl_out:
-        wl_out_M = cumsum(asarray(wl_out_meas, dtype=float))
-        wl_out_scale_coef = determine_scaling_factor(wl_out_M)
-        wl_out_M_sc = wl_out_M * wl_out_scale_coef
-    else:
-        wl_out_M_sc = no_measurements
+        measurements_names.append(name)
+        data_M.append(measurement)
+        measurements_scales.append(data_scale)
 
-    if calc_gc:
-        gc_M = np.asarray(gc_meas, dtype=float)
-        gc_scale_coef = determine_scaling_factor(gc_meas)
-        gc_M_sc = gc_M * gc_scale_coef
-    else:
-        gc_M_sc = no_measurements
+        if add_weights:
+            if not weights is None:
+                measurements_weights.append(asarray(weights, dtype=float))
+            else:
+                measurements_weights.append(ones(measurement.share, dtype=float))
 
-    if calc_rm:
-        rm_M = np.asarray(rm_meas, dtype=float)
-        rm_scale_coef = determine_scaling_factor(rm_meas)
-        rm_M_sc = rm_M * rm_scale_coef
-    else:
-        rm_M_sc = no_measurements
-
-    measurements_sc = concatenate((wl_in_M_sc, wl_out_M_sc, gc_M_sc, rm_M_sc))
+    data_scale_coef = concatenate(measurements_scales)
+    measurements_sc = concatenate(data_M) * data_scale_coef
 
     if add_weights:
-        if wl_in_weights is None:
-            wl_in_wghts = no_measurements
-        else:
-            wl_in_wghts = asarray(wl_in_weights)
-
-        if wl_out_weights is None:
-            wl_out_wghts = no_measurements
-        else:
-            wl_out_wghts = asarray(wl_out_weights)
-
-        if gc_weights is None:
-            gc_wghts = no_measurements
-        else:
-            gc_wghts = asarray(gc_weights)
-
-        if rm_weights is None:
-            rm_wghts = no_measurements
-        else:
-            rm_wghts = asarray(rm_weights)
-
-        weights = concatenate((wl_in_wghts, wl_out_wghts, gc_wghts, rm_wghts))
+        weights = concatenate(measurements_weights)
 
     iteration = 0
 
@@ -323,45 +293,20 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
             else:
                 return penalization * alen(measurements_sc)
 
-        (flag, t, wl_in_C, wl_out_C, gc_C, rm_C) = direct_fn(model)
+        direct_data = direct_fn(model, measurements_names)
+        (flag, t, data_C) = (direct_data[0], direct_data[1], direct_data[2:])
 
         if flag:
             # direct computation went O.K.
-            if calc_wl_in:
-                wl_in_C_sc = wl_in_C * wl_in_scale_coef
-            else:
-                wl_in_C_sc = no_measurements
-
-            if calc_wl_out:
-                wl_out_C_sc = wl_out_C * wl_out_scale_coef
-            else:
-                wl_out_C_sc = no_measurements
-
-            if calc_gc:
-                gc_C_sc = gc_C * gc_scale_coef
-            else:
-                gc_C_sc = no_measurements
-
-            if calc_rm:
-                rm_C_sc = rm_C * rm_scale_coef
-            else:
-                rm_C_sc = no_measurements
-
             if model.verbosity > 0:
                 status_items = []
-                if calc_wl_in:
-                    status_items.append(mk_status_item('MI', wl_in_C, wl_in_M))
-                if calc_wl_out:
-                    status_items.append(mk_status_item('MO', wl_out_C, wl_out_M))
-                if calc_gc:
-                    status_items.append(mk_status_item('GC', gc_C, gc_M))
-                if calc_rm:
-                    status_items.append(mk_status_item('RM', rm_C, rm_M))
+                for (name, value_C, value_M) in zip(measurements_names,
+                                                    data_C, data_M):
+                    status_items.append(mk_status_item(name, value_C, value_M))
 
                 display_status(data_plots=status_items)
 
-            computation_sc = concatenate((wl_in_C_sc, wl_out_C_sc, gc_C_sc, rm_C_sc))
-
+            computation_sc = data_scale_coef * concatenate(data_C)
             error = computation_sc - measurements_sc
 
             if add_weights:

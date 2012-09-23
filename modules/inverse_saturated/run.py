@@ -4,25 +4,19 @@ from numpy import alen
 
 def solve(model):
 
-    no_measurements = []
-
-    def ip_direct_saturated_heights(model):
+    def ip_direct_saturated_heights(model, measurements_names):
 
         (flag, t, z) = direct_solve(model)
 
-        contains_data = (alen(t) > 1)
+        result = [flag, t]
 
-        if model.calc_wl_out and contains_data:
-            wl_out = z[1:, model.mass_out_idx].transpose()
-        else:
-            wl_out = no_measurements
+        for name in measurements_names:
+            if name == 'MI':
+                result.append(z[1:, model.mass_in_idx].transpose())
+            elif name == 'MO':
+                result.append(z[1:, model.mass_out_idx].transpose())
 
-        if model.calc_wl_in and contains_data:
-            wl_in = z[1:, model.mass_in_idx].transpose()
-        else:
-            wl_in = no_measurements
-
-        return (flag, t, wl_in, wl_out)
+        return result
 
     t_meas = measurements_time(model)
 
