@@ -39,6 +39,10 @@ def solve(model):
 
     t_meas = measurements_time(model)
 
+    calc_p = model.get_parameters(('calc_gc', 'calc_rm')) # backup values
+    model.calc_gc = bool(model.gc1)
+    model.calc_rm = bool(model.rm1)
+
     (inv_params, cov) = \
       simulate_inverse(t_meas, ip_direct_drainage, model, model.inv_init_params,
                        wl_in_meas  = model.wl1,
@@ -50,6 +54,8 @@ def solve(model):
                        gc_weights     = model.gc1_weights,
                        rm_weights     = model.rm1_weights,
                        optimfn=model.optimfn)
+
+    model.set_parameters(calc_p) # restore values
 
     return (inv_params, cov)
 
