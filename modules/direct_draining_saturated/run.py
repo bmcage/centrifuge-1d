@@ -351,10 +351,11 @@ def multiple_solves(c_model, referencing_models=[]):
             if type(ref_params) == dict: # single reference
                 ref_params = [ref_params]
 
+            iterable_params =  c_model._iterable_parameters
             for ref in ref_params:
                 backup_params = {}
                 for (key, value) in ref.items(): # backup
-                    if key in c_model._iterable_parameters:
+                    if key in iterable_params:
                         print('Referencing model cannot set iterable '
                               'parameters:', key)
                         exit(1)
