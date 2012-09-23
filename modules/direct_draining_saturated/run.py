@@ -332,42 +332,41 @@ def solve(model):
 
     return (flag, t, z, GC, RM, u, WM, WM_in_tube)
 
-def get_refencing_models(model):
-
-    def models_generator(ref_params):
-        if type(ref_params) == dict: # single reference
-            ref_params = [ref_params]
-
-        for ref in ref_params:
-            backup_params = {}
-            for (key, value) in ref.items(): # backup
-                if key in model._iterable_parameters:
-                    print('Referencing model cannot have different iterable '
-                          'parameters than original model:', key)
-                    exit(1)
-                backup_params[key] = getattr(model, key)
-
-            model.set_parameters(ref)
-
-            yield model
-
-            model.set_parameters(backup_params) # restore
-
-    if not model.params_ref:
-        return None
-    else:
-        return models_generator(model.params_ref)
-
-
 def multiple_solves(c_model, referencing_models=[]):
+
     def iterate_models():
+        nonlocal referencing_models
+
         yield c_model
 
         if referencing_models:
+            if not type(referencing_models) in [list, tuple]:
+                referencing_models = (referencing_models, )
             for model in referencing_models:
                 yield model
-        else:
-            yield None
+
+        ref_params = getattr(c_model, 'params_ref')
+
+        if ref_params:
+            if type(ref_params) == dict: # single reference
+                ref_params = [ref_params]
+
+            for ref in ref_params:
+                backup_params = {}
+                for (key, value) in ref.items(): # backup
+                    if key in c_model._iterable_parameters:
+                        print('Referencing model cannot set iterable '
+                              'parameters:', key)
+                        exit(1)
+                    backup_params[key] = getattr(c_model, key)
+
+                c_model.set_parameters(ref)
+
+                yield c_model
+
+            c_model.set_parameters(backup_params) # restore
+
+        yield None
 
     collected_computations = []
 
@@ -463,8 +462,7 @@ def display_graphs(model, computations, annotation, options):
 
 
 def run(model):
-    referencing_models = get_refencing_models(model)
-    (results, annotation) = multiple_solves(model, referencing_models)
+    (results, annotation) = multiple_solves(model)
     display_options = {'save_figures': model.save_figures,
                        'separate_figures': model.separate_figures,
                        'save_as_text': model.save_as_text,
