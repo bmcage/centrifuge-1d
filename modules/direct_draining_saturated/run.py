@@ -379,8 +379,6 @@ def multiple_solves(c_model, referencing_models=[]):
         if not flag:
             print('For given model the solver did not find results. Skipping.')
             continue
-        else:
-            any_data = True
 
         s1 = z[:, model.s1_idx]
         s2 = z[:, model.s2_idx]
