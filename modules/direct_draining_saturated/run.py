@@ -138,7 +138,7 @@ class centrifuge_residual(IDA_RhsFunction):
 
         return 0
 
-residual_fn = centrifuge_residual()
+RESIDUAL_FN = centrifuge_residual()
 
 def solve(model):
     # define s1, s2, mass_in, mass_out, u0, wm0, wm_in_tube0
@@ -274,7 +274,7 @@ def solve(model):
         zp0_init = None
 
     # Computation
-    (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
+    (flag, t, z) = simulate_direct(initialize_z0, model, RESIDUAL_FN,
                                    root_fn = None, nr_rootfns=None,
                                    initialize_zp0=zp0_init,
                                    algvars_idx=algvars_idx)
