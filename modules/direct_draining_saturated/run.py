@@ -353,19 +353,18 @@ def multiple_solves(c_model, referencing_models=[]):
 
             iterable_params =  c_model._iterable_parameters
             for ref in ref_params:
-                backup_params = {}
-                for (key, value) in ref.items(): # backup
-                    if key in iterable_params:
-                        print('Referencing model cannot set iterable '
-                              'parameters:', key)
-                        exit(1)
-                    backup_params[key] = getattr(c_model, key)
+                iters = [val for val in ref.keys() if val in iterable_params]
+                if iters:
+                    print('Referencing model cannot set iterable '
+                          'parameters of original model:', iters)
+                    exit(1)
 
+                backup_params = c_model.get_parameters(ref.keys()) # backup
                 c_model.set_parameters(ref)
 
                 yield c_model
 
-            c_model.set_parameters(backup_params) # restore
+                c_model.set_parameters(backup_params) # restore
 
         yield None
 
