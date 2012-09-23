@@ -380,9 +380,9 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                       'parameters... Penalizing by ', penalization)
 
             if optimfn == 'leastsq':
-                return penalization + measurements
+                return penalization + measurements_sc
             else:
-                return penalization * alen(measurements)
+                return penalization * alen(measurements_sc)
 
             return penalization
 
