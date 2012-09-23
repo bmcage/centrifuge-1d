@@ -17,65 +17,48 @@ class centrifuge_residual(IDA_RhsFunction):
         # F(t,h,dh/dt) = porosity * du/dh * dh/dt
         #                + d[K(h)*(dh/dr - omega^2/g * r)]/dr
 
-        rE = model.re
-        L  = model.l0
-        fl2 = model.fl2
-        rb_type = model.rb_type
+        (rE, L, fl2) = (model.re, model.l0, model.fl2)
         r0 = rE - fl2 - L
 
-        s2 = z[model.s2_idx]
-        s1 = z[model.s1_idx]
+        (s1, s2) = (z[model.s1_idx], z[model.s2_idx])
         ds = s2 - s1
+
+        rb_type = model.rb_type
 
         if (rb_type > 3) and (s2 > L - model.dip_height):
             print('refine, s2EQ=', L - model.dip_height, 's2=', s2)
             return 1
 
-        first_idx = model.first_idx
-        last_idx  = model.last_idx
+       (first_idx, last_idx) = (model.first_idx, model.last_idx)
 
         h    =  z[first_idx:last_idx+1]
 
         if np.any(h > 0): # positive pressure - we want to refine the step
             return 1
 
-        dhdy = np.empty([model.inner_points+2,], dtype=float)
-
         hdot =  zdot[first_idx:last_idx+1]
+
+        (Ks, n, m, gamma) = (model.ks, model.n, model.m, model.gamma)
         h12  = (h[1:] + h[:-1]) / 2
-
-        omega2g = model.find_omega2g(t)
-
-
-        Ks = model.ks
-        n  = model.n
-        m  = model.m
-        gamma = model.gamma
-
-        porosity = model.porosity
-
         Kh12 = h2Kh(h12, n, m, gamma, Ks)
 
-        y  = model.y
-        dy = model.dy
+        (y, dy)  = (model.y, model.dy)
 
+        (ldc1, ldc2, ldc3) = (model.ldc1, model.ldc2, model.ldc3)
         dhdy12 = (h[1:] - h[:-1]) / dy
-        dhdy[0] = (model.ldc1[0] * h[0]
-                     + model.ldc2[0] * h[1]
-                     + model.ldc3[0] * h[2])
-        dhdy[1:-1] = (model.ldc1[1:-1] * h[:-2]
-                     + model.ldc2[1:-1] * h[1:-1]
-                     + model.ldc3[1:-1] * h[2:])
-        dhdy[-1] = (model.ldc1[-1] * h[-3]
-                     + model.ldc2[-1] * h[-2]
-                     + model.ldc3[-1] * h[-1])
+        dhdy = np.empty([model.inner_points+2,], dtype=float)
+        dhdy[0]    = ldc1[0] * h[0] + ldc2[0] * h[1] + ldc3[0]*h[2]
+        dhdy[1:-1] = ldc1[1:-1]*h[:-2] + ldc2[1:-1]*h[1:-1] + ldc3[1:-1]*h[2:]
+        dhdy[-1]   = ldc1[-1] * h[-3] + ldc2[-1] * h[-2] + ldc3[-1] * h[-1]
+
+        omega2g = model.find_omega2g(t)
 
         q_first = 0.
         q12 = -Kh12 * (dhdy12/ds  - omega2g*(r0 + s1 + ds * model.y12))
 
-        ds1dt = zdot[model.s1_idx]
-        ds2dt = zdot[model.s2_idx]
+        (ds1dt, ds2dt) = (zdot[model.s1_idx], zdot[model.s2_idx])
 
+        porosity = model.porosity
         du_dh = dudh(h, n, m, gamma)
 
         result[first_idx] = \
@@ -117,11 +100,9 @@ class centrifuge_residual(IDA_RhsFunction):
                 #q_sat = 0.0
 
             u = h2u(h, n, m, gamma)
-            WM_total, WM_in_tube = water_mass(u,
-                                              z[model.mass_in_idx],
-                                              z[model.mass_out_idx],
-                                              z[model.s1_idx], z[model.s2_idx],
-                                              model)
+            (WM_total, WM_in_tube) = \
+              water_mass(u, z[model.mass_in_idx], z[model.mass_out_idx], s1, s2,
+                         model)
             result[last_idx]  = hdot[-1]
             if verbosity > 4:
                 print('  WM: ', WM_total, 'WM0', model.wm0, end='')
@@ -149,9 +130,9 @@ class centrifuge_residual(IDA_RhsFunction):
             result[model.s2_idx]  = zdot[model.s2_idx]
             result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_out
 
-        result[model.mass_in_idx]  = zdot[model.mass_in_idx]
-        result[model.s1_idx]  = zdot[model.s1_idx]
-        result[model.pq_idx]  = zdot[model.pq_idx]
+        result[model.mass_in_idx] = zdot[model.mass_in_idx]
+        result[model.s1_idx]      = zdot[model.s1_idx]
+        result[model.pq_idx]      = zdot[model.pq_idx]
 
         if verbosity > 3: print()
 
