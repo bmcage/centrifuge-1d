@@ -677,6 +677,12 @@ class ModelParameters:
         if key == 'n':
             setattr(self, 'm', 1-1/value)
 
+    def get_parameters(self, *parameters):
+        params = {}
+        for key in parameters:
+            params[key] = getattr(self, key)
+        return params
+
     def next_iteration(self):
         """
           Assign the next value of the parameters that were given as type list
