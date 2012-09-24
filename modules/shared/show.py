@@ -230,11 +230,11 @@ def display_dplots(dplots, save_figures=False, separate_figures=False,
             else:
                 mask = experiment_info['mask']
                 if mask:
-                    figs_dir_type = 'figs_masks'
+                    figs_dir_type = 'masks'
                 else:
-                    figs_dir_type = 'figs_data'
+                    figs_dir_type = 'data'
 
-                save_dir = get_directories(figs_dir_type,
+                save_dir = get_directories('figs', figs_dir_type,
                                            experiment_info['exp_id'],
                                            experiment_info['exp_no'],
                                            experiment_info['tube_no'])
@@ -350,11 +350,12 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
         else:
             mask = experiment_info['mask']
             if mask:
-                figs_dir_type = 'figs_masks'
+                figs_dir_type = 'masks'
             else:
-                figs_dir_type = 'figs_data'
+                figs_dir_type = 'data'
 
-            save_dir = get_directories(figs_dir_type, experiment_info['exp_id'],
+            save_dir = get_directories('figs', figs_dir_type,
+                                       experiment_info['exp_id'],
                                        experiment_info['exp_no'],
                                        experiment_info['tube_no'])
 

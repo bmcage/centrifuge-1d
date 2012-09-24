@@ -63,7 +63,7 @@ def parse_input():
 
             if options.list:
                 print('\n'.join(sorted(listdir(
-                    get_directories('base', '', '', '')))))
+                    get_directories('ini', 'base', '', '', '')))))
             if options.modules_list:
                 modman = ModulesManager()
                 modman.echo(options.verbose)
@@ -110,7 +110,8 @@ def process_global_constants(cfg, consts_cfg):
 
 def load_configuration(exp_id, exp_no, tube_no, mask=None):
     (search_dirs, data_dir, masks_dir) = \
-      get_directories(['search', 'data', 'masks'], exp_id, exp_no, tube_no)
+      get_directories('ini', ['search', 'data', 'masks'],
+                      exp_id, exp_no, tube_no)
 
     filter_existing = lambda fnames: list(filter(lambda fname: exists(fname),
                                                  fnames))
