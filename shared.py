@@ -8,7 +8,7 @@ def yn_prompt(question_str):
         if answ in ['', 'y', 'yes']: return True
         if answ in ['n', 'no']: return False
 
-def get_directories(dirs, exp_id, exp_no, tube_no):
+def get_directories(basedir_type, dirs, exp_id, exp_no, tube_no):
 
     dir_struct = ['exp_base', 'exp_no', 'tube', 'masks']
     dir_values = (exp_id, str(exp_no), 'tube' + str(tube_no), MASKS_DIRNAME)
@@ -17,26 +17,22 @@ def get_directories(dirs, exp_id, exp_no, tube_no):
         k = dir_struct.index(dir_type)
         return base_dir + '/' + '/'.join(dir_values[:k+1]) + '/'
 
-    def resolve_dirs(*dirs):
+    def resolve_dirs(basedir, *dirs):
         results = []
         for dirtype in dirs:
             if dirtype == 'base':
-                results.append(INI_DIR + '/')
+                results.append(basedir + '/')
             elif dirtype == 'exp_base':
-                results.append(get_dir('exp_base', INI_DIR))
+                results.append(get_dir('exp_base', basedir))
             elif dirtype == 'exp_no':
-                results.append(get_dir('exp_no', INI_DIR))
+                results.append(get_dir('exp_no', basedir))
             elif dirtype in ['data', 'tube']:
-                results.append(get_dir('tube', INI_DIR))
+                results.append(get_dir('tube', basedir))
             elif dirtype == 'masks':
-                results.append(get_dir('masks', INI_DIR))
-            elif dirtype == 'figs_data':
-                results.append(get_dir('tube', FIGS_DIR))
-            elif dirtype == 'figs_masks':
-                results.append(get_dir('masks', FIGS_DIR))
+                results.append(get_dir('masks', basedir))
             elif dirtype == 'search':
-                results.append(resolve_dirs('base', 'exp_base', 'exp_no',
-                                            'tube'))
+                results.append(resolve_dirs(basedir, 'base', 'exp_base',
+                                            'exp_no', 'tube'))
             else:
                 raise ValueError('Unknown value for get_directories(): '
                                  '{}'.format(dirs))
@@ -44,10 +40,17 @@ def get_directories(dirs, exp_id, exp_no, tube_no):
 
     if not dirs: dirs = 'search'
 
-    if type(dirs) == str:
-        return resolve_dirs(dirs)[0]
+    if basedir_type == 'ini':
+        basedir = INI_DIR
+    elif basedir_type == 'figs':
+        basedir = FIGS_DIR
     else:
-        return resolve_dirs(*dirs)
+        raise ValueError('Unrecognized type of basedir_type: ', basedir_type)
+
+    if type(dirs) == str:
+        return resolve_dirs(basedir, dirs)[0]
+    else:
+        return resolve_dirs(basedir, *dirs)
 
 def print_by_tube(tube_number, tube_data):
     print('Tube number: ', tube_number)
