@@ -351,6 +351,52 @@ def extract_data(model):
                       's1': (t, s1), 's2': (t, s2)}
     return (flag, extracted_data)
 
+def create_data(model, extract_data_fn, referencing_parameters=[],
+                measurements=None):
+
+    # add computed data
+    data = {'computed': {'computed': extract_data_fn(model)}}
+
+    # add referenced data
+    references = {}
+    ref_num = 1
+    if referencing_parameters:
+        if type(referencing_parameters) == dict: # single reference
+            referencing_parameters = (referencing_parameters, )
+
+        iterable_params =  model._iterable_parameters
+        for ref in ref_params:
+            if 'id' in ref:
+                ref_id = ref['id']
+                del ref['id']
+            else:
+                ref_id = 'ref-' + str(ref_num)
+                ref_num +=1
+
+            iters = [val for val in ref.keys() if val in iterable_params]
+            if iters:
+                print('Referencing model cannot set iterable '
+                      'parameters of original model:', iters)
+                exit(1)
+
+            backup_params = c_model.get_parameters(ref.keys()) # backup
+            model.set_parameters(ref)
+
+            (flag, extracted_data) = extract_data_fn(model)
+
+            model.set_parameters(backup_params) # restore
+
+            if not flag: continue
+
+            references[ref_id] = extracted_data
+
+        if references:
+            data['referenced'] = references
+
+    # add measured data
+    if measurements:
+        data['measured'] = {'measurements': measurements}
+
 def multiple_solves(c_model, referencing_models=[]):
 
     def iterate_models():
