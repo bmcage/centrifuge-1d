@@ -332,6 +332,25 @@ def solve(model):
 
     return (flag, t, z, GC, RM, u, WM, WM_in_tube)
 
+def extract_data(model):
+    (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
+
+    if not flag:
+        print('For given model the solver did not find results. Skipping.')
+
+    s1 = z[:, model.s1_idx]
+    s2 = z[:, model.s2_idx]
+    x = y2x(model.y, s1, s2).transpose()
+    h = z[:, model.first_idx:model.last_idx+1].transpose()
+    u = u.transpose()
+    MO = z[:, model.mass_out_idx]
+    MI = z[:, model.mass_in_idx]
+
+    extracted_data = {'h': (x, h), 'u': (x, u), 'GC': (t, GC), 'RM': (t, RM),
+                      'WM': (t, WM), 'MI': (t, MI), 'MO': (t, MO),
+                      's1': (t, s1), 's2': (t, s2)}
+    return (flag, extracted_data)
+
 def multiple_solves(c_model, referencing_models=[]):
 
     def iterate_models():
