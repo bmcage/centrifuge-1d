@@ -743,6 +743,3 @@ def disp_status(data_plots=None, params=None, cov=None):
     if has_data(cov):
         print('Cov:\n', cov)
 
-def load_plot_configuration(experiment_info):
-    (search_dirs, data_dir, masks_dir) = \
-      get_directories(['search', 'data', 'masks'], exp_id, exp_no, tube_no)
