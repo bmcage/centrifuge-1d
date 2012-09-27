@@ -92,9 +92,8 @@ def run(model):
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
         run_direct(model)
-
-        display_status(data_plots=make_status_plots(results, annotation, model),
-                       params=inv_params, cov=cov)
+        print('Cov:\n' cov)
+        print('Optimal parameters found:\n', inv_params)
         model.verbosity = model_verbosity # restore verbosity
 
     return inv_params

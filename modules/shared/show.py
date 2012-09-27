@@ -827,6 +827,15 @@ class ResultsData():
         return self._data['computed']['computed'].keys()
     def get_linetypes(self):
         return self._data.keys()
+
+    def get_value(self, line_type, line_id, data_type):
+        data = self._data
+        if ((line_type in data) and (line_id in data[line_type])
+            and (data_type in data[line_type][line_id])):
+            return data[line_type][line_id][data_type]
+        else:
+            return None
+
     def iterate(self):
         for (data_type, lines) in self._data.items():
             for (line_id, line_data) in lines.items():
@@ -980,6 +989,7 @@ class PlotStyles():
 
 class DPlots():
     def __init__(self, data, experiment_info):
+        self._data = data
         self._display = data.has_data()
         if not self._display:
             print('No data is provided. Nothing to display.')
@@ -1029,6 +1039,21 @@ class DPlots():
             item = (xdata, ydata, ilabel, line_styles[data_type])
 
             bucket[data_type]['data'].append(item)
+
+    def show_status(self):
+        data = self._data
+        status_items = []
+
+        for (key, m_value) in measurements.items():
+            if m_value is None: continue
+
+            c_value = data.get_value('computed', 'computed', key)
+            if c_value is not None:
+                (xdata, ydata) = c_value[:2]
+                status_items.append(mk_status_item(key, c_value, m_value))
+
+        if status_items:
+            display_status(status_items)
 
     def display(self, fignum = 1):
         if not self._display: return

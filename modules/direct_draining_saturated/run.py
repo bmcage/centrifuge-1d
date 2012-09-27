@@ -362,4 +362,5 @@ def run(model):
 
     if model.show_figures:
         dplots = DPlots(data, model.experiment_info)
+        dplots.show_status()
         dplots.display()
