@@ -228,17 +228,13 @@ def display_dplots(dplots, save_figures=False, separate_figures=False,
                       'Disabling saving figures.')
                 save_figures = save_as_text = False
             else:
-                mask = experiment_info['mask']
-                if mask:
-                    figs_dir_type = 'masks'
+                if experiment_info['mask']:
+                    figs_dir_type = 'mask'
                 else:
                     figs_dir_type = 'data'
 
                 save_dir = get_directories('figs', figs_dir_type,
-                                           experiment_info['exp_id'],
-                                           experiment_info['exp_no'],
-                                           experiment_info['tube_no'])
-                if mask: save_dir += mask + '/'
+                                           experiment_info)
 
                 if not path.exists(save_dir):
                     makedirs(save_dir)
@@ -349,17 +345,13 @@ def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
             save_figures = save_as_text = False
         else:
             mask = experiment_info['mask']
-            if mask:
-                figs_dir_type = 'masks'
+            if experiment_info['mask']:
+                figs_dir_type = 'mask'
             else:
                 figs_dir_type = 'data'
 
             save_dir = get_directories('figs', figs_dir_type,
-                                       experiment_info['exp_id'],
-                                       experiment_info['exp_no'],
-                                       experiment_info['tube_no'])
-
-            if mask: save_dir += mask + '/'
+                                       experiment_info)
 
             if not path.exists(save_dir):
                 makedirs(save_dir)
