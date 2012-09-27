@@ -6,7 +6,7 @@ from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.direct_draining_saturated.characteristics import \
      water_mass, calc_gc, calc_rm
 from modules.shared.solver import simulate_direct
-from modules.shared.show import make_dplot, add_dplotline, display_dplots
+from modules.shared.show import ResultsData, DPlots
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
@@ -17,79 +17,48 @@ class centrifuge_residual(IDA_RhsFunction):
         # F(t,h,dh/dt) = porosity * du/dh * dh/dt
         #                + d[K(h)*(dh/dr - omega^2/g * r)]/dr
 
-        #print('--------------------')
-        #print('z', z)
-        #print('zdot', zdot)
-        #print('--------------------')
-
-        rE = model.re
-        L  = model.l0
-        fl2 = model.fl2
-        rb_type = model.rb_type
+        (rE, L, fl2) = (model.re, model.l0, model.fl2)
         r0 = rE - fl2 - L
 
-        s2 = z[model.s2_idx]
-        s1 = z[model.s1_idx]
+        (s1, s2) = (z[model.s1_idx], z[model.s2_idx])
         ds = s2 - s1
+
+        rb_type = model.rb_type
 
         if (rb_type > 3) and (s2 > L - model.dip_height):
             print('refine, s2EQ=', L - model.dip_height, 's2=', s2)
             return 1
 
-        first_idx = model.first_idx
-        last_idx  = model.last_idx
+        (first_idx, last_idx) = (model.first_idx, model.last_idx)
 
         h    =  z[first_idx:last_idx+1]
 
         if np.any(h > 0): # positive pressure - we want to refine the step
             return 1
-        #print('h: ', h)
-
-        dhdy = np.empty([model.inner_points+2,], dtype=float)
 
         hdot =  zdot[first_idx:last_idx+1]
+
+        (Ks, n, m, gamma) = (model.ks, model.n, model.m, model.gamma)
         h12  = (h[1:] + h[:-1]) / 2
+        Kh12 = h2Kh(h12, n, m, gamma, Ks)
+
+        (y, dy)  = (model.y, model.dy)
+
+        (ldc1, ldc2, ldc3) = (model.ldc1, model.ldc2, model.ldc3)
+        dhdy12 = (h[1:] - h[:-1]) / dy
+        dhdy = np.empty([model.inner_points+2,], dtype=float)
+        dhdy[0]    = ldc1[0] * h[0] + ldc2[0] * h[1] + ldc3[0]*h[2]
+        dhdy[1:-1] = ldc1[1:-1]*h[:-2] + ldc2[1:-1]*h[1:-1] + ldc3[1:-1]*h[2:]
+        dhdy[-1]   = ldc1[-1] * h[-3] + ldc2[-1] * h[-2] + ldc3[-1] * h[-1]
 
         omega2g = model.find_omega2g(t)
 
-
-        Ks = model.ks
-        n  = model.n
-        m  = model.m
-        gamma = model.gamma
-
-        porosity = model.porosity
-
-        Kh12 = h2Kh(h12, n, m, gamma, Ks)
-
-        #Kh12 = cProfile.run('h2Kh(h12, n, m, gamma, Ks)', 'h2kh1')
-        #Kh_last =  cProfile.run('h2Kh(h[-1], n, m, gamma, Ks)', 'h2kh2')
-
-        y  = model.y
-        dy = model.dy
-
-        dhdy12 = (h[1:] - h[:-1]) / dy
-        dhdy[0] = (model.ldc1[0] * h[0]
-                     + model.ldc2[0] * h[1]
-                     + model.ldc3[0] * h[2])
-        dhdy[1:-1] = (model.ldc1[1:-1] * h[:-2]
-                     + model.ldc2[1:-1] * h[1:-1]
-                     + model.ldc3[1:-1] * h[2:])
-        dhdy[-1] = (model.ldc1[-1] * h[-3]
-                     + model.ldc2[-1] * h[-2]
-                     + model.ldc3[-1] * h[-1])
-
-        #dhdy[:-1] = 0.
-        #print('dhdy', dhdy, 'h[1:3]', h[0:3])
-        #print('ldc', model.ldc1[:10], model.ldc2[:10], model.ldc3[:10])
         q_first = 0.
         q12 = -Kh12 * (dhdy12/ds  - omega2g*(r0 + s1 + ds * model.y12))
 
-        #print('ql:', q_last)
-        #print('q_out', q_last)
-        ds1dt = zdot[model.s1_idx]
-        ds2dt = zdot[model.s2_idx]
+        (ds1dt, ds2dt) = (zdot[model.s1_idx], zdot[model.s2_idx])
 
+        porosity = model.porosity
         du_dh = dudh(h, n, m, gamma)
 
         result[first_idx] = \
@@ -131,11 +100,9 @@ class centrifuge_residual(IDA_RhsFunction):
                 #q_sat = 0.0
 
             u = h2u(h, n, m, gamma)
-            WM_total, WM_in_tube = water_mass(u,
-                                              z[model.mass_in_idx],
-                                              z[model.mass_out_idx],
-                                              z[model.s1_idx], z[model.s2_idx],
-                                              model)
+            (WM_total, WM_in_tube) = \
+              water_mass(u, z[model.mass_in_idx], z[model.mass_out_idx], s1, s2,
+                         model)
             result[last_idx]  = hdot[-1]
             if verbosity > 4:
                 print('  WM: ', WM_total, 'WM0', model.wm0, end='')
@@ -163,15 +130,15 @@ class centrifuge_residual(IDA_RhsFunction):
             result[model.s2_idx]  = zdot[model.s2_idx]
             result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_out
 
-        result[model.mass_in_idx]  = zdot[model.mass_in_idx]
-        result[model.s1_idx]  = zdot[model.s1_idx]
-        result[model.pq_idx]  = zdot[model.pq_idx]
+        result[model.mass_in_idx] = zdot[model.mass_in_idx]
+        result[model.s1_idx]      = zdot[model.s1_idx]
+        result[model.pq_idx]      = zdot[model.pq_idx]
 
         if verbosity > 3: print()
 
         return 0
 
-residual_fn = centrifuge_residual()
+RESIDUAL_FN = centrifuge_residual()
 
 def solve(model):
     # define s1, s2, mass_in, mass_out, u0, wm0, wm_in_tube0
@@ -307,7 +274,7 @@ def solve(model):
         zp0_init = None
 
     # Computation
-    (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
+    (flag, t, z) = simulate_direct(initialize_z0, model, RESIDUAL_FN,
                                    root_fn = None, nr_rootfns=None,
                                    initialize_zp0=zp0_init,
                                    algvars_idx=algvars_idx)
@@ -365,42 +332,60 @@ def solve(model):
 
     return (flag, t, z, GC, RM, u, WM, WM_in_tube)
 
-def get_refencing_models(model):
+def extract_data(model):
+    (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
 
-    def models_generator(ref_params):
-        if type(ref_params) == dict: # single reference
-            ref_params = [ref_params]
+    if not flag:
+        print('For given model the solver did not find results. Skipping.')
 
-        for ref in ref_params:
-            backup_params = {}
-            for (key, value) in ref.items(): # backup
-                if key in model._iterable_parameters:
-                    print('Referencing model cannot have different iterable '
-                          'parameters than original model:', key)
-                    exit(1)
-                backup_params[key] = getattr(model, key)
+    s1 = z[:, model.s1_idx]
+    s2 = z[:, model.s2_idx]
+    x = y2x(model.y, s1, s2).transpose()
+    h = z[:, model.first_idx:model.last_idx+1].transpose()
+    u = u.transpose()
+    MO = z[:, model.mass_out_idx]
+    MI = z[:, model.mass_in_idx]
 
-            model.set_parameters(ref)
-
-            yield model
-
-            model.set_parameters(backup_params) # restore
-
-    if not model.params_ref:
-        return None
-    else:
-        return models_generator(model.params_ref)
-
+    extracted_data = {'h': (x, h, t), 'u': (x, u, t), 'GC': (t, GC),
+                      'RM': (t, RM), 'WM': (t, WM), 'MI': (t, MI),
+                      'MO': (t, MO), 's1': (t, s1), 's2': (t, s2)}
+    return (flag, extracted_data)
 
 def multiple_solves(c_model, referencing_models=[]):
+
     def iterate_models():
+        nonlocal referencing_models
+
         yield c_model
 
         if referencing_models:
+            if not type(referencing_models) in [list, tuple]:
+                referencing_models = (referencing_models, )
             for model in referencing_models:
                 yield model
-        else:
-            yield None
+
+        ref_params = getattr(c_model, 'params_ref')
+
+        if ref_params:
+            if type(ref_params) == dict: # single reference
+                ref_params = [ref_params]
+
+            iterable_params =  c_model._iterable_parameters
+            for ref in ref_params:
+                iters = [val for val in ref.keys() if val in iterable_params]
+                if iters:
+                    print('Referencing model cannot set iterable '
+                          'parameters of original model:', iters)
+                    exit(1)
+
+                backup_params = c_model.get_parameters(ref.keys()) # backup
+                c_model.set_parameters(ref)
+
+                yield c_model
+
+                c_model.set_parameters(backup_params) # restore
+
+        yield None
 
     collected_computations = []
 
@@ -413,8 +398,6 @@ def multiple_solves(c_model, referencing_models=[]):
         if not flag:
             print('For given model the solver did not find results. Skipping.')
             continue
-        else:
-            any_data = True
 
         s1 = z[:, model.s1_idx]
         s2 = z[:, model.s2_idx]
@@ -496,11 +479,14 @@ def display_graphs(model, computations, annotation, options):
 
 
 def run(model):
-    referencing_models = get_refencing_models(model)
-    (results, annotation) = multiple_solves(model, referencing_models)
-    display_options = {'save_figures': model.save_figures,
-                       'separate_figures': model.separate_figures,
-                       'save_as_text': model.save_as_text,
-                       'show_figures': model.show_figures,
-                       'experiment_info': model.experiment_information}
-    display_graphs(model, results, annotation, display_options)
+    from modules.shared.functions import measurements_time
+
+    t_meas = measurements_time(model)[1:]
+    measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, model.wl_out),
+                    'GC': (t_meas, model.gc1), 'RM': (t_meas, model.rm1)}
+    data = ResultsData(extract_data, model, measurements=measurements)
+    data.dump(model.experiment_info)
+
+    if model.show_figures:
+        dplots = DPlots(data, model.experiment_info)
+        dplots.display()

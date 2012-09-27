@@ -134,6 +134,7 @@ def load_configuration(experiment_info):
         measurements_files.append(data_dir + fname)
 
     mask_filename = ''
+    mask = experiment_info['mask']
     if mask:
         mask_filename = masks_dir + mask + '.ini'
         if not exists(mask_filename):
@@ -214,7 +215,7 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
 
             model = ModelParameters(cfg)
 
-            model.experiment_information = experiment_info
+            model.experiment_info = experiment_info
 
             results = solver_module.run(model)
 
