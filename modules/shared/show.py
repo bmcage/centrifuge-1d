@@ -1022,7 +1022,7 @@ class DPlots():
 
             if ((data_type in ['h', 'u']) and (len(data_value) > 2)
                 and has_data(data_value[2]) and (not 'label' in line_styles)):
-                ilabel = ['% 6d' % ti for ti in data_value[2]]
+                ilabel = ['% 6d' % (ti/60.) for ti in data_value[2]]
             else:
                 ilabel = label
 
