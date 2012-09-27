@@ -1,5 +1,5 @@
 from modules.direct_draining_saturated.run import solve as solve_direct, \
-     display_graphs, multiple_solves
+     run as run_direct
 from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
@@ -86,18 +86,13 @@ def run(model):
 
     # DISPLAY RESULTS:
     if inv_params:
+        model.set_parameters(inv_params)
         # run once again the direct problem with optimal parameters
         model.calc_wm = True
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
-        (results, annotation) = multiple_solves(model)
+        run_direct(model)
 
-        dg_options = {'save_figures': model.save_figures,
-                      'separate_figures': model.separate_figures,
-                      'save_as_text': model.save_as_text,
-                      'show_figures': model.show_figures,
-                      'experiment_info': model.experiment_information}
-        display_graphs(model, results, annotation, dg_options)
         display_status(data_plots=make_status_plots(results, annotation, model),
                        params=inv_params, cov=cov)
         model.verbosity = model_verbosity # restore verbosity
