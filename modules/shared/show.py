@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 from const import FIGS_DIR
 from os import makedirs, path
 
@@ -734,4 +735,98 @@ def disp_status(data_plots=None, params=None, cov=None):
 
     if has_data(cov):
         print('Cov:\n', cov)
+
+# ResultData: hold the data of the computation
+# Internal structure: dictionary of types: {line_type: line_type_data} where
+# line_type is (by default) one of ['computed', 'measured', 'references'] and
+# line_type_data is a dictionary of types: {line_id: line_data}, with
+# line_id the ID of the line and line_data a dict of types
+# {data_type: (xdata, ydata)}, where data_type is (by default) one of
+# ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'], xdata is the x-axis coordinate and
+# ydata is the y-axis coordinate (computed value)
+class ResultsData():
+    def __init__(self, extract_data_fn, model, referencing_parameters=[],
+                 measurements=None):
+        # add computed data
+        (flag, value) = extract_data_fn(model)
+        if not flag:
+            print('Computation was not successfull. No data will be saved.')
+            self._data = None
+            return
+
+        data = {'computed': {'computed': value}}
+
+        # add referenced data
+        references = {}
+        ref_num = 1
+        if referencing_parameters:
+            if type(referencing_parameters) == dict: # single reference
+                referencing_parameters = (referencing_parameters, )
+
+            iterable_params =  model._iterable_parameters
+            for ref in referencing_parameters:
+                if 'id' in ref:
+                    ref_id = ref['id']
+                    del ref['id']
+                else:
+                    ref_id = 'ref-' + str(ref_num)
+                    ref_num +=1
+
+                iters = [val for val in ref.keys() if val in iterable_params]
+                if iters:
+                    print('Referencing model cannot set iterable '
+                          'parameters of original model:', iters)
+                    exit(1)
+
+                backup_params = model.get_parameters(ref.keys()) # backup
+                model.set_parameters(ref)
+
+                (flag, extracted_data) = extract_data_fn(model)
+
+                model.set_parameters(backup_params) # restore
+
+                if not flag: continue
+
+                references[ref_id] = extracted_data
+
+            if references:
+                data['references'] = references
+
+        # add measured data
+        if measurements:
+            data['measured'] = {'measurements': measurements}
+
+        self._data = data
+    def has_data(self):
+        return not self._data is None
+
+    def dump(self, experiment_info):
+        if not self.has_data():
+            print('No data is provided. Skipping data dumping.')
+            return
+
+        savedir = get_directories('figs', 'mask', experiment_info)
+        if not path.exists(savedir):
+            makedirs(savedir)
+
+        with open(savedir + 'data_results.dat', 'wb') as f:
+            pickle.dump(self._data, f, pickle.HIGHEST_PROTOCOL)
+    def load(self, experiment_info):
+        pathdir = get_directories('figs', 'mask', experiment_info)
+        filename = pathdir + 'data_results.dat'
+        if not path.exists(filename):
+            print('File with computation results does not exist:', filename)
+            exit(1)
+
+        with open(filename, 'rb') as f:
+            pickle.load(self._data, f)
+    def get_datatypes(self):
+         # line_type 'computed' with ID 'computed' has to be present
+        return self._data['computed']['computed'].keys()
+    def get_linetypes(self):
+        return self._data.keys()
+    def iterate(self):
+        for (data_type, lines) in self._data.items():
+            for (line_id, line_data) in lines.items():
+                yield (data_type, line_id, line_data)
 
