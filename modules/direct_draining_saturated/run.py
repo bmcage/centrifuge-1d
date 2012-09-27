@@ -346,9 +346,9 @@ def extract_data(model):
     MO = z[:, model.mass_out_idx]
     MI = z[:, model.mass_in_idx]
 
-    extracted_data = {'h': (x, h), 'u': (x, u), 'GC': (t, GC), 'RM': (t, RM),
-                      'WM': (t, WM), 'MI': (t, MI), 'MO': (t, MO),
-                      's1': (t, s1), 's2': (t, s2)}
+    extracted_data = {'h': (x, h, t), 'u': (x, u, t), 'GC': (t, GC),
+                      'RM': (t, RM), 'WM': (t, WM), 'MI': (t, MI),
+                      'MO': (t, MO), 's1': (t, s1), 's2': (t, s2)}
     return (flag, extracted_data)
 
 def multiple_solves(c_model, referencing_models=[]):
