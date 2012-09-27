@@ -60,27 +60,6 @@ def solve(model):
 
     return (inv_params, cov)
 
-def make_status_plots(results, annotation, model):
-    status_items = []
-    for (data_id, data_c) in zip(annotation, results):
-
-        if not data_id in ['MI', 'MO', 'GC', 'RM']: continue
-
-        if data_id == 'MI': model_id = 'wl1'
-        elif data_id == 'MO': model_id = 'wl_out'
-        else: model_id = data_id
-
-        data_m = getattr(model, model_id)
-
-        if not data_m: continue
-
-        if data_id == 'MO':
-            data_m = cumsum(data_m)
-
-        if data_m: status_items.append(mk_status_item(data_id, data_c, data_m))
-
-    return status_items
-
 def run(model):
     (inv_params, cov) = solve(model)
 
