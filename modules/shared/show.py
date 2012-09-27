@@ -3,6 +3,8 @@ import numpy as np
 import pickle
 from const import FIGS_DIR
 from os import makedirs, path
+from shared import get_directories
+
 
 def display_table(t_measured=None, t_computed=None,
                   wl_out1_measured=None, wl_out1_computed=None,
@@ -1068,7 +1070,6 @@ class DPlots():
             save_figures     = disp_opts['save_figures']
 
             if save_figures:
-                from shared import get_directories
                 experiment_info = self._experiment_info
                 if experiment_info['mask']:
                     figs_dir_type = 'mask'
