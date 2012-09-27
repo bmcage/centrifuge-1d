@@ -796,7 +796,7 @@ class ResultsData():
 
         # add measured data
         if measurements:
-            data['measured'] = {'measurements': measurements}
+            data['measured'] = {'measured': measurements}
 
         self._data = data
     def has_data(self):
@@ -828,10 +828,9 @@ class ResultsData():
     def get_linetypes(self):
         return self._data.keys()
 
-    def get_value(self, line_type, line_id, data_type):
+    def get_linedata(self, line_type, line_id):
         data = self._data
-        if ((line_type in data) and (line_id in data[line_type])
-            and (data_type in data[line_type][line_id])):
+        if ((line_type in data) and (line_id in data[line_type]):
             return data[line_type][line_id][data_type]
         else:
             return None
@@ -1044,6 +1043,8 @@ class DPlots():
         data = self._data
         status_items = []
 
+        measurements = data.get_linedata('measured', 'measured')
+        computed     = data.get_linedata('computed', 'computed')
         for (key, m_value) in measurements.items():
             if m_value is None: continue
 
