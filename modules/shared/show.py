@@ -831,8 +831,8 @@ class ResultsData():
 
     def get_linedata(self, line_type, line_id):
         data = self._data
-        if ((line_type in data) and (line_id in data[line_type]):
-            return data[line_type][line_id][data_type]
+        if (line_type in data) and (line_id in data[line_type]):
+            return data[line_type][line_id]
         else:
             return None
 
@@ -1048,15 +1048,17 @@ class DPlots():
         computed     = data.get_linedata('computed', 'computed')
         print('HHH', measurements, computed)
         for (key, m_value) in measurements.items():
-            if m_value is None: continue
+            if m_value[1] is None: continue
 
-            c_value = data.get_value('computed', 'computed', key)
+            if key in computed:
+                c_value = computed[key][1]
+
             if c_value is not None:
-                (xdata, ydata) = c_value[:2]
-                status_items.append(mk_status_item(key, c_value, m_value))
+                status_items.append(mk_status_item(key, c_value[:-1],
+                                                   m_value[1]))
 
         if status_items:
-            display_status(status_items)
+            disp_status(status_items)
 
     def display(self, fignum = 1):
         if not self._display: return
