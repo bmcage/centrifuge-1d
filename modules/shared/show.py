@@ -830,3 +830,146 @@ class ResultsData():
             for (line_id, line_data) in lines.items():
                 yield (data_type, line_id, line_data)
 
+PLOTSTYLE_ININAME = 'plotstyle.ini'
+
+class PlotStyles():
+    def __init__(self, experiment_info):
+        self._userstyles = self.load_userstyles(experiment_info)
+        self._display_options = self._mk_display_options()
+        self._dplotstyles = {}
+
+    def load_userstyles(self, experiment_info):
+        def get_filenames(experiment_info):
+            (search_dirs, masks_dir, mask_dir) = \
+              get_directories('figs', ['search', 'masks', 'mask'],
+                              experiment_info)
+            # include masks dir into searchable directories...
+            search_dirs.append(masks_dir)
+            # ...just as the single mask directory
+            if experiment_info['mask']:
+                search_dirs.append(mask_dir)
+
+            filter_existing = \
+              lambda fnames: list(filter(lambda fname: path.exists(fname), fnames))
+            prefix_with_paths = \
+              lambda fname, dirs: map(lambda cfgdir: cfgdir + fname, dirs)
+
+            plotstyle_files = \
+              filter_existing(prefix_with_paths(PLOTSTYLE_ININAME, search_dirs))
+
+            return plotstyle_files
+
+        def read_plotstyle_cfg(filename):
+            result = {}
+
+            # read config files
+            parser   = configparser.ConfigParser()
+            try:
+                read_files = parser.read(fname)
+            except configparser.DuplicateOptionError as E:
+                print(E)
+                exit(0)
+            # Write data from parser to configuration
+            for psection in parser.sections():
+                section = psection.lower() # we ignore sections
+
+                for option in parser.options(psection):
+                    raw_value = parser.get(psection, option).strip()
+
+                    result[option] = parse_value(raw_value)
+
+            return result
+
+        def deep_dictupdate(d1, d2):
+            for (vkey, vvalue) in d2.items():
+                if ((vkey in d1) and (type(d1[vkey]) == dict)
+                    and (type(vvalue) == dict)):
+                    deep_dictupdate(d1[vkey], vvalue)
+                else:
+                    d1[vkey] = vvalue
+
+            return d1
+
+        # Function body
+        plotstyle_filenames = get_filenames(experiment_info)
+
+        if not plotstyle_filenames: return {}
+
+        plot_cfg = read_plotcfg(plotstyle_filenames[0])
+
+        for fname in plotstyle_filenames[1:]:
+            deep_dictupdate(plot_cfg, read_plotcfg(fname))
+
+        self._userstyles = plot_cfg
+
+        return plot_cfg
+
+    def _get_value(self, key):
+        if key in self._userstyles:
+            return self._userstyles[key]
+        else:
+            return None
+
+    def _mk_display_options(self):
+        opts = {'separate_figures': False, 'show_figures': True,
+                'save_figures': True}
+
+        user_opts = self._get_value('options')
+        if user_opts: opts.update(user_opts)
+
+        return opts
+
+    def get_display_options(self):
+        return self._display_options
+
+    def _mk_dplotstyles(self, dplot_id):
+        dplot_styles = {tag: None for tag in ['axes_labels', 'xscale', 'yscale',
+                                              'show_legend', 'legend_title',
+                                              'legend_bbox', 'legend_loc']}
+        user_styles = self._get_value('datasets')
+        if user_styles: dplot_styles.update(user_styles)
+
+         # try to set default value
+        if (dplot_styles['axes_labels'] is None) and (dplot_id in DG_AXES_LABELS):
+           dplot_styles['axes_labels'] = DG_AXES_LABELS[dplot_id]
+
+        if ((dplot_id in ['h', 'u']) and (dplot_styles['legend_bbox'] is None)
+            and (dplot_styles['legend_loc'] is None)):
+            dplot_styles['legend_bbox'] = (1.01, 1.)
+            dplot_styles['legend_loc'] = 2
+
+        if ((dplot_id == 'h') and (dplot_styles['show_legend'] is None)
+            and (not self.get_display_options()['separate_figures'])):
+            dplot_styles['show_legend'] = False
+
+        if dplot_styles['legend_loc'] is None:
+            dplot_styles['legend_loc'] = 4
+
+        return dplot_styles
+
+    def get_dplotstyles(self, dtype):
+        if not dtype in self._dplotstyles:
+            self._dplotstyles[dtype] = self._mk_dplotstyles(dtype)
+
+        return self._dplotstyles[dtype]
+
+    def _mk_linestyle(self, linetype, line_id, data_types):
+        if linetype == 'measured':
+            lineopt = 'x'
+        else:
+            lineopt = '.'
+
+        line_styles = {dtype: lineopt for dtype in data_types}
+
+        if 'h' in data_types: line_styles['h'] = '-'
+        if 'u' in data_types: line_styles['u'] = '-'
+
+        user_styles = self._get_value('lines')
+        if user_styles and (line_id in user_styles):
+            line_styles.update(user_styles[line_id])
+
+        return line_styles
+
+    def get_linestyle(self, line_type, line_id, data_types):
+        return self._mk_linestyle(line_type, line_id, data_types)
+
