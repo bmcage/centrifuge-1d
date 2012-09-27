@@ -1063,6 +1063,7 @@ class DPlots():
             nonlocal fignum
 
             disp_opts = self._plot_styles.get_display_options()
+
             separate_figures = disp_opts['separate_figures']
             save_figures     = disp_opts['save_figures']
 
@@ -1154,4 +1155,3 @@ class DPlots():
 
         plt.show(block=False)
         input('Press ENTER to continue...')
-
