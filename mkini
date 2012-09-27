@@ -238,9 +238,11 @@ def data2ini(data, output_dir):
                 for field in REQUIRED_FIELDS:
                     del exp_data[field]
 
+                experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no,
+                                    'tube_no': tube_no, 'mask': None}
+
                 (data_dir, masks_dir)  = \
-                  get_directories('ini', ['data', 'masks'],
-                                  exp_id, exp_no, tube_no)
+                  get_directories('ini', ['data', 'masks'], experiment_info)
 
                 for (name, dyndata_fn) in DYNAMIC_OPTIONS.items():
                     exp_data[name] = dyndata_fn(compr_exp_type, exp_data, modman)
@@ -256,7 +258,10 @@ def data2ini(data, output_dir):
 
         print("\tCreating default inifile for ID ", repr(exp_id),
               end = '')
-        exp_base_path = get_directories('ini', 'exp_base', exp_id, None, None)
+
+        experiment_info =  {'exp_id': exp_id, 'exp_no': None,
+                            'tube_no': None, 'mask': None}
+        exp_base_path = get_directories('ini', 'exp_base', experiment_info)
 
         if path.exists(exp_base_path + DEFAULTS_ININAME):
             print('\n\t\tFile exists.\t\t\t\tSkipping'

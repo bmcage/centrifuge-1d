@@ -63,7 +63,9 @@ def parse_input():
 
             if options.list:
                 print('\n'.join(sorted(listdir(
-                    get_directories('ini', 'base', '', '', '')))))
+                    get_directories('ini', 'base',
+                                    {key: '' for key in ['exp_id', 'exp_no',
+                                                         'tube_no']})))))
             if options.modules_list:
                 modman = ModulesManager()
                 modman.echo(options.verbose)
@@ -108,10 +110,9 @@ def process_global_constants(cfg, consts_cfg):
         if not cfg.get_value(name):
             cfg.set_value(name, value)
 
-def load_configuration(exp_id, exp_no, tube_no, mask=None):
+def load_configuration(experiment_info):
     (search_dirs, data_dir, masks_dir) = \
-      get_directories('ini', ['search', 'data', 'masks'],
-                      exp_id, exp_no, tube_no)
+      get_directories('ini', ['search', 'data', 'masks'], experiment_info)
 
     filter_existing = lambda fnames: list(filter(lambda fname: exists(fname),
                                                  fnames))
@@ -183,8 +184,10 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
                 print('\n', len(header) * '=', '\n', header,
                       '\n', len(header) * '=')
 
-            (cfg, consts_cfg) = load_configuration(exp_id, exp_no,
-                                                   tube_no, mask)
+            experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no,
+                                'tube_no': tube_no, 'mask': mask}
+
+            (cfg, consts_cfg) = load_configuration(experiment_info)
 
             if print_cfg_only:
                 header = ("Configuration file of experiment '{}' number {:d}, "
@@ -211,8 +214,7 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
 
             model = ModelParameters(cfg)
 
-            model.experiment_information = {'exp_id': exp_id, 'exp_no': exp_no,
-                                            'tube_no': tube_no, 'mask': mask}
+            model.experiment_information = experiment_info
 
             results = solver_module.run(model)
 
@@ -254,11 +256,13 @@ def compare2configs(options):
     tube_no2 = input('Tube No.       : ').strip()
     mask2    = input('Mask (optional): ').strip()
 
-    (cfg1, const_cfg1) = \
-      load_configuration(options.exp_id, options.first_experiment,
-                         options.tubes[0], options.mask)
-    (cfg2, const_cfg2) = \
-      load_configuration(exp_id2, int(exp_no2), tube_no2, mask2)
+    exp_info1 ={'exp_id': options.exp_id, 'exp_no': options.first_experiment,
+                'tube_no': options.tubes[0], 'mask': options.mask}
+    exp_info2 ={'exp_id': exp_id2, 'exp_no': int(exp_no2),
+                'tube_no': tube_no2, 'mask': mask2}
+
+    (cfg1, const_cfg1) = load_configuration(experiment_info1)
+    (cfg2, const_cfg2) = load_configuration(experiment_info2)
 
     all_parameters = sorted(set(cfg1.list_options() + cfg2.list_options()))
 

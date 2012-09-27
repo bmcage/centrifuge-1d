@@ -8,31 +8,30 @@ def yn_prompt(question_str):
         if answ in ['', 'y', 'yes']: return True
         if answ in ['n', 'no']: return False
 
-def get_directories(basedir_type, dirs, exp_id, exp_no, tube_no):
+def get_directories(basedir_type, dirs, experiment_info)
 
-    dir_struct = ['exp_base', 'exp_no', 'tube', 'masks']
-    dir_values = (exp_id, str(exp_no), 'tube' + str(tube_no), MASKS_DIRNAME)
+    dir_struct = ['exp_base', 'exp_no', 'tube', 'masks', 'mask']
+    dir_values = (experiment_info['exp_id'], str(experiment_info['exp_no']),
+                  'tube' + str(experiment_info['tube_no']), MASKS_DIRNAME,
+                  experiment_info['mask'])
 
     def get_dir(dir_type, base_dir):
         k = dir_struct.index(dir_type)
-        return base_dir + '/' + '/'.join(dir_values[:k+1]) + '/'
+        if dir_type = 'base':
+            return base_dir
+        else:
+            return base_dir + '/'.join(dir_values[:k+1]) + '/'
 
     def resolve_dirs(basedir, *dirs):
         results = []
         for dirtype in dirs:
-            if dirtype == 'base':
-                results.append(basedir + '/')
-            elif dirtype == 'exp_base':
-                results.append(get_dir('exp_base', basedir))
-            elif dirtype == 'exp_no':
-                results.append(get_dir('exp_no', basedir))
-            elif dirtype in ['data', 'tube']:
-                results.append(get_dir('tube', basedir))
-            elif dirtype == 'masks':
-                results.append(get_dir('masks', basedir))
-            elif dirtype == 'search':
+            if dirtype == 'search':
                 results.append(resolve_dirs(basedir, 'base', 'exp_base',
                                             'exp_no', 'tube'))
+            elif dirtype == 'data':
+                results.append(get_dir('tube', basedir))
+            elif dirtype in ['base', 'exp_base', 'exp_no', 'masks', 'mask']:
+                results.append(get_dir(dirtype, basedir))
             else:
                 raise ValueError('Unknown value for get_directories(): '
                                  '{}'.format(dirs))
@@ -41,9 +40,9 @@ def get_directories(basedir_type, dirs, exp_id, exp_no, tube_no):
     if not dirs: dirs = 'search'
 
     if basedir_type == 'ini':
-        basedir = INI_DIR
+        basedir = INI_DIR + '/'
     elif basedir_type == 'figs':
-        basedir = FIGS_DIR
+        basedir = FIGS_DIR + '/'
     else:
         raise ValueError('Unrecognized type of basedir_type: ', basedir_type)
 
