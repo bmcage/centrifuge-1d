@@ -71,7 +71,7 @@ def run(model):
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
         run_direct(model)
-        print('Cov:\n' cov)
+        print('Cov:\n', cov)
         print('Optimal parameters found:\n', inv_params)
         model.verbosity = model_verbosity # restore verbosity
 
