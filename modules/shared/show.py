@@ -938,6 +938,9 @@ class PlotStyles():
             dplot_styles['legend_bbox'] = (1.01, 1.)
             dplot_styles['legend_loc'] = 2
 
+        if (dplot_id in ['h', 'u']) and (dplot_styles['legend_title'] is None):
+            dplot_styles['legend_title'] = 'Time [min]'
+
         if ((dplot_id == 'h') and (dplot_styles['show_legend'] is None)
             and (not self.get_display_options()['separate_figures'])):
             dplot_styles['show_legend'] = False
@@ -972,4 +975,183 @@ class PlotStyles():
 
     def get_linestyle(self, line_type, line_id, data_types):
         return self._mk_linestyle(line_type, line_id, data_types)
+
+class DPlots():
+    def __init__(self, data, experiment_info):
+        self._display = data.has_data()
+        if not self._display:
+            print('No data is provided. Nothing to display.')
+            return
+
+        self._experiment_info = experiment_info
+
+        plot_styles = PlotStyles(experiment_info)
+        self._plot_styles = plot_styles
+
+        data_types = data.get_datatypes()
+        self._dplots_bucket = self._make(data_types, plot_styles)
+
+        for (line_type, line_id, line_data) in data.iterate():
+            self._add_plotline(line_type, line_id, line_data, data_types)
+
+    def _make(self, data_types, plot_styles):
+        dplots_bucket = {dtype: {'id': dtype, 'data': [],
+                                  'styles': plot_styles.get_dplotstyles(dtype)}
+                         for dtype in data_types}
+
+        return dplots_bucket
+
+    def _add_plotline(self, line_type, line_id, line_data, data_types):
+        bucket = self._dplots_bucket
+
+        line_styles = self._plot_styles.get_linestyle(line_type, line_id,
+                                                      data_types)
+        if 'label' in line_styles:
+            label = line_styles['label']
+        else:
+            label = line_id
+
+        for (data_type, data_value) in line_data.items():
+            if not data_value: continue
+
+            (xdata, ydata) = (data_value[0], data_value[1])
+
+            if not (has_data(xdata) and has_data(ydata)): continue
+
+            if ((data_type in ['h', 'u']) and (len(data_value) > 2)
+                and has_data(data_value[2]) and (not 'label' in line_styles)):
+                ilabel = ['% 6d' % ti for ti in data_value[2]]
+            else:
+                ilabel = label
+
+            item = (xdata, ydata, ilabel, line_styles[data_type])
+
+            bucket[data_type]['data'].append(item)
+
+    def display(self, fignum = 1):
+        if not self._display: return
+
+        def order_dplots(dplots_bucket):
+            ordered_dplots = []
+            single_dplots  = []
+
+            # first order pairs (and queue singles from pairs)
+            for (i1_id, i2_id) in DG_PAIRS:
+                i1p = (i1_id in dplots_bucket)
+                i2p = (i2_id in dplots_bucket)
+
+                if i1p and i2p:
+                    ordered_dplots.append(dplots_bucket[i1_id])
+                    ordered_dplots.append(dplots_bucket[i2_id])
+                elif i1p:
+                    single_dplots.append(dplots_bucket[i1_id])
+                elif i2p:
+                    single_dplots.append(dplots_bucket[i2_id])
+
+                if i1p: del dplots_bucket[i1_id]
+                if i2p: del dplots_bucket[i2_id]
+
+            # append singles
+            ordered_dplots.extend(single_dplots)
+            # append remaning singles that are not part of any pair
+            for remaining_dplots in dplots_bucket.values():
+                ordered_dplots.append(remaining_dplots)
+
+            return ordered_dplots
+
+        def show_dplots(ordered_dplots):
+            nonlocal fignum
+
+            disp_opts = self._plot_styles.get_display_options()
+            separate_figures = disp_opts['separate_figures']
+            save_figures     = disp_opts['save_figures']
+
+            if save_figures:
+                from shared import get_directories
+                experiment_info = self._experiment_info
+                if experiment_info['mask']:
+                    figs_dir_type = 'mask'
+                else:
+                    figs_dir_type = 'data'
+
+                save_dir = get_directories('figs', figs_dir_type,
+                                           experiment_info)
+
+                if not path.exists(save_dir):
+                    makedirs(save_dir)
+
+
+            if separate_figures:
+                images_per_figure = 1
+            else:
+                images_per_figure = 6
+
+            fignum -= 1
+            img_num = 2^20 # high initialization, so that first fig is created
+
+            for dplot in ordered_dplots:
+                if not dplot['data']: continue
+                dplot_id = dplot['id']
+
+                # resolve figure and subplot
+                if img_num > images_per_figure:
+                    img_num = 1
+                    fignum += 1
+
+                    if separate_figures:
+                        plt.figure(fignum)
+                    else:
+                        plt.figure(fignum, figsize=(16, 8.5))
+                        plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
+
+                if not separate_figures:
+                    plt.subplot(3,2,img_num)
+
+                # plot the supplied data
+                plot_labels = []
+                for dplot_data in dplot['data']:
+                    (xdata, ydata, data_label, plot_style) = dplot_data
+                    plt.plot(xdata, ydata, plot_style)
+                    if type(data_label) == str:
+                        plot_labels.append(data_label)
+                    else:
+                        plot_labels.extend(data_label)
+
+                dplot_styles = dplot['styles']
+                (xlabel, ylabel) = dplot_styles['axes_labels']
+                plt.xlabel(xlabel)
+                plt.ylabel(ylabel)
+                if dplot_styles['xscale']:
+                    plt.xscale(dplot_styles['xscale'])
+                if dplot_styles['yscale']:
+                    plt.yscale(dplot_styles['yscale'])
+
+                show_legend = dplot_styles['show_legend']
+                if show_legend is None:
+                    if (len(dplot['data']) > 1) or (np.ndim(ydata) > 1):
+                     show_legend = True
+                if show_legend:
+                    plt.legend(plot_labels, borderaxespad=0.0,
+                               prop={'family': 'monospace'},
+                               loc=dplot_styles['legend_loc'],
+                               title=dplot_styles['legend_title'],
+                               bbox_to_anchor=dplot_styles['legend_bbox'])
+
+                if save_figures and (img_num == images_per_figure):
+                    if separate_figures: img_suffix = dplot_id
+                    else: img_suffix = str(fignum)
+
+                    plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
+
+                img_num += 1
+
+            if save_figures and (img_num < images_per_figure):
+                plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
+
+        # function body
+        ord_dplots = order_dplots(self._dplots_bucket)
+        show_dplots(ord_dplots)
+
+        plt.show(block=False)
+        input('Press ENTER to continue...')
 
