@@ -6,68 +6,46 @@ from modules.shared.vangenuchten import h2u
 from modules.shared.show import make_dplot, add_dplotline, display_dplots
 
 def solve(model):
+
     def lsq_fn(xdata, *optim_args):
         print(optim_args)
 
-        optim_args_len = len(optim_args)
+        for (name, value) in zip(params_names, optim_args):
+            xdata[name] = value
 
-        if optim_args_len == 4:
-            h = xdata
-            (n, gamma, theta_s, theta_r) = optim_args
-        elif optim_args_len == 3:
-            (h, theta_s_p, theta_sr) = xdata
-            if theta_s_p:
-                theta_s = theta_sr
-                (n, gamma, theta_r) = optim_args
-            else:
-                theta_r = theta_sr
-                (n, gamma, theta_s) = optim_args
-        else:
-            (h, theta_s, theta_r) = xdata
-            (n, gamma) = optim_args
-
+        n = xdata['n']
         m = 1. - 1./n
 
-        u = h2u(h, n, m, gamma)
+        u = h2u(xdata['h'], n, m, xdata['gamma'])
 
+        (theta_s, theta_r) = (xdata['theta_s'], xdata['theta_r'])
         theta = theta_r + (theta_s - theta_r) * u
 
         return theta
 
-    inv_params_init = model.inv_init_params
-    inv_init_params_len = len(model.inv_init_params)
-
     # [p] = Pa = kg/m/s^2 = 10 * g/cm/s^2 -\
     # [h] = cm                            - \
     # => h [cm] =(10*p)/g/rho with [g]=cm/s^2, [rho]=g/cm^3
+    p = np.asarray(model.p, dtype=float)
+    h = -10.*p / model.rho /model.g
 
-    if type(model.p) == list:
-        h = np.asarray([-10.*p / model.rho / model.g for p in model.p])
-    else:
-        h = 10.*model.p / model.rho /model.g
+    xdata = {'h': h, 'theta_s': 0.0, 'theta_r': 0.0, 'gamma': 0.0, 'n': 0.0}
 
-    if inv_init_params_len == 4:
-        xdata = h
-    elif inv_init_params_len == 3:
-        theta_s_p = hasattr(model, 'theta_s')
-        if theta_s_p:
-            theta_s  = model.theta_s
-            theta_sr = theta_s
+    (params_names, inv_params_init) = ([], [])
+    for name in ('theta_s', 'theta_r', 'n', 'gamma'):
+        if name in model.inv_init_params:
+            params_names.append(name)
+            inv_params_init.append(model.inv_init_params[name])
+        elif hasattr(model, name):
+            xdata[name] = getattr(model, name)
         else:
-            theta_r  = model.theta_r
-            theta_sr = theta_r
-
-        xdata = (h, theta_s_p, theta_sr)
-    else:
-        theta_s = model.theta_s
-        theta_r = model.theta_r
-
-        xdata = (h, theta_s, theta_r)
+            print('Unknown parameter: ', name, '\nExiting.')
+            exit(1)
 
     data_measured = model.theta
 
-    inv_params, cov_inv = curve_fit(lsq_fn, xdata,
-                                    data_measured, p0 = inv_params_init)
+    (inv_params, cov_inv) = \
+      curve_fit(lsq_fn, xdata, data_measured, p0 = inv_params_init)
 
     theta_inv = lsq_fn(xdata, *inv_params)
     print('\ntheta_measured:', end='')
