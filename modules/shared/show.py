@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-from const import FIGS_DIR
+from const import FIGS_DIR, PLOTSTYLE_ININAME
 from os import makedirs, path
 from shared import get_directories
 
@@ -839,8 +839,6 @@ class ResultsData():
         for (data_type, lines) in self._data.items():
             for (line_id, line_data) in lines.items():
                 yield (data_type, line_id, line_data)
-
-PLOTSTYLE_ININAME = 'plotstyle.ini'
 
 class PlotStyles():
     def __init__(self, experiment_info):
