@@ -351,142 +351,18 @@ def extract_data(model):
                       'MO': (t, MO), 's1': (t, s1), 's2': (t, s2)}
     return (flag, extracted_data)
 
-def multiple_solves(c_model, referencing_models=[]):
-
-    def iterate_models():
-        nonlocal referencing_models
-
-        yield c_model
-
-        if referencing_models:
-            if not type(referencing_models) in [list, tuple]:
-                referencing_models = (referencing_models, )
-            for model in referencing_models:
-                yield model
-
-        ref_params = getattr(c_model, 'params_ref')
-
-        if ref_params:
-            if type(ref_params) == dict: # single reference
-                ref_params = [ref_params]
-
-            iterable_params =  c_model._iterable_parameters
-            for ref in ref_params:
-                iters = [val for val in ref.keys() if val in iterable_params]
-                if iters:
-                    print('Referencing model cannot set iterable '
-                          'parameters of original model:', iters)
-                    exit(1)
-
-                backup_params = c_model.get_parameters(ref.keys()) # backup
-                c_model.set_parameters(ref)
-
-                yield c_model
-
-                c_model.set_parameters(backup_params) # restore
-
-        yield None
-
-    collected_computations = []
-
-    for model in iterate_models():
-
-        if not  model: break
-
-        (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
-
-        if not flag:
-            print('For given model the solver did not find results. Skipping.')
-            continue
-
-        s1 = z[:, model.s1_idx]
-        s2 = z[:, model.s2_idx]
-        x = y2x(model.y, s1, s2).transpose()
-        h = z[:, model.first_idx:model.last_idx+1].transpose()
-        u = u.transpose()
-        MO = z[:, model.mass_out_idx]
-        MI = z[:, model.mass_in_idx]
-        collected_computations.append(((t, h, u, GC, RM, WM, MI, MO, s1, s2, x)))
-
-    data_annotation = ('t', 'h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO',
-                       's1', 's2', 'x')
-
-    return (collected_computations, data_annotation)
-
-def display_graphs(model, computations, annotation, options):
-    from collections import defaultdict
-
-    if not computations: return
-
-    dplots_names = ['h', 'u', 'GC', 'RM', 'WM', 'MI', 'MO', 's1', 's2']
-    dplots_bucket = {name: make_dplot(name, legend_loc=1, legend_title=None)
-                     for name in dplots_names}
-    for name in ['h', 'u']:
-        if (not model.separate_figures) and (name == 'h'):
-            dplots_bucket[name]['show_legend'] = False
-        dplots_bucket[name]['legend_title'] = 'Time [min]'
-        dplots_bucket[name]['legend_bbox'] = (1.02, 1.)
-        dplots_bucket[name]['legend_loc'] = 2
-
-    dplots_bucket['MO']['legend_loc'] = 4
-
-    line_label = 'computed'
-
-    for (idx, computed_data) in enumerate(computations):
-        measurement = dict(zip(annotation, computed_data))
-
-        t = [ti/60. for ti in measurement['t']] # sec -> min
-        t_legend = ['% 7d' % ti for ti in t]
-
-        if idx == 0:
-            # dirty hack, for now we take as 't' for measurements for models[0]
-            # of the first model
-            t_meas = t
-
-            # ok, h and u we display only from the first model
-            for m in ['h', 'u']:
-                add_dplotline(dplots_bucket[m], measurement['x'],
-                              measurement[m],
-                              label=t_legend, line_opts='-')
-
-        for m in dplots_names[2:]:
-            add_dplotline(dplots_bucket[m], t, measurement[m],
-                          label=line_label, line_opts='.')
-
-        if idx == 0:
-            # and the subsequent lines will be labeled as Reference (default)
-            line_label = None
-
-    # Now include also measurements
-    t1_meas = t_meas[1:]
-    add_dplotline(dplots_bucket['GC'], t1_meas, model.gc1,
-                  label='measured', line_opts='x')
-    add_dplotline(dplots_bucket['RM'], t1_meas, model.rm1,
-                  label='measured', line_opts='x')
-    add_dplotline(dplots_bucket['MI'], t1_meas, model.wl1,
-                  label='measured', line_opts='x')
-    if model.wl_out:
-        add_dplotline(dplots_bucket['MO'], t1_meas, np.cumsum(model.wl_out),
-                      label='measured', line_opts='x')
-
-    # put it together and display
-    dplots = list(dplots_bucket.values())
-    display_dplots(dplots, save_figures=options['save_figures'],
-                   separate_figures=options['separate_figures'],
-                   save_as_text=options['save_as_text'],
-                   show_figures=options['show_figures'],
-                   experiment_info=options['experiment_info'])
-
-
 def run(model):
     from modules.shared.functions import measurements_time
 
     t_meas = measurements_time(model)[1:]
-    measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, model.wl_out),
+    wl_out = np.cumsum(np.asarray(model.wl_out, dtype=float))
+    measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, wl_out),
                     'GC': (t_meas, model.gc1), 'RM': (t_meas, model.rm1)}
-    data = ResultsData(extract_data, model, measurements=measurements)
+    data = ResultsData(extract_data, model, model.params_ref,
+                       measurements=measurements)
     data.dump(model.experiment_info)
 
     if model.show_figures:
         dplots = DPlots(data, model.experiment_info)
+        dplots.show_status()
         dplots.display()

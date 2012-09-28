@@ -1,5 +1,5 @@
 from modules.direct_draining_saturated.run import solve as solve_direct, \
-     display_graphs, multiple_solves
+     run as run_direct
 from modules.shared.functions import measurements_time
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
@@ -60,46 +60,19 @@ def solve(model):
 
     return (inv_params, cov)
 
-def make_status_plots(results, annotation, model):
-    status_items = []
-    for (data_id, data_c) in zip(annotation, results):
-
-        if not data_id in ['MI', 'MO', 'GC', 'RM']: continue
-
-        if data_id == 'MI': model_id = 'wl1'
-        elif data_id == 'MO': model_id = 'wl_out'
-        else: model_id = data_id
-
-        data_m = getattr(model, model_id)
-
-        if not data_m: continue
-
-        if data_id == 'MO':
-            data_m = cumsum(data_m)
-
-        if data_m: status_items.append(mk_status_item(data_id, data_c, data_m))
-
-    return status_items
-
 def run(model):
     (inv_params, cov) = solve(model)
 
     # DISPLAY RESULTS:
     if inv_params:
+        model.set_parameters(inv_params)
         # run once again the direct problem with optimal parameters
         model.calc_wm = True
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
-        (results, annotation) = multiple_solves(model)
-
-        dg_options = {'save_figures': model.save_figures,
-                      'separate_figures': model.separate_figures,
-                      'save_as_text': model.save_as_text,
-                      'show_figures': model.show_figures,
-                      'experiment_info': model.experiment_information}
-        display_graphs(model, results, annotation, dg_options)
-        display_status(data_plots=make_status_plots(results, annotation, model),
-                       params=inv_params, cov=cov)
+        run_direct(model)
+        print('Cov:\n', cov)
+        print('Optimal parameters found:\n', inv_params)
         model.verbosity = model_verbosity # restore verbosity
 
     return inv_params

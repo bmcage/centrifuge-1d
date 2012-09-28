@@ -129,7 +129,8 @@ def solve(model):
         if n_ref and gamma_ref:
             theta_ref = compute_theta(p_calc, n_ref, 1-1/n_ref, gamma_ref,
                                       theta_s, theta_r, model.rho, model.g)
-            add_dplotline(dplot, theta_ref, p_calc, line_opts='-')
+            add_dplotline(dplot, theta_ref, p_calc, line_opts='-',
+                          label=model.label_ref)
 
         display_dplots(dplot, show_figures=True, separate_figures=True,)
 

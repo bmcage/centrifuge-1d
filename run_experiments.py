@@ -47,6 +47,10 @@ def parse_input():
                                'experiment and exit; if also parameter ''-t'' '
                                'is included, the config file for the tube is '
                                'included too.'))
+    optparser.add_option('-s', '--show', dest='show_p', default=False,
+                         action='store_true',
+                         help=("Show results if present. No computation is "
+                               "peformed."))
     optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
                          metavar='TUBES_NUMBERS',
                          help=("Run experiment only on selected tubes, default "
@@ -298,7 +302,19 @@ def compare2configs(options):
 if __name__ == "__main__":
     options = parse_input()
 
-    if options.compare_p:
+    if options.show_p:
+        from modules.shared.show import ResultsData, DPlots
+
+        experiment_info =  \
+          {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
+           'tube_no': options.tubes[0], 'mask': options.mask}
+        data = ResultsData()
+        if data.load(experiment_info):
+            dplots = DPlots(data, experiment_info)
+            dplots.show_status()
+            dplots.display()
+
+    elif options.compare_p:
         compare2configs(options)
     else:
         print_cfg_only = options.print_config_p

@@ -1,10 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-from const import FIGS_DIR
+from const import FIGS_DIR, PLOTSTYLE_ININAME
 from os import makedirs, path
 from shared import get_directories
-
 
 def display_table(t_measured=None, t_computed=None,
                   wl_out1_measured=None, wl_out1_computed=None,
@@ -722,6 +721,7 @@ def disp_status(data_plots=None, params=None, cov=None):
                 norm_measured[norm_measured == 0.0] = 1.0e-10
                 rel_error = ((value_computed - value_measured)
                              / norm_measured * 100.)
+
                 abs_error = np.abs(value_computed - value_measured)
 
             compare_data(plot_id, value_computed, value_measured,
@@ -747,7 +747,10 @@ def disp_status(data_plots=None, params=None, cov=None):
 # ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'], xdata is the x-axis coordinate and
 # ydata is the y-axis coordinate (computed value)
 class ResultsData():
-    def __init__(self, extract_data_fn, model, referencing_parameters=[],
+    def __init__(self):
+        self._data = None
+
+    def extract(self, extract_data_fn, model, referencing_parameters=[],
                  measurements=None):
         # add computed data
         (flag, value) = extract_data_fn(model)
@@ -796,7 +799,7 @@ class ResultsData():
 
         # add measured data
         if measurements:
-            data['measured'] = {'measurements': measurements}
+            data['measured'] = {'measured': measurements}
 
         self._data = data
     def has_data(self):
@@ -813,26 +816,36 @@ class ResultsData():
 
         with open(savedir + 'data_results.dat', 'wb') as f:
             pickle.dump(self._data, f, pickle.HIGHEST_PROTOCOL)
+
     def load(self, experiment_info):
         pathdir = get_directories('figs', 'mask', experiment_info)
         filename = pathdir + 'data_results.dat'
         if not path.exists(filename):
             print('File with computation results does not exist:', filename)
-            exit(1)
+            return False
 
         with open(filename, 'rb') as f:
-            pickle.load(self._data, f)
+            self._data = pickle.load(f)
+
+        return True
+
     def get_datatypes(self):
          # line_type 'computed' with ID 'computed' has to be present
         return self._data['computed']['computed'].keys()
     def get_linetypes(self):
         return self._data.keys()
+
+    def get_linedata(self, line_type, line_id):
+        data = self._data
+        if (line_type in data) and (line_id in data[line_type]):
+            return data[line_type][line_id]
+        else:
+            return None
+
     def iterate(self):
         for (data_type, lines) in self._data.items():
             for (line_id, line_data) in lines.items():
                 yield (data_type, line_id, line_data)
-
-PLOTSTYLE_ININAME = 'plotstyle.ini'
 
 class PlotStyles():
     def __init__(self, experiment_info):
@@ -980,6 +993,7 @@ class PlotStyles():
 
 class DPlots():
     def __init__(self, data, experiment_info):
+        self._data = data
         self._display = data.has_data()
         if not self._display:
             print('No data is provided. Nothing to display.')
@@ -1016,6 +1030,10 @@ class DPlots():
         for (data_type, data_value) in line_data.items():
             if not data_value: continue
 
+            # we skip other 'h' and 'u' data, as it would be mess
+            if (data_type in ['h', 'u']) and (not label == 'computed'):
+                continue
+
             (xdata, ydata) = (data_value[0], data_value[1])
 
             if not (has_data(xdata) and has_data(ydata)): continue
@@ -1029,6 +1047,26 @@ class DPlots():
             item = (xdata, ydata, ilabel, line_styles[data_type])
 
             bucket[data_type]['data'].append(item)
+
+    def show_status(self):
+        data = self._data
+        status_items = []
+
+        measurements = data.get_linedata('measured', 'measured')
+        computed     = data.get_linedata('computed', 'computed')
+
+        for (key, m_value) in measurements.items():
+            if m_value[1] is None: continue
+
+            if key in computed:
+                c_value = computed[key][1]
+
+            if c_value is not None:
+                status_items.append(mk_status_item(key, c_value[:-1],
+                                                   m_value[1]))
+
+        if status_items:
+            disp_status(status_items)
 
     def display(self, fignum = 1):
         if not self._display: return
