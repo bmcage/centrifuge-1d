@@ -721,7 +721,7 @@ def disp_status(data_plots=None, params=None, cov=None):
                 norm_measured[norm_measured == 0.0] = 1.0e-10
                 rel_error = ((value_computed - value_measured)
                              / norm_measured * 100.)
-                print('M', value_measured, '\nC', value_computed)
+
                 abs_error = np.abs(value_computed - value_measured)
 
             compare_data(plot_id, value_computed, value_measured,
@@ -1049,7 +1049,7 @@ class DPlots():
 
         measurements = data.get_linedata('measured', 'measured')
         computed     = data.get_linedata('computed', 'computed')
-        print('HHH', measurements, computed)
+
         for (key, m_value) in measurements.items():
             if m_value[1] is None: continue
 
