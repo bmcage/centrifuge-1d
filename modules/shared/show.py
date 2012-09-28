@@ -747,7 +747,10 @@ def disp_status(data_plots=None, params=None, cov=None):
 # ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'], xdata is the x-axis coordinate and
 # ydata is the y-axis coordinate (computed value)
 class ResultsData():
-    def __init__(self, extract_data_fn, model, referencing_parameters=[],
+    def __init__(self):
+        self._data = None
+
+    def extract(self, extract_data_fn, model, referencing_parameters=[],
                  measurements=None):
         # add computed data
         (flag, value) = extract_data_fn(model)
@@ -813,6 +816,7 @@ class ResultsData():
 
         with open(savedir + 'data_results.dat', 'wb') as f:
             pickle.dump(self._data, f, pickle.HIGHEST_PROTOCOL)
+
     def load(self, experiment_info):
         pathdir = get_directories('figs', 'mask', experiment_info)
         filename = pathdir + 'data_results.dat'
