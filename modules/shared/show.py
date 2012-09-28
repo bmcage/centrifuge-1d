@@ -822,10 +822,13 @@ class ResultsData():
         filename = pathdir + 'data_results.dat'
         if not path.exists(filename):
             print('File with computation results does not exist:', filename)
-            exit(1)
+            return False
 
         with open(filename, 'rb') as f:
-            pickle.load(self._data, f)
+            self._data = pickle.load(f)
+
+        return True
+
     def get_datatypes(self):
          # line_type 'computed' with ID 'computed' has to be present
         return self._data['computed']['computed'].keys()
