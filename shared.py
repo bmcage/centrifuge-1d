@@ -18,10 +18,12 @@ def get_directories(basedir_type, dirs, experiment_info):
     def get_dir(dir_type, base_dir):
         if dir_type == 'base':
             return base_dir
-        else:
+        elif dir_type in dir_struct:
             k = dir_struct.index(dir_type)
             return base_dir + '/'.join(dir_values[:k+1]) + '/'
-
+        else:
+            raise ValueError('Unknown value for get_directories(): '
+                                 '{}'.format(dir_type))
     def resolve_dirs(basedir, *dirs):
         results = []
         for dirtype in dirs:
@@ -30,12 +32,9 @@ def get_directories(basedir_type, dirs, experiment_info):
                                             'exp_no', 'tube'))
             elif dirtype == 'data':
                 results.append(get_dir('tube', basedir))
-            elif dirtype in ['base', 'exp_base', 'exp_no', 'tube',
-                             'masks', 'mask']:
-                results.append(get_dir(dirtype, basedir))
             else:
-                raise ValueError('Unknown value for get_directories(): '
-                                 '{}'.format(dirs))
+                results.append(get_dir(dirtype, basedir))
+
         return results
 
     if not dirs: dirs = 'search'
