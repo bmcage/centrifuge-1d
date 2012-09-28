@@ -5,7 +5,6 @@ from const import FIGS_DIR
 from os import makedirs, path
 from shared import get_directories
 
-
 def display_table(t_measured=None, t_computed=None,
                   wl_out1_measured=None, wl_out1_computed=None,
                   gc1_measured=None, gc1_computed=None,
