@@ -1025,6 +1025,10 @@ class DPlots():
         for (data_type, data_value) in line_data.items():
             if not data_value: continue
 
+            # we skip other 'h' and 'u' data, as it would be mess
+            if (data_type in ['h', 'u']) and (not label == 'computed'):
+                continue
+
             (xdata, ydata) = (data_value[0], data_value[1])
 
             if not (has_data(xdata) and has_data(ydata)): continue
