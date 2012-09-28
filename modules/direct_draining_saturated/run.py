@@ -355,7 +355,8 @@ def run(model):
     from modules.shared.functions import measurements_time
 
     t_meas = measurements_time(model)[1:]
-    measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, model.wl_out),
+    wl_out = np.cumsum(np.asarray(model.wl_out, dtype=float))
+    measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, wl_out),
                     'GC': (t_meas, model.gc1), 'RM': (t_meas, model.rm1)}
     data = ResultsData(extract_data, model, measurements=measurements)
     data.dump(model.experiment_info)
