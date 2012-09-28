@@ -358,7 +358,8 @@ def run(model):
     wl_out = np.cumsum(np.asarray(model.wl_out, dtype=float))
     measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, wl_out),
                     'GC': (t_meas, model.gc1), 'RM': (t_meas, model.rm1)}
-    data = ResultsData(extract_data, model, measurements=measurements)
+    data = ResultsData(extract_data, model, model.params_ref,
+                       measurements=measurements)
     data.dump(model.experiment_info)
 
     if model.show_figures:
