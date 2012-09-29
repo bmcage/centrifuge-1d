@@ -954,7 +954,7 @@ class PlotStyles():
            dplot_styles['axes_labels'] = DG_AXES_LABELS[dplot_id]
 
         if dplot_id in ['h', 'u']:
-            if (dplot_styles['legend_bbox'] is None)
+            if ((dplot_styles['legend_bbox'] is None)
                 and (dplot_styles['legend_loc'] is None)):
                 dplot_styles['legend_bbox'] = (1.01, 1.)
                 dplot_styles['legend_loc'] = 2
