@@ -118,7 +118,7 @@ DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
                   's1': (dg_label_time, "Interface s1 [cm]"),
                   's2': (dg_label_time, "Interface s2 [cm]"),
                   'WM': (dg_label_time, "Water mass [cm]"),
-                  'RC': ("Water content $\\theta$", "Pressure $p$ [Pa]")}
+                  'theta': ("Water content $\\theta$", "Pressure $p$ [Pa]")}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 
 def add_dplotline(dplot, xdata, ydata, label=None, line_opts='.'):
@@ -934,7 +934,6 @@ class PlotStyles():
     def _mk_display_options(self):
         opts = {'separate_figures': False, 'show_figures': True,
                 'save_figures': True}
-
         user_opts = self._get_value('options')
         if user_opts: opts.update(user_opts)
 
@@ -966,6 +965,9 @@ class PlotStyles():
             and (not self.get_display_options()['separate_figures'])):
             dplot_styles['show_legend'] = False
 
+        if ((dplot_id == 'theta') and (dplot_styles['yscale'] is None)):
+            dplot_styles['yscale'] = 'log'
+
         if dplot_styles['legend_loc'] is None:
             dplot_styles['legend_loc'] = 4
 
@@ -987,6 +989,8 @@ class PlotStyles():
 
         if 'h' in data_types: line_styles['h'] = '-'
         if 'u' in data_types: line_styles['u'] = '-'
+        if ('theta' in data_types) and (not linetype == 'measured'):
+             line_styles['theta'] = '-'
 
         user_styles = self._get_value('lines')
         if user_styles and (line_id in user_styles):
