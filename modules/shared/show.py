@@ -965,8 +965,11 @@ class PlotStyles():
             and (not self.get_display_options()['separate_figures'])):
             dplot_styles['show_legend'] = False
 
-        if ((dplot_id == 'theta') and (dplot_styles['yscale'] is None)):
-            dplot_styles['yscale'] = 'log'
+        if dplot_id == 'theta':
+            if dplot_styles['yscale'] is None:
+                dplot_styles['yscale'] = 'log'
+            if dplot_styles['legend_loc'] is None:
+                dplot_styles['legend_loc'] = 1
 
         if dplot_styles['legend_loc'] is None:
             dplot_styles['legend_loc'] = 4
