@@ -4,6 +4,12 @@ import pickle
 from const import FIGS_DIR, PLOTSTYLE_ININAME
 from os import makedirs, path
 from shared import get_directories
+from config import parse_value
+try:
+    import ConfigParser as configparser
+except:
+    import configparser
+
 
 def display_table(t_measured=None, t_computed=None,
                   wl_out1_measured=None, wl_out1_computed=None,
