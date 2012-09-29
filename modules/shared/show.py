@@ -953,13 +953,13 @@ class PlotStyles():
         if (dplot_styles['axes_labels'] is None) and (dplot_id in DG_AXES_LABELS):
            dplot_styles['axes_labels'] = DG_AXES_LABELS[dplot_id]
 
-        if ((dplot_id in ['h', 'u']) and (dplot_styles['legend_bbox'] is None)
-            and (dplot_styles['legend_loc'] is None)):
-            dplot_styles['legend_bbox'] = (1.01, 1.)
-            dplot_styles['legend_loc'] = 2
-
-        if (dplot_id in ['h', 'u']) and (dplot_styles['legend_title'] is None):
-            dplot_styles['legend_title'] = 'Time [min]'
+        if dplot_id in ['h', 'u']:
+            if (dplot_styles['legend_bbox'] is None)
+                and (dplot_styles['legend_loc'] is None)):
+                dplot_styles['legend_bbox'] = (1.01, 1.)
+                dplot_styles['legend_loc'] = 2
+            if dplot_styles['legend_title'] is None:
+                dplot_styles['legend_title'] = 'Time [min]'
 
         if ((dplot_id == 'h') and (dplot_styles['show_legend'] is None)
             and (not self.get_display_options()['separate_figures'])):
