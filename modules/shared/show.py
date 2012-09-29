@@ -869,18 +869,18 @@ class PlotStyles():
             prefix_with_paths = \
               lambda fname, dirs: map(lambda cfgdir: cfgdir + fname, dirs)
 
-            plotstyle_files = \
+            plotstyles_files = \
               filter_existing(prefix_with_paths(PLOTSTYLE_ININAME, search_dirs))
 
-            return plotstyle_files
+            return plotstyles_files
 
-        def read_plotstyle_cfg(filename):
+        def read_plotstyles_cfg(filename):
             result = {}
 
             # read config files
             parser   = configparser.ConfigParser()
             try:
-                read_files = parser.read(fname)
+                read_files = parser.read(filename)
             except configparser.DuplicateOptionError as E:
                 print(E)
                 exit(0)
@@ -906,13 +906,13 @@ class PlotStyles():
             return d1
 
         # Function body
-        plotstyle_filenames = get_filenames(experiment_info)
+        plotstyles_filenames = get_filenames(experiment_info)
 
-        if not plotstyle_filenames: return {}
+        if not plotstyles_filenames: return {}
 
-        plot_cfg = read_plotcfg(plotstyle_filenames[0])
+        plot_cfg = read_plotstyles_cfg(plotstyles_filenames[0])
 
-        for fname in plotstyle_filenames[1:]:
+        for fname in plotstyles_filenames[1:]:
             deep_dictupdate(plot_cfg, read_plotcfg(fname))
 
         self._userstyles = plot_cfg
