@@ -72,7 +72,7 @@ def run(model):
         # run once again the direct problem with optimal parameters
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
-        measurements = {'theta': model.theta}
+        measurements = {'theta': (model.theta, model.p)}
 
         data = ResultsData()
         data.extract(extract_data, model, model.params_ref,
