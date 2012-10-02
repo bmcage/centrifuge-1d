@@ -663,8 +663,7 @@ class DPlots():
                 plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
 
         # function body
-        ord_dplots = order_dplots(self._dplots_bucket)
-        show_dplots(ord_dplots)
+        show_dplots(order_dplots(self._dplots_bucket))
 
         plt.show(block=False)
         input('Press ENTER to continue...')
