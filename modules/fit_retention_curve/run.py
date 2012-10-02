@@ -49,7 +49,7 @@ def solve(model):
 
     return (optim_params, cov)
 
-P_DISP = None
+P_DISP = np.arange(0, 10000000, 100)
 
 def extract_data(model):
     global P_DISP
@@ -65,13 +65,11 @@ def extract_data(model):
     return (True, extracted_data)
 
 def run(model):
-    global P_DISP
     (inv_params, cov) = solve(model)
 
     # DISPLAY RESULTS:
     if inv_params:
         model.set_parameters(inv_params)
-        P_DISP = np.arange(0, 10000000, 100)
         # run once again the direct problem with optimal parameters
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
