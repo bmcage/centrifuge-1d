@@ -293,7 +293,7 @@ class ResultsData():
 
         return True
 
-    def get_datatypes(self):
+    def get_linedatatypes(self):
          # line_type 'computed' with ID 'computed' has to be present
         return self._data['lines']['computed']['computed'].keys()
     def get_linetypes(self):
@@ -478,7 +478,7 @@ class DPlots():
         plot_styles = PlotStyles(experiment_info)
         self._plot_styles = plot_styles
 
-        data_types = data.get_datatypes()
+        data_types = data.get_linedatatypes()
         self._dplots_bucket = self._make(data_types, plot_styles)
 
         for (line_type, line_id, line_data) in data.iterate_lines():
