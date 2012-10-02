@@ -549,13 +549,11 @@ class DPlots():
 
             return (ordered_dplots, plot_styles)
 
-        def _show_dplots(ordered_dplots, plot_styles, experiment_info):
+        def _show_dplots(ordered_dplots, display_options, experiment_info):
             nonlocal fignum
 
-            disp_opts = plot_styles.get_display_options()
-
-            separate_figures = disp_opts['separate_figures']
-            save_figures     = disp_opts['save_figures']
+            separate_figures = display_options['separate_figures']
+            save_figures     = display_options['save_figures']
 
             if save_figures:
                 experiment_info = experiment_info
@@ -681,7 +679,8 @@ class DPlots():
                     else:
                         print('  {:9}: {: .8g}'.format(name, value))
 
-            _show_dplots(self._dplots, self._plotstyles, self._experiment_info)
+            _show_dplots(self._dplots, self._plotstyles.get_display_options(),
+                         self._experiment_info)
             plt.show(block=False)
 
 
