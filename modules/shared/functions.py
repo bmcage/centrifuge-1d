@@ -9,6 +9,9 @@ def rpm2radps(x):
     return x * np.pi/ 30.0
 
 def measurements_time(model):
+    if not hasattr(model, 'duration'):
+        return None
+
     t_duration = model.get_iterable_value('duration')
     if not t_duration:
         t_duration = model.duration
