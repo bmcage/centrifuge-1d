@@ -265,6 +265,10 @@ class ResultsData():
     def has_data(self, data_type='lines'):
         return not self._data[data_type] is None
 
+    def get_value(self, data_name):
+        if data_name in ['cov', 'inv_params']:
+            return self._data[data_name]
+
     def dump(self, experiment_info):
         if not self.has_data():
             print('No data is provided. Skipping data dumping.')
