@@ -1,16 +1,8 @@
 PARENTAL_MODULES = []
 
-def non_optimized_parameters(cfg):
-    init_params = cfg.get_value('inv_init_params')
-    result = []
-    for name in ['theta_s', 'theta_r', 'n', 'gamma']:
-        if not name in init_params: result.append(name)
-
-    return result
-
 CONFIG_OPTIONS = ['exp_type', 'g', 'p', 'theta', 'inv_init_params',
                   ('rho', 1.0), 'show_figures',
-                  non_optimized_parameters,
+                  'theta_s', 'theta_r', 'n', 'gamma',
                   ('sample_id', None), ('wl_out1', None),
                   ('measurements_filter', None),
                   ('params_ref', None),
@@ -26,6 +18,8 @@ CONFIG_OPTIONS = ['exp_type', 'g', 'p', 'theta', 'inv_init_params',
 OPTIONS_ITERABLE_LISTS = []
 
 EXCLUDE_FROM_MODEL = ['measurements_length', 'measurements_filter']
+
+PROVIDE_OPTIONS = [lambda cfg: cfg.get_value('inv_init_params').keys()]
 
 INTERNAL_OPTIONS = ['h', 'separate_figures']
 
