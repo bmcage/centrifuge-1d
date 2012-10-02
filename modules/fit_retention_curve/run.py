@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
 from modules.shared.vangenuchten import h2u
-from modules.shared.show import ResultsData, DPlots
+from modules.shared.functions import show_results
 
 def solve(model):
     theta_measured = np.asarray(model.theta, dtype=float)
@@ -49,43 +49,32 @@ def solve(model):
 
     return (optim_params, cov)
 
-P_DISP = None
+P_DISP = np.arange(0, 10000000, 100)
 
 def extract_data(model):
     global P_DISP
-    theta = model.theta_r + ((model.theta_s - model.theta_r)
-                             * h2u(-10.*P_DISP/model.rho/model.g,
-                                   model.n, 1.-1./model.n, model.gamma))
+    (n, gamma, theta_s, theta_r) = (model.n, model.gamma,
+                                    model.theta_s, model.theta_r)
+    theta = theta_r + ((theta_s - theta_r)
+                       * h2u(-10.*P_DISP/model.rho/model.g, n, 1.-1./n, gamma))
+    theta_in_measured_points = theta_r + ((theta_s - theta_r)
+                                          * h2u(model.h, n, 1.-1./n, gamma))
 
-    extracted_data = {'theta': (theta, P_DISP)}
+    extracted_data = {'theta': (theta, P_DISP, theta_in_measured_points)}
 
     return (True, extracted_data)
 
 def run(model):
-    global P_DISP
     (inv_params, cov) = solve(model)
 
     # DISPLAY RESULTS:
     if inv_params:
         model.set_parameters(inv_params)
-        P_DISP = np.arange(0, 10000000, 100)
-        # run once again the direct problem with optimal parameters
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
-        measurements = {'theta': (model.theta, model.p)}
 
-        data = ResultsData()
-        data.extract(extract_data, model, model.params_ref,
-                     measurements=measurements)
-        data.dump(model.experiment_info)
+        show_results(extract_data, model, inv_params=inv_params, cov=cov)
 
-        if model.show_figures:
-            dplots = DPlots(data, model.experiment_info)
-            #dplots.show_status()
-            dplots.display()
-
-        print('Cov:\n', cov)
-        print('Optimal parameters found:\n', inv_params)
         model.verbosity = model_verbosity # restore verbosity
 
     return inv_params

@@ -6,7 +6,7 @@ from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.direct_draining_saturated.characteristics import \
      water_mass, calc_gc, calc_rm
 from modules.shared.solver import simulate_direct
-from modules.shared.show import ResultsData, DPlots
+from modules.shared.functions import show_results
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
@@ -352,21 +352,4 @@ def extract_data(model):
     return (flag, extracted_data)
 
 def run(model):
-    from modules.shared.functions import measurements_time
-
-    t_meas = measurements_time(model)[1:]
-    if model.wl_out:
-        wl_out = np.cumsum(np.asarray(model.wl_out, dtype=float))
-    else:
-        wl_out = None
-    measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, wl_out),
-                    'GC': (t_meas, model.gc1), 'RM': (t_meas, model.rm1)}
-    data = ResultsData()
-    data.extract(extract_data, model, model.params_ref,
-                 measurements=measurements)
-    data.dump(model.experiment_info)
-
-    if model.show_figures:
-        dplots = DPlots(data, model.experiment_info)
-        dplots.show_status()
-        dplots.display()
+    show_results(extract_data, model)

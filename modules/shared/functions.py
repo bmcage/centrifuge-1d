@@ -9,6 +9,9 @@ def rpm2radps(x):
     return x * np.pi/ 30.0
 
 def measurements_time(model):
+    if not hasattr(model, 'duration'):
+        return None
+
     t_duration = model.get_iterable_value('duration')
     if not t_duration:
         t_duration = model.duration
@@ -121,3 +124,32 @@ def y2x(y, s1, s2):
         x[i, :] = s1[i] + y * ds[i]
 
     return x
+
+def show_results(extract_data, model, inv_params=None, cov=None):
+    from modules.shared.functions import measurements_time
+    from modules.shared.show import ResultsData, DPlots
+
+    measurements = {}
+    t_meas = measurements_time(model)
+    if not t_meas is None:
+        t_meas = t_meas[1:]
+        if model.wl_out:
+            wl_out = np.cumsum(np.asarray(model.wl_out, dtype=float))
+        else:
+            wl_out = None
+        measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, wl_out),
+                        'GC': (t_meas, model.gc1), 'RM': (t_meas, model.rm1)}
+    if hasattr(model, 'p'):
+        measurements['theta'] = (model.theta, model.p)
+
+    data = ResultsData()
+    data.extract(extract_data, model, model.params_ref,
+                 measurements=measurements)
+    data.add_value(inv_params=inv_params, cov=cov)
+
+    if model.save_data:
+        data.dump(model.experiment_info)
+
+    if model.show_figures:
+        dplots = DPlots(data, model.experiment_info)
+        dplots.display()
