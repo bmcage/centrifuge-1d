@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
 from modules.shared.vangenuchten import h2u
-from modules.shared.show import ResultsData, DPlots
+from modules.shared.functions import show_results
 
 def solve(model):
     theta_measured = np.asarray(model.theta, dtype=float)
@@ -72,20 +72,9 @@ def run(model):
         # run once again the direct problem with optimal parameters
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
-        measurements = {'theta': (model.theta, model.p)}
 
-        data = ResultsData()
-        data.extract(extract_data, model, model.params_ref,
-                     measurements=measurements)
-        data.dump(model.experiment_info)
+        show_results(extract_data, model, inv_params=inv_params, cov=cov)
 
-        if model.show_figures:
-            dplots = DPlots(data, model.experiment_info)
-            #dplots.show_status()
-            dplots.display()
-
-        print('Cov:\n', cov)
-        print('Optimal parameters found:\n', inv_params)
         model.verbosity = model_verbosity # restore verbosity
 
     return inv_params
