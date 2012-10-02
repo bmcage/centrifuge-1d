@@ -545,7 +545,7 @@ class DPlots():
                 _add_plotline(line_type, line_id, line_data, data_types,
                               plot_styles, dplots_bucket)
 
-            ordered_dplots = _order_dplots(self._dplots_bucket)
+            ordered_dplots = _order_dplots(dplots_bucket)
 
             return (ordered_dplots, plot_styles)
 
