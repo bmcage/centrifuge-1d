@@ -477,8 +477,8 @@ class DPlots():
 
             return dplots_bucket
 
-        def _mk_plotline(line_type, line_id, line_data, data_types,
-                         plot_styles):
+        def _add_plotline(line_type, line_id, line_data, data_types,
+                          plot_styles, dplots_bucket):
 
             line_styles = plot_styles.get_linestyle(line_type, line_id,
                                                         data_types)
@@ -506,7 +506,7 @@ class DPlots():
 
                 item = (xdata, ydata, ilabel, line_styles[data_type])
 
-                return item
+                dplots_bucket[data_type]['data'].append(item)
 
         def _order_dplots(dplots_bucket):
             ordered_dplots = []
@@ -542,9 +542,8 @@ class DPlots():
             dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
 
             for (line_type, line_id, line_data) in data.iterate_lines():
-                item = _mk_plotline(line_type, line_id, line_data, data_types,
-                                    plot_styles)
-                dplots_bucket[data_type]['data'].append(item)
+                _add_plotline(line_type, line_id, line_data, data_types,
+                              plot_styles, dplots_bucket)
 
             ordered_dplots = _order_dplots(self._dplots_bucket)
 
