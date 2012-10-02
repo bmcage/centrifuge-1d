@@ -23,7 +23,7 @@ CONFIG_OPTIONS = ['exp_type',
                   # output
                   ('show_figures', True),
                   ('save_figures', False), ('separate_figures', False),
-                  ('save_as_text', False),
+                  ('save_data', True),
                   ('verbosity', 1),
                   # solver options
                   ('always_restart_solver', False),
