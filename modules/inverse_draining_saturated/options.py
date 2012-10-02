@@ -25,16 +25,14 @@ CONFIG_OPTIONS = ['inv_init_params',
                   ('gc1_weights', None), ('rm1_weights', None)
                  ]
 
-INTERNAL_OPTIONS = ['calc_wl_out', 'calc_wl_in']
+INTERNAL_OPTIONS = []
 
 #EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
 
 PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys()),
-                   'calc_gc', 'calc_rm', 'calc_wm',
                    (lambda cfg: cfg.get_value('dynamic_h_init'), ['h_init'])]
 
-NONITERABLE_LIST_OPTIONS = ['inv_init_params', 'inv_ubounds', 'inv_lbounds',
-                            'raster_grid_size']
+OPTIONS_ITERABLE_LISTS = []
 
 def check_cfg(cfg):
     if ((cfg.get_value('wl_out') is None) and (cfg.get_value('gc1') is None)
@@ -69,10 +67,4 @@ def prior_adjust_cfg(cfg):
     cfg.set_value('n', 1.0)
 
 def adjust_cfg(cfg):
-    from numpy import inf, asarray, power, trunc, log10
-
-    cfg.set_value('calc_gc', bool(cfg.get_value('gc1')))
-    cfg.set_value('calc_rm', bool(cfg.get_value('rm1')))
-    cfg.set_value('calc_wm', False)
-    cfg.set_value('calc_wl_in', bool(cfg.get_value('wl1')))
-    cfg.set_value('calc_wl_out', bool(cfg.get_value('wl_out')))
+    pass

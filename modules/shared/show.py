@@ -1,22 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from const import FIGS_DIR
+import pickle
+from const import FIGS_DIR, PLOTSTYLE_ININAME
 from os import makedirs, path
+from shared import get_directories
+from config import parse_value
+try:
+    import ConfigParser as configparser
+except:
+    import configparser
 
-def y2x(y, s1, s2):
-    s1_len = np.alen(s1)
-    if s1_len != np.alen(s2):
-        print('Interfaces array ''s1'' and ''s2'' have to be of the same'
-              'lenght. Cannot proceed.')
-        exit(1)
-    x = np.empty([s1_len, len(y)], float)
-
-    ds = s2 - s1
-
-    for i in range(s1_len):
-        x[i, :] = s1[i] + y * ds[i]
-
-    return x
 
 def display_table(t_measured=None, t_computed=None,
                   wl_out1_measured=None, wl_out1_computed=None,
@@ -114,246 +107,32 @@ def has_data(x):
     else:
         return bool(x)
 
-def draw_graphs(times, t_ref = None, y = None, h = None, u = None,
-                s1 = None, s1_ref=None, s2 = None, s2_ref=None,
-                mass_out = None, mass_out_ref = None,
-                mass_in = None, mass_in_ref = None,
-                GC = None, GC_ref = None,
-                RM = None,  RM_ref = None, WM = None, WM_ref = None,
-                fignum = 1, save_figures=False, separate_figures=False,
-                save_as_text=False, draw_equilibrium=False,
-                show_figures=False,
-                model=None):
+dg_label_time = "Time [min]"
+dg_label_length = "Sample length $L$ [cm]"
+DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
+                  'u': (dg_label_length, "Relative saturation $u$"),
+                  'MO': (dg_label_time, "Expelled water [cm]"),
+                  'MI': (dg_label_time, "Inflow water [cm]"),
+                  'GC': (dg_label_time, "Gravitational center [cm]"),
+                  'RM': (dg_label_time, "Rotational momentum [kg.m.s$^{-1}$]"),
+                  's1': (dg_label_time, "Interface s1 [cm]"),
+                  's2': (dg_label_time, "Interface s2 [cm]"),
+                  'WM': (dg_label_time, "Water mass [cm]"),
+                  'theta': ("Water content $\\theta$", "Pressure $p$ [Pa]")}
+DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 
-    def add_legend(lines, legend_data=None, legend_title=None, legend_loc=1,
-                   legend_type='figlegend'):
-        if legend_type == 'figlegend':
-            legendfn = plt.figlegend
-        elif legend_type == 'legend':
-            legendfn = plt.legend
-        else:
-            raise ValueError('Unknown legend type: ', legend_type)
+def mk_status_item(data_id, data_computed, data_measured = []):
+   return {'id': data_id, 'data': (data_computed, data_measured)}
 
-        legendfn(lines, legend_data, legend_loc, borderaxespad=0.0,
-                          title=legend_title, prop={'family': 'monospace'})
+def display_status(data_plots=None):
 
-    print('\n', 30*'-', '\n  Displaying results...\n', 30*'-')
-
-    if model is None:
-        OUT_DIR = FIGS_DIR + '/'
-    else:
-        OUT_DIR = (FIGS_DIR + '/' + 'n=' + str(model.n) + ',gamma='
-                   + str(model.gamma) + ',Ks=%g' % model.ks
-                   + ',omega=%.2f' % (model.omega*30./np.pi) +'/')
-
-    if save_figures and (not path.exists(OUT_DIR)):
-        makedirs(OUT_DIR)
-
-    t = [ti/60. for ti in times] # sec -> min
-
-    if has_data(t_ref):
-        t_ref = [ti/60. for ti in t_ref] # sec -> min
-    else:
-        t_ref = t
-
-    if not separate_figures:
-        plt.figure(fignum, figsize=(16, 8.5))
-        plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
-    else:
-        fignum = 1
-
-    if separate_figures:
-        images_per_figure = 1
-    else:
-        images_per_figure = 6
-    img_num = 1
-
-    if has_data(h) or has_data(u):
-        if not (has_data(s1) and has_data(s2) and has_data(y)):
-            print('draw_graphs error: for ''h'' and/or ''u'' to be displayed '
-                  'all ''s1'', ''s2'' and ''y'' have to be set.')
-        else:
-            x = y2x(y, s1, s2)
-
-            legend_title = "Time [min]"
-            legend_data  = ['% 7d' % ti for ti in times]
-
-            if not h is None:
-                if separate_figures:
-                    plt.figure(fignum)
-                else:
-                    plt.subplot(321)
-
-                if draw_equilibrium:
-                    c_omega = (model.omega ** 2)/model.g/2
-                    r0 = model.r0
-                    c_eqlib = (r0 + model.l0 + model.fl2) ** 2
-                    h_eqlib = c_omega * ((r0 + x) ** 2 - c_eqlib)
-                    h_lines = plt.plot(x.transpose(), h.transpose(), '.',
-                                       x.transpose(), h_eqlib.transpose(), 'x')
-
-                    h_eq_legend = legend_data + ['h in equilibrium']
-                else:
-                    h_eq_legend = legend_data
-                    h_lines  = plt.plot(x.transpose(), h.transpose(), '.')
-
-                plt.xlabel('Sample length ''L'' [cm]')
-                plt.ylabel('Piezometric head ''h'' [cm]')
-
-
-                if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-h', dpi=300)
-
-                add_legend(h_lines, legend_data=h_eq_legend, title=legend_title)
-
-                if separate_figures:
-                   add_legend(h_lines, legend_data=h_eq_legend,
-                              title=legend_title)
-                if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-h-leg', dpi=300)
-
-                img_num = 2
-
-            if not u is None:
-                if separate_figures:
-                    fignum = fignum + 1
-                    plt.figure(fignum)
-                else:
-                    plt.subplot(3,2,img_num)
-                u_lines = plt.plot(x.transpose(), u.transpose(), '.')
-                plt.xlabel('Sample length ''L'' [cm]')
-                plt.ylabel('Relative saturation ''u''')
-
-                if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-u', dpi=300)
-
-                add_legend(u_lines, legend_data=legend_data, title=legend_title)
-
-                if save_figures and separate_figures:
-                    plt.savefig(OUT_DIR + 'Image-u-leg', dpi=300)
-
-            img_num = 3
-
-    if (not s1 is None) and all(s1 == 0.0):   s1 = None
-    if (not s2 is None) and all(s2 == s2[0]): s2 = None
-    if (not mass_in  is None) and all(mass_in  == 0.0): mass_in  = None
-    if (not mass_out is None) and all(mass_out == 0.0): mass_out = None
-
-    twins = (((mass_out, mass_out_ref), (mass_in, mass_in_ref)),
-             ((GC, GC_ref), (RM, RM_ref)),
-             ((s1, s1_ref), (s2, s2_ref)), ((WM, WM_ref), (None, None)))
-    ylabels = (('Expelled water [cm]', 'Inflow water [cm]'),
-               ('Gravitational center [cm]',
-                'Rotational momentum [kg.m.s$^{-1}$]'),
-               ('Interface s1 [cm]', 'Interface s2 [cm]'),
-               ('Water mass [cm]', None))
-
-    pairs          = []
-    pairs_labels   = []
-    singles        = []
-    singles_labels = []
-
-    # divide all display data into two categories - those to be shown
-    # in pairs (like s1 and s2) - aka in the same row; and then the rest
-    for (twin, twin_label) in zip(twins, ylabels):
-        if twin[0][0] is None or twin[1][0] is None:
-            singles.extend(twin)
-            singles_labels.extend(twin_label)
-        else:
-            pairs.extend(twin)
-            pairs_labels.extend(twin_label)
-
-    pairs.extend(singles)
-    pairs_labels.extend(singles_labels)
-    data = pairs
-    data_labels = pairs_labels
-
-    for ((ydata, ydata_ref), ydata_label) in zip(data, data_labels):
-        if not has_data(ydata): continue
-
-        if img_num > images_per_figure:
-            if save_figures:
-                plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
-
-            img_num = 1
-            fignum = fignum + 1
-
-            if separate_figures:
-                plt.figure(fignum)
-            else:
-                plt.figure(fignum, figsize=(16, 8.5))
-                plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
-
-        if not separate_figures:
-            plt.subplot(3,2,img_num)
-
-        if has_data(ydata_ref):
-            ydata_lines = plt.plot(t, ydata, '.',
-                                   t_ref, ydata_ref, 'x')
-            add_legend(ydata_lines, legend_data = ['computed', 'measured'],
-                       legend_type='legend', legend_loc=4)
-        else:
-            plt.plot(t, ydata, '.')
-
-        plt.xlabel('Time [min]')
-        plt.ylabel(ydata_label)
-
-        img_num = img_num + 1
-
-    if save_figures:
-        plt.savefig(OUT_DIR + ('Image-%i' % fignum), dpi=300)
-
-    plt.show(block=False)
-
-    if save_as_text:
-        filename = OUT_DIR +'data_as_text.txt'
-        fout = open(filename, mode='w', encoding='utf-8')
-
-        if not h is None:
-            fout.write('{:8} = [{}]\n'.format('h', ', '.join(nd2strlist(h))))
-        if not u is None:
-            fout.write('{:8} = [{}]\n'.format('u', ', '.join(nd2strlist(u))))
-
-        fout.write('{:8} = [{}]\n'.format('t', ', '.join(nd2strlist(t))))
-        if not mass_out is None:
-            fout.write('{:8} = [{}]\n'.format('mass_out',
-                                              ', '.join(nd2strlist(mass_out))))
-        if not mass_in is None:
-            fout.write('{:8} = [{}]\n'.format('mass_in',
-                                              ', '.join(nd2strlist(mass_in))))
-        if not GC is None:
-            fout.write('{:8} = [{}]\n'.format('GC', ', '.join(nd2strlist(GC))))
-        if not RM is None:
-            fout.write('{:8} = [{}]\n'.format('RM', ', '.join(nd2strlist(RM))))
-        if not WM is None:
-            fout.write('{:8} = [{}]\n'.format('WM', ', '.join(nd2strlist(WM))))
-        if not s1 is None:
-            fout.write('{:8} = [{}]\n'.format('s1', ', '.join(nd2strlist(s1))))
-        if not s2 is None:
-            fout.write('{:8} = [{}]\n'.format('s2', ', '.join(nd2strlist(s2))))
-
-        if not model.descr == '':
-            fout.write('{:8} = "{}"\n'.format('descr', model.descr))
-        fout.close()
-
-    input('Press ENTER to continue...')
-
-def disp_inv_results(model, t_inv, inv_params=None,
-                     wl_in_inv=None, wl_out_inv=None,
-                     gc1_inv=None, rm1_inv=None, cov=None,
-                     display_graphs=True, disp_abserror=False,
-                     fignum = 1):
-
-    def print_data(name, data_computed, data_measured):
+    def compare_data(name, data_computed, data_measured, relerror, abserror):
         name_len = len(name)
+        disp_all = (not data_measured is None)
 
         i0 = 0
         in_row = 10
         remaining = np.alen(data_computed)
-
-        if disp_abserror:
-            abs_error = np.abs(data_computed - data_measured)
-        error = (data_computed - data_measured) / data_measured * 100.
 
         print('\n')
         while remaining > 0:
@@ -364,13 +143,13 @@ def disp_inv_results(model, t_inv, inv_params=None,
 
             print('%s measured: ' % name,
                   disp_items * '% 10.6f' % tuple(data_measured[i0:i0+disp_items]))
-            print('%s computed: ' % name,
-                  disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
-            if disp_abserror:
+            if disp_all:
+                print('%s computed: ' % name,
+                      disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
                 print('AbsError: ', name_len * ' ',
-                  disp_items * '% 10.6f' % tuple(abs_error[i0:i0+disp_items]))
-            print('Error (%):', name_len * ' ',
-                  disp_items * '% 10.2f' % tuple(error[i0:i0+disp_items]))
+                      disp_items * '% 10.6f' % tuple(abs_error[i0:i0+disp_items]))
+                print('Error (%):', name_len * ' ',
+                      disp_items * '% 10.2f' % tuple(relerror[i0:i0+disp_items]))
 
             remaining = remaining - disp_items
             print(108 * '-')
@@ -378,48 +157,544 @@ def disp_inv_results(model, t_inv, inv_params=None,
 
         print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
 
-    if model.calc_wl_in:
-        wl1  = np.asarray(model.get_iterable_value('wl1'), dtype=float)
-        print_data('WL_in', wl1_inv, wl1)
-    else:
-        wl1 = None
+    if data_plots:
+        for plot in data_plots:
+            plot_id = plot['id']
 
-    if model.calc_wl_out:
-        wl_out_meas  = np.asarray(model.get_iterable_value('wl_out'))
-        wl_out_meas  = wl_out_meas.cumsum()
-        wl_out_meas[wl_out_meas == 0.0] = 1.0e-10
-        print_data('WL_out', wl_out_inv, wl_out_meas)
-    else:
-        wl_out_meas = None
+            data_items_nr = len(plot['data'])
+            if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
+                continue
 
-    if model.calc_gc:
-        gc1  = np.asarray(model.get_iterable_value('gc1'), dtype=float)
-        print_data('GC', gc1_inv, gc1)
-    else:
-        gc1 = None
-    if model.calc_rm:
-        rm1  = np.asarray(model.get_iterable_value('rm1'), dtype=float)
-        print_data('RM', rm1_inv, rm1)
-    else:
-        rm1 = None
-
-    print()
-    if inv_params:
-        print('Found inverse parameters:')
-        for (name, value) in inv_params.items():
-            if name == 'ks':
-                print('  Ks [cm/s]: {: .8g}'.format(value))
+            if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
+                value_computed = plot['data'][0]
+                value_measured = rel_error = abs_error = None
             else:
-                print('  {:9}: {: .8g}'.format(name, value))
-    if has_data(cov):
-        print('Cov:\n', cov)
+                value_computed = np.asarray(plot['data'][0])
+                value_measured = np.asarray(plot['data'][1])
+                norm_measured = value_measured[:]
+                norm_measured[norm_measured == 0.0] = 1.0e-10
+                rel_error = ((value_computed - value_measured)
+                             / norm_measured * 100.)
 
-    if display_graphs:
-        from modules.shared.functions import measurements_time
+                abs_error = np.abs(value_computed - value_measured)
 
-        t_ref = measurements_time(model)
+            compare_data(plot_id, value_computed, value_measured,
+                         rel_error, abs_error)
 
-        draw_graphs(t_inv[1:], t_ref=t_ref,
-                    mass_out=wl_out_inv, mass_out_ref=wl_out_meas,
-                    GC=gc1_inv, GC_ref=gc1, RM=rm1_inv, RM_ref=rm1,
-                    model=model)
+# ResultData: hold the data of the computation
+# Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
+# where:
+# lines_structure: dictionary of types: {line_type: line_type_data} where:
+#     line_type is (by default) one of ['computed', 'measured', 'references']
+#     line_type_data is a dictionary of types: {line_id: line_data}, with
+#         line_id the ID of the line
+#         line_data a dict of types {data_type: (xdata, ydata)},
+#              where data_type is (by default) one of
+#              ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'], xdata is the x-axis
+#              coordinate and ydata is the y-axis coordinate (computed value)
+# inv_params: dict of inverse parameters {param_name: param_value} (or None)
+# cov: the covariance matrix (or None)
+class ResultsData():
+    def __init__(self):
+        self._data = {name: None for name in ['lines', 'inv_params', 'cov']}
+
+    def extract(self, extract_data_fn, model, referencing_parameters=[],
+                 measurements=None):
+        # add computed data
+        (flag, value) = extract_data_fn(model)
+        if not flag:
+            print('Computation was not successfull. No data will be saved.')
+            self._data['lines'] = None
+            return
+
+        data = {'computed': {'computed': value}}
+
+        # add referenced data
+        references = {}
+        ref_num = 1
+        if referencing_parameters:
+            if type(referencing_parameters) == dict: # single reference
+                referencing_parameters = (referencing_parameters, )
+
+            iterable_params =  model._iterable_parameters
+            for ref in referencing_parameters:
+                if 'id' in ref:
+                    ref_id = ref['id']
+                    del ref['id']
+                else:
+                    ref_id = 'ref-' + str(ref_num)
+                    ref_num +=1
+
+                iters = [val for val in ref.keys() if val in iterable_params]
+                if iters:
+                    print('Referencing model cannot set iterable '
+                          'parameters of original model:', iters)
+                    exit(1)
+
+                backup_params = model.get_parameters(ref.keys()) # backup
+                model.set_parameters(ref)
+
+                (flag, extracted_data) = extract_data_fn(model)
+
+                model.set_parameters(backup_params) # restore
+
+                if not flag: continue
+
+                references[ref_id] = extracted_data
+
+            if references:
+                data['references'] = references
+
+        # add measured data
+        if measurements:
+            data['measured'] = {'measured': measurements}
+
+        self._data['lines'] = data
+
+    def has_data(self, data_type='lines'):
+        return not self._data[data_type] is None
+
+    def get_value(self, data_name):
+        if data_name in ['cov', 'inv_params', 'lines']:
+            return self._data[data_name]
+
+    def add_value(self, inv_params = None, cov = None):
+        if has_data(inv_params):
+            self._data['inv_params'] = inv_params
+        if has_data(cov):
+            self._data['cov'] = cov
+
+    def dump(self, experiment_info):
+        if not self.has_data():
+            print('No data is provided. Skipping data dumping.')
+            return
+
+        savedir = get_directories('figs', 'mask', experiment_info)
+        if not path.exists(savedir):
+            makedirs(savedir)
+
+        with open(savedir + 'data_results.dat', 'wb') as f:
+            pickle.dump(self._data, f, pickle.HIGHEST_PROTOCOL)
+
+    def load(self, experiment_info):
+        pathdir = get_directories('figs', 'mask', experiment_info)
+        filename = pathdir + 'data_results.dat'
+        if not path.exists(filename):
+            print('File with computation results does not exist:', filename)
+            return False
+
+        with open(filename, 'rb') as f:
+            self._data = pickle.load(f)
+
+        return True
+
+    def get_linedatatypes(self):
+         # line_type 'computed' with ID 'computed' has to be present
+        return self._data['lines']['computed']['computed'].keys()
+    def get_linetypes(self):
+        return self._data['lines'].keys()
+
+    def get_linedata(self, line_type, line_id):
+        data = self._data['lines']
+        if (line_type in data) and (line_id in data[line_type]):
+            return data[line_type][line_id]
+        else:
+            return None
+
+    def iterate_lines(self):
+        if not self.has_data('lines'):
+            yield None
+        else:
+            for (data_type, lines) in self._data['lines'].items():
+                for (line_id, line_data) in lines.items():
+                    yield (data_type, line_id, line_data)
+
+class PlotStyles():
+    def __init__(self, experiment_info):
+        self._userstyles = self.load_userstyles(experiment_info)
+        self._display_options = self._mk_display_options()
+        self._dplotstyles = {}
+
+    def load_userstyles(self, experiment_info):
+        def get_filenames(experiment_info):
+            (search_dirs, masks_dir, mask_dir) = \
+              get_directories('figs', ['search', 'masks', 'mask'],
+                              experiment_info)
+            # include masks dir into searchable directories...
+            search_dirs.append(masks_dir)
+            # ...just as the single mask directory
+            if experiment_info['mask']:
+                search_dirs.append(mask_dir)
+
+            filter_existing = \
+              lambda fnames: list(filter(lambda fname: path.exists(fname), fnames))
+            prefix_with_paths = \
+              lambda fname, dirs: map(lambda cfgdir: cfgdir + fname, dirs)
+
+            plotstyles_files = \
+              filter_existing(prefix_with_paths(PLOTSTYLE_ININAME, search_dirs))
+
+            return plotstyles_files
+
+        def read_plotstyles_cfg(filename):
+            result = {}
+
+            # read config files
+            parser   = configparser.ConfigParser()
+            try:
+                read_files = parser.read(filename)
+            except configparser.DuplicateOptionError as E:
+                print(E)
+                exit(0)
+            # Write data from parser to configuration
+            for psection in parser.sections():
+                section = psection.lower() # we ignore sections
+
+                for option in parser.options(psection):
+                    raw_value = parser.get(psection, option).strip()
+
+                    result[option] = parse_value(raw_value)
+
+            return result
+
+        def deep_dictupdate(d1, d2):
+            for (vkey, vvalue) in d2.items():
+                if ((vkey in d1) and (type(d1[vkey]) == dict)
+                    and (type(vvalue) == dict)):
+                    deep_dictupdate(d1[vkey], vvalue)
+                else:
+                    d1[vkey] = vvalue
+
+            return d1
+
+        # Function body
+        plotstyles_filenames = get_filenames(experiment_info)
+
+        if not plotstyles_filenames: return {}
+
+        plot_cfg = read_plotstyles_cfg(plotstyles_filenames[0])
+
+        for fname in plotstyles_filenames[1:]:
+            deep_dictupdate(plot_cfg, read_plotcfg(fname))
+
+        self._userstyles = plot_cfg
+
+        return plot_cfg
+
+    def _get_value(self, key):
+        if key in self._userstyles:
+            return self._userstyles[key]
+        else:
+            return None
+
+    def _mk_display_options(self):
+        opts = {'separate_figures': False, 'show_figures': True,
+                'save_figures': True}
+        user_opts = self._get_value('options')
+        if user_opts: opts.update(user_opts)
+
+        return opts
+
+    def get_display_options(self):
+        return self._display_options
+
+    def _mk_dplotstyles(self, dplot_id):
+        dplot_styles = {tag: None for tag in ['axes_labels', 'xscale', 'yscale',
+                                              'show_legend', 'legend_title',
+                                              'legend_bbox', 'legend_loc',
+                                              'show']}
+
+        user_styles = self._get_value('datasets')
+        if user_styles and (dplot_id in user_styles):
+            dplot_styles.update(user_styles[dplot_id])
+
+         # try to set default value
+        if (dplot_styles['axes_labels'] is None) and (dplot_id in DG_AXES_LABELS):
+           dplot_styles['axes_labels'] = DG_AXES_LABELS[dplot_id]
+
+        if dplot_id in ['h', 'u']:
+            if ((dplot_styles['legend_bbox'] is None)
+                and (dplot_styles['legend_loc'] is None)):
+                dplot_styles['legend_bbox'] = (1.01, 1.)
+                dplot_styles['legend_loc'] = 2
+            if dplot_styles['legend_title'] is None:
+                dplot_styles['legend_title'] = 'Time [min]'
+
+        if ((dplot_id == 'h') and (dplot_styles['show_legend'] is None)
+            and (not self.get_display_options()['separate_figures'])):
+            dplot_styles['show_legend'] = False
+
+        if dplot_id == 'theta':
+            if dplot_styles['yscale'] is None:
+                dplot_styles['yscale'] = 'log'
+            if dplot_styles['legend_loc'] is None:
+                dplot_styles['legend_loc'] = 1
+
+        if dplot_styles['legend_loc'] is None:
+            dplot_styles['legend_loc'] = 4
+
+        return dplot_styles
+
+    def get_dplotstyles(self, dtype):
+        if not dtype in self._dplotstyles:
+            self._dplotstyles[dtype] = self._mk_dplotstyles(dtype)
+
+        return self._dplotstyles[dtype]
+
+    def _mk_linestyle(self, linetype, line_id, data_types):
+        if linetype == 'measured':
+            lineopt = 'x'
+        else:
+            lineopt = '.'
+
+        line_styles = {dtype: lineopt for dtype in data_types}
+
+        if 'h' in data_types: line_styles['h'] = '-'
+        if 'u' in data_types: line_styles['u'] = '-'
+        if ('theta' in data_types) and (not linetype == 'measured'):
+             line_styles['theta'] = '-'
+
+        user_styles = self._get_value('lines')
+        if user_styles and (line_id in user_styles):
+            line_styles.update(user_styles[line_id])
+
+        return line_styles
+
+    def get_linestyle(self, line_type, line_id, data_types):
+        return self._mk_linestyle(line_type, line_id, data_types)
+
+class DPlots():
+    def __init__(self, data, experiment_info):
+        self._data = data
+        self._experiment_info = experiment_info
+        self._dplots = None
+        self._plotstyles = None
+
+    def display(self, fignum = 1):
+
+        def _mk_dplots_bucket(data_types, plot_styles):
+            dplots_bucket = \
+              {dtype: {'id': dtype, 'data': [],
+                       'styles': plot_styles.get_dplotstyles(dtype)}
+                for dtype in data_types}
+
+            return dplots_bucket
+
+        def _add_plotline(line_type, line_id, line_data, data_types,
+                          plot_styles, dplots_bucket):
+
+            line_styles = plot_styles.get_linestyle(line_type, line_id,
+                                                        data_types)
+            if 'label' in line_styles:
+                label = line_styles['label']
+            else:
+                label = line_id
+
+            for (data_type, data_value) in line_data.items():
+                if not data_value: continue
+
+                # we skip other 'h' and 'u' data, as it would be mess
+                if (data_type in ['h', 'u']) and (not label == 'computed'):
+                    continue
+
+                (xdata, ydata) = (data_value[0], data_value[1])
+
+                if not (has_data(xdata) and has_data(ydata)): continue
+
+                if ((data_type in ['h', 'u']) and (len(data_value) > 2)
+                    and has_data(data_value[2]) and (not 'label' in line_styles)):
+                    ilabel = ['% 6d' % (ti/60.) for ti in data_value[2]]
+                else:
+                    ilabel = label
+
+                item = (xdata, ydata, ilabel, line_styles[data_type])
+
+                dplots_bucket[data_type]['data'].append(item)
+
+        def _filter_dplots(dplots_bucket):
+            for name in list(dplots_bucket.keys()):
+                if dplots_bucket[name]['styles']['show'] == False:
+                    del dplots_bucket[name]
+
+            return dplots_bucket
+
+        def _order_dplots(dplots_bucket):
+            ordered_dplots = []
+            single_dplots  = []
+
+            # first order pairs (and queue singles from pairs)
+            for (i1_id, i2_id) in DG_PAIRS:
+                i1p = (i1_id in dplots_bucket)
+                i2p = (i2_id in dplots_bucket)
+
+                if i1p and i2p:
+                    ordered_dplots.append(dplots_bucket[i1_id])
+                    ordered_dplots.append(dplots_bucket[i2_id])
+                elif i1p:
+                    single_dplots.append(dplots_bucket[i1_id])
+                elif i2p:
+                    single_dplots.append(dplots_bucket[i2_id])
+
+                if i1p: del dplots_bucket[i1_id]
+                if i2p: del dplots_bucket[i2_id]
+
+            # append singles
+            ordered_dplots.extend(single_dplots)
+            # append remaning singles that are not part of any pair
+            for remaining_dplots in dplots_bucket.values():
+                ordered_dplots.append(remaining_dplots)
+
+            return ordered_dplots
+
+        def _mk_dplots(data, experiment_info):
+            plot_styles   = PlotStyles(experiment_info)
+            data_types    = data.get_linedatatypes()
+            dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
+
+            for (line_type, line_id, line_data) in data.iterate_lines():
+                _add_plotline(line_type, line_id, line_data, data_types,
+                              plot_styles, dplots_bucket)
+
+            ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
+
+            return (ordered_dplots, plot_styles)
+
+        def _show_dplots(ordered_dplots, display_options, experiment_info):
+            nonlocal fignum
+
+            separate_figures = display_options['separate_figures']
+            save_figures     = display_options['save_figures']
+
+            if save_figures:
+                experiment_info = experiment_info
+                if experiment_info['mask']:
+                    figs_dir_type = 'mask'
+                else:
+                    figs_dir_type = 'data'
+
+                save_dir = get_directories('figs', figs_dir_type,
+                                           experiment_info)
+
+                if not path.exists(save_dir):
+                    makedirs(save_dir)
+
+
+            if separate_figures:
+                images_per_figure = 1
+            else:
+                images_per_figure = 6
+
+            fignum -= 1
+            img_num = 2^20 # high initialization, so that first fig is created
+
+            for dplot in ordered_dplots:
+                if not dplot['data']: continue
+                dplot_id = dplot['id']
+
+                # resolve figure and subplot
+                if img_num > images_per_figure:
+                    img_num = 1
+                    fignum += 1
+
+                    if separate_figures:
+                        plt.figure(fignum)
+                    else:
+                        plt.figure(fignum, figsize=(16, 8.5))
+                        plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
+
+                if not separate_figures:
+                    plt.subplot(3,2,img_num)
+
+                # plot the supplied data
+                plot_labels = []
+                for dplot_data in dplot['data']:
+                    (xdata, ydata, line_label, plot_style) = dplot_data
+                    plt.plot(xdata, ydata, plot_style)
+                    if type(line_label) == str:
+                        plot_labels.append(line_label)
+                    else:
+                        plot_labels.extend(line_label)
+
+                dplot_styles = dplot['styles']
+                (xlabel, ylabel) = dplot_styles['axes_labels']
+                plt.xlabel(xlabel)
+                plt.ylabel(ylabel)
+                if dplot_styles['xscale']:
+                    plt.xscale(dplot_styles['xscale'])
+                if dplot_styles['yscale']:
+                    plt.yscale(dplot_styles['yscale'])
+
+                show_legend = dplot_styles['show_legend']
+                if show_legend is None:
+                    if (len(dplot['data']) > 1) or (np.ndim(ydata) > 1):
+                     show_legend = True
+                if show_legend:
+                    plt.legend(plot_labels, borderaxespad=0.0,
+                               prop={'family': 'monospace'},
+                               loc=dplot_styles['legend_loc'],
+                               title=dplot_styles['legend_title'],
+                               bbox_to_anchor=dplot_styles['legend_bbox'])
+
+                if save_figures and (img_num == images_per_figure):
+                    if separate_figures: img_suffix = dplot_id
+                    else: img_suffix = str(fignum)
+
+                    plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
+
+                img_num += 1
+
+            if save_figures and (img_num < images_per_figure):
+                plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
+
+        def _show_status(data):
+            status_items = []
+
+            measurements = data.get_linedata('measured', 'measured')
+            computed     = data.get_linedata('computed', 'computed')
+
+            for (key, m_data) in measurements.items():
+                if m_data[1] is None: continue
+
+                if key in computed:
+                    if key == 'theta':
+                        c_value = computed[key][2]
+                        m_value = m_data[0]
+                    else:
+                        c_value = computed[key][1][1:]
+                        m_value = m_data[1]
+
+                if c_value is not None:
+                    status_items.append(mk_status_item(key, c_value, m_value))
+
+            if status_items:
+                display_status(status_items)
+
+        # function body
+        data   = self._data
+
+        if self._dplots is None: # if data is provided, generate dplots
+            if not data.has_data('lines'):
+                print('No data is provided. Nothing to display.')
+            else:
+                (self._dplots, self._plotstyles) = \
+                  _mk_dplots(data, self._experiment_info)
+
+        if not self._dplots is None: # is True if data was provided
+            _show_status(data)
+
+            if data.has_data('cov'):
+                print('\nCov:\n', data.get_value('cov'))
+            if  data.has_data('inv_params'):
+                params = data.get_value('inv_params')
+                print('\nOptimal parameters found:')
+                for (name, value) in params.items():
+                    if name == 'ks':
+                        print('  Ks [cm/s]: {: .8g}'.format(value))
+                    else:
+                        print('  {:9}: {: .8g}'.format(name, value))
+
+            _show_dplots(self._dplots, self._plotstyles.get_display_options(),
+                         self._experiment_info)
+            plt.show(block=False)
+
+        input('Press ENTER to continue...')

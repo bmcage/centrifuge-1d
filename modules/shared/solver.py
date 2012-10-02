@@ -1,6 +1,6 @@
 import scikits.odes.sundials.ida as ida
 from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
-                   asarray, cumsum, empty)
+                   asarray, cumsum, empty, ones)
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -8,7 +8,7 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
 
 
 def simulate_direct(initialize_z0, model, residual_fn,
-                    update_initial_condition=None,
+                    update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None):
 
     # Check supplied arguments
@@ -29,16 +29,20 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     t[0]    = t0
 
+    model.set_value('omega_start', 0.0)
+    model.set_value('t0', t0)
+
     if update_initial_condition:
         z0 = empty([model.z_size, ], float)
     else:
         z0 = z[0, :]
+
+    initialize_z0(z0, model) # compute the initial state
+
     zp0 = zeros(z0.shape, float)
+    if not initialize_zp0 is None: initialize_zp0(zp0, z0, model)
 
     i = 1
-    model.set_iteration(i)   # set model for the first iteration
-    initialize_z0(z0, model) # and compute the initial state
-
     if update_initial_condition: # as initial state can be modified at each
         z[0, :] = z0             # restart, z0 was preallocated separately
 
@@ -54,6 +58,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                      user_data=model)
 
     solver_initialized = False
+    model.init_iteration() # Re-initialize iterable variables
 
     # Run computation
     out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}'
@@ -69,13 +74,14 @@ def simulate_direct(initialize_z0, model, residual_fn,
                               + model.deceleration_duration)
             print(out_s.format(i, t0, total_duration, t0 + total_duration))
 
-        for duration_type in ['duration', 'fh_duration',
-                              'deceleration_duration']:
+        for duration_type in ['duration', 'deceleration_duration',
+                              'fh_duration']:
 
             duration = getattr(model, duration_type)
 
             if duration == 0.0: continue
 
+            model.t0 = t0
             t_end = t0 + duration
 
             solver.set_options(tstop=t_end)
@@ -97,7 +103,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 model.set_omega2g_fn('deceleration')
 
             if not solver_initialized:
-                solver.init_step(t0, z0, zp0)
+                (flag, t_init) = solver.init_step(t0, z0, zp0)
+                if not flag:
+                    return (False, t, z)
                 solver_initialized = True
 
             (flag, t_out) = solver.step(t_end, z[i, :])
@@ -108,24 +116,28 @@ def simulate_direct(initialize_z0, model, residual_fn,
                           'at time\nt_err=', t_out,
                           '\nExpected value of t:', t)
                 if verbosity > 2:
-                    print('Values at this time:\nz_err=', z_retn)
+                    print('Values at this time:\nz_err=', z[i, :])
 
                 return (False, t[:i], z[:i, :])
 
 
             t0 = t_out
 
-            if duration_type == 'fh_duration': # restore backuped values
+            if duration_type == 'duration':
+                model.omega_start = model.omega
+            elif duration_type == 'deceleration':
+                model.omega_start = 0.0
+            else:
+                # restore backuped values for 'fh_duration'
                 model.r0    = r0
                 model.duration = duration
 
         t[i] = t_out
 
-        if i == iterations: break
+        if not model.next_iteration(): break
 
         # update values for the next iteration
         i = i+1
-        model.set_iteration(i)
 
         if update_initial_condition:
             z0[:] = z[i-1, :]
@@ -140,6 +152,27 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     return (True, t, z)
 
+
+def set_optimized_variables(optim_params, model, untransform=None):
+    """ optim_params: dict of pairs param_name: param_value """
+    if untransform:
+        for (name, value) in optim_params.items():
+            setattr(model, name, untransform[name](value))
+    else:
+        for (name, value) in optim_params.items():
+            setattr(model, name, value)
+
+    if 'n' in optim_params:
+        model.m = 1 - 1/model.n
+
+    if model.verbosity > 0:
+        print()
+        for name in optim_params.keys():
+            if name == 'ks':
+                print('{:5}: {: .8g}'.format('Ks', getattr(model, name)))
+            else:
+                print('{:5}: {: .8g}'.format(name, getattr(model, name)))
+
 def simulate_inverse(times, direct_fn, model, init_parameters,
                      wl_in_meas=None, wl_out_meas=None,
                      gc_meas=None, rm_meas=None,
@@ -148,7 +181,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                      optimfn='leastsq'):
 
     from modules.shared.functions import determine_scaling_factor
-    from modules.shared.show import disp_inv_results
+    from modules.shared.show import display_status, mk_status_item
     from numpy import log, exp, alen
 
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
@@ -168,21 +201,6 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                    'gamma': lambda gamma_transf: -min(exp(gamma_transf), max_value)}
 
     optimized_parameters = []
-
-    def update_model(optim_params, model):
-        for (name, value) in zip(optimized_parameters, optim_params):
-            setattr(model, name, untransform[name](value))
-
-        if 'n' in optimized_parameters:
-            model.m = 1 - 1/model.n
-
-        if model.verbosity > 0:
-            print()
-            for name in optimized_parameters:
-                if name == 'ks':
-                    print('{:5}: {: .8g}'.format('Ks', getattr(model, name)))
-                else:
-                    print('{:5}: {: .8g}'.format(name, getattr(model, name)))
 
     lbounds = {}
     ubounds = {}
@@ -215,71 +233,41 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
         return penalization
 
-    calc_wl_in  = bool(wl_in_meas)
-    calc_wl_out = bool(wl_out_meas)
-    calc_gc     = bool(gc_meas)
-    calc_rm     = bool(rm_meas)
-
     if not ((wl_in_weights is None) and (wl_out_weights is None)
             and (gc_weights is None) and (rm_weights is None)):
         add_weights = True
     else:
         add_weights = False
 
-    no_measurements = empty([0,], dtype=float)
+    (measurements_names, data_M, measurements_scales) = ([], [], [])
+    measurements_weights = []
+    for (data, name, weights) in zip((wl_in_meas, wl_out_meas, gc_meas, rm_meas),
+                                     ('MI', 'MO', 'GC', 'RM'),
+                                     (wl_in_weights, wl_out_weights, gc_weights,
+                                      rm_weights)):
+        if not bool(data): continue
 
-    if calc_wl_in:
-        wl_in_M = asarray(wl_in_meas, dtype=float)
-        wl_in_scale_coef = determine_scaling_factor(wl_in_meas)
-        wl_in_M[:] = wl_in_M * wl_in_scale_coef
-    else:
-        wl_in_M = no_measurements
+        measurement = asarray(data, dtype=float)
+        if name == 'MO':
+            measurement = cumsum(measurement)
+        data_scale_coef = determine_scaling_factor(measurement)
+        data_scale = data_scale_coef * ones(measurement.shape, dtype=float)
 
-    if calc_wl_out:
-        wl_out_M = cumsum(asarray(wl_out_meas, dtype=float))
-        wl_out_scale_coef = determine_scaling_factor(wl_out_M)
-        wl_out_M[:] = wl_out_M * wl_out_scale_coef
-    else:
-        wl_out_M = no_measurements
+        measurements_names.append(name)
+        data_M.append(measurement)
+        measurements_scales.append(data_scale)
 
-    if calc_gc:
-        gc_M = np.asarray(gc_meas, dtype=float)
-        gc_scale_coef = determine_scaling_factor(gc_meas)
-        gc_M[:] = gc_M * gc_scale_coef
-    else:
-        gc_M = no_measurements
+        if add_weights:
+            if not weights is None:
+                measurements_weights.append(asarray(weights, dtype=float))
+            else:
+                measurements_weights.append(ones(measurement.share, dtype=float))
 
-    if calc_rm:
-        rm_M = np.asarray(rm_meas, dtype=float)
-        rm_scale_coef = determine_scaling_factor(rm_meas)
-        rm_M[:] = rm_M * rm_scale_coef
-    else:
-        rm_M = no_measurements
-
-    measurements = concatenate((wl_in_M, wl_out_M, gc_M, rm_M))
+    data_scale_coef = concatenate(measurements_scales)
+    measurements_sc = concatenate(data_M) * data_scale_coef
 
     if add_weights:
-        if wl_in_weights is None:
-            wl_in_wghts = no_measurements
-        else:
-            wl_in_wghts = asarray(wl_in_weights)
-
-        if wl_out_weights is None:
-            wl_out_wghts = no_measurements
-        else:
-            wl_out_wghts = asarray(wl_out_weights)
-
-        if gc_weights is None:
-            gc_wghts = no_measurements
-        else:
-            gc_wghts = asarray(gc_weights)
-
-        if rm_weights is None:
-            rm_wghts = no_measurements
-        else:
-            rm_wghts = asarray(rm_weights)
-
-        weights = concatenate((wl_in_wghts, wl_out_wghts, gc_wghts, rm_wghts))
+        weights = concatenate(measurements_weights)
 
     iteration = 0
 
@@ -289,7 +277,8 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         print(15 * '*', ' Iteration: {:4d}'.format(iteration), ' ', 15 * '*')
         iteration += 1
 
-        update_model(optimargs, model)
+        set_optimized_variables(dict(zip(optimized_parameters, optimargs)),
+                                model, untransform=untransform)
 
         penalization = penalize(model, when='out_of_bounds')
 
@@ -299,44 +288,25 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                       penalization)
 
             if optimfn == 'leastsq':
-                return penalization + measurements
+                return penalization + measurements_sc
             else:
-                return penalization * alen(measurements)
+                return penalization * alen(measurements_sc)
 
-        (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
+        direct_data = direct_fn(model, measurements_names)
+        (flag, t, data_C) = (direct_data[0], direct_data[1], direct_data[2:])
 
         if flag:
             # direct computation went O.K.
-            if calc_wl_in:
-                wl_in_C = wl_in * wl_in_scale_coef
-            else:
-                wl_in_C = no_measurements
-
-            if calc_wl_out:
-                wl_out_C = wl_out * wl_out_scale_coef
-            else:
-                wl_out_C = no_measurements
-
-            if calc_gc:
-                gc_C = gc * gc_scale_coef
-            else:
-                gc_C = no_measurements
-
-            if calc_rm:
-                rm_C = rm * rm_scale_coef
-            else:
-                rm_C = no_measurements
-
             if model.verbosity > 0:
-                disp_inv_results(model, t, inv_params=None,
-                                 wl_in_inv=wl_in, wl_out_inv=wl_out,
-                                 gc1_inv=gc, rm1_inv=rm,
-                                 display_graphs=False,
-                                 disp_abserror=(model.verbosity > 1))
+                status_items = []
+                for (name, value_C, value_M) in zip(measurements_names,
+                                                    data_C, data_M):
+                    status_items.append(mk_status_item(name, value_C, value_M))
 
-            computation = concatenate((wl_in_C, wl_out_C, gc_C, rm_C))
+                display_status(data_plots=status_items)
 
-            error = computation - measurements
+            computation_sc = data_scale_coef * concatenate(data_C)
+            error = computation_sc - measurements_sc
 
             if add_weights:
                 error[:] = error * weights
@@ -354,9 +324,9 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                       'parameters... Penalizing by ', penalization)
 
             if optimfn == 'leastsq':
-                return penalization + measurements
+                return penalization + measurements_sc
             else:
-                return penalization * alen(measurements)
+                return penalization * alen(measurements_sc)
 
             return penalization
 
@@ -435,17 +405,11 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
     print(' |')
 
     # Run experiment once more with optimal values to display results at optimum
-    update_model(opt_params, model)
+    set_optimized_variables(dict(zip(optimized_parameters, opt_params)),
+                            model, untransform)
     optim_params = {name: getattr(model, name) for name in optimized_parameters}
-    model_verbosity = model.verbosity # backup verbosity
-    model.verbosity = 0
-    (flag, t, wl_in, wl_out, gc, rm) = direct_fn(model)
-    model.verbosity = model_verbosity # restore verbosity
-    disp_inv_results(model, t, inv_params=optim_params, cov=cov,
-                     wl_in_inv=wl_in, wl_out_inv=wl_out, gc1_inv=gc, rm1_inv=rm,
-                     disp_abserror=True)
 
-    return optim_params
+    return (optim_params, cov)
 
 def compute_raster(model):
         lbounds = xdata.inv_lbounds

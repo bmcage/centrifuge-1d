@@ -2,6 +2,7 @@ import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.solver import simulate_direct
+from modules.shared.functions import show_results
 
 class direct_saturated_rhs(IDA_RhsFunction):
     def evaluate(self, t, x, xdot, result, model):
@@ -41,13 +42,15 @@ def solve(model):
 
     return (flag, t, z)
 
-def run(model):
+def extract_data(model):
     (flag, t, z) = solve(model)
 
     if not flag:
-        print('Error occured during computation... Computation exited.')
+        print('For given model the solver did not find results. Skipping.')
 
-    if model.draw_graphs:
-        from modules.shared.show import draw_graphs
-        draw_graphs(t, mass_in=z[:, mass_in_idx], mass_out=z[:, mass_out_idx],
-                    model=model)
+    extracted_data = {'MI': (t, z[model.mass_in_idx]),
+                      'MI': (t, z[model.mass_out_idx])}
+    return (flag, extracted_data)
+
+def run(model):
+     show_results(extract_data, model)

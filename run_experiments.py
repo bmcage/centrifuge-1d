@@ -34,6 +34,9 @@ def parse_input():
                          metavar='MASK_NAME',
                          help=("Run given experiment with a mask MASK_NAME "
                                "file. Used in conjuction with ''-t'' parameter."))
+    optparser.add_option('-c', '--compare', dest='compare_p', default=False,
+                         action='store_true',
+                         help=("Compare two configuration files."))
     optparser.add_option('-d', '--modules-list', dest='modules_list',
                          action="store_true", default=False,
                          help=("Get the list of all available centrifuge "
@@ -44,6 +47,10 @@ def parse_input():
                                'experiment and exit; if also parameter ''-t'' '
                                'is included, the config file for the tube is '
                                'included too.'))
+    optparser.add_option('-s', '--show', dest='show_p', default=False,
+                         action='store_true',
+                         help=("Show results if present. No computation is "
+                               "peformed."))
     optparser.add_option('-t', '--tubes', dest='tubes', default=DEFAULT_TUBES,
                          metavar='TUBES_NUMBERS',
                          help=("Run experiment only on selected tubes, default "
@@ -60,7 +67,9 @@ def parse_input():
 
             if options.list:
                 print('\n'.join(sorted(listdir(
-                    get_directories('base', None, None, None, None)))))
+                    get_directories('ini', 'base',
+                                    {key: '' for key in ['exp_id', 'exp_no',
+                                                         'tube_no', 'mask']})))))
             if options.modules_list:
                 modman = ModulesManager()
                 modman.echo(options.verbose)
@@ -105,9 +114,9 @@ def process_global_constants(cfg, consts_cfg):
         if not cfg.get_value(name):
             cfg.set_value(name, value)
 
-def load_configuration(exp_id, exp_no, tube_no, mask=None):
+def load_configuration(experiment_info):
     (search_dirs, data_dir, masks_dir) = \
-      get_directories(['search', 'data', 'masks'], exp_id, exp_no, tube_no)
+      get_directories('ini', ['search', 'data', 'masks'], experiment_info)
 
     filter_existing = lambda fnames: list(filter(lambda fname: exists(fname),
                                                  fnames))
@@ -120,7 +129,6 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
     measurements_filenames = listdir(data_dir)
     measurements_files = []
     for fname in measurements_filenames:
-        print(fname)
         # valid measurement files are *.ini (i.e. >4 chars filename)
         # except for 'defaults.ini'
         if ((fname == DEFAULTS_ININAME) or (len(fname) <= 4)
@@ -129,16 +137,18 @@ def load_configuration(exp_id, exp_no, tube_no, mask=None):
 
         measurements_files.append(data_dir + fname)
 
+    mask_filename = ''
+    mask = experiment_info['mask']
     if mask:
         mask_filename = masks_dir + mask + '.ini'
         if not exists(mask_filename):
             print('Mask file "{}" does not exist in expected location:'
                   '\n{}.'.format(mask, masks_dir))
-            if yn_prompt('Do you wish to continue without applying '
+            if not yn_prompt('Do you wish to continue without applying '
                          'the mask? [Y/n]: '):
-                mask_filename = None
-            else:
                 exit(0)
+
+            mask_filename = ''
 
     cfg_files = defaults_files + measurements_files + [mask_filename]
 
@@ -179,8 +189,10 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
                 print('\n', len(header) * '=', '\n', header,
                       '\n', len(header) * '=')
 
-            (cfg, consts_cfg) = load_configuration(exp_id, exp_no,
-                                                   tube_no, mask)
+            experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no,
+                                'tube_no': tube_no, 'mask': mask}
+
+            (cfg, consts_cfg) = load_configuration(experiment_info)
 
             if print_cfg_only:
                 header = ("Configuration file of experiment '{}' number {:d}, "
@@ -207,20 +219,105 @@ def run_experiments(exp_id, first_experiment, last_experiment, tubes, mask,
 
             model = ModelParameters(cfg)
 
+            model.experiment_info = experiment_info
+
             results = solver_module.run(model)
 
             collector('collect', data=results)
 
     if not print_cfg_only:
         print('Results summary:\n')
-        print_fn = lambda x: print(x[0])
+        print_fn = lambda x: print(x)
         collector('print', print_format_fn=print_fn)
         #collector('print-by-tube', data=print_by_tube)
+
+def iterate_value(arg):
+
+    if type(arg) in [list, tuple]:
+        for value in arg:
+            yield value
+    elif type(arg) == dict:
+        for (key, value) in arg.items():
+            # dirty hack: we assume that only dict of list value is
+            # 'inv_init_params', so the value is (init, [range])
+            if type(value) in [tuple, list]:
+                yield key + ': ' + str(value[0])
+            else:
+                yield key + ': ' + str(value)
+    else:
+        yield arg
+
+    while True:
+        yield ''
+
+def compare2configs(options):
+    if len(options.tubes) > 1:
+        print('Only one tube can be specified. Exiting...')
+        exit(1)
+
+    print('Add information for the second configuration file:')
+    exp_id2  = input('Experiment ID  : ').strip()
+    exp_no2  = input('Experiment No. : ').strip()
+    tube_no2 = input('Tube No.       : ').strip()
+    mask2    = input('Mask (optional): ').strip()
+
+    exp_info1 ={'exp_id': options.exp_id, 'exp_no': options.first_experiment,
+                'tube_no': options.tubes[0], 'mask': options.mask}
+    exp_info2 ={'exp_id': exp_id2, 'exp_no': int(exp_no2),
+                'tube_no': tube_no2, 'mask': mask2}
+
+    (cfg1, const_cfg1) = load_configuration(experiment_info1)
+    (cfg2, const_cfg2) = load_configuration(experiment_info2)
+
+    all_parameters = sorted(set(cfg1.list_options() + cfg2.list_options()))
+
+    param_max_length = 15
+    value_max_length = 20
+    fstring = (' {:' + str(param_max_length) +'} | {:'
+               + str(value_max_length) +'} | {:'
+               + str(value_max_length) + '}')
+    print('\n', (param_max_length + 2*value_max_length + 6) * '-')
+    print(fstring.format('Option name', '1. config', '2. config'),
+          '\n', (param_max_length + 2*value_max_length + 6) * '-')
+
+    for parameter in all_parameters:
+        v1 = cfg1.get_value(parameter, not_found='')
+        v2 = cfg2.get_value(parameter, not_found='')
+
+        if not v1 == v2:
+            v1_iter = iterate_value(v1)
+            v2_iter = iterate_value(v2)
+
+            if len(parameter) > param_max_length:
+                parameter = parameter[:param_max_length]
+            print(fstring.format(parameter, next(v1_iter), next(v2_iter)))
+
+            while True:
+                v1_value = next(v1_iter)
+                v2_value = next(v2_iter)
+                if (v1_value == '') and (v2_value == ''): break
+
+                print(fstring.format('', v1_value, v2_value))
 
 if __name__ == "__main__":
     options = parse_input()
 
-    print_cfg_only = options.print_config_p
-    run_experiments(options.exp_id, options.first_experiment,
-                    options.last_experiment, options.tubes, options.mask,
-                    verbose=(not print_cfg_only), print_cfg_only=print_cfg_only)
+    if options.show_p:
+        from modules.shared.show import ResultsData, DPlots
+
+        experiment_info =  \
+          {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
+           'tube_no': options.tubes[0], 'mask': options.mask}
+        data = ResultsData()
+        if data.load(experiment_info):
+            dplots = DPlots(data, experiment_info)
+            dplots.display()
+
+    elif options.compare_p:
+        compare2configs(options)
+    else:
+        print_cfg_only = options.print_config_p
+        run_experiments(options.exp_id, options.first_experiment,
+                        options.last_experiment, options.tubes, options.mask,
+                        verbose=(not print_cfg_only),
+                        print_cfg_only=print_cfg_only)
