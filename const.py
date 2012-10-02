@@ -15,7 +15,7 @@ FIGS_DIR    = DATA_DIR    + sep + 'figures'
 # Default names
 DEFAULTS_ININAME = 'defaults.ini'
 CONSTANTS_ININAME = 'CONSTANTS.ini'
-PLOTSTYLE_ININAME = 'plotstyle.ini'
+PLOTSTYLE_ININAME = 'plotstyles.ini'
 MASKS_DIRNAME    = 'masks'
 #-------------------------------------------------------------------------
 #

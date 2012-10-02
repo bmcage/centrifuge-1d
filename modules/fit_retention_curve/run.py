@@ -1,140 +1,91 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
-import modules.base.run as base
+from scipy.optimize import leastsq
 from modules.shared.vangenuchten import h2u
-from modules.shared.show import make_dplot, add_dplotline, display_dplots
+from modules.shared.show import ResultsData, DPlots
 
 def solve(model):
-    def lsq_fn(xdata, *optim_args):
-        print(optim_args)
+    theta_measured = np.asarray(model.theta, dtype=float)
 
-        optim_args_len = len(optim_args)
+    def direct_wrapper(optim_args):
+        if model.verbosity > 1:
+            for (name, value) in zip(params_names, optim_args):
+                print('{}: {: >10.7f}     '.format(name, value), end='')
+            print()
 
-        if optim_args_len == 4:
-            h = xdata
-            (n, gamma, theta_s, theta_r) = optim_args
-        elif optim_args_len == 3:
-            (h, theta_s_p, theta_sr) = xdata
-            if theta_s_p:
-                theta_s = theta_sr
-                (n, gamma, theta_r) = optim_args
-            else:
-                theta_r = theta_sr
-                (n, gamma, theta_s) = optim_args
-        else:
-            (h, theta_s, theta_r) = xdata
-            (n, gamma) = optim_args
+        for (name, value) in zip(params_names, optim_args):
+            setattr(model, name, value)
+            if name == 'n':
+                setattr(model, 'm', 1. - 1./value)
 
-        m = 1. - 1./n
+        u = h2u(model.h, model.n, model.m, model.gamma)
 
-        u = h2u(h, n, m, gamma)
-
+        (theta_s, theta_r) = (model.theta_s, model.theta_r)
         theta = theta_r + (theta_s - theta_r) * u
 
-        return theta
+        return np.power(theta - theta_measured, 2)
 
-    inv_params_init = model.inv_init_params
-    inv_init_params_len = len(model.inv_init_params)
+    #    backup_params = model.get_parameters(model.inv_init_params.keys())
 
     # [p] = Pa = kg/m/s^2 = 10 * g/cm/s^2 -\
     # [h] = cm                            - \
     # => h [cm] =(10*p)/g/rho with [g]=cm/s^2, [rho]=g/cm^3
+    p = np.asarray(model.p, dtype=float)
+    model.h = -10.*p / model.rho /model.g
 
-    if type(model.p) == list:
-        h = np.asarray([-10.*p / model.rho / model.g for p in model.p])
-    else:
-        h = 10.*model.p / model.rho /model.g
+    (params_names, init_values) = ([], [])
+    for (name, value) in model.inv_init_params.items():
+        params_names.append(name)
+        init_values.append(value)
 
-    if inv_init_params_len == 4:
-        xdata = h
-    elif inv_init_params_len == 3:
-        theta_s_p = hasattr(model, 'theta_s')
-        if theta_s_p:
-            theta_s  = model.theta_s
-            theta_sr = theta_s
-        else:
-            theta_r  = model.theta_r
-            theta_sr = theta_r
+    (opt_values, cov, infodic, msg, ier) = \
+          leastsq(direct_wrapper, init_values,
+                   epsfcn=model.epsfcn, factor=model.factor,
+                   xtol=model.xtol, ftol=model.ftol,
+                   full_output=True)
 
-        xdata = (h, theta_s_p, theta_sr)
-    else:
-        theta_s = model.theta_s
-        theta_r = model.theta_r
+    optim_params = {key: value
+                    for (key, value) in zip(params_names, opt_values)}
 
-        xdata = (h, theta_s, theta_r)
+    return (optim_params, cov)
 
-    data_measured = model.theta
+P_DISP = None
 
-    inv_params, cov_inv = curve_fit(lsq_fn, xdata,
-                                    data_measured, p0 = inv_params_init)
+def extract_data(model):
+    global P_DISP
+    theta = model.theta_r + ((model.theta_s - model.theta_r)
+                             * h2u(-10.*P_DISP/model.rho/model.g,
+                                   model.n, 1.-1./model.n, model.gamma))
 
-    theta_inv = lsq_fn(xdata, *inv_params)
-    print('\ntheta_measured:', end='')
-    for th_m in data_measured:
-        print(' % 8.4f' % th_m, end='')
-    print('\ntheta_computed:', end='')
-    for th_c in theta_inv:
-        print(' % 8.4f' % th_c, end='')
-    print('\nError  (%):    ', end='')
-    for (th_m, th_c) in zip(data_measured, theta_inv):
-        print(' % 8.4f' % ((th_c - th_m) / th_m * 100), end='')
+    extracted_data = {'theta': (theta, P_DISP)}
 
-    print('\n\nOptimized parameters found:')
-    if inv_init_params_len == 4:
-        (n, gamma, theta_s, theta_r) = inv_params
-        params = ['n', 'gamma', 'theta_s', 'theta_r']
-    elif inv_init_params_len == 3:
-        if theta_s_p:
-            (n, gamma, theta_r) = inv_params
-            params = ['n', 'gamma', 'theta_r']
-        else:
-            (n, gamma, theta_s) = inv_params
-            params = ['n', 'gamma', 'theta_s']
-    else:
-        (n, gamma) = inv_params
-        params = ['n', 'gamma']
-
-    for (param, value) in zip(params, inv_params):
-        if param == 'gamma':
-            print(' %-7s: % 8.5g' % (param, value))
-        else:
-            print(' %-7s: % 8.5f' % (param, value))
-
-    print('\n Cov:\n%s\n' % cov_inv)
-
-    def compute_theta(p, n, m, gamma, theta_s, theta_r, rho,g):
-        theta_calc = theta_r + (theta_s - theta_r) * h2u(-10.*p/rho/g,
-                                                         n, 1.-1./n, gamma)
-        return theta_calc
-
-    if model.show_figures:
-        p_calc = np.arange(0, 10000000, 100)
-
-        dplot = make_dplot('RC', legend_loc=1, yscale='log', legend_title=None)
-
-        # computed data
-        theta_calc = compute_theta(p_calc, n, 1-1/n, gamma,
-                                   theta_s, theta_r, model.rho, model.g)
-        add_dplotline(dplot, theta_calc, p_calc, line_opts='-',
-                      label='computed')
-        # measured data
-        if model.p and model.theta:
-            add_dplotline(dplot, model.theta, model.p, line_opts='x',
-                          label='measured')
-
-        # referencing data
-        n_ref     = model.n_ref
-        gamma_ref = model.gamma_ref
-        if n_ref and gamma_ref:
-            theta_ref = compute_theta(p_calc, n_ref, 1-1/n_ref, gamma_ref,
-                                      theta_s, theta_r, model.rho, model.g)
-            add_dplotline(dplot, theta_ref, p_calc, line_opts='-',
-                          label=model.label_ref)
-
-        display_dplots(dplot, show_figures=True, separate_figures=True,)
-
-    return inv_params
+    return (True, extracted_data)
 
 def run(model):
-    return solve(model)
+    global P_DISP
+    (inv_params, cov) = solve(model)
+
+    # DISPLAY RESULTS:
+    if inv_params:
+        model.set_parameters(inv_params)
+        P_DISP = np.arange(0, 10000000, 100)
+        # run once again the direct problem with optimal parameters
+        model_verbosity = model.verbosity # backup verbosity
+        model.verbosity = 0
+        measurements = {'theta': (model.theta, model.p)}
+
+        data = ResultsData()
+        data.extract(extract_data, model, model.params_ref,
+                     measurements=measurements)
+        data.dump(model.experiment_info)
+
+        if model.show_figures:
+            dplots = DPlots(data, model.experiment_info)
+            #dplots.show_status()
+            dplots.display()
+
+        print('Cov:\n', cov)
+        print('Optimal parameters found:\n', inv_params)
+        model.verbosity = model_verbosity # restore verbosity
+
+    return inv_params

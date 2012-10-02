@@ -41,12 +41,28 @@ def solve(model):
 
     return (flag, t, z)
 
-def run(model):
+def extract_data(model):
     (flag, t, z) = solve(model)
 
     if not flag:
-        print('Error occured during computation... Computation exited.')
+        print('For given model the solver did not find results. Skipping.')
 
-    from modules.shared.show import draw_graphs
-    draw_graphs(t, mass_in=z[:, mass_in_idx], mass_out=z[:, mass_out_idx],
-                model=model, show_figures=model.show_figures)
+    extracted_data = {'MI': (t, z[model.mass_in_idx]),
+                      'MI': (t, z[model.mass_out_idx])}
+    return (flag, extracted_data)
+
+def run(model):
+    from modules.shared.functions import measurements_time
+
+    t_meas = measurements_time(model)[1:]
+    wl_out = np.cumsum(np.asarray(model.wl_out, dtype=float))
+    measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, wl_out)}
+    data = ResultsData()
+    data.extract(extract_data, model, model.params_ref,
+                 measurements=measurements)
+    data.dump(model.experiment_info)
+
+    if model.show_figures:
+        dplots = DPlots(data, model.experiment_info)
+        dplots.show_status()
+        dplots.display()
