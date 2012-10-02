@@ -662,16 +662,15 @@ class DPlots():
 
         # function body
         data   = self._data
-        dplots = self._dplots
 
-        if dplots is None: # if data is provided, generate dplots
+        if self._dplots is None: # if data is provided, generate dplots
             if not data.has_data('lines'):
                 print('No data is provided. Nothing to display.')
             else:
                 (self._dplots, self._plotstyles) = _mk_dplots(data,
                                                               experiment_info)
 
-        if not dplots is None: # is True if data was provided
+        if not self._dplots is None: # is True if data was provided
             _show_status(data)
 
             if data.has_data('cov'):
@@ -685,7 +684,7 @@ class DPlots():
                     else:
                         print('  {:9}: {: .8g}'.format(name, value))
 
-            _show_dplots(dplots, self._plot_styles, self._experiment_info)
+            _show_dplots(self._dplots, self._plotstyles, self._experiment_info)
             plt.show(block=False)
 
 
