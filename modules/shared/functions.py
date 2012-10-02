@@ -130,8 +130,9 @@ def show_results(extract_data, model, inv_params=None, cov=None):
     from modules.shared.show import ResultsData, DPlots
 
     measurements = {}
-    t_meas = measurements_time(model)[1:]
+    t_meas = measurements_time(model)
     if not t_meas is None:
+        t_meas = t_meas[1:]
         if model.wl_out:
             wl_out = np.cumsum(np.asarray(model.wl_out, dtype=float))
         else:
