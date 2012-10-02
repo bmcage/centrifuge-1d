@@ -70,7 +70,6 @@ def run(model):
     # DISPLAY RESULTS:
     if inv_params:
         model.set_parameters(inv_params)
-        # run once again the direct problem with optimal parameters
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
 
