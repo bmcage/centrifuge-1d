@@ -601,12 +601,12 @@ class DPlots():
                 # plot the supplied data
                 plot_labels = []
                 for dplot_data in dplot['data']:
-                    (xdata, ydata, data_label, plot_style) = dplot_data
+                    (xdata, ydata, line_label, plot_style) = dplot_data
                     plt.plot(xdata, ydata, plot_style)
-                    if type(data_label) == str:
-                        plot_labels.append(data_label)
+                    if type(line_label) == str:
+                        plot_labels.append(line_label)
                     else:
-                        plot_labels.extend(data_label)
+                        plot_labels.extend(line_label)
 
                 dplot_styles = dplot['styles']
                 (xlabel, ylabel) = dplot_styles['axes_labels']
