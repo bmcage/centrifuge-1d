@@ -666,8 +666,8 @@ class DPlots():
             if not data.has_data('lines'):
                 print('No data is provided. Nothing to display.')
             else:
-                (self._dplots, self._plotstyles) = _mk_dplots(data,
-                                                              experiment_info)
+                (self._dplots, self._plotstyles) = \
+                  _mk_dplots(data, self._experiment_info)
 
         if not self._dplots is None: # is True if data was provided
             _show_status(data)
