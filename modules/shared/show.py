@@ -465,7 +465,7 @@ class DPlots():
         self._data = data
         self._experiment_info = experiment_info
         self._dplots = None
-        self._plot_styles = None
+        self._plotstyles = None
 
     def display(self, fignum = 1):
 
