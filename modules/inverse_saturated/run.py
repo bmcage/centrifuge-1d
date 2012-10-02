@@ -1,5 +1,4 @@
-from modules.direct_saturated.run import solve as direct_solve, \
-     run as run_direct
+from modules.direct_saturated.run import solve as direct_solve, extract_data
 from modules.shared.solver import simulate_inverse
 from numpy import alen
 
@@ -41,7 +40,7 @@ def run(model):
         model.calc_wm = True
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
-        run_direct(model)
-        print('Cov:\n', cov)
-        print('Optimal parameters found:\n', inv_params)
+
+        show_results(extract_data, model, inv_params=inv_params, cov=cov)
+
         model.verbosity = model_verbosity # restore verbosity

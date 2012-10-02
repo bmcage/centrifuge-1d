@@ -2,6 +2,7 @@ import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.solver import simulate_direct
+from modules.shared.functions import show_results
 
 class direct_saturated_rhs(IDA_RhsFunction):
     def evaluate(self, t, x, xdot, result, model):
@@ -52,17 +53,4 @@ def extract_data(model):
     return (flag, extracted_data)
 
 def run(model):
-    from modules.shared.functions import measurements_time
-
-    t_meas = measurements_time(model)[1:]
-    wl_out = np.cumsum(np.asarray(model.wl_out, dtype=float))
-    measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, wl_out)}
-    data = ResultsData()
-    data.extract(extract_data, model, model.params_ref,
-                 measurements=measurements)
-    data.dump(model.experiment_info)
-
-    if model.show_figures:
-        dplots = DPlots(data, model.experiment_info)
-        dplots.show_status()
-        dplots.display()
+     show_results(extract_data, model)

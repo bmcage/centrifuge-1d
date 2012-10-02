@@ -1,9 +1,8 @@
 from modules.direct_draining_saturated.run import solve as solve_direct, \
-     create_data as create_direct_data
-from modules.shared.functions import measurements_time
+     extract_data
+from modules.shared.functions import measurements_time, show_results
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
-from modules.shared.show import disp_status as display_status
 from numpy import alen, cumsum
 
 def update_runtime_variables(model):
@@ -70,9 +69,9 @@ def run(model):
         model.calc_wm = True
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
-        data = create_direct_data(model)
-        data.add_value(inv_params=inv_params, cov=cov)
-        DPlots(data, model.experiment_info).display()
+
+        show_results(extract_data, model, inv_params=inv_params, cov=cov)
+
         model.verbosity = model_verbosity # restore verbosity
 
     return inv_params
