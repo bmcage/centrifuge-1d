@@ -679,10 +679,10 @@ class DPlots():
             _show_status(data)
 
             if data.has_data('cov'):
-                print('Cov:\n', data.get_value('cov'))
+                print('\nCov:\n', data.get_value('cov'))
             if  data.has_data('inv_params'):
                 params = data.get_value('inv_params')
-                print('Optimal parameters found:')
+                print('\nOptimal parameters found:')
                 for (name, value) in params.items():
                     if name == 'ks':
                         print('  Ks [cm/s]: {: .8g}'.format(value))
