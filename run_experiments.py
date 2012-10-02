@@ -311,7 +311,6 @@ if __name__ == "__main__":
         data = ResultsData()
         if data.load(experiment_info):
             dplots = DPlots(data, experiment_info)
-            dplots.show_status()
             dplots.display()
 
     elif options.compare_p:
