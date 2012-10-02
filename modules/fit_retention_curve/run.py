@@ -53,11 +53,14 @@ P_DISP = None
 
 def extract_data(model):
     global P_DISP
-    theta = model.theta_r + ((model.theta_s - model.theta_r)
-                             * h2u(-10.*P_DISP/model.rho/model.g,
-                                   model.n, 1.-1./model.n, model.gamma))
+    (n, gamma, theta_s, theta_r) = (model.n, model.gamma,
+                                    model.theta_s, model.theta_r)
+    theta = theta_r + ((theta_s - theta_r)
+                       * h2u(-10.*P_DISP/model.rho/model.g, n, 1.-1./n, gamma))
+    theta_in_measured_points = theta_r + ((theta_s - theta_r)
+                                          * h2u(model.h, n, 1.-1./n, gamma))
 
-    extracted_data = {'theta': (theta, P_DISP)}
+    extracted_data = {'theta': (theta, P_DISP, theta_in_measured_points)}
 
     return (True, extracted_data)
 

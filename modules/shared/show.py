@@ -652,15 +652,19 @@ class DPlots():
             measurements = data.get_linedata('measured', 'measured')
             computed     = data.get_linedata('computed', 'computed')
 
-            for (key, m_value) in measurements.items():
-                if m_value[1] is None: continue
+            for (key, m_data) in measurements.items():
+                if m_data[1] is None: continue
 
                 if key in computed:
-                    c_value = computed[key][1]
+                    if key == 'theta':
+                        c_value = computed[key][2]
+                        m_value = m_data[0]
+                    else:
+                        c_value = computed[key][1][1:]
+                        m_value = m_data[1]
 
                 if c_value is not None:
-                    status_items.append(mk_status_item(key, c_value[1:],
-                                                       m_value[1]))
+                    status_items.append(mk_status_item(key, c_value, m_value))
 
             if status_items:
                 display_status(status_items)
