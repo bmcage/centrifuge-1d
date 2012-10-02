@@ -351,7 +351,7 @@ def extract_data(model):
                       'MO': (t, MO), 's1': (t, s1), 's2': (t, s2)}
     return (flag, extracted_data)
 
-def run(model):
+def create_data(model):
     from modules.shared.functions import measurements_time
 
     t_meas = measurements_time(model)[1:]
@@ -364,9 +364,15 @@ def run(model):
     data = ResultsData()
     data.extract(extract_data, model, model.params_ref,
                  measurements=measurements)
-    data.dump(model.experiment_info)
+    if model.save_data:
+        data.dump(model.experiment_info)
+
+    return data
+
+def run(model):
+
+    data = create_data(model)
 
     if model.show_figures:
         dplots = DPlots(data, model.experiment_info)
-        dplots.show_status()
         dplots.display()
