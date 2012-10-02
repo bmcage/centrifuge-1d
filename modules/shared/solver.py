@@ -181,8 +181,7 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
                      optimfn='leastsq'):
 
     from modules.shared.functions import determine_scaling_factor
-    from modules.shared.show import disp_status as display_status, \
-     mk_status_item
+    from modules.shared.show import display_status, mk_status_item
     from numpy import log, exp, alen
 
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
