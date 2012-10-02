@@ -657,8 +657,6 @@ class DPlots():
             if status_items:
                 display_status(status_items)
 
-
-
         # function body
         data   = self._data
 
