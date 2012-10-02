@@ -1,4 +1,5 @@
-from modules.direct_saturated.run import solve as direct_solve
+from modules.direct_saturated.run import solve as direct_solve, \
+     run as run_direct
 from modules.shared.solver import simulate_inverse
 from numpy import alen
 
@@ -32,4 +33,15 @@ def solve(model):
     return inv_params
 
 def run(model):
-    return solve(model)
+    (inv_params, cov) = solve(model)
+
+    if inv_params:
+        model.set_parameters(inv_params)
+        # run once again the direct problem with optimal parameters
+        model.calc_wm = True
+        model_verbosity = model.verbosity # backup verbosity
+        model.verbosity = 0
+        run_direct(model)
+        print('Cov:\n', cov)
+        print('Optimal parameters found:\n', inv_params)
+        model.verbosity = model_verbosity # restore verbosity
