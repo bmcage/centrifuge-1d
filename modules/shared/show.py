@@ -659,7 +659,7 @@ class DPlots():
                     c_value = computed[key][1]
 
                 if c_value is not None:
-                    status_items.append(mk_status_item(key, c_value[:-1],
+                    status_items.append(mk_status_item(key, c_value[1:],
                                                        m_value[1]))
 
             if status_items:
@@ -692,7 +692,5 @@ class DPlots():
             _show_dplots(self._dplots, self._plotstyles.get_display_options(),
                          self._experiment_info)
             plt.show(block=False)
-
-
 
         input('Press ENTER to continue...')
