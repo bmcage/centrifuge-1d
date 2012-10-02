@@ -403,7 +403,8 @@ class PlotStyles():
                                               'show_legend', 'legend_title',
                                               'legend_bbox', 'legend_loc']}
         user_styles = self._get_value('datasets')
-        if user_styles: dplot_styles.update(user_styles)
+        if user_styles and (dplot_id in user_styles):
+            dplot_styles.update(user_styles[dplot_id])
 
          # try to set default value
         if (dplot_styles['axes_labels'] is None) and (dplot_id in DG_AXES_LABELS):
