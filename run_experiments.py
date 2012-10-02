@@ -69,7 +69,7 @@ def parse_input():
                 print('\n'.join(sorted(listdir(
                     get_directories('ini', 'base',
                                     {key: '' for key in ['exp_id', 'exp_no',
-                                                         'tube_no']})))))
+                                                         'tube_no', 'mask']})))))
             if options.modules_list:
                 modman = ModulesManager()
                 modman.echo(options.verbose)
