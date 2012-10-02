@@ -258,6 +258,12 @@ class ResultsData():
         if data_name in ['cov', 'inv_params']:
             return self._data[data_name]
 
+    def add_value(self, inv_params = None, cov = None):
+        if has_data(inv_params):
+            self._data['inv_params'] = inv_params
+        if has_data(cov):
+            self._data['cov'] = cov
+
     def dump(self, experiment_info):
         if not self.has_data():
             print('No data is provided. Skipping data dumping.')
