@@ -124,7 +124,7 @@ DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 def mk_status_item(data_id, data_computed, data_measured = []):
    return {'id': data_id, 'data': (data_computed, data_measured)}
 
-def disp_status(data_plots=None, params=None, cov=None):
+def display_status(data_plots=None):
 
     def compare_data(name, data_computed, data_measured, relerror, abserror):
         name_len = len(name)
@@ -180,17 +180,6 @@ def disp_status(data_plots=None, params=None, cov=None):
 
             compare_data(plot_id, value_computed, value_measured,
                          rel_error, abs_error)
-
-    if params:
-        print('Parameters:')
-        for (name, value) in params.items():
-            if name == 'ks':
-                print('  Ks [cm/s]: {: .8g}'.format(value))
-            else:
-                print('  {:9}: {: .8g}'.format(name, value))
-
-    if has_data(cov):
-        print('Cov:\n', cov)
 
 # ResultData: hold the data of the computation
 # Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
