@@ -401,7 +401,9 @@ class PlotStyles():
     def _mk_dplotstyles(self, dplot_id):
         dplot_styles = {tag: None for tag in ['axes_labels', 'xscale', 'yscale',
                                               'show_legend', 'legend_title',
-                                              'legend_bbox', 'legend_loc']}
+                                              'legend_bbox', 'legend_loc',
+                                              'show']}
+
         user_styles = self._get_value('datasets')
         if user_styles and (dplot_id in user_styles):
             dplot_styles.update(user_styles[dplot_id])
@@ -509,6 +511,13 @@ class DPlots():
 
                 dplots_bucket[data_type]['data'].append(item)
 
+        def _filter_dplots(dplots_bucket):
+            for name in list(dplots_bucket.keys()):
+                if dplots_bucket[name]['styles']['show'] == False:
+                    del dplots_bucket[name]
+
+            return dplots_bucket
+
         def _order_dplots(dplots_bucket):
             ordered_dplots = []
             single_dplots  = []
@@ -546,7 +555,7 @@ class DPlots():
                 _add_plotline(line_type, line_id, line_data, data_types,
                               plot_styles, dplots_bucket)
 
-            ordered_dplots = _order_dplots(dplots_bucket)
+            ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
 
             return (ordered_dplots, plot_styles)
 
