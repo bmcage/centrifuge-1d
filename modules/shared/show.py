@@ -457,84 +457,52 @@ class PlotStyles():
 class DPlots():
     def __init__(self, data, experiment_info):
         self._data = data
-        self._display = data.has_data()
-        if not self._display:
-            print('No data is provided. Nothing to display.')
-            return
-
         self._experiment_info = experiment_info
-
-        plot_styles = PlotStyles(experiment_info)
-        self._plot_styles = plot_styles
-
-        data_types = data.get_linedatatypes()
-        self._dplots_bucket = self._make(data_types, plot_styles)
-
-        for (line_type, line_id, line_data) in data.iterate_lines():
-            self._add_plotline(line_type, line_id, line_data, data_types)
-
-    def _make(self, data_types, plot_styles):
-        dplots_bucket = {dtype: {'id': dtype, 'data': [],
-                                  'styles': plot_styles.get_dplotstyles(dtype)}
-                         for dtype in data_types}
-
-        return dplots_bucket
-
-    def _add_plotline(self, line_type, line_id, line_data, data_types):
-        bucket = self._dplots_bucket
-
-        line_styles = self._plot_styles.get_linestyle(line_type, line_id,
-                                                      data_types)
-        if 'label' in line_styles:
-            label = line_styles['label']
-        else:
-            label = line_id
-
-        for (data_type, data_value) in line_data.items():
-            if not data_value: continue
-
-            # we skip other 'h' and 'u' data, as it would be mess
-            if (data_type in ['h', 'u']) and (not label == 'computed'):
-                continue
-
-            (xdata, ydata) = (data_value[0], data_value[1])
-
-            if not (has_data(xdata) and has_data(ydata)): continue
-
-            if ((data_type in ['h', 'u']) and (len(data_value) > 2)
-                and has_data(data_value[2]) and (not 'label' in line_styles)):
-                ilabel = ['% 6d' % (ti/60.) for ti in data_value[2]]
-            else:
-                ilabel = label
-
-            item = (xdata, ydata, ilabel, line_styles[data_type])
-
-            bucket[data_type]['data'].append(item)
-
-    def show_status(self):
-        data = self._data
-        status_items = []
-
-        measurements = data.get_linedata('measured', 'measured')
-        computed     = data.get_linedata('computed', 'computed')
-
-        for (key, m_value) in measurements.items():
-            if m_value[1] is None: continue
-
-            if key in computed:
-                c_value = computed[key][1]
-
-            if c_value is not None:
-                status_items.append(mk_status_item(key, c_value[:-1],
-                                                   m_value[1]))
-
-        if status_items:
-            disp_status(status_items)
+        self._dplots = None
+        self._plot_styles = None
 
     def display(self, fignum = 1):
-        if not self._display: return
 
-        def order_dplots(dplots_bucket):
+        def _mk_dplots_bucket(data_types, plot_styles):
+            dplots_bucket = \
+              {dtype: {'id': dtype, 'data': [],
+                       'styles': plot_styles.get_dplotstyles(dtype)}
+                for dtype in data_types}
+
+            return dplots_bucket
+
+        def _mk_plotline(line_type, line_id, line_data, data_types,
+                         plot_styles):
+
+            line_styles = plot_styles.get_linestyle(line_type, line_id,
+                                                        data_types)
+            if 'label' in line_styles:
+                label = line_styles['label']
+            else:
+                label = line_id
+
+            for (data_type, data_value) in line_data.items():
+                if not data_value: continue
+
+                # we skip other 'h' and 'u' data, as it would be mess
+                if (data_type in ['h', 'u']) and (not label == 'computed'):
+                    continue
+
+                (xdata, ydata) = (data_value[0], data_value[1])
+
+                if not (has_data(xdata) and has_data(ydata)): continue
+
+                if ((data_type in ['h', 'u']) and (len(data_value) > 2)
+                    and has_data(data_value[2]) and (not 'label' in line_styles)):
+                    ilabel = ['% 6d' % (ti/60.) for ti in data_value[2]]
+                else:
+                    ilabel = label
+
+                item = (xdata, ydata, ilabel, line_styles[data_type])
+
+                return item
+
+        def _order_dplots(dplots_bucket):
             ordered_dplots = []
             single_dplots  = []
 
@@ -562,16 +530,30 @@ class DPlots():
 
             return ordered_dplots
 
-        def show_dplots(ordered_dplots):
+        def _mk_dplots(data, experiment_info):
+            plot_styles   = PlotStyles(experiment_info)
+            data_types    = data.get_linedatatypes()
+            dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
+
+            for (line_type, line_id, line_data) in data.iterate_lines():
+                item = _mk_plotline(line_type, line_id, line_data, data_types,
+                                    plot_styles)
+                dplots_bucket[data_type]['data'].append(item)
+
+            ordered_dplots = _order_dplots(self._dplots_bucket)
+
+            return (ordered_dplots, plot_styles)
+
+        def _show_dplots(ordered_dplots, plot_styles, experiment_info):
             nonlocal fignum
 
-            disp_opts = self._plot_styles.get_display_options()
+            disp_opts = plot_styles.get_display_options()
 
             separate_figures = disp_opts['separate_figures']
             save_figures     = disp_opts['save_figures']
 
             if save_figures:
-                experiment_info = self._experiment_info
+                experiment_info = experiment_info
                 if experiment_info['mask']:
                     figs_dir_type = 'mask'
                 else:
@@ -651,8 +633,55 @@ class DPlots():
             if save_figures and (img_num < images_per_figure):
                 plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
 
-        # function body
-        show_dplots(order_dplots(self._dplots_bucket))
+        def _show_status(data):
+            status_items = []
 
-        plt.show(block=False)
+            measurements = data.get_linedata('measured', 'measured')
+            computed     = data.get_linedata('computed', 'computed')
+
+            for (key, m_value) in measurements.items():
+                if m_value[1] is None: continue
+
+                if key in computed:
+                    c_value = computed[key][1]
+
+                if c_value is not None:
+                    status_items.append(mk_status_item(key, c_value[:-1],
+                                                       m_value[1]))
+
+            if status_items:
+                display_status(status_items)
+
+
+
+        # function body
+        data   = self._data
+        dplots = self._dplots
+
+        if dplots is None: # if data is provided, generate dplots
+            if not data.has_data('lines'):
+                print('No data is provided. Nothing to display.')
+            else:
+                (self._dplots, self._plotstyles) = _mk_dplots(data,
+                                                              experiment_info)
+
+        if not dplots is None: # is True if data was provided
+            _show_status(data)
+
+            if data.has_data('cov'):
+                print('Cov:\n', data.get_value('cov'))
+            if  data.has_data('inv_params'):
+                params = data.get_value('inv_params')
+                print('Optimal parameters found:')
+                for (name, value) in params.items():
+                    if name == 'ks':
+                        print('  Ks [cm/s]: {: .8g}'.format(value))
+                    else:
+                        print('  {:9}: {: .8g}'.format(name, value))
+
+            _show_dplots(dplots, self._plot_styles, self._experiment_info)
+            plt.show(block=False)
+
+
+
         input('Press ENTER to continue...')
