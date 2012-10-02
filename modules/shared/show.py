@@ -193,16 +193,21 @@ def disp_status(data_plots=None, params=None, cov=None):
         print('Cov:\n', cov)
 
 # ResultData: hold the data of the computation
-# Internal structure: dictionary of types: {line_type: line_type_data} where
-# line_type is (by default) one of ['computed', 'measured', 'references'] and
-# line_type_data is a dictionary of types: {line_id: line_data}, with
-# line_id the ID of the line and line_data a dict of types
-# {data_type: (xdata, ydata)}, where data_type is (by default) one of
-# ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'], xdata is the x-axis coordinate and
-# ydata is the y-axis coordinate (computed value)
+# Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
+# where:
+# lines_structure: dictionary of types: {line_type: line_type_data} where:
+#     line_type is (by default) one of ['computed', 'measured', 'references']
+#     line_type_data is a dictionary of types: {line_id: line_data}, with
+#         line_id the ID of the line
+#         line_data a dict of types {data_type: (xdata, ydata)},
+#              where data_type is (by default) one of
+#              ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'], xdata is the x-axis
+#              coordinate and ydata is the y-axis coordinate (computed value)
+# inv_params: dict of inverse parameters {param_name: param_value} (or None)
+# cov: the covariance matrix (or None)
 class ResultsData():
     def __init__(self):
-        self._data = None
+        self._data = {name: None for name in ['lines', 'inv_params', 'cov']}
 
     def extract(self, extract_data_fn, model, referencing_parameters=[],
                  measurements=None):
@@ -210,7 +215,7 @@ class ResultsData():
         (flag, value) = extract_data_fn(model)
         if not flag:
             print('Computation was not successfull. No data will be saved.')
-            self._data = None
+            self._data['lines'] = None
             return
 
         data = {'computed': {'computed': value}}
@@ -255,9 +260,10 @@ class ResultsData():
         if measurements:
             data['measured'] = {'measured': measurements}
 
-        self._data = data
-    def has_data(self):
-        return not self._data is None
+        self._data['lines'] = data
+
+    def has_data(self, data_type='lines'):
+        return not self._data[data_type] is None
 
     def dump(self, experiment_info):
         if not self.has_data():
@@ -285,21 +291,24 @@ class ResultsData():
 
     def get_datatypes(self):
          # line_type 'computed' with ID 'computed' has to be present
-        return self._data['computed']['computed'].keys()
+        return self._data['lines']['computed']['computed'].keys()
     def get_linetypes(self):
-        return self._data.keys()
+        return self._data['lines'].keys()
 
     def get_linedata(self, line_type, line_id):
-        data = self._data
+        data = self._data['lines']
         if (line_type in data) and (line_id in data[line_type]):
             return data[line_type][line_id]
         else:
             return None
 
-    def iterate(self):
-        for (data_type, lines) in self._data.items():
-            for (line_id, line_data) in lines.items():
-                yield (data_type, line_id, line_data)
+    def iterate_lines(self):
+        if not self.has_data('lines'):
+            yield None
+        else:
+            for (data_type, lines) in self._data['lines'].items():
+                for (line_id, line_data) in lines.items():
+                    yield (data_type, line_id, line_data)
 
 class PlotStyles():
     def __init__(self, experiment_info):
@@ -468,7 +477,7 @@ class DPlots():
         data_types = data.get_datatypes()
         self._dplots_bucket = self._make(data_types, plot_styles)
 
-        for (line_type, line_id, line_data) in data.iterate():
+        for (line_type, line_id, line_data) in data.iterate_lines():
             self._add_plotline(line_type, line_id, line_data, data_types)
 
     def _make(self, data_types, plot_styles):
