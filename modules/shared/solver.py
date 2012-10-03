@@ -32,6 +32,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     model.set_value('omega_start', 0.0)
     model.set_value('t0', t0)
+    model.set_value('phase', 'U') # initialize to dummy value
 
     if update_initial_condition:
         z0 = empty([model.z_size, ], float)
@@ -92,8 +93,10 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
             if duration_type == 'duration':
                 model.set_omega2g_fn('centrifugation')
+                model.phase = 'a'
             elif duration_type == 'fh_duration':
                 model.set_omega2g_fn('falling_head')
+                model.phase = 'g'
                 # backup values
                 r0           = model.r0
                 duration     = model.duration
@@ -101,6 +104,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 model.r0    = model.r0_fall
                 model.duration = fh_duration
             else:
+                model.phase = 'd'
                 model.set_omega2g_fn('deceleration')
 
             if not solver_initialized:
