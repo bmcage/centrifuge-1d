@@ -240,6 +240,17 @@ class Configuration:
             else:
                 return not_found
 
+    def del_value(self, key, section = None):
+        if self._preserve_sections_p:
+            if not section:
+                print('set_value error: Section not specified: ', section)
+                exit(1)
+            cfg_dict = self._cfg_dict[section]
+        else:
+            cfg_dict = self._cfg_dict
+
+        del cfg_dict[key]
+
     def iterate_values(self, section = None):
         if self._preserve_sections_p and section:
             print('cfg:iterate_values: preserving sections is not implemented.')
