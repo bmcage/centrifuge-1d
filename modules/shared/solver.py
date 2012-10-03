@@ -63,24 +63,24 @@ def simulate_direct(initialize_z0, model, residual_fn,
     model.init_iteration() # Re-initialize iterable variables
 
     # Run computation
-    out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f} {:>8}'
+    out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}  {:>6}'
 
     iterations = model.iterations
 
     if verbosity > 1:
-        capt_s = '{:>6} {:>12}  {:>12}  {:>12} {:>8}'
+        capt_s = '\n{:>6} {:>12}  {:>12}  {:>12}  {:>6}'
         print(capt_s.format('Run', 'Start time', 'Duration', 'End time',
-                            'Phase(s)'))
+                            'Phases'))
     while True:
         if verbosity == 2:
             total_duration = (model.duration + model.fh_duration
                               + model.deceleration_duration)
-            phases = ''
-            if model.duration > 0.0: phases += 'A'
-            if model.fh_duration > 0.0: phases += 'G'
-            if model.deceleration_duration > 0.0: phases += 'D'
+            phases = []
+            if model.duration > 0.0: phases.append('A')
+            if model.deceleration_duration > 0.0: phases.append('D')
+            if model.fh_duration > 0.0: phases.append('G')
             print(out_s.format(i, t0, total_duration, t0 + total_duration,
-                               phases))
+                               '-'.join(phases)))
 
         for duration_type in ['duration', 'deceleration_duration',
                               'fh_duration']:
