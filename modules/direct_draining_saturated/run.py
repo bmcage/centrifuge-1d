@@ -71,14 +71,6 @@ class centrifuge_residual(IDA_RhsFunction):
                                                   + y[1:-1]*ds2dt))
             + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
 
-
-        verbosity = model.verbosity
-
-        if verbosity > 3:
-            print('t: %10.6g' % t, 's1: %8.6g' % z[model.s1_idx],
-                  's2: %8.6g' % z[model.s2_idx], 'ds2dt: %10.6g' % ds2dt,
-                  end='')
-
         if rb_type == 3:
             q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
 
@@ -89,14 +81,8 @@ class centrifuge_residual(IDA_RhsFunction):
                      / (model.fl1/model.ks1 + (L-s2)/model.ks
                         + model.fl2/model.ks2))
 
-            if verbosity > 4:
-                print('  q_sat', q_sat, 'rD', rD, 'rI', rI,
-                      'omega^2/g', omega2g, end='')
-
             if q_sat < 0:
-                if verbosity > 1:
-                    print('       Q_SAT: ', q_sat, ' !!!')
-
+                pass
                 #q_sat = 0.0
 
             u = h2u(h, n, m, gamma)
@@ -104,8 +90,6 @@ class centrifuge_residual(IDA_RhsFunction):
               water_mass(u, z[model.mass_in_idx], z[model.mass_out_idx], s1, s2,
                          model)
             result[last_idx]  = hdot[-1]
-            if verbosity > 4:
-                print('  WM: ', WM_total, 'WM0', model.wm0, end='')
             result[model.s2_idx] = WM_total - model.wm0
             result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_sat
         else:
@@ -134,7 +118,18 @@ class centrifuge_residual(IDA_RhsFunction):
         result[model.s1_idx]      = zdot[model.s1_idx]
         result[model.pq_idx]      = zdot[model.pq_idx]
 
-        if verbosity > 3: print()
+        verbosity = model.verbosity
+        if verbosity > 2:
+            if (rb_type == 3) and (q_sat < 0.0):
+                print('       Q_SAT: ', q_sat, ' !!!')
+            if verbosity > 3:
+                print('t: %10.6g' % t, 's1: %8.6g' % z[model.s1_idx],
+                      's2: %8.6g' % z[model.s2_idx], 'ds2dt: %10.6g' % ds2dt)
+
+                if (verbosity > 4) and (rb_type == 3):
+                    print('  q_sat', q_sat, 'rD', rD, 'rI', rI,
+                          'omega^2/g', omega2g, end='')
+                    print('  WM: ', WM_total, 'WM0', model.wm0)
 
         return 0
 
