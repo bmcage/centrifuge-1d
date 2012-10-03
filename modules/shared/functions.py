@@ -8,30 +8,6 @@ def rpm2radps(x):
     # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
     return x * np.pi/ 30.0
 
-def measurements_time(model):
-    if not hasattr(model, 'duration'):
-        return None
-
-    t_duration = model.get_iterable_value('duration')
-    if not t_duration:
-        t_duration = model.duration
-    t_duration = np.asarray(t_duration, dtype=float)
-
-    if model.include_acceleration:
-        t_duration[:] = t_duration + model.deceleration_duration
-
-    t_fh_duration = model.get_iterable_value('fh_duration')
-    if not t_fh_duration:
-        t_fh_duration = model.fh_duration
-
-    stop_times = np.cumsum(t_duration + np.asarray(t_fh_duration, dtype=float))
-
-    meas_times = np.empty(np.alen(stop_times)+1, dtype=float)
-    meas_times[0]  = 0.0
-    meas_times[1:] = stop_times
-
-    return meas_times
-
 def lagrangean_derivative_coefs(dx):
     """
     Returns the coeficients for the Lagrangeand derivative of the differences
@@ -126,25 +102,11 @@ def y2x(y, s1, s2):
     return x
 
 def show_results(extract_data, model, inv_params=None, cov=None):
-    from modules.shared.functions import measurements_time
     from modules.shared.show import ResultsData, DPlots
-
-    measurements = {}
-    t_meas = measurements_time(model)
-    if not t_meas is None:
-        t_meas = t_meas[1:]
-        if model.wl_out:
-            wl_out = np.cumsum(np.asarray(model.wl_out, dtype=float))
-        else:
-            wl_out = None
-        measurements = {'MI': (t_meas, model.wl1), 'MO': (t_meas, wl_out),
-                        'GC': (t_meas, model.gc1), 'RM': (t_meas, model.rm1)}
-    if hasattr(model, 'p'):
-        measurements['theta'] = (model.theta, model.p)
 
     data = ResultsData()
     data.extract(extract_data, model, model.params_ref,
-                 measurements=measurements)
+                 measurements=model.measurements)
     data.add_value(inv_params=inv_params, cov=cov)
 
     if model.save_data:
