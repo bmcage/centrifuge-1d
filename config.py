@@ -9,6 +9,7 @@ try:
 except:
     import configparser
 from numpy import inf
+from modules.shared.functions import has_data
 from os import listdir
 from sys import modules as sysmodules
 from types import MethodType

@@ -1,6 +1,7 @@
 import scikits.odes.sundials.ida as ida
 from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
                    asarray, cumsum, empty, ones)
+from modules.shared.functions import has_data
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'

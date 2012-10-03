@@ -153,3 +153,11 @@ def show_results(extract_data, model, inv_params=None, cov=None):
     if model.show_figures:
         dplots = DPlots(data, model.experiment_info)
         dplots.display()
+
+def has_data(x):
+    if x is None:
+        return False
+    elif isinstance(x, np.ndarray):
+        return not (x.size == 0)
+    else:
+        return bool(x)
