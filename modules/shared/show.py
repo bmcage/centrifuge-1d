@@ -483,7 +483,7 @@ class DPlots():
                 label = line_id
 
             for (data_type, data_value) in line_data.items():
-                if not data_value: continue
+                if not has_data(data_value): continue
 
                 # we skip other 'h' and 'u' data, as it would be mess
                 if (data_type in ['h', 'u']) and (not label == 'computed'):
