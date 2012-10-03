@@ -8,7 +8,8 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
-from numpy import inf
+from numpy import inf, concatenate, cumsum, asarray, any as np_any
+from modules.shared.functions import has_data
 from os import listdir
 from sys import modules as sysmodules
 from types import MethodType
@@ -239,6 +240,17 @@ class Configuration:
             else:
                 return not_found
 
+    def del_value(self, key, section = None):
+        if self._preserve_sections_p:
+            if not section:
+                print('set_value error: Section not specified: ', section)
+                exit(1)
+            cfg_dict = self._cfg_dict[section]
+        else:
+            cfg_dict = self._cfg_dict
+
+        del cfg_dict[key]
+
     def iterate_values(self, section = None):
         if self._preserve_sections_p and section:
             print('cfg:iterate_values: preserving sections is not implemented.')
@@ -313,6 +325,77 @@ class Configuration:
 
         return self
 
+    def _group(self):
+        def _measurements_times(cfg):
+            t_duration    = cfg.get_value('duration', not_found=None)
+            t_fh_duration = cfg.get_value('fh_duration', not_found=None)
+            dec_duration  = cfg.get_value('deceleration_duration',
+                                          not_found=None)
+
+            if t_duration is None:
+                t_duration = 0.0
+            else:
+                t_duration = asarray(t_duration, dtype=float)
+            if dec_duration  is None: dec_duration = 0.0
+            if cfg.get_value('include_acceleration'):
+                t_duration[:] = t_duration + dec_duration
+
+            if t_fh_duration is None:
+                t_fh_duration = 0.0
+            else:
+                t_fh_duration = asarray(t_fh_duration, dtype=float)
+
+            duration_times = t_duration + t_fh_duration
+            if not np_any(duration_times): return None # no times were specified
+
+            stop_times = cumsum(concatenate(([0.0], duration_times)))
+
+            return stop_times
+
+        def _group_measurments(cfg):
+            measurements_names = ('MI', 'MO', 'GC', 'RM', 'theta')
+
+            measurements = {}
+            measurements_weights = {}
+
+            t = _measurements_times(cfg)
+            if not t is None:
+                measurements['t'] = t
+                t_meas = t[1:]
+
+            for name in measurements_names:
+                if name == 'MI':
+                    iname = 'wl1'
+                elif name == 'MO':
+                    iname = 'wl_out'
+                else:
+                    iname = name
+
+                value = cfg.get_value(iname, not_found=EOFError)
+                if value == EOFError: continue
+
+                cfg.del_value(iname)
+                if name == 'MO':
+                    value = cumsum(asarray(value, dtype=float))
+
+                if name == 'theta':
+                    measurements[name] = (value, cfg.get_value('p'))
+                else:
+                    measurements[name] = (t_meas, value)
+
+                iname_w = iname + '_weights'
+                value_w = cfg.get_value(iname_w, not_found=EOFError)
+                if value_w == EOFError: continue
+
+                self.del_value(iname_w)
+                measurements_weights[name] = value_w
+
+            cfg.set_value('measurements', measurements)
+            cfg.set_value('measurements_weights', measurements_weights)
+
+        # Function body
+        _group_measurments(self)
+
     def adjust_cfg(self, modman):
 
         def module_preadjust_cfg(module):
@@ -330,6 +413,8 @@ class Configuration:
         modman.traverse_ancestors(exp_type, module_adjust_cfg,
                                   prehook=module_preadjust_cfg,
                                   submodule='options')
+
+        self._group()
 
     def merge(self, *cfgs):
         """

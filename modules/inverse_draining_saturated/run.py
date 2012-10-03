@@ -1,9 +1,9 @@
 from modules.direct_draining_saturated.run import solve as solve_direct, \
      extract_data
-from modules.shared.functions import measurements_time, show_results
+from modules.shared.functions import show_results
 from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
-from numpy import alen, cumsum
+from numpy import alen
 
 def update_runtime_variables(model):
     if model.dynamic_h_init:
@@ -36,23 +36,14 @@ def solve(model):
 
         return result
 
-    t_meas = measurements_time(model)
-
     calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm')) # backup
     model.calc_gc = bool(model.gc1)
     model.calc_rm = bool(model.rm1)
     model.calc_wm = model.calc_gc or model.calc_rm
 
     (inv_params, cov) = \
-      simulate_inverse(t_meas, ip_direct_drainage, model, model.inv_init_params,
-                       wl_in_meas  = model.wl1,
-                       wl_out_meas = model.wl_out,
-                       gc_meas     = model.gc1,
-                       rm_meas     = model.rm1,
-                       wl_in_weights  = model.wl1_weights,
-                       wl_out_weights = model.wl_out_weights,
-                       gc_weights     = model.gc1_weights,
-                       rm_weights     = model.rm1_weights,
+      simulate_inverse(ip_direct_drainage, model, model.inv_init_params,
+                       model.measurements, model.measurements_weights,
                        optimfn=model.optimfn)
 
     model.set_parameters(calc_p) # ...and restore values
