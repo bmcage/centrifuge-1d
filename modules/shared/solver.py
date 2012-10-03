@@ -63,18 +63,24 @@ def simulate_direct(initialize_z0, model, residual_fn,
     model.init_iteration() # Re-initialize iterable variables
 
     # Run computation
-    out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}'
+    out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f} {:>8}'
 
     iterations = model.iterations
 
     if verbosity > 1:
-        capt_s = '{:>6} {:>12}  {:>12}  {:>12}'
-        print(capt_s.format('Run', 'Start time', 'Duration', 'End time'))
+        capt_s = '{:>6} {:>12}  {:>12}  {:>12} {:>8}'
+        print(capt_s.format('Run', 'Start time', 'Duration', 'End time',
+                            'Phase(s)'))
     while True:
         if verbosity == 2:
             total_duration = (model.duration + model.fh_duration
                               + model.deceleration_duration)
-            print(out_s.format(i, t0, total_duration, t0 + total_duration))
+            phases = ''
+            if model.duration > 0.0: phases += 'A'
+            if model.fh_duration > 0.0: phases += 'G'
+            if model.deceleration_duration > 0.0: phases += 'D'
+            print(out_s.format(i, t0, total_duration, t0 + total_duration,
+                               phases))
 
         for duration_type in ['duration', 'deceleration_duration',
                               'fh_duration']:
@@ -87,9 +93,6 @@ def simulate_direct(initialize_z0, model, residual_fn,
             t_end = t0 + duration
 
             solver.set_options(tstop=t_end)
-
-            if verbosity > 2:
-                print(out_s.format(i, t0, duration, t_end))
 
             if duration_type == 'duration':
                 model.set_omega2g_fn('centrifugation')
@@ -106,6 +109,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
             else:
                 model.phase = 'd'
                 model.set_omega2g_fn('deceleration')
+
+            if verbosity > 2:
+                print(out_s.format(i, t0, duration, t_end, phase.upper()))
 
             if not solver_initialized:
                 (flag, t_init) = solver.init_step(t0, z0, zp0)
