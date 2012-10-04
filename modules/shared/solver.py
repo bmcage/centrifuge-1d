@@ -11,7 +11,7 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
 def simulate_direct(initialize_z0, model, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None,
-                    on_phase_change = None):
+                    on_phase_change = None, continue_on_root_found=None):
 
     # Check supplied arguments
     if (not root_fn is None) and (nr_rootfns is None):
@@ -120,18 +120,30 @@ def simulate_direct(initialize_z0, model, residual_fn,
             if not on_phase_change is None:
                 if previous_phase is None: previous_phase = phase
                 if previous_phase != phase: on_phase_change(model, phase)
-            (flag, t_out) = solver.step(t_end, z[i, :])
 
-            if t_out < t_end:
-                if verbosity > 1:
-                    print('Error occured during computation. Solver failed '
-                          'at time\nt_err=', t_out,
-                          '\nExpected value of t:', t)
-                if verbosity > 2:
-                    print('Values at this time:\nz_err=', z[i, :])
+            while True:
+                (flag, t_out) = solver.step(t_end, z[i, :])
 
-                return (False, t[:i], z[:i, :])
+                if flag < 0:     # error occured
+                    if verbosity > 1:
+                        print('Error occured during computation. Solver failed '
+                              'at time\nt_err=', t_out,
+                              '\nExpected value of t:', t)
+                    if verbosity > 2:
+                        print('Values at this time:\nz_err=', z[i, :])
 
+                    return (False, t[:i], z[:i, :])
+                elif flag == 2: # root found
+                    if ((not continue_on_root_found is None)
+                         and (continue_on_root_found(model, t_out, z[i, :]))):
+                        if verbosity > 1:
+                             print('Root found: continuing computation')
+                    else:
+                        if verbosity > 1:
+                             print('Root found: aborted further computation.')
+                        return (False, t[:i], z[:i, :])
+                else: # otherwise computation finished, continue to next cycle
+                    break
 
             t0 = t_out
 
