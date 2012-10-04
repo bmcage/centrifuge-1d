@@ -10,7 +10,8 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
 
 def simulate_direct(initialize_z0, model, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
-                    root_fn = None, nr_rootfns=None, algvars_idx=None):
+                    root_fn = None, nr_rootfns=None, algvars_idx=None,
+                    on_phase_change = None):
 
     # Check supplied arguments
     if (not root_fn is None) and (nr_rootfns is None):
@@ -61,6 +62,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     solver_initialized = False
     model.init_iteration() # Re-initialize iterable variables
+    previous_phase  = None
 
     # Run computation
     out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}  {:>6}'
@@ -115,6 +117,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
                     return (False, t, z)
                 solver_initialized = True
 
+            if not on_phase_change is None:
+                if previous_phase is None: previous_phase = phase
+                if previous_phase != phase: on_phase_change(model, phase)
             (flag, t_out) = solver.step(t_end, z[i, :])
 
             if t_out < t_end:
