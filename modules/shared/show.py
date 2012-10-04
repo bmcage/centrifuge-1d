@@ -654,6 +654,8 @@ class DPlots():
                     else:
                         c_value = computed[key][1][1:]
                         m_value = m_data[1]
+                else:
+                    continue
 
                 if c_value is not None:
                     status_items.append(mk_status_item(key, c_value, m_value))
