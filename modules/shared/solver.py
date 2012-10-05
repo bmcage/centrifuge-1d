@@ -109,7 +109,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
             model.set_omega2g_fn(model.phase)
 
             if verbosity > 2:
-                print(out_s.format(i, t0, duration, t_end, phase.upper()))
+                print(out_s.format(i, t0, duration, t_end, model.phase.upper()))
 
             if not solver_initialized:
                 (flag, t_init) = solver.init_step(t0, z0, zp0)
