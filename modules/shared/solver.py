@@ -99,11 +99,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
             elif duration_type == 'fh_duration':
                 model.phase = 'g'
                 # backup values
-                r0           = model.r0
-                duration     = model.duration
+                backup = model.get_parameters(['re', 'duration'])
 
-                model.r0    = model.r0_fall
-                model.duration = fh_duration
+                (model.r0, model.duration) = (model.r0_fall, duration)
             else:
                 model.phase = 'd'
             model.set_omega2g_fn(model.phase)
@@ -138,8 +136,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 model.omega_start = 0.0
             else:
                 # restore backuped values for 'fh_duration'
-                model.r0    = r0
-                model.duration = duration
+                model.set_parameters(backup)
 
         t[i] = t_out
 
