@@ -1,11 +1,10 @@
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
-from modules.shared.functions import right_derivative, y2x
+from modules.shared.functions import right_derivative, y2x, show_results
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.shared.characteristics import water_mass, calc_gc, calc_rm
 from modules.shared.solver import simulate_direct
-from modules.shared.functions import show_results
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
