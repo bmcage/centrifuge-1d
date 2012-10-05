@@ -362,7 +362,7 @@ class Configuration:
                 measurements['t'] = t
                 t_meas = t[1:]
 
-            for (name, iname) in MEASUREMENTS_NAMES:
+            for (name, iname) in MEASUREMENTS_NAMES.items():
                 value = cfg.get_value(iname, not_found=None)
                 if value == None: continue
 
