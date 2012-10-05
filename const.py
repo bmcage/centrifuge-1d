@@ -9,8 +9,8 @@ from os import sep, getcwd
 PROGRAM_DIR = getcwd()
 DATA_DIR    = PROGRAM_DIR + sep + 'data'
 CSV_DIR     = DATA_DIR    + sep + 'csv'
-INI_DIR     = DATA_DIR    + sep + 'inifiles'
-FIGS_DIR    = DATA_DIR    + sep + 'figures'
+INI_DIR     = DATA_DIR    + sep + 'datafiles'
+FIGS_DIR    = DATA_DIR    + sep + 'datafiles'
 
 # Default names
 DEFAULTS_ININAME = 'defaults.ini'
