@@ -17,6 +17,9 @@ DEFAULTS_ININAME = 'defaults.ini'
 CONSTANTS_ININAME = 'CONSTANTS.ini'
 PLOTSTYLE_ININAME = 'plotstyles.ini'
 MASKS_DIRNAME    = 'masks'
+# MEASUREMENTS_NAMES are of type: name:option_name
+MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
+                      'theta': 'theta'}
 #-------------------------------------------------------------------------
 #
 # About box information
