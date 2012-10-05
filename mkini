@@ -226,7 +226,7 @@ def data2ini(data, output_dir):
         id_exp_type = []
 
         for (exp_no, exp_data) in exp_id_struct.items():
-            print("\t\tProcessing experiment number: ", repr(exp_no), end="")
+            print("\t\tProcessing experiment number: ", exp_no, end="")
 
             compr_exp_type = compress_seq(exp_data['exp_type'])
             if type(compr_exp_type) in (list, tuple):
@@ -263,7 +263,7 @@ def data2ini(data, output_dir):
         exp_base_path = get_directories('ini', 'exp_base', experiment_info)
 
         if path.exists(exp_base_path + DEFAULTS_ININAME):
-            print('\n\t\tFile exists.\t\t\t\tSkipping'
+            print('\n\t\tFile exists.\t\t\t\t\tSkipping'
                   .format(DEFAULTS_ININAME))
         else:
             cvalue = compress_seq(id_exp_type)
