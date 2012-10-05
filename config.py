@@ -371,8 +371,8 @@ class Configuration:
                 else:
                     iname = name
 
-                value = cfg.get_value(iname, not_found=EOFError)
-                if value == EOFError: continue
+                value = cfg.get_value(iname, not_found=None)
+                if value == None: continue
 
                 cfg.del_value(iname)
                 if name == 'MO':
@@ -384,8 +384,8 @@ class Configuration:
                     measurements[name] = (t_meas, value)
 
                 iname_w = iname + '_weights'
-                value_w = cfg.get_value(iname_w, not_found=EOFError)
-                if value_w == EOFError: continue
+                value_w = cfg.get_value(iname_w, not_found=None)
+                if value_w == None: continue
 
                 self.del_value(iname_w)
                 measurements_weights[name] = value_w

@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
 from modules.shared.vangenuchten import h2u
 from modules.shared.functions import show_results
