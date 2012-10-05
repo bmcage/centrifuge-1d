@@ -549,7 +549,8 @@ class DPlots():
 
         def _filter_dplots(dplots_bucket):
             for name in list(dplots_bucket.keys()):
-                if dplots_bucket[name]['styles']['show'] == False:
+                if ((not has_data(dplots_bucket[name]['data']))
+                    or (dplots_bucket[name]['styles']['show'] == False)):
                     del dplots_bucket[name]
 
             return dplots_bucket
