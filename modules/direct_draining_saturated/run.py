@@ -1,12 +1,10 @@
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
-from modules.shared.functions import right_derivative, y2x
+from modules.shared.functions import right_derivative, y2x, show_results
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
-from modules.direct_draining_saturated.characteristics import \
-     water_mass, calc_gc, calc_rm
+from modules.shared.characteristics import water_mass, calc_gc, calc_rm
 from modules.shared.solver import simulate_direct
-from modules.shared.functions import show_results
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
@@ -87,8 +85,9 @@ class centrifuge_residual(IDA_RhsFunction):
 
             u = h2u(h, n, m, gamma)
             (WM_total, WM_in_tube) = \
-              water_mass(u, z[model.mass_in_idx], z[model.mass_out_idx], s1, s2,
-                         model)
+              water_mass(u, model.dy, s1, s2, z[model.mass_in_idx], L-s2,
+                         z[model.mass_out_idx], model.porosity, model.fl2,
+                         model.fp2)
             result[last_idx]  = hdot[-1]
             result[model.s2_idx] = WM_total - model.wm0
             result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_sat
@@ -179,7 +178,9 @@ def solve(model):
         # assign value to u0, WM0 and wm0 (wm0 is needed for mass balance)
         u0 = h2u(z0[model.first_idx: model.last_idx+1],
                  model.n, model.m, model.gamma)
-        (wm0, wm_in_tube0) = water_mass(u0, mass_in, mass_out, s1, s2, model)
+        (wm0, wm_in_tube0) = water_mass(u0, model.dy, s1, s2, mass_in,
+                                        model.l0-s2, mass_out, model.porosity,
+                                        model.fl2, model.fp2)
         model.wm0 = wm0
 
     def initialize_zp0(zp0, z0, model):
@@ -300,7 +301,9 @@ def solve(model):
             u[i, :] = h2u(h[i, :], model.n, model.m, model.gamma)
 
             (wm_total, wm_in_tube) = \
-              water_mass(u[i, :], mass_in[i], mass_out[i], s1[i], s2[i], model)
+              water_mass(u[i, :], model.dy, s1[i], s2[i], mass_in[i],
+                         model.l0-s2[i], mass_out[i], model.porosity, model.fl2,
+                         model.fp2)
             WM[i]         = wm_total
             WM_in_tube[i] = wm_in_tube
     else:
