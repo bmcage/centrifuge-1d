@@ -13,6 +13,7 @@ CONFIG_OPTIONS = ['exp_type',
                   # defaults
                   ('g', 981),
                   ('omega_start', 0.0), ('omega_end', 0.0),
+                  ('tube_no', None),
                   'fl1',
                   (lambda cfg: cfg.get_value('fl1') > 0.0,
                       ['ks1'], [('ks1', -1.0)]),

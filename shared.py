@@ -10,10 +10,9 @@ def yn_prompt(question_str):
 
 def get_directories(basedir_type, dirs, experiment_info):
 
-    dir_struct = ['exp_base', 'exp_no', 'tube', 'masks', 'mask']
+    dir_struct = ['exp_base', 'exp_no', 'masks', 'mask']
     dir_values = (experiment_info['exp_id'], str(experiment_info['exp_no']),
-                  'tube' + str(experiment_info['tube_no']), MASKS_DIRNAME,
-                  experiment_info['mask'])
+                  MASKS_DIRNAME, experiment_info['mask'])
 
     def get_dir(dir_type, base_dir):
         if dir_type == 'base':
@@ -29,9 +28,9 @@ def get_directories(basedir_type, dirs, experiment_info):
         for dirtype in dirs:
             if dirtype == 'search':
                 results.append(resolve_dirs(basedir, 'base', 'exp_base',
-                                            'exp_no', 'tube'))
+                                            'exp_no'))
             elif dirtype == 'data':
-                results.append(get_dir('tube', basedir))
+                results.append(get_dir('exp_no', basedir))
             else:
                 results.append(get_dir(dirtype, basedir))
 
