@@ -13,6 +13,7 @@ from modules.shared.functions import has_data
 from os import listdir
 from sys import modules as sysmodules
 from types import MethodType
+from const import MEASUREMENTS_NAMES
 
 ##################################################################
 #                   ModulesManager class                         #
@@ -353,8 +354,6 @@ class Configuration:
             return stop_times
 
         def _group_measurments(cfg):
-            measurements_names = ('MI', 'MO', 'GC', 'RM', 'theta')
-
             measurements = {}
             measurements_weights = {}
 
@@ -363,14 +362,7 @@ class Configuration:
                 measurements['t'] = t
                 t_meas = t[1:]
 
-            for name in measurements_names:
-                if name == 'MI':
-                    iname = 'wl1'
-                elif name == 'MO':
-                    iname = 'wl_out'
-                else:
-                    iname = name
-
+            for (name, iname) in MEASUREMENTS_NAMES:
                 value = cfg.get_value(iname, not_found=None)
                 if value == None: continue
 
