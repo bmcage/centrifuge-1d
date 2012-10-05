@@ -97,9 +97,8 @@ def adjust_cfg(cfg):
         else:
             cfg.set_value(key, rpm2radps(value))
 
-    cfg.set_value('omega2g_fns', {'centrifugation': find_omega2g,
-                                  'falling_head':   find_omega2g_fh,
-                                  'deceleration':   find_omega2g_dec})
+    cfg.set_value('omega2g_fns', {'a': find_omega2g, 'g': find_omega2g_fh,
+                                  'd': find_omega2g_dec})
 
     # if r0 was set (but not rE), we set rE (and discard r0)
     if not cfg.get_value('re'):
