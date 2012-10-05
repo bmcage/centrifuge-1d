@@ -1,38 +1,26 @@
 import numpy as np
 
-def water_mass(u, mass_in, mass_out, s1, s2, model):
+def water_mass(u, dy, s1, s2, mass_in, saturated_length, free_fluid_length,
+               porosity, fl2, fp2):
     """
       Determine the amount of water contained in the experiment.
-      The amount is the sum of water in inflow chamber, outflow chamber,
-      saturated zone in <r0, s1> and unsaturates zone in <s1, s2>.
+      The amount is the sum of water in inflow chamber (mass_in), outflow
+      chamber + any other source like water in basin (free_fluid_length)
+      and saturated zone (saturated_length) just as unsaturated zone
+      (which is between s1 and s2). The soil is characterized by it's
+      porosity (porosity).
+      Also water in filter of length fl2 with porosity fp2 is considered,
+      but only for fully saturated filter.
     """
-
-    if model.fl1 > 0.0:
-        raise ValueError('WM not implemented for starting filter.')
-
-    dy = model.dy
-    ds = s2 - s1
-
     # Water mass
-    wm_sat   = s1
-    wm_unsat = ds/2  * (dy[0]* u[0] + dy[-1]*u[-1]
-                        + np.sum((dy[:-1] + dy[1:])*u[1:-1]))
+    ds = s2 - s1
+    unsat = ds/2  * (dy[0]* u[0] + dy[-1]*u[-1]
+                     + np.sum((dy[:-1] + dy[1:])*u[1:-1]))
 
-    WM_in_tube = model.density * (mass_in + model.porosity*(wm_sat + wm_unsat))
+    WM_in_tube = (mass_in + porosity*(saturated_length + unsat))
+    WM_in_tube += fp2 * fl2
 
-    fl2 = model.fl2
-    if fl2 > 0.0:
-        if (s2 > (L - 1e-5)) and (u[-1] < 0.999):
-            print('WM is implemented only for fully saturated filter.')
-            for (name, value) in zip(('L', 's2', 'u_last', 'fl2'),
-                                     (L, s2, u[-1], fl2))
-                print('{:6} = {:8g}'.format(name, value))
-            print('u = ', u)
-            exit(1)
-
-        WM_in_tube += model.density * model.fp2 * fl2
-
-    WM_total   = WM_in_tube + model.density * mass_out
+    WM_total   = WM_in_tube + free_fluid_length
 
     return WM_total, WM_in_tube
 
@@ -55,7 +43,7 @@ def calc_gc(u, mass_in, s1, s2, WM_in_tube, model):
     if (fl2 > 0.0) and (s2 > (L - 1e-5)) and (u[-1] < 0.999):
         print('GC is implemented only for fully saturated filter.')
         for (name, value) in zip(('L', 's2', 'u_last', 'fl2'),
-                                 (L, s2, u[-1], fl2))
+                                 (L, s2, u[-1], fl2)):
             print('{:6} = {:8g}'.format(name, value))
         print('u = ', u)
         raise ValueError
