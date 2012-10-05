@@ -95,10 +95,8 @@ def simulate_direct(initialize_z0, model, residual_fn,
             solver.set_options(tstop=t_end)
 
             if duration_type == 'duration':
-                model.set_omega2g_fn('centrifugation')
                 model.phase = 'a'
             elif duration_type == 'fh_duration':
-                model.set_omega2g_fn('falling_head')
                 model.phase = 'g'
                 # backup values
                 r0           = model.r0
@@ -108,7 +106,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 model.duration = fh_duration
             else:
                 model.phase = 'd'
-                model.set_omega2g_fn('deceleration')
+            model.set_omega2g_fn(model.phase)
 
             if verbosity > 2:
                 print(out_s.format(i, t0, duration, t_end, phase.upper()))

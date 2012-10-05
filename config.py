@@ -727,10 +727,10 @@ class ModelParameters:
         self.iterations = iterations
 
         if hasattr(self, 'duration'):
-            if self.duration > 0.0: acc_type = 'centrifugation'
-            elif self.fh_duration > 0.0: acc_type = 'falling_head'
-            else: acc_type = 'deceleration'
-            self.set_omega2g_fn(acc_type)
+            if self.duration > 0.0: phase = 'a'
+            elif self.fh_duration > 0.0: phase = 'g'
+            else: phase = 'd'
+            self.set_omega2g_fn(phase)
 
     def get_iterable_value(self, key):
         if key in self._iterable_parameters:
