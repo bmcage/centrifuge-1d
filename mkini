@@ -87,15 +87,18 @@ def CSV2data(csv_filename):
             data[experiment_id][experiment_no] = \
               {field: [] for field in fields}
 
+    identifiers = {}
+
     def _store_CSV_row(data, exp_type, row, indexes, csv_fields):
+        nonlocal identifiers
 
-        experiment_id = row[indexes['id']]
-        experiment_no = row[indexes['exp_no']]
-        exp_type      = row[indexes['exp_type']]
+        for id_name in ('exp_type', 'id', 'exp_no'):
+            if row[indexes[id_name]]: identifiers[id_name] = row[indexes[id_name]]
 
-        _mk_empty_fields(data, experiment_id, experiment_no, csv_fields)
+        _mk_empty_fields(data, identifiers['id'], identifiers['exp_no'],
+                         csv_fields)
 
-        experiment_data = data[experiment_id][experiment_no]
+        experiment_data = data[identifiers['id']][identifiers['exp_no']]
         for (descriptor, value) in zip(csv_fields, row):
             experiment_data[descriptor].append(value)
 
