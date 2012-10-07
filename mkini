@@ -128,18 +128,21 @@ def CSV2data(csv_filename):
     return data
 
 def compress_seq(seq):
-    same_value = True
+    if not type(seq) in [list, tuple]: return seq
+
     ref = seq[0]
 
+    # all(seq[:] == ref)
     if not list(filter(lambda value: not (value == ref), seq)):
-        return (True, ref)
+        return ref
 
+    # all are == '' except one
     nonempty = list(filter(lambda value: not (value == ''), seq))
     items_count = len(nonempty)
     if items_count == 1:
-        return (True, nonempty[0])
+        return nonempty[0]
     elif items_count == len(seq):
-        return (False, seq)
+        return seq
     else:
         raise('Either all values in sequence must be nonempty, or exactly one:'
               '\n {}', seq)
@@ -153,12 +156,8 @@ def save_configuration(data, savedir='', filename='', section_name=''):
     fout.write('[{}]\n'.format(section_name))
 
     for (descriptor, value) in data.items():
-        if type(value) == list:
-            (flag, cvalue) = compress_seq(value)
-            if flag:
-                value_str = cvalue
-            else:
-                value_str = '[' + (', '.join(cvalue)) +  ']'
+        if type(value) in (list, tuple):
+            value_str = '[' + (', '.join(value)) +  ']'
         else:
             value_str = value
 
@@ -207,6 +206,18 @@ DYNAMIC_OPTIONS['measurements_length'] = get_measurements_array_length
 
 def data2ini(data, output_dir):
 
+    def _filter_data(experiment_data):
+        empty_items = []
+
+        for (descriptor, value) in experiment_data.items():
+            cvalue = compress_seq(value)
+            if cvalue: experiment_data[descriptor] = cvalue
+            else: empty_items.append(descriptor)
+
+        for descriptor in empty_items: del experiment_data[descriptor]
+
+        return experiment_data
+
     print('\nCreating data inifiles...')
 
     for (exp_id, exp_id_struct) in data.items():
@@ -217,10 +228,12 @@ def data2ini(data, output_dir):
         for (exp_no, exp_data) in exp_id_struct.items():
             print("\t\tProcessing experiment number: ", repr(exp_no), end="")
 
-            (flag, compr_exp_type) = compress_seq(exp_data['exp_type'])
-            if not flag:
-                raise ValueError("Experiment type 'exp_type' must be the "
-                                 "same for given experiment. Exiting...")
+            compr_exp_type = compress_seq(exp_data['exp_type'])
+            if type(compr_exp_type) in (list, tuple):
+                print('I', compr_exp_type)
+                print("Experiment type 'exp_type' must be the "
+                      "same for given experiment. Exiting...")
+                exit(1)
             id_exp_type.append(compr_exp_type)
 
             # Remove identificators
@@ -235,7 +248,7 @@ def data2ini(data, output_dir):
             for (name, dyndata_fn) in DYNAMIC_OPTIONS.items():
                 exp_data[name] = dyndata_fn(compr_exp_type, exp_data, modman)
 
-            save_configuration(exp_data, savedir=data_dir,
+            save_configuration(_filter_data(exp_data), savedir=data_dir,
                                filename='measurements.ini',
                                section_name='experiment-data')
 
@@ -253,10 +266,11 @@ def data2ini(data, output_dir):
             print('\n\t\tFile exists.\t\t\t\tSkipping'
                   .format(DEFAULTS_ININAME))
         else:
-            (flag, cvalue) = compress_seq(id_exp_type)
-            if not flag:
-                raise ValueError("Experiment type 'exp_type' must be the same "
-                                 "for all experiments with given 'exp_id'.")
+            cvalue = compress_seq(id_exp_type)
+            if type(cvalue) in (list, tuple):
+                print("Experiment type 'exp_type' must be the same "
+                      "for all experiments with given 'exp_id'.")
+                exit(1)
 
             save_configuration({'exp_type': repr(cvalue)},
                                savedir=exp_base_path, filename=DEFAULTS_ININAME,
