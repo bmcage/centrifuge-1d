@@ -211,8 +211,8 @@ def data2ini(data, output_dir):
 
         for (descriptor, value) in experiment_data.items():
             cvalue = compress_seq(value)
-            if cvalue: experiment_data[descriptor] = cvalue
-            else: empty_items.append(descriptor)
+            if cvalue in [None, '']: empty_items.append(descriptor)
+            else: experiment_data[descriptor] = cvalue
 
         for descriptor in empty_items: del experiment_data[descriptor]
 
