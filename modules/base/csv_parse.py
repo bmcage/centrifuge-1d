@@ -1,8 +1,8 @@
-def skip(exp_type, row, indexes):
+def skip(row):
     """
-      Check every 'row' of a .csv file. If the row is not wanted, set return
-      flag to 'False' and row will be ommited from the resulting .ini file.
-      Otherwise set return flag to 'True'.
+      Check every 'row' of a .csv file. If the 'row' should be discarded, set
+      return flag to 'False' (so it will be ommited from the resulting .ini
+      file). Otherwise set return flag to 'True'. 'Row' is of type 'namedtuple'.
     """
     return False
 
