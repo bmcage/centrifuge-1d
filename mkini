@@ -77,16 +77,15 @@ def assert_csv_has_required_fields(csv_fields, required_fields):
         print('CSV error: cannot process CSV file, aborting...')
         exit(1)
 
-
-def mk_data_fields(data, experiment_id, experiment_no, fields):
-    if not experiment_id in data:
-        data[experiment_id]={}
-
-    if not experiment_no in data[experiment_id]:
-        data[experiment_id][experiment_no] = \
-          {field: [] for field in fields}
-
 def CSV2data(csv_filename):
+
+    def _mk_data_fields(data, experiment_id, experiment_no, fields):
+        if not experiment_id in data:
+            data[experiment_id]={}
+
+        if not experiment_no in data[experiment_id]:
+            data[experiment_id][experiment_no] = \
+              {field: [] for field in fields}
 
     def _store_CSV_row(data, exp_type, row, indexes, csv_fields):
 
@@ -94,7 +93,7 @@ def CSV2data(csv_filename):
         experiment_no = row[indexes['exp_no']]
         exp_type      = row[indexes['exp_type']]
 
-        mk_data_fields(data, experiment_id, experiment_no, csv_fields)
+        _mk_data_fields(data, experiment_id, experiment_no, csv_fields)
 
         experiment_data = data[experiment_id][experiment_no]
         for (descriptor, value) in zip(csv_fields, row):
