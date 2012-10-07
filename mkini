@@ -86,20 +86,21 @@ def mk_data_fields(data, experiment_id, experiment_no, fields):
         data[experiment_id][experiment_no] = \
           {field: [] for field in fields}
 
-def store_CSV_row(data, exp_type, row, indexes, csv_fields):
-
-    experiment_id = row[indexes['id']]
-    experiment_no = row[indexes['exp_no']]
-    exp_type      = row[indexes['exp_type']]
-
-    mk_data_fields(data, experiment_id, experiment_no, csv_fields)
-
-    experiment_data = data[experiment_id][experiment_no]
-    for (descriptor, value) in zip(csv_fields, row):
-        experiment_data[descriptor].append(value)
-
 def CSV2data(csv_filename):
 
+    def _store_CSV_row(data, exp_type, row, indexes, csv_fields):
+
+        experiment_id = row[indexes['id']]
+        experiment_no = row[indexes['exp_no']]
+        exp_type      = row[indexes['exp_type']]
+
+        mk_data_fields(data, experiment_id, experiment_no, csv_fields)
+
+        experiment_data = data[experiment_id][experiment_no]
+        for (descriptor, value) in zip(csv_fields, row):
+            experiment_data[descriptor].append(value)
+
+    # Function body
     f_csv = open(csv_filename)
     csv_data = csv.reader(f_csv)
 
@@ -123,7 +124,7 @@ def CSV2data(csv_filename):
         skip         = get_module_function('skip', module)
 
         if not skip(experiment_type, row, indexes):
-            store_CSV_row(data, experiment_type, row, indexes, csv_fields)
+            _store_CSV_row(data, experiment_type, row, indexes, csv_fields)
 
     f_csv.close()
 
