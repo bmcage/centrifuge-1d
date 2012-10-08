@@ -37,8 +37,8 @@ def solve(model):
         return result
 
     calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm')) # backup
-    model.calc_gc = bool(model.gc1)
-    model.calc_rm = bool(model.rm1)
+    model.calc_gc = bool('GC'in model.measurements and model.measurements['GC'])
+    model.calc_rm = bool('RM'in model.measurements and model.measurements['RM'])
     model.calc_wm = model.calc_gc or model.calc_rm
 
     (inv_params, cov) = \
