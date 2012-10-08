@@ -24,54 +24,49 @@ def water_mass(u, dy, s1, s2, mass_in, saturated_length, free_fluid_length,
 
     return WM_total, WM_in_tube
 
-def calc_gc(u, mass_in, s1, s2, WM_in_tube, model):
+def calc_gc(u, y, dy, s1, s2, mass_in, rs_sat, re_sat, soil_porosity, fl2, fp2,
+            fr2, WM_in_tube, fluid_density, from_end=None):
     """
       Determine the gravitational center of water in the sample. The water
-      on thi inflow is taken into account (but not water on the outflow).
-      Computed GC is measured from the end of the soil sample
+      on the inflow is taken into account (but not water on the outflow).
+      Computed GC is measured from the BEGINNING of the soil sample
       (in the direction from centrifuge axis)
+
+      Arguments:
+      u - relative saturation
+      y - transformed interval where holds: u(x) = u(fl1 + s1 + (s2-s1)y)
+      dy - difference of y: dy = diff(y) = y(i+1) - y(i)
+      mass_in - water in the inflow chamber
+      rs_sat - starting radius of saturated part
+      re_sat - ending radius of saturated part
+      s1, s2 - interfaces (s1 < s2)
+      fl2, fp2, fr2 - ending filter length, porosity and distance from sample
+                      beginning (to filter's beginning)
+      WM_in_tube - amount of water contained inside the tube
+      from_end - if specified, computed GC will be returned as distance
+                 from the "from_end" point
     """
 
-    if model.fl1 > 0.0:
-        raise ValueError('GC not implemented for starting filter.')
-
-    L   = model.l0
-    fl2 = model.fl2
-
-    # We assume that ending filter remains fully saturated, so the case for
-    # unsaturated (i.e. sample at the end has u<0.999) is not implemented
-    if (fl2 > 0.0) and (s2 > (L - 1e-5)) and (u[-1] < 0.999):
-        print('GC is implemented only for fully saturated filter.')
-        for (name, value) in zip(('L', 's2', 'u_last', 'fl2'),
-                                 (L, s2, u[-1], fl2)):
-            print('{:6} = {:8g}'.format(name, value))
-        print('u = ', u)
-        raise ValueError
-
-    y  = model.y
-    dy = model.dy
-    ds = s2 - s1
-
-    # sample = soil + filter2
+    ds  = s2 - s1
     r0 = 0.0
 
-    gc_unsat = (model.porosity * 1/2 * model.density * ds
+    gc_unsat = (soil_porosity * 1/2 * fluid_density * ds
                 * ((r0 + s1)*dy[0]*u[0]
                    + (r0 + s2)*dy[-1]*u[-1]
                    + np.sum((dy[:-1]+dy[1:])
                             *(r0 + s1 + ds*y[1:-1])*u[1:-1])))
-    gc_sat   = (1/2 * model.density
-                * (model.porosity * (np.power(r0 + s1, 2) - np.power(r0, 2))
-                   + (np.power(r0, 2) - np.power(r0 - mass_in, 2))))
+    gc_sat   = \
+      (1/2 * fluid_density
+       * (soil_porosity * (np.power(r0 + re_sat, 2) - np.power(r0 + rs_sat, 2))
+          + (np.power(r0, 2) - np.power(r0 - mass_in, 2))))
     if fl2 > 0.0:
-        gc_sat += 1/2 * model.density * model.fp2 * fl2 * (2*(r0 + L) + fl2)
+        gc_sat += 1/2 * fluid_density * fp2 * fl2 * (2*(r0 + fr2) + fl2)
 
-    gc_from_left  = (gc_unsat + gc_sat) / WM_in_tube
-    gc_from_right = model.fl1 + L + fl2 - gc_from_left
+    gc = (gc_unsat + gc_sat) / WM_in_tube
 
-    GC            = gc_from_right
+    if not from_end is None: gc = from_end - gc
 
-    return GC
+    return gc
 
 def calc_rm(t, u, mass_in, mass_out, s1, s2, model):
 

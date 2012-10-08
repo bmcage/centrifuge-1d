@@ -315,8 +315,10 @@ def solve(model):
         GC = np.empty(t.shape, dtype=float)
 
         for i in range(k):
-            GC[i] = calc_gc(u[i, :], mass_in[i], s1[i], s2[i], WM_in_tube[i],
-                            model)
+            GC[i] = calc_gc(u[i, :], model.y, model.dy, s1[i], s2[i],
+                            mass_in[i], s2[i], model.l0, model.porosity,
+                            model.fl2, model.fp2, model.l0, WM_in_tube[i],
+                            model.density, from_end=model.l0 + model.fl2)
     else:
         GC = no_measurements
 
