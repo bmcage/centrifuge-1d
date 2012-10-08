@@ -193,6 +193,15 @@ def parse_value(str_value):
             mul = parse_value(raw_mul)
             val = parse_value(raw_val)
             return [val for i in range(mul)]
+        elif ':' in raw_value:
+            range_values = raw_value.split(':')
+            rstart = parse_value(range_values[0])
+            rstop  = parse_value(range_values[1]) + 1
+            if len(range_values) > 2:
+                rstep = parse_value(range_values[2])
+            else:
+                rstep = 1
+            return list(range(rstart, rstop, rstep))
         elif "." in raw_value or "e" in raw_value or "E" in raw_value:
             return float(raw_value)
         else:
