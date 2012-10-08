@@ -2,7 +2,7 @@
 from sys import path as syspath, argv as sysargv
 from os import listdir
 from os.path import exists
-from shared import (make_collector, get_directories, yn_prompt)
+from shared import get_directories, yn_prompt
 from config import ModulesManager, ModelParameters, Configuration
 from optparse import OptionParser
 from const import DEFAULTS_ININAME, CONSTANTS_ININAME
@@ -209,13 +209,6 @@ def run_experiments(exp_id, first_experiment, last_experiment, mask,
             model.experiment_info = experiment_info
 
             results = solver_module.run(model)
-
-            collector('collect', data=results)
-
-    if not print_cfg_only:
-        print('Results summary:\n')
-        print_fn = lambda x: print(x)
-        collector('print', print_format_fn=print_fn)
 
 def iterate_value(arg):
 

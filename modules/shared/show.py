@@ -538,7 +538,7 @@ class DPlots():
                 if not (has_data(xdata) and has_data(ydata)): continue
 
                 if ((data_type in ['h', 'u']) and (len(data_value) > 2)
-                    and has_data(data_value[2]) and (not 'label' in line_styles)):
+                    and has_data(data_value[2])):
                     ilabel = ['% 6d' % (ti/60.) for ti in data_value[2]]
                 else:
                     ilabel = label
@@ -549,7 +549,8 @@ class DPlots():
 
         def _filter_dplots(dplots_bucket):
             for name in list(dplots_bucket.keys()):
-                if dplots_bucket[name]['styles']['show'] == False:
+                if ((not has_data(dplots_bucket[name]['data']))
+                    or (dplots_bucket[name]['styles']['show'] == False)):
                     del dplots_bucket[name]
 
             return dplots_bucket
