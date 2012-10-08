@@ -99,19 +99,50 @@ def nd2strlist(nd):
         result.append(str(value))
     return result
 
-dg_label_time = "Time [min]"
-dg_label_length = "Sample length $L$ [cm]"
-DG_AXES_LABELS = {'h': (dg_label_length, "Piezometric head $h$ [cm]"),
-                  'u': (dg_label_length, "Relative saturation $u$"),
-                  'MO': (dg_label_time, "Expelled water [cm]"),
-                  'MI': (dg_label_time, "Inflow water [cm]"),
-                  'GC': (dg_label_time, "Gravitational center [cm]"),
-                  'RM': (dg_label_time, "Rotational momentum [kg.m.s$^{-1}$]"),
-                  's1': (dg_label_time, "Interface s1 [cm]"),
-                  's2': (dg_label_time, "Interface s2 [cm]"),
-                  'WM': (dg_label_time, "Water mass [cm]"),
-                  'theta': ("Water content $\\theta$", "Pressure $p$ [Pa]")}
+# Default unit is the first one
+DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa', 'none': ''}
+DATA_UNITS = {'length': ('cm', 'mm', 'm'),
+              'time': ('min', 's', 'h'),
+              'pressure': ('Pa', 'kPa'),
+              'none': ('', )}
+
+dg_label_time = "Time [{}]"
+dg_label_length = "Sample length $L$ [{}]"
+dg_unit_time_length = ('time', 'length')
+DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
+                        ('length', 'length')),
+                  'u': ((dg_label_length, "Relative saturation $u${}"),
+                        ('length', 'none')),
+                  'MO': ((dg_label_time, "Expelled water [{}]"),
+                         dg_unit_time_length),
+                  'MI': ((dg_label_time, "Inflow water [{}]"),
+                         dg_unit_time_length),
+                  'GC': ((dg_label_time, "Gravitational center [{}]"),
+                         dg_unit_time_length),
+                  'RM': ((dg_label_time, "Rotational momentum [kg.m.s$^{-1}$]{}"),
+                         ('time', 'none')),
+                  's1': ((dg_label_time, "Interface s1 [{}]"),
+                         dg_unit_time_length),
+                  's2': ((dg_label_time, "Interface s2 [{}]"),
+                         dg_unit_time_length),
+                  'WM': ((dg_label_time, "Water mass [{}]"),
+                         dg_unit_time_length),
+                  'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
+                            ('none', 'pressure'))}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
+
+def get_unit_coef(unit):
+    # units used for computation are: cm, s, pa and "no units"
+    if unit in ['cm', 's', 'pa', '']: coef = 1.0
+    elif unit == 'mm': coef = 10.
+    elif unit == 'min': coef = 1/60.
+    elif unit == 'h': coef = 1/3600.
+    elif unit == 'm': coef = 0.01
+    elif unit == 'kpa': coef = 0.001
+    else:
+        print('Unknown unit:', unit, '\nKnown units are only:\n', DATA_UNITS)
+        exit(1)
+    return coef
 
 def mk_status_item(data_id, data_computed, data_measured = []):
    return {'id': data_id, 'data': (data_computed, data_measured)}
@@ -391,7 +422,9 @@ class PlotStyles():
         return self._display_options
 
     def _mk_dplotstyles(self, dplot_id):
-        dplot_styles = {tag: None for tag in ['axes_labels', 'xscale', 'yscale',
+        dplot_styles = {tag: None for tag in ['xlabel', 'ylabel',
+                                              'xscale', 'yscale',
+                                              'xunit', 'yunit',
                                               'show_legend', 'legend_title',
                                               'legend_bbox', 'legend_loc',
                                               'show']}
@@ -400,15 +433,26 @@ class PlotStyles():
         if user_styles and (dplot_id in user_styles):
             dplot_styles.update(user_styles[dplot_id])
 
-         # try to set default value
-        if (dplot_styles['axes_labels'] is None) and (dplot_id in DG_AXES_LABELS):
-           dplot_styles['axes_labels'] = DG_AXES_LABELS[dplot_id]
+        # try to set default value
+        if dplot_id in DG_AXES_LABELS:
+            if dplot_styles['xlabel'] is None:
+                dplot_styles['xlabel'] = DG_AXES_LABELS[dplot_id][0][0]
+            if dplot_styles['ylabel'] is None:
+                dplot_styles['ylabel'] = DG_AXES_LABELS[dplot_id][0][1]
+            if dplot_styles['xunit'] is None:
+                unit_type = DG_AXES_LABELS[dplot_id][1][0]
+                dplot_styles['xunit'] = DEFAULT_UNITS[unit_type]
+            if dplot_styles['yunit'] is None:
+                unit_type = DG_AXES_LABELS[dplot_id][1][1]
+                dplot_styles['yunit'] = DEFAULT_UNITS[unit_type]
+
 
         if dplot_id in ['h', 'u']:
             if ((dplot_styles['legend_bbox'] is None)
                 and (dplot_styles['legend_loc'] is None)):
                 dplot_styles['legend_bbox'] = (1.01, 1.)
                 dplot_styles['legend_loc'] = 2
+
             if dplot_styles['legend_title'] is None:
                 dplot_styles['legend_title'] = 'Time [min]'
 
@@ -598,19 +642,29 @@ class DPlots():
                     plt.subplot(3,2,img_num)
 
                 # plot the supplied data
+                dplot_styles = dplot['styles']
+                (xunit, yunit) = (dplot_styles['xunit'],
+                                  dplot_styles['yunit'])
+
                 plot_labels = []
                 for dplot_data in dplot['data']:
                     (xdata, ydata, line_label, plot_style) = dplot_data
+                    xcoef = get_unit_coef(xunit)
+                    ycoef = get_unit_coef(yunit)
+                    if not xcoef == 1.0:
+                        xdata = xcoef * np.asarray(xdata, dtype=float)
+                    if not ycoef == 1.0:
+                        xdata = ycoef * np.asarray(ydata, dtype=float)
                     plt.plot(xdata, ydata, plot_style)
                     if type(line_label) == str:
                         plot_labels.append(line_label)
                     else:
                         plot_labels.extend(line_label)
 
-                dplot_styles = dplot['styles']
-                (xlabel, ylabel) = dplot_styles['axes_labels']
-                plt.xlabel(xlabel)
-                plt.ylabel(ylabel)
+                (xlabel, ylabel) = (dplot_styles['xlabel'],
+                                    dplot_styles['ylabel'])
+                plt.xlabel(xlabel.format(xunit))
+                plt.ylabel(ylabel.format(yunit))
                 if dplot_styles['xscale']:
                     plt.xscale(dplot_styles['xscale'])
                 if dplot_styles['yscale']:
