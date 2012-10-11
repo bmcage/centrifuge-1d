@@ -49,8 +49,8 @@ def parse_input():
     csv_filename = CSV_DIR + sep + args[0]
 
     if path.exists(csv_filename):
-            options.csv_filename = csv_filename
-    elif  path.exists(csv_filename + '.csv'):
+        options.csv_filename = csv_filename
+    elif path.exists(csv_filename + '.csv'):
         options.csv_filename = csv_filename + '.csv'
     else:
         print('CSV file does not exist:{}'.format(csv_filename))
