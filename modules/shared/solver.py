@@ -1,6 +1,7 @@
 import scikits.odes.sundials.ida as ida
 from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
                    asarray, cumsum, empty, ones)
+from modules.shared.functions import has_data
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -9,7 +10,8 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
 
 def simulate_direct(initialize_z0, model, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
-                    root_fn = None, nr_rootfns=None, algvars_idx=None):
+                    root_fn = None, nr_rootfns=None, algvars_idx=None,
+                    on_phase_change = None, continue_on_root_found=None):
 
     # Check supplied arguments
     if (not root_fn is None) and (nr_rootfns is None):
@@ -31,6 +33,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     model.set_value('omega_start', 0.0)
     model.set_value('t0', t0)
+    model.set_value('phase', 'U') # initialize to dummy value
 
     if update_initial_condition:
         z0 = empty([model.z_size, ], float)
@@ -59,20 +62,27 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     solver_initialized = False
     model.init_iteration() # Re-initialize iterable variables
+    previous_phase  = None
 
     # Run computation
-    out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}'
+    out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}  {:>6}'
 
     iterations = model.iterations
 
     if verbosity > 1:
-        capt_s = '{:>6} {:>12}  {:>12}  {:>12}'
-        print(capt_s.format('Run', 'Start time', 'Duration', 'End time'))
+        capt_s = '\n{:>6} {:>12}  {:>12}  {:>12}  {:>6}'
+        print(capt_s.format('Run', 'Start time', 'Duration', 'End time',
+                            'Phases'))
     while True:
         if verbosity == 2:
             total_duration = (model.duration + model.fh_duration
                               + model.deceleration_duration)
-            print(out_s.format(i, t0, total_duration, t0 + total_duration))
+            phases = []
+            if model.duration > 0.0: phases.append('A')
+            if model.deceleration_duration > 0.0: phases.append('D')
+            if model.fh_duration > 0.0: phases.append('G')
+            print(out_s.format(i, t0, total_duration, t0 + total_duration,
+                               '-'.join(phases)))
 
         for duration_type in ['duration', 'deceleration_duration',
                               'fh_duration']:
@@ -86,21 +96,20 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
             solver.set_options(tstop=t_end)
 
-            if verbosity > 2:
-                print(out_s.format(i, t0, duration, t_end))
-
             if duration_type == 'duration':
-                model.set_omega2g_fn('centrifugation')
+                model.phase = 'a'
             elif duration_type == 'fh_duration':
-                model.set_omega2g_fn('falling_head')
+                model.phase = 'g'
                 # backup values
-                r0           = model.r0
-                duration     = model.duration
+                backup = model.get_parameters(['re', 'duration'])
 
-                model.r0    = model.r0_fall
-                model.duration = fh_duration
+                (model.r0, model.duration) = (model.r0_fall, duration)
             else:
-                model.set_omega2g_fn('deceleration')
+                model.phase = 'd'
+            model.set_omega2g_fn(model.phase)
+
+            if verbosity > 2:
+                print(out_s.format(i, t0, duration, t_end, model.phase.upper()))
 
             if not solver_initialized:
                 (flag, t_init) = solver.init_step(t0, z0, zp0)
@@ -108,29 +117,43 @@ def simulate_direct(initialize_z0, model, residual_fn,
                     return (False, t, z)
                 solver_initialized = True
 
-            (flag, t_out) = solver.step(t_end, z[i, :])
+            if not on_phase_change is None:
+                if previous_phase is None: previous_phase = phase
+                if previous_phase != phase: on_phase_change(model, phase)
 
-            if t_out < t_end:
-                if verbosity > 1:
-                    print('Error occured during computation. Solver failed '
-                          'at time\nt_err=', t_out,
-                          '\nExpected value of t:', t)
-                if verbosity > 2:
-                    print('Values at this time:\nz_err=', z[i, :])
+            while True:
+                (flag, t_out) = solver.step(t_end, z[i, :])
 
-                return (False, t[:i], z[:i, :])
+                if flag < 0:     # error occured
+                    if verbosity > 1:
+                        print('Error occured during computation. Solver failed '
+                              'at time\nt_err=', t_out,
+                              '\nExpected value of t:', t)
+                    if verbosity > 2:
+                        print('Values at this time:\nz_err=', z[i, :])
 
+                    return (False, t[:i], z[:i, :])
+                elif flag == 2: # root found
+                    if ((not continue_on_root_found is None)
+                         and (continue_on_root_found(model, t_out, z[i, :]))):
+                        if verbosity > 1:
+                             print('Root found: continuing computation')
+                    else:
+                        if verbosity > 1:
+                             print('Root found: aborted further computation.')
+                        return (False, t[:i], z[:i, :])
+                else: # otherwise computation finished, continue to next cycle
+                    break
 
             t0 = t_out
 
             if duration_type == 'duration':
                 model.omega_start = model.omega
-            elif duration_type == 'deceleration':
+            elif duration_type == 'deceleration_duration':
                 model.omega_start = 0.0
             else:
                 # restore backuped values for 'fh_duration'
-                model.r0    = r0
-                model.duration = duration
+                model.set_parameters(backup)
 
         t[i] = t_out
 
@@ -173,11 +196,8 @@ def set_optimized_variables(optim_params, model, untransform=None):
             else:
                 print('{:5}: {: .8g}'.format(name, getattr(model, name)))
 
-def simulate_inverse(times, direct_fn, model, init_parameters,
-                     wl_in_meas=None, wl_out_meas=None,
-                     gc_meas=None, rm_meas=None,
-                     wl_in_weights=None, wl_out_weights=None,
-                     gc_weights=None, rm_weights=None,
+def simulate_inverse(direct_fn, model, init_parameters,
+                     measurements, measurements_weights={},
                      optimfn='leastsq'):
 
     from modules.shared.functions import determine_scaling_factor
@@ -233,23 +253,21 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
 
         return penalization
 
-    if not ((wl_in_weights is None) and (wl_out_weights is None)
-            and (gc_weights is None) and (rm_weights is None)):
-        add_weights = True
-    else:
-        add_weights = False
+    add_weights = False
+    for weight in measurements_weights.values():
+        if not weight is None:
+            add_weights = True
+            break
 
     (measurements_names, data_M, measurements_scales) = ([], [], [])
-    measurements_weights = []
-    for (data, name, weights) in zip((wl_in_meas, wl_out_meas, gc_meas, rm_meas),
-                                     ('MI', 'MO', 'GC', 'RM'),
-                                     (wl_in_weights, wl_out_weights, gc_weights,
-                                      rm_weights)):
-        if not bool(data): continue
+    weights = []
+    for (name, mdata) in measurements.items():
+        if name == 't': continue
+
+        data = mdata[1] # mdata = (xdata, ydata, ...)
+        if not has_data(data): continue
 
         measurement = asarray(data, dtype=float)
-        if name == 'MO':
-            measurement = cumsum(measurement)
         data_scale_coef = determine_scaling_factor(measurement)
         data_scale = data_scale_coef * ones(measurement.shape, dtype=float)
 
@@ -258,16 +276,17 @@ def simulate_inverse(times, direct_fn, model, init_parameters,
         measurements_scales.append(data_scale)
 
         if add_weights:
-            if not weights is None:
-                measurements_weights.append(asarray(weights, dtype=float))
+            if ((name in measurements_weights)
+                and (not measurements_weights[name] is None)):
+                weights.append(asarray(measurements_weights[name], dtype=float))
             else:
-                measurements_weights.append(ones(measurement.share, dtype=float))
+                weights.append(ones(measurement.shape, dtype=float))
 
     data_scale_coef = concatenate(measurements_scales)
     measurements_sc = concatenate(data_M) * data_scale_coef
 
     if add_weights:
-        weights = concatenate(measurements_weights)
+        weights = concatenate(weights)
 
     iteration = 0
 

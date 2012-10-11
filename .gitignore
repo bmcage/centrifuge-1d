@@ -10,3 +10,4 @@ odes*
 .emacs*
 .directory
 git*
+*.patch

@@ -1,11 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
 from modules.shared.vangenuchten import h2u
 from modules.shared.functions import show_results
 
 def solve(model):
-    theta_measured = np.asarray(model.theta, dtype=float)
+    theta_measured = model.measurements['theta'][0]
 
     def direct_wrapper(optim_args):
         if model.verbosity > 1:

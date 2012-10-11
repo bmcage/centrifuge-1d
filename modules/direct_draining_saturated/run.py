@@ -1,12 +1,10 @@
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
-from modules.shared.functions import right_derivative, y2x
+from modules.shared.functions import right_derivative, y2x, show_results
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
-from modules.direct_draining_saturated.characteristics import \
-     water_mass, calc_gc, calc_rm
+from modules.shared.characteristics import water_mass, calc_gc, calc_rm
 from modules.shared.solver import simulate_direct
-from modules.shared.functions import show_results
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
@@ -71,14 +69,6 @@ class centrifuge_residual(IDA_RhsFunction):
                                                   + y[1:-1]*ds2dt))
             + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
 
-
-        verbosity = model.verbosity
-
-        if verbosity > 3:
-            print('t: %10.6g' % t, 's1: %8.6g' % z[model.s1_idx],
-                  's2: %8.6g' % z[model.s2_idx], 'ds2dt: %10.6g' % ds2dt,
-                  end='')
-
         if rb_type == 3:
             q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
 
@@ -89,23 +79,16 @@ class centrifuge_residual(IDA_RhsFunction):
                      / (model.fl1/model.ks1 + (L-s2)/model.ks
                         + model.fl2/model.ks2))
 
-            if verbosity > 4:
-                print('  q_sat', q_sat, 'rD', rD, 'rI', rI,
-                      'omega^2/g', omega2g, end='')
-
             if q_sat < 0:
-                if verbosity > 1:
-                    print('       Q_SAT: ', q_sat, ' !!!')
-
+                pass
                 #q_sat = 0.0
 
             u = h2u(h, n, m, gamma)
             (WM_total, WM_in_tube) = \
-              water_mass(u, z[model.mass_in_idx], z[model.mass_out_idx], s1, s2,
-                         model)
+              water_mass(u, model.dy, s1, s2, z[model.mass_in_idx], L-s2,
+                         z[model.mass_out_idx], model.porosity, model.fl2,
+                         model.fp2)
             result[last_idx]  = hdot[-1]
-            if verbosity > 4:
-                print('  WM: ', WM_total, 'WM0', model.wm0, end='')
             result[model.s2_idx] = WM_total - model.wm0
             result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_sat
         else:
@@ -134,7 +117,18 @@ class centrifuge_residual(IDA_RhsFunction):
         result[model.s1_idx]      = zdot[model.s1_idx]
         result[model.pq_idx]      = zdot[model.pq_idx]
 
-        if verbosity > 3: print()
+        verbosity = model.verbosity
+        if verbosity > 2:
+            if (rb_type == 3) and (q_sat < 0.0):
+                print('       Q_SAT: ', q_sat, ' !!!')
+            if verbosity > 3:
+                print('t: %10.6g' % t, 's1: %8.6g' % z[model.s1_idx],
+                      's2: %8.6g' % z[model.s2_idx], 'ds2dt: %10.6g' % ds2dt)
+
+                if (verbosity > 4) and (rb_type == 3):
+                    print('  q_sat', q_sat, 'rD', rD, 'rI', rI,
+                          'omega^2/g', omega2g, end='')
+                    print('  WM: ', WM_total, 'WM0', model.wm0)
 
         return 0
 
@@ -184,7 +178,9 @@ def solve(model):
         # assign value to u0, WM0 and wm0 (wm0 is needed for mass balance)
         u0 = h2u(z0[model.first_idx: model.last_idx+1],
                  model.n, model.m, model.gamma)
-        (wm0, wm_in_tube0) = water_mass(u0, mass_in, mass_out, s1, s2, model)
+        (wm0, wm_in_tube0) = water_mass(u0, model.dy, s1, s2, mass_in,
+                                        model.l0-s2, mass_out, model.porosity,
+                                        model.fl2, model.fp2)
         model.wm0 = wm0
 
     def initialize_zp0(zp0, z0, model):
@@ -305,7 +301,9 @@ def solve(model):
             u[i, :] = h2u(h[i, :], model.n, model.m, model.gamma)
 
             (wm_total, wm_in_tube) = \
-              water_mass(u[i, :], mass_in[i], mass_out[i], s1[i], s2[i], model)
+              water_mass(u[i, :], model.dy, s1[i], s2[i], mass_in[i],
+                         model.l0-s2[i], mass_out[i], model.porosity, model.fl2,
+                         model.fp2)
             WM[i]         = wm_total
             WM_in_tube[i] = wm_in_tube
     else:
@@ -317,8 +315,10 @@ def solve(model):
         GC = np.empty(t.shape, dtype=float)
 
         for i in range(k):
-            GC[i] = calc_gc(u[i, :], mass_in[i], s1[i], s2[i], WM_in_tube[i],
-                            model)
+            GC[i] = calc_gc(u[i, :], model.y, model.dy, s1[i], s2[i],
+                            mass_in[i], s2[i], model.l0, model.porosity,
+                            model.fl2, model.fp2, model.l0, WM_in_tube[i],
+                            model.density, from_end=model.l0 + model.fl2)
     else:
         GC = no_measurements
 

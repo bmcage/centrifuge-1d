@@ -13,6 +13,7 @@ CONFIG_OPTIONS = ['exp_type',
                   # defaults
                   ('g', 981),
                   ('omega_start', 0.0), ('omega_end', 0.0),
+                  ('tube_no', None),
                   'fl1',
                   (lambda cfg: cfg.get_value('fl1') > 0.0,
                       ['ks1'], [('ks1', -1.0)]),
@@ -50,7 +51,8 @@ EXCLUDE_FROM_MODEL = ['measurements_length', 'omega2g_fns', 'r0']
 
 PROVIDE_OPTIONS = []
 
-OPTIONS_ITERABLE_LISTS = ['r0', 're', 'l0', 'duration', 'fh_duration', 'omega']
+OPTIONS_ITERABLE_LISTS = ['r0', 're', 'l0', 'duration', 'fh_duration', 'omega',
+                          'porosity']
 
 def check_cfg(cfg):
     """
@@ -97,9 +99,8 @@ def adjust_cfg(cfg):
         else:
             cfg.set_value(key, rpm2radps(value))
 
-    cfg.set_value('omega2g_fns', {'centrifugation': find_omega2g,
-                                  'falling_head':   find_omega2g_fh,
-                                  'deceleration':   find_omega2g_dec})
+    cfg.set_value('omega2g_fns', {'a': find_omega2g, 'g': find_omega2g_fh,
+                                  'd': find_omega2g_dec})
 
     # if r0 was set (but not rE), we set rE (and discard r0)
     if not cfg.get_value('re'):

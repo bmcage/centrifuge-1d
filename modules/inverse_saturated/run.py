@@ -1,6 +1,5 @@
 from modules.direct_saturated.run import solve as direct_solve, extract_data
 from modules.shared.solver import simulate_inverse
-from numpy import alen
 
 def solve(model):
 
@@ -18,17 +17,9 @@ def solve(model):
 
         return result
 
-    t_meas = measurements_time(model)
-
-    wl1_meas = model.get_iterable_value('wl1')
-
-    inv_params = \
-      simulate_inverse(t_meas, ip_direct_saturated_heights,
-                       model, model.inv_init_params,
-                       wl_in_meas  = model.get_iterable_value('wl1'),
-                       wl_out_meas = model.get_iterable_value('wl_out'),
-                       optimfn=model.optimfn)
-
+    inv_params = simulate_inverse(ip_direct_saturated_heights, model,
+                                  model.inv_init_params, model.measurements,
+                                  optimfn=model.optimfn)
     return inv_params
 
 def run(model):
