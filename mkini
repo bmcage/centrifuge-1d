@@ -395,19 +395,22 @@ def data2iniV1(data, output_dir):
                                      array_info['ref'], array_info['len']))
             exit(1)
 
+    def _filter_data(key, value):
+        cvalue = compress_seq(value)
+
+        # durations need to be handled specially
+        if key in ('duration', 'fh_duration', 'deceleration_duration'):
+            if ((not type(cvalue) in (list, tuple))
+                and float(cvalue) == 0.0):
+
+                return 0.0
+            else: return value
+
+        if cvalue in [None, '']: return None
+        else: return cvalue
 
 
-    def _filter_data(experiment_data):
-        empty_items = []
 
-        for (descriptor, value) in experiment_data.items():
-            cvalue = compress_seq(value)
-            if cvalue in [None, '']: empty_items.append(descriptor)
-            else: experiment_data[descriptor] = cvalue
-
-        for descriptor in empty_items: del experiment_data[descriptor]
-
-        return experiment_data
 
     print('\nCreating data inifiles...')
 
