@@ -271,10 +271,89 @@ class MultipleExperimentData():
 
         self.iterate(_save_configuration, verbose=False)
 
+############################################################
+#                      Read CSV file(s)                    #
+############################################################
+def missing_fields_in_csv(csv_fields, fields):
 
+    missing = list(filter(lambda field: not (field in csv_fields),
+                          fields))
+    return missing
 
+def CSV2data(csv_dir, csv_filename):
+    print('Reading CSV file... ', end="")
 
+    # open CSV file
+    try:
+        f_csv = open(csv_filename)
+        csv_data = csv.reader(f_csv)
+        csv_fields = next(csv_data)
+    except UnicodeDecodeError:
+        try:
+            import io
 
+            f_csv = io.open(csv_filename, encoding='utf-16')
+            csv_data = csv.reader(f_csv, delimiter=';')
+            csv_fields = next(csv_data)
+        except Exception:
+            print('\n\tCould not read CSV file:', csv_filename,
+                  'Unknown type of CSV file. Exiting...')
+            exit(1)
+
+    # determine CSV type
+    if ((len(csv_fields) >= 2) and (csv_fields[0] == 'Name:')
+        and (len(csv_fields[1]) >= 10) and (csv_fields[1][:10] == 'Data Instr')):
+
+        for i in range(13): next(csv_data) # skip useless header
+            # replace original column names with something more readable
+        csv_fields = ('scan', 'time', 'elapsed', 's101', 's102', 's103',
+                      's119', 's120')
+        csv_type = 2
+        data = ExperimentData()
+    else:
+        csv_type = 1
+        required_fields = ('exp_type', 'id', 'exp_no')
+        missing = missing_fields_in_csv(csv_fields, required_fields)
+        if not missing == []:
+            print("CSV file: missing identifiers: '%s' "% missing)
+            print('CSV error: cannot process CSV file, aborting...')
+            exit(1)
+
+        extended_fields = ('scan', 'csv_file', 'rpm')
+        missing = missing_fields_in_csv(csv_fields, required_fields)
+        if missing and (len(missing) != len(extended_fields)):
+            print("CSV file: missing identifiers: '%s' "% missing)
+            print('CSV error: cannot process CSV file, aborting...')
+            exit(1)
+
+        identifiers = {}
+
+        data = MultipleExperimentData()
+
+    csv_row = namedtuple('CSVRow', csv_fields)
+
+    for row in map(csv_row._make, csv_data):
+        if csv_type == 1:
+            module = MODMAN.find_module(row.exp_type, submodule='csv_parse')
+            skip   = get_module_function('skip', module)
+
+            if skip(row): continue
+            #FFF            print('\nFields', csv_fields, row.__dict__)
+            #FFF print('D', data)
+            for id_name in ('exp_type', 'id', 'exp_no'):
+                value = getattr(row, id_name)
+                if value: identifiers[id_name] = value # update if value present
+            (exp_id, exp_no) = (identifiers['id'], identifiers['exp_no'])
+            data.append_row(row, exp_id, exp_no)
+        else:
+            data.appen_row(row)
+
+    if csv_type == 2: # remove useless columns from data structure
+        data.delete('time', 'elapsed', 's101', 's119', 's120')
+
+    f_csv.close()
+
+    return data
 
 
 def get_iterables_list(exp_type, modman):
