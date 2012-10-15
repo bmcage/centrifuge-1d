@@ -176,7 +176,7 @@ def get_iterables_list(exp_type, modman):
 
     def extend_iterables_list(module):
         if hasattr(module, 'OPTIONS_ITERABLE_LIST'):
-            noniterable_list.extend(module.OPTIONS_ITERABLE_LIST)
+            iterables_list.extend(module.OPTIONS_ITERABLE_LIST)
         return True
 
     modman.traverse_ancestors(exp_type, extend_iterables_list,
