@@ -72,6 +72,25 @@ def get_module_function(function_name, module, base_module=base_module):
 
     return function
 
+def compress_seq(seq):
+    if not type(seq) in [list, tuple]: return seq
+
+    ref = seq[0]
+
+    # all(seq[:] == ref)
+    if not list(filter(lambda value: not (value == ref), seq)):
+        return ref
+
+    # all are == '' except one
+    nonempty = list(filter(lambda value: not (value == ''), seq))
+    items_count = len(nonempty)
+    if items_count == 1:
+        return nonempty[0]
+    elif items_count == len(seq):
+        return seq
+    else:
+        raise('Either all values in sequence must be nonempty, or exactly one:'
+              '\n {}', seq)
 def assert_csv_has_required_fields(csv_fields, required_fields):
 
     missing = list(filter(lambda field: not (field in csv_fields),
@@ -130,25 +149,9 @@ def CSV2data(csv_filename):
 
     return data
 
-def compress_seq(seq):
-    if not type(seq) in [list, tuple]: return seq
 
-    ref = seq[0]
 
-    # all(seq[:] == ref)
-    if not list(filter(lambda value: not (value == ref), seq)):
-        return ref
 
-    # all are == '' except one
-    nonempty = list(filter(lambda value: not (value == ''), seq))
-    items_count = len(nonempty)
-    if items_count == 1:
-        return nonempty[0]
-    elif items_count == len(seq):
-        return seq
-    else:
-        raise('Either all values in sequence must be nonempty, or exactly one:'
-              '\n {}', seq)
 
 def save_configuration(data, savedir='', filename='', section_name=''):
 
