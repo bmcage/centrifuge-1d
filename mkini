@@ -91,6 +91,89 @@ def compress_seq(seq):
     else:
         raise('Either all values in sequence must be nonempty, or exactly one:'
               '\n {}', seq)
+# Class for storage of data read from CSV file
+class ExperimentData():
+    def __init__(self):
+        self._data = {}
+
+    def pick(self):
+        exp_id = self.keys()[0]
+        exp_no = self.keys(self._data[exp_id])[0]
+        exp_data = self._data[exp_id][exp_no]
+
+        return (exp_id, exp_no, exp_data)
+
+    def get_value(self, exp_id, exp_no, key):
+        return self._data[exp_id][exp_no][key]
+
+    def set_value(self, exp_id, exp_no, key, value):
+        data = self._data
+
+        if not exp_id in data:
+            data[exp_id] = {exp_no: defaultdict(list)}
+        elif not exp_no in data[exp_id]:
+            data[exp_id][exp_no] = defaultdict(list)
+
+        data[exp_id][exp_no][key].append(value)
+
+        return value
+
+    def append_row(self, exp_id, exp_no, row):
+        data = self._data
+
+        if not exp_id in data:
+            data[exp_id] = {exp_no: defaultdict(list)}
+        elif not exp_no in data[exp_id]:
+            data[exp_id][exp_no] = defaultdict(list)
+
+        experiment_data = data[exp_id][exp_no]
+        for (descriptor, value) in vars(row).items():
+            experiment_data[descriptor].append(value)
+
+        return value
+
+    def delete(self, exp_id, exp_no, keys):
+        exp_data = self._data[exp_id][exp_no]
+        for key in keys:
+            if key in exp_data:  del exp_data[key]
+
+    def delete_identificators(self, exp_id, exp_no):
+        self.delete(exp_id, exp_no, ['id', 'exp_type', 'exp_no'])
+
+    def on_data(self, exp_id, exp_no, fn, user_data=None):
+        exp_data = self._data[exp_id][exp_no]
+        if user_data is None:
+            for (key, value) in exp_data.items(): fn(key, value)
+        else:
+            for (key, value) in exp_data.items(): fn(key, value, user_data)
+
+    def iterate(self, fn, user_data=None, verbose=True):
+        for (exp_id, exp_id_struct) in self._data.items():
+            if verbose:
+                print("\tProcessing experiment(s) with ID: ", repr(exp_id))
+
+            for (exp_no, exp_data) in exp_id_struct.items():
+                if verbose:
+                    print("\t\tProcessing experiment number: ", exp_no, end="")
+
+                fn(self, exp_id, exp_no, user_data)
+
+            if verbose: print('\t\tDone')
+
+    def modify_on_data(self, exp_id, exp_no, fn):
+        "Set the value returned by function fn as new value. If new_value is
+         'None', then the key is deleted. Type of fn: fn(key, value)->new_value"
+        delete_items = []
+
+        experiment_data = self._data[exp_id][exp_no]
+
+        for (key, value) in experiment_data.items():
+            new_value = fn(key, value)
+            if new_value is None: delete_items.append(key)
+            else: experiment_data[key] = new_value
+
+        for key in delete_items: del experiment_data[key]
+
 def assert_csv_has_required_fields(csv_fields, required_fields):
 
     missing = list(filter(lambda field: not (field in csv_fields),
