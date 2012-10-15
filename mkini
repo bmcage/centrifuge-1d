@@ -167,63 +167,13 @@ class ExperimentData():
         fout.close()
 
 
-def assert_csv_has_required_fields(csv_fields, required_fields):
 
-    missing = list(filter(lambda field: not (field in csv_fields),
-                          required_fields))
-    if missing:
-        print("CSV file: missing identifiers: '%s' "% missing)
-        print('CSV error: cannot process CSV file, aborting...')
-        exit(1)
 
-def CSV2data(csv_filename):
 
-    identifiers = {}
 
-    def _store_CSV_row(data, row):
-        nonlocal identifiers
 
-        for id_name in ('exp_type', 'id', 'exp_no'):
-            value = getattr(row, id_name)
-            if value: identifiers[id_name] = value # update if value present
 
-        (exp_id, exp_no) = (identifiers['id'], identifiers['exp_no'])
 
-        if not exp_id in data:
-            data[exp_id] = {exp_no: defaultdict(list)}
-        elif not exp_no in data[exp_id]:
-            data[exp_id][exp_no] = defaultdict(list)
-
-        experiment_data = data[exp_id][exp_no]
-        for (descriptor, value) in vars(row).items():
-            experiment_data[descriptor].append(value)
-
-    # Function body
-    f_csv = open(csv_filename)
-    csv_data = csv.reader(f_csv)
-
-    print('Reading CSV file... ', end="")
-
-    csv_fields = next(csv_data)
-    assert_csv_has_required_fields(csv_fields, REQUIRED_FIELDS)
-
-    csv_row = namedtuple('CSVRow', csv_fields)
-
-    data = {}
-
-    for row in map(csv_row._make, csv_data):
-        module = modman.find_module(row.exp_type, submodule='csv_parse')
-
-        skip         = get_module_function('skip', module)
-
-        if not skip(row):
-            _store_CSV_row(data, row)
-
-    f_csv.close()
-
-    print('Done.')
-
-    return data
 
 
 
