@@ -354,6 +354,9 @@ def CSV2data(csv_dir, csv_filename):
 
     return data
 
+############################################################
+#          Transform data and save to .ini file            #
+############################################################
 ITERABLE_LISTS = {}
 
 def get_iterables_list(exp_type, modman):
