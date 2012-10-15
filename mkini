@@ -355,27 +355,31 @@ def CSV2data(csv_dir, csv_filename):
 
     return data
 
+ITERABLE_LISTS = {}
 
 def get_iterables_list(exp_type, modman):
-    iterables_list = []
 
     def extend_iterables_list(module):
-        if hasattr(module, 'OPTIONS_ITERABLE_LIST'):
-            iterables_list.extend(module.OPTIONS_ITERABLE_LIST)
+        if hasattr(module, 'OPTIONS_ITERABLE_LISTS'):
+            iterables_list.extend(module.OPTIONS_ITERABLE_LISTS)
         return True
 
-    modman.traverse_ancestors(exp_type, extend_iterables_list,
-                              submodule='options')
+    if exp_type in ITERABLE_LISTS:
+        iterables_list = ITERABLE_LISTS[exp_type]
+    else:
+        iterables_list = []
 
-    return iterables_list
-
+        modman.traverse_ancestors(exp_type, extend_iterables_list,
+                                  submodule='options')
 def get_measurements_array_length(exp_type, data, modman):
     iterables = get_iterables_list(exp_type, modman)
     measurements_names = MEASUREMENTS_NAMES.values()
 
+        ITERABLE_LISTS[exp_type] = iterables_list
     measurements_list_length = -1
     ref_key = None
 
+    return iterables_list
     for (key, value) in data.items():
         if ((not type(value) in [list, tuple])
             or ((not key in iterables) and (not key in measurements_names))):
