@@ -8,11 +8,10 @@ from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME, MEASUREMENTS_NAMES
 from shared import get_directories
 from collections import namedtuple, defaultdict
 
+MODMAN = ModulesManager()
 REQUIRED_FIELDS = ('exp_type', 'id', 'exp_no')
 
-modman = ModulesManager()
-
-base_module = modman.find_module('base', submodule='csv_parse')
+BASE_MODULE = MODMAN.find_module('base', submodule='csv_parse')
 
 # dynamicall created options: options added to generated measurements.ini
 # file, that are not specified by the csv file
@@ -64,7 +63,7 @@ def parse_input():
 
     return options
 
-def get_module_function(function_name, module, base_module=base_module):
+def get_module_function(function_name, module, base_module=BASE_MODULE):
     if hasattr(module, function_name):
         function = getattr(module, function_name)
     else:
