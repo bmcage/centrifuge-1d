@@ -412,64 +412,20 @@ def data2iniV1(data, output_dir):
 
 
 
-    print('\nCreating data inifiles...')
 
-    for (exp_id, exp_id_struct) in data.items():
-        print("\tProcessing experiment(s) with ID: ", repr(exp_id))
 
-        id_exp_type = []
 
-        for (exp_no, exp_data) in exp_id_struct.items():
-            print("\t\tProcessing experiment number: ", exp_no, end="")
 
-            compr_exp_type = compress_seq(exp_data['exp_type'])
-            if type(compr_exp_type) in (list, tuple):
-                print('I', compr_exp_type)
-                print("Experiment type 'exp_type' must be the "
-                      "same for given experiment. Exiting...")
-                exit(1)
-            id_exp_type.append(compr_exp_type)
 
-            # Remove identificators
-            for field in REQUIRED_FIELDS:
-                del exp_data[field]
 
-            experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no, 'mask': None}
 
-            (data_dir, masks_dir)  = \
-              get_directories('ini', ['data', 'masks'], experiment_info)
 
-            for (name, dyndata_fn) in DYNAMIC_OPTIONS.items():
-                exp_data[name] = dyndata_fn(compr_exp_type, exp_data, modman)
 
-            save_configuration(_filter_data(exp_data), savedir=data_dir,
-                               filename='measurements.ini',
-                               section_name='experiment-data')
 
-            if not path.exists(masks_dir):
-                makedirs(masks_dir) # create empty masks directory
 
-            print('\t\tDone')
 
-        print("\tCreating default inifile for ID ", repr(exp_id),
-              end = '')
 
-        exp_base_path = get_directories('ini', 'exp_base', experiment_info)
 
-        if path.exists(exp_base_path + DEFAULTS_ININAME):
-            print('\n\t\tFile exists.\t\t\t\t\tSkipping'
-                  .format(DEFAULTS_ININAME))
-        else:
-            cvalue = compress_seq(id_exp_type)
-            if type(cvalue) in (list, tuple):
-                print("Experiment type 'exp_type' must be the same "
-                      "for all experiments with given 'exp_id'.")
-                exit(1)
-
-            save_configuration({'exp_type': repr(cvalue)},
-                               savedir=exp_base_path, filename=DEFAULTS_ININAME,
-                               section_name='experiment')
-            print('\tDone')
 
     print('All done.')
 
