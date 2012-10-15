@@ -371,35 +371,31 @@ def get_iterables_list(exp_type, modman):
 
         modman.traverse_ancestors(exp_type, extend_iterables_list,
                                   submodule='options')
-def get_measurements_array_length(exp_type, data, modman):
-    iterables = get_iterables_list(exp_type, modman)
-    measurements_names = MEASUREMENTS_NAMES.values()
 
         ITERABLE_LISTS[exp_type] = iterables_list
-    measurements_list_length = -1
-    ref_key = None
 
     return iterables_list
-    for (key, value) in data.items():
+
+def data2iniV1(data, output_dir):
+
+    def _get_measurement_length(key, value, array_info):
         if ((not type(value) in [list, tuple])
-            or ((not key in iterables) and (not key in measurements_names))):
-            continue
+            or ((not key in array_info['iterables'])
+                and (not key in array_info['measurements_names']))):
+            return
 
-        if measurements_list_length == -1:
-            ref_key = key
-            measurements_list_length = len(value)
-            continue
-
-        if len(value) != measurements_list_length:
+        if array_info['len'] == -1:
+            array_info['len'] = len(value)
+            array_info['ref'] = key
+        elif array_info['len'] != len(value):
             print("Option list '{}' has length: {:d}\n"
                   "Reference list '{}' has length: {:d}\n:"
                   "Cannot iterate over lists of unequal length. "
-                  "Aborting.".format(key, len(value), ref_key, iterations))
-    return max(measurements_list_length, 1)
+                  "Aborting.".format(key, len(value),
+                                     array_info['ref'], array_info['len']))
+            exit(1)
 
-DYNAMIC_OPTIONS['measurements_length'] = get_measurements_array_length
 
-def data2ini(data, output_dir):
 
     def _filter_data(experiment_data):
         empty_items = []
