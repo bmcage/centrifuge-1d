@@ -500,6 +500,32 @@ def data2iniV2(data, output_dir, filename):
 
 if __name__ == "__main__":
     options = parse_input()
-    data    = CSV2data(options.csv_filename)
 
-    data2ini(data, INI_DIR)
+    experiment_info =  dict.fromkeys(('exp_id', 'exp_no', 'mask'))
+    queue = [(INI_DIR, options.csv_filename)]
+
+    def _queue_csv_files(experiment):
+        csv_files = experiment.get_value('csv_file')
+
+        if not csv_files is None:
+            for key in ('exp_id', 'exp_no'):
+                value = experiment.get_value(key)
+                if not value is None: experiment_info[key] = value
+            data_dir  = get_directories('ini', 'data', experiment_info)
+
+            for csv_file in list(csv_files):
+                queue.append((data_dir, csv_file))
+
+    for (ini_dir, filename) in queue:
+        print('Reading CSV file... ', filename, end="")
+
+        data = CSV2data(CSV_DIR, filename)
+
+        if isinstance(data, ExperimentData):
+            data2iniV2(data, ini_dir, filename=csv_filename)
+            _queue_csv_files(data)
+        else:
+            data2iniV1(data, ini_dir)
+            data.iterate(_queue_csv_files)
+
+        print('Done.')
