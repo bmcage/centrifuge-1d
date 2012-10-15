@@ -488,6 +488,16 @@ def data2iniV1(data, output_dir):
                  level_posthook=_post_process_data)
     print('All done.')
 
+def data2iniV2(data, output_dir, filename):
+    if (len(filename) > 3) and (not filename[-4:] in ('.csv', '.ini')):
+        if filename[-4:] == '.csv':
+            filename[-3:] = 'ini'
+        inifilename = filename
+    else:
+        inifilename = filename + '.ini'
+
+    data.save(output_dir, filename, section_name='experiment-data')
+
 if __name__ == "__main__":
     options = parse_input()
     data    = CSV2data(options.csv_filename)
