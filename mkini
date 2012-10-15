@@ -9,7 +9,6 @@ from shared import get_directories
 from collections import namedtuple, defaultdict
 
 MODMAN = ModulesManager()
-REQUIRED_FIELDS = ('exp_type', 'id', 'exp_no')
 
 BASE_MODULE = MODMAN.find_module('base', submodule='csv_parse')
 
