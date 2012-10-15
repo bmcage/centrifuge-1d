@@ -166,18 +166,110 @@ class ExperimentData():
 
         fout.close()
 
+class MultipleExperimentData():
+    def __init__(self):
+        self._data = {}
 
+    def pick(self):
+        leaf = self._data
 
+        while not isinstance(leaf, ExperimentData):
+            leaf = leaf.keys()[0]
 
+        return leaf
 
+    def _get_leaf(self, ids, create_p=False, not_found=None):
+        data          = self._data
+        parental_data = None
 
+        for identifier in ids:
+            if not identifier in data:
+                if create_p:
+                    data[identifier] = {}
+                else:
+                    return not_found
+            parental_data = data
+            data = data[identifier]
 
+        if data == {}:
+            data = ExperimentData()
+            print('ids', ids)
+            parental_data[ids[-1]] = data
+            #FFF print('\nDDD', data, ids)
+        return data
 
+    def get_value(self, key, not_found=None, *ids):
+        leaf = self._get_leaf(ids, not_found=EOFError)
+        if leaf == EOFError:
+            return not_found
+        else:
+            return leaf.get_value(key)
 
+    def set_value(self, key, value, *ids):
+        leaf = self._get_leaf(ids, create_p=True)
+        leaf.set_value(key, value)
 
+    def append_row(self, row, *ids):
+        leaf = self._get_leaf(ids, create_p=True)
+        #FFF print('\nLeaf', leaf)
+        leaf.append_row(row)
 
+    def iterate(self, fn, user_data=None, level_prehook=None,
+                level_posthook=None, levels_names=None):
 
+        def _traverse(struct, level):
+            if isinstance(struct, ExperimentData):
+                if user_data is None:
+                    fn(struct)
+                else:
+                    fn(struct, user_data)
+            else:
+                for (key, value) in struct.items():
+                    if not level_prehook is None:
+                        if levels_names:
+                            if not user_data is None:
+                                level_prehook(levels_names[level], key,
+                                              user_data)
+                            else:
+                                level_prehook(levels_names[level], key)
 
+                        else:
+                            level_prehook(key, user_data)
+
+                    _traverse(value, level+1)
+
+                    if not level_posthook is None:
+                        if levels_names:
+                            if not user_data is None:
+                                level_posthook(levels_names[level], key,
+                                               user_data)
+                            else:
+                                level_posthook(levels_names[level], key)
+
+                        else:
+                            level_posthook(key, user_data)
+
+        _traverse(self._data, 0)
+
+    def delete(self, *keys):
+        def _delete_on_leafs(experiment):
+            experiment.delete(*keys)
+
+        self.iterate(_delete_on_leafs)
+
+    def on_modify(self, fn):
+        def _modify_leafs(experiment):
+            experiment.on_modify(fn)
+
+        self.iterate(_modify_leafs)
+
+    def save(self, save_dir, filename=DEFAULTS_ININAME,
+             section_name='experiment'):
+
+        def _save_configuration(experiment):
+            experiment.save(save_dir, filename, section_name)
+
+        self.iterate(_save_configuration, verbose=False)
 
 
 
