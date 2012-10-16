@@ -87,8 +87,8 @@ def compress_seq(seq):
     elif items_count == len(seq):
         return seq
     else:
-        raise('Either all values in sequence must be nonempty, or exactly one:'
-              '\n {}', seq)
+        raise ValueError('Either all values in sequence must be nonempty, '
+                         'or exactly one:\n', seq)
 
 ############################################################
 #          Storage class for data read from CSV file       #
