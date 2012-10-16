@@ -473,14 +473,14 @@ def data2iniV1(data, output_dir):
         if not path.exists(masks_dir):
             makedirs(masks_dir) # create empty masks directory
 
-        experiment.delete('id', 'exp_no', 'exp_type')
-
         # determine the size of iterable items (has to be the same for all)
         array_info = {'len': -1, 'ref': None,
                       'iterables': get_iterables_list(exp_type, MODMAN),
                       'measurements_names': MEASUREMENTS_NAMES.values()}
         experiment.iterate(_get_measurement_length, user_data=array_info)
         experiment.set_value('measurements_length', max(array_info['len'], 1))
+
+        experiment.delete('id', 'exp_no', 'exp_type')
 
         experiment.save(data_dir, filename='measurements.ini',
                         section_name='experiment-data')
