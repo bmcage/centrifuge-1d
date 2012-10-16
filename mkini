@@ -383,7 +383,7 @@ def get_iterables_list(exp_type, modman):
 
     return iterables_list
 
-def data2iniV1(data, output_dir):
+def data2iniV1(data, output_dir, collect_fn=None):
 
     def _get_measurement_length(key, value, array_info):
         if ((not type(value) in [list, tuple])
@@ -479,6 +479,9 @@ def data2iniV1(data, output_dir):
                       'measurements_names': MEASUREMENTS_NAMES.values()}
         experiment.iterate(_get_measurement_length, user_data=array_info)
         experiment.set_value('measurements_length', max(array_info['len'], 1))
+
+        if not collect_fn is None:
+            collect_fn(experiment)
 
         experiment.delete('id', 'exp_no', 'exp_type')
 
