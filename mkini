@@ -356,10 +356,10 @@ def CSV2data(csv_dir, csv_filename):
             if skip(row): continue
             #FFF            print('\nFields', csv_fields, row.__dict__)
             #FFF print('D', data)
-            for id_name in ('exp_type', 'id', 'exp_no'):
+            for id_name in ('exp_type', 'exp_id', 'exp_no'):
                 value = getattr(row, id_name)
                 if value: identifiers[id_name] = value # update if value present
-            (exp_id, exp_no) = (identifiers['id'], identifiers['exp_no'])
+            (exp_id, exp_no) = (identifiers['exp_id'], identifiers['exp_no'])
             data.append_row(row, exp_id, exp_no)
         else:
             data.appen_row(row)
@@ -476,7 +476,7 @@ def data2iniV1(data, output_dir, collect_fn=None):
                       "for all experiments with given 'exp_id'.")
             exit(1)
 
-        experiment_info['exp_id'] = experiment.get_value('id')
+        experiment_info['exp_id'] = experiment.get_value('exp_id')
         experiment_info['exp_no'] = experiment.get_value('exp_no')
 
         (data_dir, masks_dir)  = \
@@ -495,7 +495,7 @@ def data2iniV1(data, output_dir, collect_fn=None):
         if not collect_fn is None:
             collect_fn(experiment)
 
-        experiment.delete('id', 'exp_no', 'exp_type')
+        experiment.delete('exp_id', 'exp_no', 'exp_type')
 
         experiment.save(data_dir, filename='measurements.ini',
                         section_name='experiment-data')
