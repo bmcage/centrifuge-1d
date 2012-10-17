@@ -526,9 +526,8 @@ def data2iniV2(data, output_dir, filename):
 
 if __name__ == "__main__":
     options = parse_input()
-    info = {'csv_filepath': options.csv_filepath,
-            'csv_filename': options.csv_filename,
-            'ini_dir': INI_DIR}
+    info = {'csv_path': options.csv_path,
+            'csv_filebasename': options.csv_filebasename}
 
-    data = CSV2data(info)
+    data = CSV2data(info['csv_path'], info['csv_filebasename'])
     data2ini(data, info)
