@@ -366,7 +366,7 @@ def CSV2data(csv_dir, csv_filebasename):
             (exp_id, exp_no) = (identifiers['exp_id'], identifiers['exp_no'])
             data.append_row(row, exp_id, exp_no)
         else:
-            data.appen_row(row)
+            data.append_row(row)
 
     if csv_type == 'scanned_data': # remove useless columns from data structure
         data.delete('time', 'elapsed', 's101', 's119', 's120')
