@@ -294,13 +294,13 @@ def missing_fields_in_csv(csv_fields, fields):
                           fields))
     return missing
 
-def CSV2data(info):
+def CSV2data(csv_dir, csv_filebasename):
     print('Reading CSV file... ', end="")
 
-    (csv_dir, csv_filename) = (info['csv_filepath'], info['csv_filename'])
+    csv_filename = csv_dir + csv_filebasename + '.csv'
     # open CSV file
     try:
-        f_csv = open(csv_dir + csv_filename)
+        f_csv = open(csv_filename)
         csv_data = csv.reader(f_csv)
         csv_fields = next(csv_data)
     except UnicodeDecodeError:
@@ -311,7 +311,7 @@ def CSV2data(info):
             csv_data = csv.reader(f_csv, delimiter=';')
             csv_fields = next(csv_data)
         except Exception:
-            print('\n\tCould not read CSV file:', csv_filename,
+            print('\n\tCould not read CSV file:', csv_filebasename + '.csv',
                   'Unknown type of CSV file. Exiting...')
             exit(1)
 
