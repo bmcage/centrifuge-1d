@@ -47,24 +47,24 @@ def parse_input():
     csv_path = CSV_DIR + sep + args[0]
 
     if path.isdir(csv_path):
-        csv_filepath = csv_path + sep
-        csv_filename = args[0] + '.csv'
+        csv_path        += sep
+        csv_filebasename = args[0]
     else:
-        csv_filepath = CSV_DIR + sep
-        csv_filename = args[0]
+        csv_path         = CSV_DIR + sep
+        csv_filebasename = args[0]
 
-    if path.exists(csv_filepaht + csv_filename):
-        options.csv_filename = csv_filename
-    elif path.exists(csv_filename + '.csv'):
-        options.csv_filename = csv_filename + '.csv'
+    if path.exists(csv_path + csv_filebasename):
+        options.csv_filebasename = csv_filebasename[:-4] # truncate the extension
+    elif path.exists(csv_path + csv_filebasename + '.csv'):
+        options.csv_filebasename = csv_filebasename
     else:
-        print('CSV file does not exist:{}'.format(csv_filename))
+        print('CSV file does not exist:{}'.format(csv_filebasename))
         exit(1)
-    options.csv_filepath = csv_filepath
+
+    options.csv_path = csv_path
 
     if not path.exists(INI_DIR):
         makedirs(INI_DIR)
-
     return options
 
 def get_module_function(function_name, module, base_module=BASE_MODULE):
