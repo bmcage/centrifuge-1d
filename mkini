@@ -294,12 +294,13 @@ def missing_fields_in_csv(csv_fields, fields):
                           fields))
     return missing
 
-def CSV2data(csv_dir, csv_filename):
+def CSV2data(info):
     print('Reading CSV file... ', end="")
 
+    (csv_dir, csv_filename) = (info['csv_filepath'], info['csv_filename'])
     # open CSV file
     try:
-        f_csv = open(csv_filename)
+        f_csv = open(csv_dir + csv_filename)
         csv_data = csv.reader(f_csv)
         csv_fields = next(csv_data)
     except UnicodeDecodeError:
@@ -396,6 +397,7 @@ def get_iterables_list(exp_type, modman):
     return iterables_list
 
 def data2iniV1(data, output_dir, collect_fn=None):
+def data2ini(data, experiment_info):
 
     def _get_measurement_length(key, value, array_info):
         if ((not type(value) in [list, tuple])
@@ -492,8 +494,6 @@ def data2iniV1(data, output_dir, collect_fn=None):
         experiment.iterate(_get_measurement_length, user_data=array_info)
         experiment.set_value('measurements_length', max(array_info['len'], 1))
 
-        if not collect_fn is None:
-            collect_fn(experiment)
 
         experiment.delete('exp_id', 'exp_no', 'exp_type')
 
@@ -503,7 +503,8 @@ def data2iniV1(data, output_dir, collect_fn=None):
         print('\t\tDone')
 
     print('\nCreating data inifiles...')
-    experiment_info =  dict.fromkeys(('exp_id', 'exp_no', 'mask', 'exp_type'))
+    experiment_info.update(dict.fromkeys(('exp_id', 'exp_no', 'mask',
+                                          'exp_type')))
     data.iterate(_process_data, user_data=experiment_info,
                  levels_names=['exp_id', 'exp_no'],
                  level_prehook=_pre_process_data,
@@ -522,32 +523,9 @@ def data2iniV2(data, output_dir, filename):
 
 if __name__ == "__main__":
     options = parse_input()
+    info = {'csv_filepath': options.csv_filepath,
+            'csv_filename': options.csv_filename,
+            'ini_dir': INI_DIR}
 
-    experiment_info =  dict.fromkeys(('exp_id', 'exp_no', 'mask'))
-    queue = [(INI_DIR, options.csv_filename)]
-
-    def _queue_csv_files(experiment):
-        csv_files = experiment.get_value('csv_file')
-
-        if not csv_files is None:
-            for key in ('exp_id', 'exp_no'):
-                value = experiment.get_value(key)
-                if not value is None: experiment_info[key] = value
-            data_dir  = get_directories('ini', 'data', experiment_info)
-
-            for csv_file in list(csv_files):
-                queue.append((data_dir, csv_file))
-
-    for (ini_dir, filename) in queue:
-        print('Reading CSV file... ', filename, end="")
-
-        data = CSV2data(CSV_DIR, filename)
-
-        if isinstance(data, ExperimentData):
-            data2iniV2(data, ini_dir, filename=csv_filename)
-            _queue_csv_files(data)
-        else:
-            data2iniV1(data, ini_dir)
-            data.iterate(_queue_csv_files)
-
-        print('Done.')
+    data = CSV2data(info)
+    data2ini(data, info)
