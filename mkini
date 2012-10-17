@@ -285,6 +285,9 @@ class MultipleExperimentData():
 
         self.iterate(_save_configuration, verbose=False)
 
+    def get_datatype(self):
+        return self._data_type
+
 ############################################################
 #                      Read CSV file(s)                    #
 ############################################################
