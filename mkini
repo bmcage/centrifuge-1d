@@ -44,18 +44,23 @@ def parse_input():
             optparser.print_help()
         exit(0)
 
-    csv_filename = CSV_DIR + sep + args[0]
+    csv_path = CSV_DIR + sep + args[0]
 
-    if path.isdir(csv_filename):
-        csv_filename += sep + args[0] + '.csv'
+    if path.isdir(csv_path):
+        csv_filepath = csv_path + sep
+        csv_filename = args[0] + '.csv'
+    else:
+        csv_filepath = CSV_DIR + sep
+        csv_filename = args[0]
 
-    if path.exists(csv_filename):
+    if path.exists(csv_filepaht + csv_filename):
         options.csv_filename = csv_filename
     elif path.exists(csv_filename + '.csv'):
         options.csv_filename = csv_filename + '.csv'
     else:
         print('CSV file does not exist:{}'.format(csv_filename))
         exit(1)
+    options.csv_filepath = csv_filepath
 
     if not path.exists(INI_DIR):
         makedirs(INI_DIR)
