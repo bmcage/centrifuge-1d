@@ -82,10 +82,13 @@ def simulate_direct(initialize_z0, model, residual_fn,
             print(out_s.format(i, t0, total_duration, t0 + total_duration,
                                '-'.join(phases)))
 
-        for duration_type in ['duration', 'deceleration_duration',
-                              'fh_duration']:
-
-            duration = getattr(model, duration_type)
+        for phase in ('a', 'd', 'g'):
+            if phase == 'a':
+                duration = getattr(model, 'duration')
+            elif phase == 'd':
+                duration = getattr(model, 'deceleration_duration')
+            else:
+                duration = getattr(model, 'fh_duration')
 
             if duration == 0.0: continue
 
@@ -94,20 +97,21 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
             solver.set_options(tstop=t_end)
 
-            if duration_type == 'duration':
-                model.phase = 'a'
-            elif duration_type == 'fh_duration':
-                model.phase = 'g'
+            model.phase = phase
+            if phase == 'a':
+                pass
+            elif phase == 'd':
+                pass
+            else: # phase == 'g'
                 # backup values
                 backup = model.get_parameters(['re', 'duration'])
 
                 (model.r0, model.duration) = (model.r0_fall, duration)
-            else:
-                model.phase = 'd'
-            model.set_omega2g_fn(model.phase)
+
+            model.set_omega2g_fn(phase)
 
             if verbosity > 2:
-                print(out_s.format(i, t0, duration, t_end, model.phase.upper()))
+                print(out_s.format(i, t0, duration, t_end, phase.upper()))
 
             if not solver_initialized:
                 (flag, t_init) = solver.init_step(t0, z0, zp0)
@@ -145,9 +149,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
             t0 = t_out
 
-            if duration_type == 'duration':
+            if phase == 'a':
                 model.omega_start = model.omega
-            elif duration_type == 'deceleration_duration':
+            elif phase == 'd':
                 model.omega_start = 0.0
             else:
                 # restore backuped values for 'fh_duration'
