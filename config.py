@@ -831,3 +831,13 @@ class ModelParameters:
 
     def set_omega2g_fn(self, fn_type):
         self.find_omega2g = self._omega2g_fns[fn_type]
+
+    def get_measurements_nr(self):
+        meas_nr = 0
+        for meas_name in ('measurements_times', 'measurements_dec_times',
+                          'measurements_fh_times'):
+            value = self._get_iterable_value(meas_name)
+            if value:
+                for meas in value: meas_nr += len(meas)
+
+        return meas_nr
