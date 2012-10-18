@@ -368,7 +368,7 @@ def CSV2data(csv_dir, csv_filebasename):
             data.append_row(row)
 
     if csv_type == 'scanned_data': # remove useless columns from data structure
-        data.delete('time', 'elapsed', 's101', 's119', 's120')
+        data.delete('scan', 'time', 'elapsed', 's101', 's119', 's120')
 
     f_csv.close()
 
