@@ -733,11 +733,11 @@ class ModelParameters:
             else: phase = 'd'
             self.set_omega2g_fn(phase)
 
-    def get_iterable_value(self, key):
+    def _get_iterable_value(self, key, not_found=None):
         if key in self._iterable_parameters:
             return self._iterable_parameters[key]
         else:
-             return None
+            return not_found
 
     def set_value(self, key, value):
         """
