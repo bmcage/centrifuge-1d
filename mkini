@@ -398,6 +398,42 @@ def get_iterables_list(exp_type, modman):
 
     return iterables_list
 
+def process_scanned_data(experiment, experiment_info):
+    csv_files = experiment.get_value('csv_file')
+
+    if csv_files is None:
+        print('File processing scanned data does not contain a ''csv_fields'' '
+              'data determining scanned values. Exiting...')
+        exit(1)
+
+    experiment.echo()
+    print('FFF', experiment_info)
+    data_dir  = get_directories('ini', 'data', experiment_info)
+
+    if type(csv_files) == str:
+        csv_scanned = csv_files
+        scanned_data = CSV2data(experiment_info['csv_path'], csv_scanned)
+    else:
+        raise ValueError('CSV file describing scanned data can contain '
+                         'only one filename: ', csv_files)
+    scans = experiment.get_value('scan')
+    (scan_first, scan_last) = (int(scans[0]), int(scans[-1]))
+
+    scanned_inflow_weights  = scanned_data.get_value('s102')
+    scanned_outflow_weights = scanned_data.get_value('s103')
+
+    # Truncate unused values
+    scanned_inflow_weights  = scanned_inflow_weights[scan_first: (scan_last+1)]
+    scanned_outflow_weights = scanned_outflow_weights[scan_first:(scan_last+1)]
+
+    scanned_data.set_value('s102', scanned_inflow_weights)
+    scanned_data.set_value('s103', scanned_outflow_weights)
+     filename = csv_scanned + '.ini'
+     #scanned_data.save(data_dir, filename)
+
+PROCESS_DATA = {'regular_ini': lambda exp, info: True,
+                'scan_ini': process_scanned_data}
+
 def data2ini(data, experiment_info):
 
     def _get_measurement_length(key, value, array_info):
@@ -496,6 +532,8 @@ def data2ini(data, experiment_info):
         experiment.iterate(_get_measurement_length, user_data=array_info)
         experiment.set_value('measurements_length', max(array_info['len'], 1))
 
+        # support custom modification per-data_type
+        PROCESS_DATA[experiment.get_datatype()](experiment, experiment_info)
 
         experiment.delete('exp_id', 'exp_no', 'exp_type')
 
