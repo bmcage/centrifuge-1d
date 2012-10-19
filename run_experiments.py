@@ -101,9 +101,8 @@ def parse_input():
 def process_global_constants(cfg, consts_cfg):
     if not consts_cfg: return
 
-    for (name, value) in consts_cfg.iterate_values():
-        if not cfg.get_value(name):
-            cfg.set_value(name, value)
+    tube_no = cfg.get_value('tube_no')
+    cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
 
 def load_configuration(experiment_info):
     (search_dirs, data_dir, masks_dir) = \
