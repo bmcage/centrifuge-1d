@@ -675,6 +675,11 @@ class Configuration:
 
         return True
 
+    def set_parameters(self, parameters_dict, section=None):
+        if section: raise ValueError('Sections not supported')
+
+        self._cfg_dict.update(parameters_dict)
+
         ###alien_options.difference_update([opt[0] for opt in default_options])
 
 ##################################################################
