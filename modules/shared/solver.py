@@ -67,8 +67,6 @@ def simulate_direct(initialize_z0, model, residual_fn,
     # Run computation
     out_s = '{: >5d}. {: 12.1f}  {: 12.1f}  {: 12.1f}  {:>6}'
 
-    iterations = model.iterations
-
     if verbosity > 1:
         capt_s = '\n{:>6} {:>12}  {:>12}  {:>12}  {:>6}'
         print(capt_s.format('Run', 'Start time', 'Duration', 'End time',
