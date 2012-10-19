@@ -385,37 +385,18 @@ class Configuration:
         return self
 
     def _group(self):
-        def _measurements_times(cfg):
-            t_duration    = cfg.get_value('duration', not_found=None)
-            t_fh_duration = cfg.get_value('fh_duration', not_found=None)
-            dec_duration  = cfg.get_value('deceleration_duration',
-                                          not_found=None)
-
-            if t_duration is None:
-                t_duration = 0.0
-            else:
-                t_duration = asarray(t_duration, dtype=float)
-            if dec_duration  is None: dec_duration = 0.0
-            if cfg.get_value('include_acceleration'):
-                t_duration[:] = t_duration + dec_duration
-
-            if t_fh_duration is None:
-                t_fh_duration = 0.0
-            else:
-                t_fh_duration = asarray(t_fh_duration, dtype=float)
-
-            duration_times = t_duration + t_fh_duration
-            if not np_any(duration_times): return None # no times were specified
-
-            stop_times = cumsum(concatenate(([0.0], duration_times)))
-
-            return stop_times
-
         def _group_measurments(cfg):
+            from modules.shared.functions import phases_end_times
+
             measurements = {}
             measurements_weights = {}
 
-            t = _measurements_times(cfg)
+            t = phases_end_times(cfg.get_value('duration', not_found=None),
+                                 cfg.get_value('deceleration_duration',
+                                               not_found=None),
+                                 cfg.get_value('fh_duration', not_found=None),
+                                 cfg.get_value('include_acceleration',
+                                               not_found=True))
             if not t is None:
                 measurements['t'] = t
                 t_meas = t[1:]
