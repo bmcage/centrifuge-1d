@@ -22,32 +22,33 @@ def simulate_direct(initialize_z0, model, residual_fn,
     # Initialization
     verbosity = model.verbosity
 
-    measurements_nr = model.iterations + 1
+    measurements_times = model.measurements_times
+
+    measurements_nr = len(measurements_times)
 
     t   = empty([measurements_nr, ], dtype=float)
     z   = empty([measurements_nr, model.z_size], dtype=float)
 
     t0 = 0.0
 
-    t[0]    = t0
-
     model.set_value('omega_start', 0.0)
     model.set_value('t0', t0)
     model.set_value('phase', 'U') # initialize to dummy value
 
-    if update_initial_condition:
-        z0 = empty([model.z_size, ], float)
-    else:
-        z0 = z[0, :]
+    z0 = empty([model.z_size, ], float)
+    zp0 = zeros(z0.shape, float)
 
     initialize_z0(z0, model) # compute the initial state
-
-    zp0 = zeros(z0.shape, float)
     if not initialize_zp0 is None: initialize_zp0(zp0, z0, model)
 
-    i = 1
-    if update_initial_condition: # as initial state can be modified at each
-        z[0, :] = z0             # restart, z0 was preallocated separately
+    if measurements_times[0] == t0:
+        t[0]    = t0
+        z[0, :] = z0
+        i = 1
+        t_meas = measurements_times[1]
+    else:
+        i = 0
+        t_meas = measurements_times[0]
 
     solver = ida.IDA(residual_fn,
                      compute_initcond='yp0',
@@ -144,8 +145,15 @@ def simulate_direct(initialize_z0, model, residual_fn,
                         if verbosity > 1:
                              print('Root found: aborted further computation.')
                         return (False, t[:i], z[:i, :])
-                else: # otherwise computation finished, continue to next cycle
-                    break
+                else: # success or t_stop reached
+                    if (flag == 0) or (t_end == t_meas):
+                        t[i] = t_out
+                        t_meas = measurements_times[i]
+                        i += 1
+
+                    # Assuming t_out is t_end+numerical_error
+                    if (flag == 1) or (t_end == t_meas):
+                        break
 
             t0 = t_out
 
@@ -157,13 +165,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 # restore backuped values for 'fh_duration'
                 model.set_parameters(backup)
 
-        t[i] = t_out
-
         if not model.next_iteration(): break
 
         # update values for the next iteration
-        i = i+1
-
         if update_initial_condition:
             z0[:] = z[i-1, :]
             update_initial_condition(i, z0, model)
