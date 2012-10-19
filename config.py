@@ -150,6 +150,66 @@ def flatten(cfg):
 
     return flattened_cfg
 
+def parse_list(raw_value):
+    if raw_value == '': return []
+
+    result = []
+    brackets = ('(', ')', '[', ']', '{', '}')
+    counts = {br: 0 for br in brackets}
+
+    i0 = 0
+    for (i, val) in enumerate(raw_value):
+        if val == ',':
+            if ((counts['('] == counts[')']) and (counts['{'] == counts['}'])
+                and (counts['['] == counts[']'])): # balanced brackets
+
+                result.append(parse_value(raw_value[i0:i]))
+                i0 = i+1
+            else:
+                pass
+        elif val in brackets:
+            counts[val] += 1
+
+    result.append(parse_value(raw_value[i0:])) # append last value
+
+    return result
+
+def parse_dict(raw_value):
+    if raw_value == '': return {}
+
+    result = {}
+    brackets = ('(', ')', '[', ']', '{', '}')
+    counts = {br: 0 for br in brackets}
+
+    i0 = 0
+    for (i, char) in enumerate(raw_value):
+        if char == ',':
+            if ((counts['('] == counts[')']) and (counts['{'] == counts['}'])
+                and (counts['['] == counts[']'])): # balanced brackets
+
+                k = i0 + raw_value[i0:].index(':')
+                if k>i:
+                    print('Could not parse dict item, no key:value',
+                          'value pair found:\n', raw_value[i0:i],
+                          '\nof item:\n', raw_value)
+
+                key   = parse_value(raw_value[i0:k])
+                value = parse_value(raw_value[k+1:i])
+                result[key] = value
+
+                i0 = i+1
+            else:
+                pass
+        elif char in brackets:
+            counts[char] += 1
+
+    k     = i0 + raw_value[i0:].index(':')
+    key   = parse_value(raw_value[i0:k])
+    value = parse_value(raw_value[k+1:])
+    result[key] = value
+
+    return result
+
 def parse_value(str_value):
     """
       Given a value as string, tries to convert to it's correspending type.
@@ -159,22 +219,11 @@ def parse_value(str_value):
         raw_value = str_value.strip()
 
         if raw_value[0] == "[" and raw_value[-1] == "]":
-            value = []
-            for item in raw_value[1:-1].split(","):
-                one_value = parse_value(item)
-                if type(one_value) == list:
-                    value.extend(one_value)
-                else:
-                    value.append(one_value)
-            return value
+            return parse_list(raw_value[1:-1])
         elif raw_value[0] == "(" and raw_value[-1] == ")":
-            return \
-              tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
+            return tuple(parse_list(raw_value[1:-1]))
         elif raw_value[0] == "{" and raw_value[-1] == "}":
-            # ...what an interesting parsing... but who is going to implement
-            # this again?
-            value = eval(raw_value)
-            return value
+            return parse_dict(raw_value[1:-1])
         elif ((raw_value[0] == "'" and raw_value[-1] == "'")
               or (raw_value[0] == '"' and raw_value[-1] == '"')):
             return raw_value[1:-1]
@@ -675,6 +724,11 @@ class Configuration:
 
         return True
 
+    def set_parameters(self, parameters_dict, section=None):
+        if section: raise ValueError('Sections not supported')
+
+        self._cfg_dict.update(parameters_dict)
+
         ###alien_options.difference_update([opt[0] for opt in default_options])
 
 ##################################################################
@@ -733,11 +787,11 @@ class ModelParameters:
             else: phase = 'd'
             self.set_omega2g_fn(phase)
 
-    def get_iterable_value(self, key):
+    def _get_iterable_value(self, key, not_found=None):
         if key in self._iterable_parameters:
             return self._iterable_parameters[key]
         else:
-             return None
+            return not_found
 
     def set_value(self, key, value):
         """
@@ -826,3 +880,13 @@ class ModelParameters:
 
     def set_omega2g_fn(self, fn_type):
         self.find_omega2g = self._omega2g_fns[fn_type]
+
+    def get_measurements_nr(self):
+        meas_nr = 0
+        for meas_name in ('measurements_times', 'measurements_dec_times',
+                          'measurements_fh_times'):
+            value = self._get_iterable_value(meas_name)
+            if value:
+                for meas in value: meas_nr += len(meas)
+
+        return meas_nr
