@@ -150,6 +150,66 @@ def flatten(cfg):
 
     return flattened_cfg
 
+def parse_list(raw_value):
+    if raw_value == '': return []
+
+    result = []
+    brackets = ('(', ')', '[', ']', '{', '}')
+    counts = {br: 0 for br in brackets}
+
+    i0 = 0
+    for (i, val) in enumerate(raw_value):
+        if val == ',':
+            if ((counts['('] == counts[')']) and (counts['{'] == counts['}'])
+                and (counts['['] == counts[']'])): # balanced brackets
+
+                result.append(parse_value(raw_value[i0:i]))
+                i0 = i+1
+            else:
+                pass
+        elif val in brackets:
+            counts[val] += 1
+
+    result.append(parse_value(raw_value[i0:])) # append last value
+
+    return result
+
+def parse_dict(raw_value):
+    if raw_value == '': return {}
+
+    result = {}
+    brackets = ('(', ')', '[', ']', '{', '}')
+    counts = {br: 0 for br in brackets}
+
+    i0 = 0
+    for (i, char) in enumerate(raw_value):
+        if char == ',':
+            if ((counts['('] == counts[')']) and (counts['{'] == counts['}'])
+                and (counts['['] == counts[']'])): # balanced brackets
+
+                k = i0 + raw_value[i0:].index(':')
+                if k>i:
+                    print('Could not parse dict item, no key:value',
+                          'value pair found:\n', raw_value[i0:i],
+                          '\nof item:\n', raw_value)
+
+                key   = parse_value(raw_value[i0:k])
+                value = parse_value(raw_value[k+1:i])
+                result[key] = value
+
+                i0 = i+1
+            else:
+                pass
+        elif char in brackets:
+            counts[char] += 1
+
+    k     = i0 + raw_value[i0:].index(':')
+    key   = parse_value(raw_value[i0:k])
+    value = parse_value(raw_value[k+1:])
+    result[key] = value
+
+    return result
+
 def parse_value(str_value):
     """
       Given a value as string, tries to convert to it's correspending type.
@@ -159,22 +219,11 @@ def parse_value(str_value):
         raw_value = str_value.strip()
 
         if raw_value[0] == "[" and raw_value[-1] == "]":
-            value = []
-            for item in raw_value[1:-1].split(","):
-                one_value = parse_value(item)
-                if type(one_value) == list:
-                    value.extend(one_value)
-                else:
-                    value.append(one_value)
-            return value
+            return parse_list(raw_value[1:-1])
         elif raw_value[0] == "(" and raw_value[-1] == ")":
-            return \
-              tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
+            return tuple(parse_list(raw_value[1:-1]))
         elif raw_value[0] == "{" and raw_value[-1] == "}":
-            # ...what an interesting parsing... but who is going to implement
-            # this again?
-            value = eval(raw_value)
-            return value
+            return parse_dict(raw_value[1:-1])
         elif ((raw_value[0] == "'" and raw_value[-1] == "'")
               or (raw_value[0] == '"' and raw_value[-1] == '"')):
             return raw_value[1:-1]
