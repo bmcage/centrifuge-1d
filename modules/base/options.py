@@ -4,6 +4,7 @@ CONFIG_OPTIONS = ['exp_type',
                   'ks',
                   ('r0', None), ('re', None), 'l0', ('l1', None), 'duration',
                   'fh_duration', 'r0_fall',
+                  ('measurements_times', None),
                   'wt_out',
                   'include_acceleration',
                   # solver options
@@ -114,6 +115,16 @@ def adjust_cfg(cfg):
         if not isscalar(rE):
             rE = list(rE)
         cfg.set_value('re', rE)
+
+    if not cfg.get_value('measurements_times'):
+        from modules.shared.functions import phases_end_times
+        times = phases_end_times(cfg.get_value('duration', not_found=None),
+                                 cfg.get_value('deceleration_duration',
+                                               not_found=None),
+                                 cfg.get_value('fh_duration', not_found=None),
+                                 cfg.get_value('include_acceleration',
+                                               not_found=True))
+        cfg.set_value('measurements_times', times)
 
 def prior_adjust_cfg(cfg):
     """
