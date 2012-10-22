@@ -208,7 +208,6 @@ class MultipleExperimentData():
 
         if data == {}:
             data = ExperimentData(self._data_type)
-            print('ids', ids)
             parental_data[ids[-1]] = data
 
         return data
@@ -409,8 +408,6 @@ def get_iterables_list(exp_type, modman):
 def process_scanned_data(experiment, experiment_info):
     csv_files = experiment.get_value('csv_file')
 
-    experiment.echo()
-    print('FFF', experiment_info)
     data_dir  = get_directories('ini', 'data', experiment_info)
 
     if type(csv_files) == str:
@@ -510,6 +507,7 @@ def process_scanned_data(experiment, experiment_info):
     experiment.set_value('duration', compress_seq(a_duration))
     experiment.set_value('deceleration_duration', compress_seq(d_duration))
     experiment.set_value('fh_duration', compress_seq(g_duration))
+
     # Truncate unused values
     scanned_inflow_weights  = scanned_inflow_weights[scan_first: (scan_last+1)]
     scanned_outflow_weights = scanned_outflow_weights[scan_first:(scan_last+1)]
