@@ -409,11 +409,6 @@ def get_iterables_list(exp_type, modman):
 def process_scanned_data(experiment, experiment_info):
     csv_files = experiment.get_value('csv_file')
 
-    if csv_files is None:
-        print('File processing scanned data does not contain a ''csv_fields'' '
-              'data determining scanned values. Exiting...')
-        exit(1)
-
     experiment.echo()
     print('FFF', experiment_info)
     data_dir  = get_directories('ini', 'data', experiment_info)
