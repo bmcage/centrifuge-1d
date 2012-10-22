@@ -635,7 +635,7 @@ def data2ini(data, experiment_info):
     experiment_info.update(dict.fromkeys(('exp_id', 'exp_no', 'mask',
                                           'exp_type')))
     data.iterate(_process_data, user_data=experiment_info,
-                 levels_names=['exp_id', 'exp_no'],
+                 levels_names=('exp_id', 'exp_no'),
                  level_prehook=_pre_process_data,
                  level_posthook=_post_process_data)
     print('All done.')
