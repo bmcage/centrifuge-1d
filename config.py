@@ -10,6 +10,7 @@ except:
     import configparser
 from numpy import inf, concatenate, cumsum, asarray, any as np_any
 from modules.shared.functions import has_data
+from shared import parse_value
 from os import listdir
 from sys import modules as sysmodules
 from types import MethodType
@@ -149,116 +150,6 @@ def flatten(cfg):
     flattened_cfg._cfg_dict = flatten_dict({}, cfg)
 
     return flattened_cfg
-
-def parse_list(raw_value):
-    if raw_value == '': return []
-
-    result = []
-    brackets = ('(', ')', '[', ']', '{', '}')
-    counts = {br: 0 for br in brackets}
-
-    i0 = 0
-    for (i, val) in enumerate(raw_value):
-        if val == ',':
-            if ((counts['('] == counts[')']) and (counts['{'] == counts['}'])
-                and (counts['['] == counts[']'])): # balanced brackets
-
-                result.append(parse_value(raw_value[i0:i]))
-                i0 = i+1
-            else:
-                pass
-        elif val in brackets:
-            counts[val] += 1
-
-    result.append(parse_value(raw_value[i0:])) # append last value
-
-    return result
-
-def parse_dict(raw_value):
-    if raw_value == '': return {}
-
-    result = {}
-    brackets = ('(', ')', '[', ']', '{', '}')
-    counts = {br: 0 for br in brackets}
-
-    i0 = 0
-    for (i, char) in enumerate(raw_value):
-        if char == ',':
-            if ((counts['('] == counts[')']) and (counts['{'] == counts['}'])
-                and (counts['['] == counts[']'])): # balanced brackets
-
-                k = i0 + raw_value[i0:].index(':')
-                if k>i:
-                    print('Could not parse dict item, no key:value',
-                          'value pair found:\n', raw_value[i0:i],
-                          '\nof item:\n', raw_value)
-
-                key   = parse_value(raw_value[i0:k])
-                value = parse_value(raw_value[k+1:i])
-                result[key] = value
-
-                i0 = i+1
-            else:
-                pass
-        elif char in brackets:
-            counts[char] += 1
-
-    k     = i0 + raw_value[i0:].index(':')
-    key   = parse_value(raw_value[i0:k])
-    value = parse_value(raw_value[k+1:])
-    result[key] = value
-
-    return result
-
-def parse_value(str_value):
-    """
-      Given a value as string, tries to convert to it's correspending type.
-      May be called recursively in the case of nested structures.
-    """
-    try:
-        raw_value = str_value.strip()
-
-        if raw_value[0] == "[" and raw_value[-1] == "]":
-            return parse_list(raw_value[1:-1])
-        elif raw_value[0] == "(" and raw_value[-1] == ")":
-            return tuple(parse_list(raw_value[1:-1]))
-        elif raw_value[0] == "{" and raw_value[-1] == "}":
-            return parse_dict(raw_value[1:-1])
-        elif ((raw_value[0] == "'" and raw_value[-1] == "'")
-              or (raw_value[0] == '"' and raw_value[-1] == '"')):
-            return raw_value[1:-1]
-        elif raw_value == 'True':
-            return True
-        elif raw_value == 'False':
-            return False
-        elif raw_value == 'None':
-            return None
-        elif raw_value == 'inf':
-            return inf
-        elif raw_value == '-inf':
-            return -inf
-        elif '*' in raw_value:
-            [raw_mul, raw_val] = raw_value.split("*")
-            mul = parse_value(raw_mul)
-            val = parse_value(raw_val)
-            return [val for i in range(mul)]
-        elif ':' in raw_value:
-            range_values = raw_value.split(':')
-            rstart = parse_value(range_values[0])
-            rstop  = parse_value(range_values[1]) + 1
-            if len(range_values) > 2:
-                rstep = parse_value(range_values[2])
-            else:
-                rstep = 1
-            return list(range(rstart, rstop, rstep))
-        elif "." in raw_value or "e" in raw_value or "E" in raw_value:
-            return float(raw_value)
-        else:
-            return int(raw_value)
-
-    except:
-        print('Error:Could not parse value: ', raw_value, '\nExiting...')
-        exit(1)
 
 class Configuration:
     def __init__(self, preserve_sections_p = False):
