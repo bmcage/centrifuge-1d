@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import csv
-
+import numpy as np
 from os import makedirs, path, sep
 from optparse import OptionParser
 from config import ModulesManager
@@ -419,8 +419,9 @@ def process_scanned_data(experiment, experiment_info):
     else:
         raise ValueError('CSV file describing scanned data can contain '
                          'only one filename: ', csv_files)
-    scans = experiment.get_value('scan')
-    (scan_first, scan_last) = (int(scans[0]), int(scans[-1]))
+    omegas = experiment.get_value('omega')
+    scans  = np.asarray(experiment.get_value('scan'), dtype=int)
+    (scan_first, scan_last) = (scans[0], scans[-1])
 
     scanned_inflow_weights  = scanned_data.get_value('s102')
     scanned_outflow_weights = scanned_data.get_value('s103')
