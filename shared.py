@@ -195,5 +195,5 @@ def parse_value(str_value):
             return int(raw_value)
 
     except:
-        print('Error:Could not parse value: ', raw_value, '\nExiting...')
+        print('Error:Could not parse value: ', str_value, '\nExiting...')
         exit(1)
