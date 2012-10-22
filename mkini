@@ -432,8 +432,9 @@ def process_scanned_data(experiment, experiment_info):
 
     scanned_data.set_value('s102', scanned_inflow_weights)
     scanned_data.set_value('s103', scanned_outflow_weights)
-     filename = csv_scanned + '.ini'
-     #scanned_data.save(data_dir, filename)
+
+    filename = csv_scanned + '.ini'
+    scanned_data.save(data_dir, filename)
 
 PROCESS_DATA = {'regular_ini': lambda exp, info: True,
                 'scan_ini': process_scanned_data}
