@@ -370,6 +370,14 @@ def CSV2data(csv_dir, csv_filebasename):
     if csv_type == 'scanned_data': # remove useless columns from data structure
         data.delete('scan', 'time', 'elapsed', 's101', 's119', 's120')
 
+        for name in ('s102', 's103'):
+            dval = []
+             # floats have to be separated by '.' and not ','
+            for value in data.get_value(name):
+                dval.append(value.replace(',', '.'))
+
+            data.set_value(name, dval)
+
     f_csv.close()
 
     return data
