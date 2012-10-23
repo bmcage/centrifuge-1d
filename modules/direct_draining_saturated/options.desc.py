@@ -31,3 +31,10 @@ CONFIG_OPTIONS = {
 
         }
     }
+
+INTERNAL_OPTIONS = {
+    'm': ("Van Genuchten parameter 'm' which is depending on parameter 'n'."
+          "It's defined as internal parameter because of it's depending "
+          "nature - it is implemented so that the used does not have to "
+          "set it's value on every change of parameter 'n'. Type: float")
+  }
