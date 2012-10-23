@@ -38,6 +38,20 @@ def calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity, fluid_density):
 def calc_sat_force(rS, rE, fluid_density):
     return 1/2 * fluid_density * (np.power(rE, 2) - np.power(rS, 2))
 
+def calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
+               soil_porosity, fl2, fp2, fluid_density):
+
+    F_unsat = calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity,
+                               fluid_density)
+
+    F_sat = (soil_porosity * calc_sat_force(r0+d_sat_s, r0+d_sat_e,
+                                            fluid_density)
+                + calc_sat_force(r0-mass_in, r0, fluid_density))
+    if fl2 > 0.0:
+        F_sat += fp2 * calc_sat_force(r0+fr2, r0+fr2+fl2, fluid_density))
+
+    return F_unsat + F_sat
+
 def calc_gc(u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e, soil_porosity,
             fl2, fp2, fr2, WM_in_tube, fluid_density, from_end=None):
     """
@@ -116,9 +130,3 @@ def calc_rm(t, u, mass_in, mass_out, s1, s2, model):
 
     return RM
 
-def calc_force(u, y, dy, s1, s2, l0, fl2, fp2):
-    ds = s2 - s1
-    r0 = model.re - fl2 - l0
-    r = r0 + s1 + ds*y
-    f_unsat = ds/2  * (dy[0]*u[0]*r[0] + dy[-1]*u[-1]*r[-1]
-                     + np.sum((dy[:-1] + dy[1:])*u[1:-1]*r[1:-1]))
