@@ -26,6 +26,18 @@ def water_mass(u, dy, s1, s2, mass_in, saturated_length, free_fluid_length,
 
     return WM_total, WM_in_tube
 
+def _unsat_force(r0, u, s1, s2, y, dy, soil_porosity, fluid_density):
+    ds = s2 - s1
+    r = r0 + s1 + ds*y
+    F_unsat = (soil_porosity * fluid_density * ds/2
+               * (dy[0]*u[0]*r[0] + dy[-1]*u[-1]*r[-1]
+                  + np.sum((dy[:-1] + dy[1:])*u[1:-1]*r[1:-1])))
+
+    return F_unsat
+
+def _sat_force(rS, rE, fluid_density):
+    return 1/2 * fluid_density * (np.power(rE, 2) - np.power(rS, 2))
+
 def calc_gc(u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e, soil_porosity,
             fl2, fp2, fr2, WM_in_tube, fluid_density, from_end=None):
     """
