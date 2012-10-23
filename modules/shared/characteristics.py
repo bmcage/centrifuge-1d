@@ -64,15 +64,17 @@ def calc_gc(u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e, soil_porosity,
       u - relative saturation
       y - transformed interval where holds: u(x) = u(fl1 + s1 + (s2-s1)y)
       dy - difference of y: dy = diff(y) = y(i+1) - y(i)
+      s1, s2 - interfaces (s1 < s2); between them is the unsaturated part
       mass_in - water in the inflow chamber
       d_sat_s - distance of the beginning of saturated part from r0
       d_sat_e - distance of the end of saturated part from r0
-      s1, s2 - interfaces (s1 < s2)
+      soil_porosity - porosity of the soil sample
       fl2, fp2, fr2 - ending filter length, porosity and distance from sample
                       beginning (to filter's beginning)
       WM_in_tube - amount of water contained inside the tube
-      from_end - if specified, computed GC will be returned as distance
-                 from the "from_end" point
+      fluid_density - density of used fluid (in g/cm3)
+      from_end - (optional) if specified, computed GC will be returned as
+                 distance from the "from_end" point
     """
 
     ds  = s2 - s1
