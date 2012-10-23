@@ -2,7 +2,7 @@ PARENTAL_MODULES = []
 
 CONFIG_OPTIONS = ['exp_type',
                   'ks',
-                  ('r0', None), ('re', None), 'l0', ('l1', None), 'duration',
+                  ('r0', None), ('re', None), ('wl0', None), 'l0', 'duration',
                   'fh_duration', 'r0_fall',
                   ('measurements_times', None),
                   'wt_out',
@@ -36,8 +36,8 @@ CONFIG_OPTIONS = ['exp_type',
                     ['deceleration_duration'],
                     [('deceleration_duration', 0.0)]),
                   # measurements and referencing parameters
-                  ('gc1', None), ('rm1', None ),
-                  ('wl0', None), ('wl1', None), ('wl_out', None),
+                  ('l1', None), ('gc1', None), ('rm1', None ),
+                  ('wl1', None), ('wl_out', None),
                   ('descr', None), ('re', None),
                   ('params_ref', None),
 
