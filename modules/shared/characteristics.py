@@ -76,24 +76,11 @@ def calc_gc(u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e, soil_porosity,
       from_end - (optional) if specified, computed GC will be returned as
                  distance from the "from_end" point
     """
-
-    ds  = s2 - s1
     r0 = 0.0
 
-    gc_unsat = (soil_porosity * 1/2 * fluid_density * ds
-                * ((r0 + s1)*dy[0]*u[0]
-                   + (r0 + s2)*dy[-1]*u[-1]
-                   + np.sum((dy[:-1]+dy[1:])
-                            *(r0 + s1 + ds*y[1:-1])*u[1:-1])))
-    gc_sat   = \
-      (1/2 * fluid_density
-       * (soil_porosity * (np.power(r0 + d_sat_e, 2)
-                           - np.power(r0 + d_sat_s, 2))
-          + (np.power(r0, 2) - np.power(r0 - mass_in, 2))))
-    if fl2 > 0.0:
-        gc_sat += 1/2 * fluid_density * fp2 * fl2 * (2*(r0 + fr2) + fl2)
-
-    gc = (gc_unsat + gc_sat) / WM_in_tube
+    gc =  (calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
+                      soil_porosity, fl2, fp2, fluid_density)
+            / WM_in_tube)
 
     if not from_end is None: gc = from_end - gc
 
