@@ -37,7 +37,8 @@ CONFIG_OPTIONS = ['exp_type',
                     [('deceleration_duration', 0.0)]),
                   # measurements and referencing parameters
                   ('l1', None), ('gc1', None), ('rm1', None ),
-                  ('wl1', None), ('wl_out', None),
+                  ('cf', None), ('wl1', None), ('wl_out', None),
+
                   ('descr', None), ('re', None),
                   ('measurements_scale_coefs', None),
 
