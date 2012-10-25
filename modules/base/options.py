@@ -22,6 +22,7 @@ CONFIG_OPTIONS = ['exp_type',
                       ['ks2'], [('ks2', -1.0)]),
                   ('density', 1.0), ('viscosity', 1.0),
                   # output
+                  'calc_cf',
                   ('show_figures', True),
                   ('save_figures', False), ('separate_figures', False),
                   ('save_data', True),
