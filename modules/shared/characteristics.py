@@ -86,9 +86,8 @@ def calc_gc(u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e, soil_porosity,
 
     return gc
 
-def calc_centrifugal_force(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s,
-                           d_sat_e, soil_porosity, fl2, fp2, l0, fl2, fp2,
-                           fluid_density, from_end=None):
+def calc_cf(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
+            soil_porosity, fl2, fp2, l0, fluid_density):
      """
       Determine the centrifugal force of water in the sample. The water
       on the inflow is taken into account (but not water on the outflow).
@@ -108,14 +107,10 @@ def calc_centrifugal_force(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s,
       soil_porosity - porosity of the soil sample
       fl2, fp2, fr2 - ending filter length, porosity and distance from sample
                       beginning (to filter's beginning)
-      from_end - (optional) if specified, computed GC will be returned as
-                 distance from the "from_end" point
     """
 
     F = omega2g * calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
                              soil_porosity, fl2, fp2, fluid_density)
-
-    if not from_end is None: F = from_end - F
 
     return F
 
