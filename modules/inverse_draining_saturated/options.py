@@ -61,6 +61,10 @@ def check_cfg(cfg):
                   '{}'.format(name))
             return False
 
+    if not measurements_present:
+        print('Cannot run the inverse problem as none of measured data was '
+              'specified: ', MEASUREMENTS_NAMES.values())
+        return False
     return True
 
 def prior_adjust_cfg(cfg):
