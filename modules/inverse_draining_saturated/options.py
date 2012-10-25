@@ -24,7 +24,8 @@ CONFIG_OPTIONS = ['inv_init_params',
                    ['h_init_max', ('c_gammah', 1e-3)]),
                   # measurement weights
                   ('wl1_weights', None), ('wl_out_weights', None),
-                  ('gc1_weights', None), ('rm1_weights', None)
+                  ('gc1_weights', None), ('rm1_weights', None),
+                  ('cf_weights', None)
                  ]
 
 INTERNAL_OPTIONS = []
@@ -65,6 +66,7 @@ def check_cfg(cfg):
         print('Cannot run the inverse problem as none of measured data was '
               'specified: ', MEASUREMENTS_NAMES.values())
         return False
+
     return True
 
 def prior_adjust_cfg(cfg):
