@@ -4,6 +4,8 @@ the ModelParameters class which stores the setting obtained
 from the configuration files.
 """
 
+from __future__ import print_function
+
 try:
     import ConfigParser as configparser
 except:
@@ -666,7 +668,7 @@ class Configuration:
 
             if alien_options:
                 print('\n Options found in configuration, but not specified'
-                      'by a module:')
+                      ' by a module:')
                 for option in alien_options:
                     print('  ', option)
 

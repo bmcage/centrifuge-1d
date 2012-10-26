@@ -287,11 +287,12 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
     if add_weights:
         weights = concatenate(weights)
-
+    
+    global iteration
     iteration = 0
 
     def optimfn_wrapper(optimargs):
-        nonlocal iteration
+        global iteration
 
         print(15 * '*', ' Iteration: {:4d}'.format(iteration), ' ', 15 * '*')
         iteration += 1
@@ -414,14 +415,15 @@ def simulate_inverse(direct_fn, model, init_parameters,
         print('\nGradient at optimum:\n', gopt, '\n')
 
     results = [('iters', iters), ('fcalls', fcalls), ('gcalls', gcalls)]
+    out = ''
     for (name, value) in results:
         if not value is None:
-            print(' |{:>8}'.format(name), end='')
-    print(' |')
+            out += ' |{:>8}'.format(name)
+    out += ' |'
     for (name, value) in results:
         if not value is None:
-            print(' |{:8d}'.format(value), end='')
-    print(' |')
+            out += ' |{:8d}'.format(value)
+    print(out, '|')
 
     # Run experiment once more with optimal values to display results at optimum
     set_optimized_variables(dict(zip(optimized_parameters, opt_params)),

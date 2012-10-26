@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 from sys import path as syspath, argv as sysargv
 from os import listdir
 from os.path import exists

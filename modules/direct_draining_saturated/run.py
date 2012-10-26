@@ -127,8 +127,8 @@ class centrifuge_residual(IDA_RhsFunction):
 
                 if (verbosity > 4) and (rb_type == 3):
                     print('  q_sat', q_sat, 'rD', rD, 'rI', rI,
-                          'omega^2/g', omega2g, end='')
-                    print('  WM: ', WM_total, 'WM0', model.wm0)
+                          'omega^2/g', omega2g,
+                          '  WM: ', WM_total, 'WM0', model.wm0)
 
         return 0
 
@@ -136,6 +136,7 @@ RESIDUAL_FN = centrifuge_residual()
 
 def solve(model):
     # define s1, s2, mass_in, mass_out, u0, wm0, wm_in_tube0
+    global u0, wm0, wm_in_tube0
     if model.rb_type == 3:
         if model.s2_0:
             s2 = model.s2_0
@@ -153,7 +154,7 @@ def solve(model):
 
     # z0 inicialization
     def initialize_z0(z0, model):
-        nonlocal u0, wm0, wm_in_tube0
+        global u0, wm0, wm_in_tube0
 
         z0[model.first_idx:model.last_idx+1] = model.h_init
 
