@@ -25,7 +25,10 @@ def get_ancestors(options_module):
 class ModulesManager():
     def __init__(self):
         available_modules = listdir('modules')
-        available_modules.remove('__pycache__')
+        try:
+            available_modules.remove('__pycache__')
+        except:
+            pass
         available_modules.remove('__init__.py')
 
         loaded_modules = {}
