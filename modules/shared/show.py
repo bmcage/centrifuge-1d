@@ -419,7 +419,7 @@ class PlotStyles():
 
         return plot_cfg
 
-    def _get_value(self, key):
+    def get_value(self, key):
         if key in self._userstyles:
             return self._userstyles[key]
         else:
@@ -428,7 +428,7 @@ class PlotStyles():
     def _mk_display_options(self):
         opts = {'separate_figures': False, 'show_figures': True,
                 'save_figures': True, 'matplotlib_backend': None}
-        user_opts = self._get_value('options')
+        user_opts = self.get_value('options')
         if user_opts: opts.update(user_opts)
 
         return opts
@@ -444,7 +444,7 @@ class PlotStyles():
                                               'legend_bbox', 'legend_loc',
                                               'show']}
 
-        user_styles = self._get_value('datasets')
+        user_styles = self.get_value('datasets')
         if user_styles and (dplot_id in user_styles):
             dplot_styles.update(user_styles[dplot_id])
 
@@ -505,7 +505,7 @@ class PlotStyles():
         if ('theta' in data_types) and (not linetype == 'measured'):
              line_styles['theta'] = '-'
 
-        user_styles = self._get_value('lines')
+        user_styles = self.get_value('lines')
         if user_styles and (line_id in user_styles):
             line_styles.update(user_styles[line_id])
 
