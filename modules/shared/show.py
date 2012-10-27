@@ -3,7 +3,7 @@ from __future__ import print_function
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-from const import FIGS_DIR, PLOTSTYLE_ININAME
+from const import FIGS_DIR, PLOTSTYLE_ININAME, MEASUREMENTS_NAMES
 from os import makedirs, path
 from shared import get_directories
 from config import parse_value
@@ -317,8 +317,7 @@ class ResultsData():
         return True
 
     def get_linedatatypes(self):
-         # line_type 'computed' with ID 'computed' has to be present
-        return self._data['lines']['computed']['computed'].keys()
+        return MEASUREMENTS_NAMES.keys()
     def get_linetypes(self):
         return self._data['lines'].keys()
 
