@@ -508,13 +508,14 @@ class DPlots():
     def __init__(self, data, experiment_info):
         self._data = data
         self._experiment_info = experiment_info
-        self._dplots = None
-        self._plotstyles = None
+        if not data.has_data('lines'):
+                print('No data is provided. Nothing to display.')
+        else: # generate dplots
+            (self._dplots, self._plotstyles) = \
+              _mk_dplots(self, data, experiment_info)
         self.fignum = 1
 
-    def display(self, fignum = None):
-        if fignum is not None:
-            self.fignum = fignum
+    def _mk_dplots(self, data, experiment_info):
         def _mk_dplots_bucket(data_types, plot_styles):
             dplots_bucket = \
               {dtype: {'id': dtype, 'data': [],
@@ -590,18 +591,22 @@ class DPlots():
 
             return ordered_dplots
 
-        def _mk_dplots(data, experiment_info):
-            plot_styles   = PlotStyles(experiment_info)
-            data_types    = data.get_linedatatypes()
-            dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
+        # function body
+        plot_styles   = PlotStyles(experiment_info)
+        data_types    = data.get_linedatatypes()
+        dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
 
-            for (line_type, line_id, line_data) in data.iterate_lines():
-                _add_plotline(line_type, line_id, line_data, data_types,
-                              plot_styles, dplots_bucket)
+        for (line_type, line_id, line_data) in data.iterate_lines():
+            _add_plotline(line_type, line_id, line_data, data_types,
+                          plot_styles, dplots_bucket)
 
-            ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
+        ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
 
-            return (ordered_dplots, plot_styles)
+        return (ordered_dplots, plot_styles)
+
+    def display(self, fignum = None):
+        if fignum is not None:
+            self.fignum = fignum
 
         def _show_dplots(ordered_dplots, display_options, experiment_info):
 
@@ -727,14 +732,7 @@ class DPlots():
         # function body
         data   = self._data
 
-        if self._dplots is None: # if data is provided, generate dplots
-            if not data.has_data('lines'):
-                print('No data is provided. Nothing to display.')
-            else:
-                (self._dplots, self._plotstyles) = \
-                  _mk_dplots(data, self._experiment_info)
-
-        if not self._dplots is None: # is True if data was provided
+        if not self._dplots is None: # all OK, dplots were generated
             _show_status(data)
 
             if data.has_data('cov'):
