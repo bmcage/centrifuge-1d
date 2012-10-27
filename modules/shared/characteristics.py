@@ -109,10 +109,9 @@ def calc_cf(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
                       beginning (to filter's beginning)
     """
 
-    F = omega2g * calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
-                             soil_porosity, fl2, fp2, fluid_density)
+    return (omega2g * calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
+                             soil_porosity, fl2, fp2, fluid_density))
 
-    return F
 
 def calc_rm(t, u, mass_in, mass_out, s1, s2, model):
 
