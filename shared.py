@@ -1,11 +1,12 @@
 import numpy as np
 from const import INI_DIR, MASKS_DIRNAME, FIGS_DIR
 
-def yn_prompt(question_str):
+def yn_prompt(question_str, default='y'):
     while True:
         answ = input(question_str)
-        answ = answ.lower()
-        if answ in ['', 'y', 'yes']: return True
+        if answ == '': answ = default
+        else: answ = answ.lower()
+        if answ in ['y', 'yes']: return True
         if answ in ['n', 'no']: return False
 
 def get_directories(basedir_type, dirs, experiment_info):
