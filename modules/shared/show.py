@@ -481,8 +481,8 @@ class PlotStyles():
 
         return self._dplotstyles[dtype]
 
-    def _mk_linestyle(self, linetype, line_id, data_types):
-        if linetype == 'measured':
+    def get_linestyle(self, line_id, data_types):
+        if line_id == 'measured':
             lineopt = 'x'
         else:
             lineopt = '.'
@@ -500,8 +500,6 @@ class PlotStyles():
 
         return line_styles
 
-    def get_linestyle(self, line_type, line_id, data_types):
-        return self._mk_linestyle(line_type, line_id, data_types)
 
 class DPlots():
     def __init__(self, data, experiment_info):
