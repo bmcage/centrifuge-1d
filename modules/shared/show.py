@@ -514,6 +514,11 @@ class DPlots():
             (self._dplots, self._plotstyles) = \
               _mk_dplots(self, data, experiment_info)
         self.fignum = 1
+        matplotlib_backend = \
+          self._plotstyles.get_display_options()['matplolib_backend']
+        if matplotlib_backend: # chosen other backend than the default one
+            import matplotlib
+            matplotlib.use(matplotlib_backend)
 
     def _mk_dplots(self, data, experiment_info):
         def _mk_dplots_bucket(data_types, plot_styles):
