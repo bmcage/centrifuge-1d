@@ -226,20 +226,20 @@ class ResultsData():
     def __init__(self):
         self._data = {name: None for name in ['lines', 'inv_params', 'cov']}
 
-
-
-
-
-
-
-
-
-
-
-
-
     def has_data(self, data_type='lines'):
         return not self._data[data_type] is None
+
+
+
+
+
+
+
+
+
+
+
+
 
     def get_value(self, data_name):
         if data_name in ['cov', 'inv_params', 'lines']:
