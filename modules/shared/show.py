@@ -515,12 +515,17 @@ class DPlots():
     def __init__(self, data, experiment_info):
         self._data = data
         self._experiment_info = experiment_info
+
         if not data.has_data('lines'):
                 print('No data is provided. Nothing to display.')
         else: # generate dplots
             (self._dplots, self._plotstyles) = \
               _mk_dplots(self, data, experiment_info)
+
+        self._plot_styles = PlotStyles(experiment_info)
+
         self.fignum = 1
+
         matplotlib_backend = \
           self._plotstyles.get_display_options()['matplolib_backend']
         if matplotlib_backend: # chosen other backend than the default one
@@ -603,7 +608,7 @@ class DPlots():
             return ordered_dplots
 
         # function body
-        plot_styles   = PlotStyles(experiment_info)
+        plot_styles   = self._plotstyles
         data_types    = data.get_linedatatypes()
         dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
 
