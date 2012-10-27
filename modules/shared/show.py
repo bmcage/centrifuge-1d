@@ -230,6 +230,11 @@ class ResultsData():
         return not self._data[data_type] is None
 
 
+    def get_value(self, name, not_found=None):
+        if name in self._data:
+            return self._data[name]
+        else:
+            return not_found
 
 
 
@@ -241,9 +246,6 @@ class ResultsData():
 
 
 
-    def get_value(self, data_name):
-        if data_name in ['cov', 'inv_params', 'lines']:
-            return self._data[data_name]
 
     def add_value(self, inv_params = None, cov = None):
         if has_data(inv_params):
