@@ -10,6 +10,19 @@ from const import DEFAULTS_ININAME, CONSTANTS_ININAME
 
 syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
+def list_experiments(verbose=True):
+    from os import listdir
+
+    print('\n'.join(sorted(listdir(
+        get_directories('ini', 'base',
+                        {key: '' for key in ['exp_id', 'exp_no',
+                                             'mask']})))))
+
+def list_modules(verbose=True):
+    if modules_list:
+        modman = ModulesManager()
+        modman.echo(verbose)
+
 def parse_input():
 
     usage_str = \
@@ -55,20 +68,12 @@ def parse_input():
     (options, args) = optparser.parse_args()
     arg_len = len(args)
     if arg_len == 0:
-        if options.list or options.modules_list:
-            from os import listdir
-
-            if options.list:
-                print('\n'.join(sorted(listdir(
-                    get_directories('ini', 'base',
-                                    {key: '' for key in ['exp_id', 'exp_no',
-                                                         'mask']})))))
-            if options.modules_list:
-                modman = ModulesManager()
-                modman.echo(options.verbose)
+        if options.list: or :
+            list_experiments(options.verbose)
+        elif options.modules_list:
+            list_modules(options.verbose)
         else:
             optparser.print_help()
-
         exit(0)
     elif arg_len == 1:
         optparser.print_help()
@@ -271,6 +276,8 @@ def compare2configs(options):
                 if (v1_value == '') and (v2_value == ''): break
 
                 print(fstring.format('', v1_value, v2_value))
+
+
 
 if __name__ == "__main__":
     options = parse_input()
