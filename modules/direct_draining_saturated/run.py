@@ -179,7 +179,7 @@ def solve(model):
                                         model.l0-s2, mass_out, model.porosity,
                                         model.fl2, model.fp2)
         idata = model._initialization_data
-        (idata['u0'], idata['wm0'], idata['wm_in_tube0']) = (u0, wm0, WM_in_tube0)
+        (idata['u0'], idata['wm0'], idata['wm_in_tube0']) = (u0, wm0, wm_in_tube0)
         model.wm0 = wm0
 
     def initialize_zp0(zp0, z0, model):
