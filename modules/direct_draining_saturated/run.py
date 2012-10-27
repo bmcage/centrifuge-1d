@@ -250,6 +250,8 @@ def solve(model):
         zp0[first_idx+1:last_idx] = \
           (dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt + y[1:-1]*ds2dt)
            - 2./(porosity*du_dh[1:-1]*(dy[:-1] + dy[1:])*ds) * (q12[1:] - q12[:-1]))
+    def on_measurement(t, model):
+         omega2g_col.append(model.find_omega2g(t))
 
     # Initialization
     if model.rb_type == 3:
@@ -270,11 +272,18 @@ def solve(model):
     else:
         zp0_init = None
 
+    if model.calc_cf:
+        omega2g_col = []
+        on_measurement_fn = on_measurement
+    else:
+        on_measurement_fn = None
+
     # Computation
     (flag, t, z) = simulate_direct(initialize_z0, model, RESIDUAL_FN,
                                    root_fn = None, nr_rootfns=None,
                                    initialize_zp0=zp0_init,
-                                   algvars_idx=algvars_idx)
+                                   algvars_idx=algvars_idx,
+                                   on_measurement=on_measurement_fn)
 
     # Restore modified values
     model.atol = atol_backup
@@ -334,10 +343,29 @@ def solve(model):
     else:
         RM = no_measurements
 
-    return (flag, t, z, GC, RM, u, WM, WM_in_tube)
+    if model.calc_cf:
+        CF = np.empty(t.shape, dtype=float)
+
+        rL = model.rE - model.fl2
+        iterable_l0_p = (type(l0) in (list, tuple))
+        if iterable_l0_p:
+            l0 = model._get_iterable_value('l0')
+        else:
+            r0 = model.re - model.fl2 - model.l0
+
+        for (i, omega2g) in enumerate(omega2g_col):
+            if iterable_l0_p:
+                r0 = rL - l0[i]
+            CF[i] = calc_cf(omega2g, u[i, :], model.y, model.dy, r0, s1[i],
+                            s2[i], mass_in[i], s2[i], model.l0, model.porosity,
+                            model.fl2, model.fp2, model.l0, model.density)
+    else:
+        CF = no_measurements
+
+    return (flag, t, z, GC, RM, CF, u, WM, WM_in_tube)
 
 def extract_data(model):
-    (flag, t, z, GC, RM, u, WM, WM_in_tube) = solve(model)
+    (flag, t, z, GC, RM, CF, u, WM, WM_in_tube) = solve(model)
 
     if not flag:
         print('For given model the solver did not find results. Skipping.')
@@ -350,9 +378,10 @@ def extract_data(model):
     MO = z[:, model.mass_out_idx]
     MI = z[:, model.mass_in_idx]
 
-    extracted_data = {'h': (x, h, t), 'u': (x, u, t), 'GC': (t, GC),
-                      'RM': (t, RM), 'WM': (t, WM), 'MI': (t, MI),
-                      'MO': (t, MO), 's1': (t, s1), 's2': (t, s2)}
+    extracted_data = {'h': (x, h, t), 'u': (x, u, t),
+                      'GC': (t, GC), 'RM': (t, CF), 'RM': (t, CF),
+                      'WM': (t, WM), 'MI': (t, MI), 'MO': (t, MO),
+                      's1': (t, s1), 's2': (t, s2)}
     return (flag, extracted_data)
 
 def run(model):
