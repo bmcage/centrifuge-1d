@@ -1,0 +1,84 @@
+[plotting-styles]
+lines = {'computed': {'label': 'Computed'},
+	 'measured': {'label': 'Measured'},
+	 'line-id-1': {'label': 'Measured'},
+	 'line-id-2': {'label': 'Measured'},
+	 'line-id-3': {'label': 'Measured'}}
+
+# options for displayed measurements. ID corresponds to a particular
+# measurement.
+# IDs: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2',
+#
+# Description:
+#	Following measurements use as x-axis value time (unit: time):
+#
+# 	'GC' - gravitational center; unit: length
+#	'RM' - rotational momentum
+#	'MI' - mass in - water in inflow cup; unit: length
+#	'MO' - mass out - expelled water; unit: length
+#	'WM' - water mass - mass balance of water; unit: length (or volume)
+#
+#       Interfaces s1, s2:
+#	- arise between 2 zones: saturated/unsaturated or unsaturated/dry
+#	- which interface appear (or even both) depends on experiment type
+#	's1' - first interface; unit: length
+#	's2' - second interface (between 2 zones); unit: length
+#
+#	These use as x-axis space - it the distribution of given quantity
+#	along the sample:
+#	'h': hydraulic head; unit: length
+#	'u': relative saturation; unit: None
+#
+datasets = {ID: {# display given measurement; value: True/False
+		 'show': True,
+		 # axes labels
+		 'xlabel': 'X-axis label',
+		 'ylabel', 'Y-axis label',
+		 # scaling of axes:	None  - linear
+		 #			'log' - logaritmic
+                 'xscale', 'yscale',
+		 # units of measurements - by default 'cm', 's' are used
+		 # units - time   - 's', 'min' 'h'
+		 #	   - length - 'mm', 'cm', 'm'
+		 'xunit': 's',
+		 'yunit': 'cm',
+		 # legend should be displayed; value: True/False
+                 'show_legend': True,
+		 # title of legend; value: string or None
+		 'legend_title': None,
+		 # legend location:	1 - upper right corner
+                 #		     	2 - upper left corner
+                 #		     	2 - lower left corner
+                 #		     	2 - lower right corner
+		 'legend_loc': 1,
+		 # If default placement of legend is not suitable, an box
+		 # in which the legend should be aligned can be specified
+		 # byt his value; value: (x_coord, y_coord) or None
+		 # the corner of the legend specified by the 'legend_loc'
+		 # will be attached to this point.
+		 # Coordinates x_coor, y_coord are relative to given plot
+		 # image - i.e. point (1., 1.) corresponds to the upper right
+		 # corner of the image, whereas (0., 0.) to the lower left
+		 # If value is None, the default is used
+                 'legend_bbox': None},
+	{ID2: {'legend_loc': 1, ...},
+	 ...}
+
+# Displaying options
+options = {# Include all figures in one image or each figure should be
+	   # drawn separately; value: True/False
+	   'separate_figures': False,
+	   # Show figures; if displaying figures is not needed (e.g. we
+	   # know they are good, we just need to save them with different
+	   # backend), this can turn displaying off; value: True/False
+	   'show_figures': True,
+	   # automatically save figures; value: True/False
+           'save_figures': True,
+	   # Use different backend for matplotlib. If value is None, the
+	   # default one for matplotlib is used. Note: given backend has
+	   # to be installed just as python bindings for it.
+	   # Example of backends: 'ps', 'TkAgg', 'WX', 'QTAgg', 'QT4Agg',
+	   #                      'cairo.pdf', 'cairo.png'
+	   # Value: backend name or None
+	   'matplotlib_backend': None
+	   }
