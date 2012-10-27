@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
@@ -89,8 +91,11 @@ def display_table(t_measured=None, t_computed=None,
                   rowLabels=rowLabels,
                   colLabels=colLabels,
                   loc='top')
-    plt.show(block=False)
-
+    try:
+        plt.show(block=False)
+    except:
+        plt.ion()
+        plt.show()
     input('Press ENTER to continue...')
 
 def nd2strlist(nd):
@@ -505,9 +510,11 @@ class DPlots():
         self._experiment_info = experiment_info
         self._dplots = None
         self._plotstyles = None
+        self.fignum = 1
 
-    def display(self, fignum = 1):
-
+    def display(self, fignum = None):
+        if fignum is not None:
+            self.fignum = fignum
         def _mk_dplots_bucket(data_types, plot_styles):
             dplots_bucket = \
               {dtype: {'id': dtype, 'data': [],
@@ -597,7 +604,6 @@ class DPlots():
             return (ordered_dplots, plot_styles)
 
         def _show_dplots(ordered_dplots, display_options, experiment_info):
-            nonlocal fignum
 
             separate_figures = display_options['separate_figures']
             save_figures     = display_options['save_figures']
@@ -621,7 +627,7 @@ class DPlots():
             else:
                 images_per_figure = 6
 
-            fignum -= 1
+            self.fignum -= 1
             img_num = 2^20 # high initialization, so that first fig is created
 
             for dplot in ordered_dplots:
@@ -631,12 +637,12 @@ class DPlots():
                 # resolve figure and subplot
                 if img_num > images_per_figure:
                     img_num = 1
-                    fignum += 1
+                    self.fignum += 1
 
                     if separate_figures:
-                        plt.figure(fignum)
+                        plt.figure(self.fignum)
                     else:
-                        plt.figure(fignum, figsize=(16, 8.5))
+                        plt.figure(self.fignum, figsize=(16, 8.5))
                         plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
 
                 if not separate_figures:
@@ -684,14 +690,14 @@ class DPlots():
 
                 if save_figures and (img_num == images_per_figure):
                     if separate_figures: img_suffix = dplot_id
-                    else: img_suffix = str(fignum)
+                    else: img_suffix = str(self.fignum)
 
                     plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
 
                 img_num += 1
 
             if save_figures and (img_num < images_per_figure):
-                plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
+                plt.savefig(save_dir + 'image-' + str(self.fignum), dpi=300)
 
         def _show_status(data):
             status_items = []
@@ -744,6 +750,14 @@ class DPlots():
 
             _show_dplots(self._dplots, self._plotstyles.get_display_options(),
                          self._experiment_info)
-            plt.show(block=False)
+            try:
+                plt.show(block=False)
+            except: # Older matplotlib compatibility
+                plt.ion()
+                plt.show()
 
-        input('Press ENTER to continue...')
+        try:
+            #python 2.7
+            raw_input('Press ENTER to continue...')
+        except:
+            input('Press ENTER to continue...')

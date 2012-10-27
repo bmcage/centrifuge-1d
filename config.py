@@ -4,6 +4,8 @@ the ModelParameters class which stores the setting obtained
 from the configuration files.
 """
 
+from __future__ import print_function
+
 try:
     import ConfigParser as configparser
 except:
@@ -26,8 +28,8 @@ def get_ancestors(options_module):
 class ModulesManager():
     def __init__(self):
         available_modules = listdir('modules')
-        available_modules.remove('__pycache__')
-        available_modules.remove('__init__.py')
+        for name in ('__init__.py', '__pycache__'):
+            if name in available_modules: available_modules.remove()
 
         loaded_modules = {}
 
@@ -583,7 +585,7 @@ class Configuration:
                 alien_options.difference_update(found_aliens)
 
             if alien_options:
-                print('\n Options found in configuration, but not specified'
+                print('\n Options found in configuration, but not specified '
                       'by a module:')
                 for option in alien_options:
                     print('  ', option)

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from os import sep, getcwd
 #from platform import python_version_tuple
 

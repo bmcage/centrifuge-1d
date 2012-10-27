@@ -127,8 +127,8 @@ class centrifuge_residual(IDA_RhsFunction):
 
                 if (verbosity > 4) and (rb_type == 3):
                     print('  q_sat', q_sat, 'rD', rD, 'rI', rI,
-                          'omega^2/g', omega2g, end='')
-                    print('  WM: ', WM_total, 'WM0', model.wm0)
+                          'omega^2/g', omega2g,
+                          '  WM: ', WM_total, 'WM0', model.wm0)
 
         return 0
 
@@ -136,6 +136,9 @@ RESIDUAL_FN = centrifuge_residual()
 
 def solve(model):
     # define s1, s2, mass_in, mass_out, u0, wm0, wm_in_tube0
+    initialization_data = {'u0': None, 'wm0': 0.0, 'wm_in_tube0': 0.0}
+    model._initialization_data = initialization_data
+
     if model.rb_type == 3:
         if model.s2_0:
             s2 = model.s2_0
@@ -147,14 +150,8 @@ def solve(model):
     s1 = 0.0
     mass_in = mass_out = 0.0
 
-    wm0 = wm_in_tube0 = 0.0
-
-    u0 = None
-
     # z0 inicialization
     def initialize_z0(z0, model):
-        nonlocal u0, wm0, wm_in_tube0
-
         z0[model.first_idx:model.last_idx+1] = model.h_init
 
         if model.rb_type in [2, 3]:
@@ -181,6 +178,8 @@ def solve(model):
         (wm0, wm_in_tube0) = water_mass(u0, model.dy, s1, s2, mass_in,
                                         model.l0-s2, mass_out, model.porosity,
                                         model.fl2, model.fp2)
+        idata = model._initialization_data
+        (idata['u0'], idata['wm0'], idata['wm_in_tube0']) = (u0, wm0, WM_in_tube0)
         model.wm0 = wm0
 
     def initialize_zp0(zp0, z0, model):
@@ -286,6 +285,9 @@ def solve(model):
     mass_out = z[:, model.mass_out_idx]
 
     no_measurements = np.empty([0,], dtype=float)
+
+    (u0, wm0) = (initialization_data['u0'], initialization_data['wm0'])
+    wm_in_tube0 = initialization_data['wm_in_tube0']
 
     if model.calc_wm:
         h  = z[:, model.first_idx: model.last_idx+1]
