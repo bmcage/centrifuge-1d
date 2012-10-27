@@ -10,6 +10,7 @@ except:
     import configparser
 from numpy import inf, concatenate, cumsum, asarray, any as np_any
 from modules.shared.functions import has_data
+from shared import parse_value
 from os import listdir
 from sys import modules as sysmodules
 from types import MethodType
@@ -150,67 +151,6 @@ def flatten(cfg):
 
     return flattened_cfg
 
-def parse_value(str_value):
-    """
-      Given a value as string, tries to convert to it's correspending type.
-      May be called recursively in the case of nested structures.
-    """
-    try:
-        raw_value = str_value.strip()
-
-        if raw_value[0] == "[" and raw_value[-1] == "]":
-            value = []
-            for item in raw_value[1:-1].split(","):
-                one_value = parse_value(item)
-                if type(one_value) == list:
-                    value.extend(one_value)
-                else:
-                    value.append(one_value)
-            return value
-        elif raw_value[0] == "(" and raw_value[-1] == ")":
-            return \
-              tuple([parse_value(item) for item in raw_value[1:-1].split(",")])
-        elif raw_value[0] == "{" and raw_value[-1] == "}":
-            # ...what an interesting parsing... but who is going to implement
-            # this again?
-            value = eval(raw_value)
-            return value
-        elif ((raw_value[0] == "'" and raw_value[-1] == "'")
-              or (raw_value[0] == '"' and raw_value[-1] == '"')):
-            return raw_value[1:-1]
-        elif raw_value == 'True':
-            return True
-        elif raw_value == 'False':
-            return False
-        elif raw_value == 'None':
-            return None
-        elif raw_value == 'inf':
-            return inf
-        elif raw_value == '-inf':
-            return -inf
-        elif '*' in raw_value:
-            [raw_mul, raw_val] = raw_value.split("*")
-            mul = parse_value(raw_mul)
-            val = parse_value(raw_val)
-            return [val for i in range(mul)]
-        elif ':' in raw_value:
-            range_values = raw_value.split(':')
-            rstart = parse_value(range_values[0])
-            rstop  = parse_value(range_values[1]) + 1
-            if len(range_values) > 2:
-                rstep = parse_value(range_values[2])
-            else:
-                rstep = 1
-            return list(range(rstart, rstop, rstep))
-        elif "." in raw_value or "e" in raw_value or "E" in raw_value:
-            return float(raw_value)
-        else:
-            return int(raw_value)
-
-    except:
-        print('Error:Could not parse value: ', raw_value, '\nExiting...')
-        exit(1)
-
 class Configuration:
     def __init__(self, preserve_sections_p = False):
 
@@ -336,37 +276,18 @@ class Configuration:
         return self
 
     def _group(self):
-        def _measurements_times(cfg):
-            t_duration    = cfg.get_value('duration', not_found=None)
-            t_fh_duration = cfg.get_value('fh_duration', not_found=None)
-            dec_duration  = cfg.get_value('deceleration_duration',
-                                          not_found=None)
-
-            if t_duration is None:
-                t_duration = 0.0
-            else:
-                t_duration = asarray(t_duration, dtype=float)
-            if dec_duration  is None: dec_duration = 0.0
-            if cfg.get_value('include_acceleration'):
-                t_duration[:] = t_duration + dec_duration
-
-            if t_fh_duration is None:
-                t_fh_duration = 0.0
-            else:
-                t_fh_duration = asarray(t_fh_duration, dtype=float)
-
-            duration_times = t_duration + t_fh_duration
-            if not np_any(duration_times): return None # no times were specified
-
-            stop_times = cumsum(concatenate(([0.0], duration_times)))
-
-            return stop_times
-
         def _group_measurments(cfg):
+            from modules.shared.functions import phases_end_times
+
             measurements = {}
             measurements_weights = {}
 
-            t = _measurements_times(cfg)
+            t = phases_end_times(cfg.get_value('duration', not_found=None),
+                                 cfg.get_value('deceleration_duration',
+                                               not_found=None),
+                                 cfg.get_value('fh_duration', not_found=None),
+                                 cfg.get_value('include_acceleration',
+                                               not_found=True))
             if not t is None:
                 measurements['t'] = t
                 t_meas = t[1:]
@@ -675,6 +596,11 @@ class Configuration:
 
         return True
 
+    def set_parameters(self, parameters_dict, section=None):
+        if section: raise ValueError('Sections not supported')
+
+        self._cfg_dict.update(parameters_dict)
+
         ###alien_options.difference_update([opt[0] for opt in default_options])
 
 ##################################################################
@@ -733,11 +659,11 @@ class ModelParameters:
             else: phase = 'd'
             self.set_omega2g_fn(phase)
 
-    def get_iterable_value(self, key):
+    def _get_iterable_value(self, key, not_found=None):
         if key in self._iterable_parameters:
             return self._iterable_parameters[key]
         else:
-             return None
+            return not_found
 
     def set_value(self, key, value):
         """
@@ -826,3 +752,13 @@ class ModelParameters:
 
     def set_omega2g_fn(self, fn_type):
         self.find_omega2g = self._omega2g_fns[fn_type]
+
+    def get_measurements_nr(self):
+        meas_nr = 0
+        for meas_name in ('measurements_times', 'measurements_dec_times',
+                          'measurements_fh_times'):
+            value = self._get_iterable_value(meas_name)
+            if value:
+                for meas in value: meas_nr += len(meas)
+
+        return meas_nr

@@ -70,6 +70,9 @@ def calc_gc(u, y, dy, s1, s2, mass_in, rs_sat, re_sat, soil_porosity, fl2, fp2,
 
 def calc_rm(t, u, mass_in, mass_out, s1, s2, model):
 
+    raise NotImplementedError('Calculation of rotational momentum is not '
+                              'verified and therefore not provided.')
+
     porosity = model.porosity
     y  = model.y
     dy = model.dy

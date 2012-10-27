@@ -124,3 +124,25 @@ def has_data(x):
         return not (x.size == 0)
     else:
         return bool(x)
+
+def phases_end_times(a_duration, d_duration, g_duration,
+                     include_acceleration):
+    if a_duration is None:
+        a_duration = 0.0
+    else:
+        a_duration = np.asarray(a_duration, dtype=float)
+
+    if include_acceleration and (not d_duration  is None):
+        a_duration[:] = a_duration + d_duration
+
+    if g_duration is None:
+        g_duration = 0.0
+    else:
+        g_duration = np.asarray(g_duration, dtype=float)
+
+    duration_times = a_duration + g_duration
+    if not np.any(duration_times): return None # no times were specified
+
+    stop_times = np.cumsum(np.concatenate(([0.0], duration_times)))
+
+    return stop_times

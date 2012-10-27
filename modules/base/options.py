@@ -2,8 +2,9 @@ PARENTAL_MODULES = []
 
 CONFIG_OPTIONS = ['exp_type',
                   'ks',
-                  ('r0', None), ('re', None), 'l0', ('l1', None), 'duration',
+                  ('r0', None), ('re', None), ('wl0', None), 'l0', 'duration',
                   'fh_duration', 'r0_fall',
+                  ('measurements_times', None),
                   'wt_out',
                   'include_acceleration',
                   # solver options
@@ -12,7 +13,6 @@ CONFIG_OPTIONS = ['exp_type',
                   'max_steps', 'max_step_size',
                   # defaults
                   ('g', 981),
-                  ('omega_start', 0.0), ('omega_end', 0.0),
                   ('tube_no', None),
                   'fl1',
                   (lambda cfg: cfg.get_value('fl1') > 0.0,
@@ -33,11 +33,11 @@ CONFIG_OPTIONS = ['exp_type',
                   (lambda cfg: not (cfg.get_value('duration') == 0.0),
                     ['omega']),
                   (lambda cfg: cfg.get_value('include_acceleration'),
-                    ['omega_start', 'omega_end', 'deceleration_duration'],
+                    ['deceleration_duration'],
                     [('deceleration_duration', 0.0)]),
                   # measurements and referencing parameters
-                  ('gc1', None), ('rm1', None ),
-                  ('wl0', None), ('wl1', None), ('wl_out', None),
+                  ('l1', None), ('gc1', None), ('rm1', None ),
+                  ('wl1', None), ('wl_out', None),
                   ('descr', None), ('re', None),
                   ('params_ref', None),
 
@@ -45,7 +45,7 @@ CONFIG_OPTIONS = ['exp_type',
                   ('measurements_length', -1)
                  ]
 
-INTERNAL_OPTIONS = ['omega2g_fns', 'm', 'find_omega2g', 't0', 'omega_start']
+INTERNAL_OPTIONS = ['omega2g_fns', 'find_omega2g', 't0', 'omega_start']
 
 EXCLUDE_FROM_MODEL = ['measurements_length', 'omega2g_fns', 'r0']
 
@@ -92,7 +92,7 @@ def adjust_cfg(cfg):
     from modules.shared.functions import (rpm2radps, find_omega2g,
                                           find_omega2g_fh, find_omega2g_dec)
     # Handle depending variables
-    for key in ['omega', 'omega_start', 'omega_end']:
+    for key in ['omega', 'omega_start']:
         value = cfg.get_value(key)
         if type(value) == list:
             cfg.set_value(key, [rpm2radps(omega) for omega in value])
@@ -114,6 +114,16 @@ def adjust_cfg(cfg):
         if not isscalar(rE):
             rE = list(rE)
         cfg.set_value('re', rE)
+
+    if not cfg.get_value('measurements_times'):
+        from modules.shared.functions import phases_end_times
+        times = phases_end_times(cfg.get_value('duration', not_found=None),
+                                 cfg.get_value('deceleration_duration',
+                                               not_found=None),
+                                 cfg.get_value('fh_duration', not_found=None),
+                                 cfg.get_value('include_acceleration',
+                                               not_found=True))
+        cfg.set_value('measurements_times', times)
 
 def prior_adjust_cfg(cfg):
     """
