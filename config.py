@@ -29,7 +29,7 @@ class ModulesManager():
     def __init__(self):
         available_modules = listdir('modules')
         for name in ('__init__.py', '__pycache__'):
-            if name in available_modules: available_modules.remove()
+            if name in available_modules: available_modules.remove(name)
 
         loaded_modules = {}
 
