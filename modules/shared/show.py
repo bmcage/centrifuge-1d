@@ -241,7 +241,7 @@ class ResultsData():
 
         solver_module = self._modman.find_module(model.experiment_info['exp_type'],
                                                  submodule='run')
-        extract_data_fn = solver_module.extract_fn
+        extract_data_fn = solver_module.extract_data
 
         # add computed data
         return extract_data_fn(model)
