@@ -258,10 +258,8 @@ class ResultsData():
             print('Computation was not successfull. Data will not be saved.')
 
         self._data['lines']['computed'] = value
-        self.store_value('model', model)
 
-    def store_references(self, references):
-        model = self.get_value('model')
+    def store_references(self, references, model=None):
         stored_references = self.get_value('references')
         data = self._data['lines']
 
