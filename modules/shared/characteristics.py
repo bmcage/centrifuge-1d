@@ -86,7 +86,7 @@ def calc_gc(u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e, soil_porosity,
 
     return gc
 
-def calc_cf(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
+def calc_cf_i(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
             soil_porosity, fl2, fp2, l0, fluid_density):
      """
       Determine the centrifugal force of water in the sample. The water
@@ -112,6 +112,8 @@ def calc_cf(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
     return (omega2g * calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
                              soil_porosity, fl2, fp2, fluid_density))
 
+def calc_cf_o(omega2g, rS, rE, fluid_density):
+    return (omega2g * calc_sat_force(rS, rE, fluid_density))
 
 def calc_rm(t, u, mass_in, mass_out, s1, s2, model):
 
