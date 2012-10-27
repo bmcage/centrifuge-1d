@@ -212,16 +212,11 @@ def display_status(data_plots=None):
 # ResultData: hold the data of the computation
 # Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
 # where:
-# lines_structure: dictionary of types: {line_type: line_type_data} where:
-#     line_type is (by default) one of ['computed', 'measured', 'references']
-#     line_type_data is a dictionary of types: {line_id: line_data}, with
-#         line_id the ID of the line
-#         line_data a dict of types {data_type: (xdata, ydata)},
-#              where data_type is (by default) one of
-#              ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'], xdata is the x-axis
-#              coordinate and ydata is the y-axis coordinate (computed value)
-# inv_params: dict of inverse parameters {param_name: param_value} (or None)
-# cov: the covariance matrix (or None)
+# lines_structure: dictionary of types: {line_id: line_data} where:
+#     line_id the ID of the line
+#     line_data a dict of types {data_type: (xdata, ydata)}, where:
+#          data_type is (by default) one of ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'],
+#          xdata (ydata)is the x-axis (y-axis) coordinate
 class ResultsData():
     def __init__(self):
         self._data = {'lines': {}}
@@ -337,23 +332,20 @@ class ResultsData():
 
     def get_linedatatypes(self):
         return MEASUREMENTS_NAMES.keys()
-    def get_linetypes(self):
-        return self._data['lines'].keys()
 
-    def get_linedata(self, line_type, line_id):
+    def get_linedata(self, line_id, not_found=None):
         data = self._data['lines']
-        if (line_type in data) and (line_id in data[line_type]):
-            return data[line_type][line_id]
+        if line_id in data:
+            return data[line_id]
         else:
-            return None
+            return not_found
 
     def iterate_lines(self):
         if not self.has_data('lines'):
             yield None
         else:
-            for (data_type, lines) in self._data['lines'].items():
-                for (line_id, line_data) in lines.items():
-                    yield (data_type, line_id, line_data)
+            for (line_id, line_data) in self._data['lines'].items():
+                yield (line_id, line_data)
 
 class PlotStyles():
     def __init__(self, experiment_info):
@@ -519,7 +511,6 @@ class PlotStyles():
 
         return line_styles
 
-
 class DPlots():
     def __init__(self, data, experiment_info):
         self._data = data
@@ -545,11 +536,10 @@ class DPlots():
 
             return dplots_bucket
 
-        def _add_plotline(line_type, line_id, line_data, data_types,
-                          plot_styles, dplots_bucket):
+        def _add_plotline(line_id, line_data, data_types, plot_styles,
+                          dplots_bucket):
 
-            line_styles = plot_styles.get_linestyle(line_type, line_id,
-                                                        data_types)
+            line_styles = plot_styles.get_linestyle(line_id, data_types)
             if 'label' in line_styles:
                 label = line_styles['label']
             else:
@@ -617,9 +607,9 @@ class DPlots():
         data_types    = data.get_linedatatypes()
         dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
 
-        for (line_type, line_id, line_data) in data.iterate_lines():
-            _add_plotline(line_type, line_id, line_data, data_types,
-                          plot_styles, dplots_bucket)
+        for (line_id, line_data) in data.iterate_lines():
+            _add_plotline(line_id, line_data, data_types, plot_styles,
+                          dplots_bucket)
 
         ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
 
