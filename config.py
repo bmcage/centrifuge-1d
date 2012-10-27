@@ -590,7 +590,11 @@ class Configuration:
                 for option in alien_options:
                     print('  ', option)
 
-            return False
+            from shared import yn_prompt
+
+            if not yn_prompt('\nAlien options found. Do you wish to '
+                             'continue? [y/N]', default='n'):
+                return False
 
         if not modman.traverse_ancestors(self.get_value('exp_type'),
                                          custom_cfg_check, submodule='options'):
