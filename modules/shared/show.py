@@ -225,7 +225,7 @@ class ResultsData():
     def has_data(self, data_type='lines'):
         return not self._data[data_type] is None
 
-    def store_value(name, value):
+    def store_value(self, name, value):
         self._data[name] = value
 
     def get_value(self, name, not_found=None):
@@ -303,7 +303,7 @@ class ResultsData():
 
             data[ref_id] = value
 
-    def store_measurements(measurements):
+    def store_measurements(self, measurements):
         self._data['lines']['measured'] = measurements
 
     def dump(self, experiment_info):
@@ -520,9 +520,9 @@ class DPlots():
                 print('No data is provided. Nothing to display.')
         else: # generate dplots
             (self._dplots, self._plotstyles) = \
-              _mk_dplots(self, data, experiment_info)
+              self._mk_dplots(data, experiment_info)
 
-        self._plot_styles = PlotStyles(experiment_info)
+        self._plotstyles = PlotStyles(experiment_info)
 
         references = self._plotstyles.get_value('params_ref')
         if references:
