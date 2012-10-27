@@ -224,7 +224,7 @@ def display_status(data_plots=None):
 # cov: the covariance matrix (or None)
 class ResultsData():
     def __init__(self):
-        self._data = {name: None for name in ['lines', 'inv_params', 'cov']}
+        self._data = {'lines': {}}
         self._modman = None
 
     def has_data(self, data_type='lines'):
