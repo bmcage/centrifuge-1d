@@ -92,7 +92,7 @@ def adjust_cfg(cfg):
     from modules.shared.functions import (rpm2radps, find_omega2g,
                                           find_omega2g_fh, find_omega2g_dec)
     # Handle depending variables
-    for key in ['omega', 'omega_start']:
+    for key in ['omega']:
         value = cfg.get_value(key)
         if type(value) == list:
             cfg.set_value(key, [rpm2radps(omega) for omega in value])
