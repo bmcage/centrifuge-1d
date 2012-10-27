@@ -226,58 +226,17 @@ class ResultsData():
     def __init__(self):
         self._data = {name: None for name in ['lines', 'inv_params', 'cov']}
 
-    def extract(self, extract_data_fn, model, referencing_parameters=[],
-                 measurements=None):
-        # add computed data
-        (flag, value) = extract_data_fn(model)
-        if not flag:
-            print('Computation was not successfull. No data will be saved.')
-            self._data['lines'] = None
-            return
 
-        data = {'computed': {'computed': value}}
 
-        # add referenced data
-        references = {}
-        ref_num = 1
-        if referencing_parameters:
-            if type(referencing_parameters) == dict: # single reference
-                referencing_parameters = (referencing_parameters, )
 
-            iterable_params =  model._iterable_parameters
-            for ref in referencing_parameters:
-                if 'id' in ref:
-                    ref_id = ref['id']
-                    del ref['id']
-                else:
-                    ref_id = 'ref-' + str(ref_num)
-                    ref_num +=1
 
-                iters = [val for val in ref.keys() if val in iterable_params]
-                if iters:
-                    print('Referencing model cannot set iterable '
-                          'parameters of original model:', iters)
-                    exit(1)
 
-                backup_params = model.get_parameters(ref.keys()) # backup
-                model.set_parameters(ref)
 
-                (flag, extracted_data) = extract_data_fn(model)
 
-                model.set_parameters(backup_params) # restore
 
-                if not flag: continue
 
-                references[ref_id] = extracted_data
 
-            if references:
-                data['references'] = references
 
-        # add measured data
-        if measurements:
-            data['measured'] = {'measured': measurements}
-
-        self._data['lines'] = data
 
     def has_data(self, data_type='lines'):
         return not self._data[data_type] is None
