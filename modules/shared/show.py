@@ -417,7 +417,7 @@ class PlotStyles():
 
     def _mk_display_options(self):
         opts = {'separate_figures': False, 'show_figures': True,
-                'save_figures': True}
+                'save_figures': True, 'matplotlib_backend': None}
         user_opts = self._get_value('options')
         if user_opts: opts.update(user_opts)
 
