@@ -524,6 +524,10 @@ class DPlots():
 
         self._plot_styles = PlotStyles(experiment_info)
 
+        references = self._plotstyles.get_value('params_ref')
+        if references:
+            data.store_references(references)
+
         self.fignum = 1
 
         matplotlib_backend = \
