@@ -225,6 +225,7 @@ def display_status(data_plots=None):
 class ResultsData():
     def __init__(self):
         self._data = {name: None for name in ['lines', 'inv_params', 'cov']}
+        self._modman = None
 
     def has_data(self, data_type='lines'):
         return not self._data[data_type] is None
@@ -238,17 +239,77 @@ class ResultsData():
         else:
             return not_found
 
+    def _extract(self, model):
+        if self._modman is None:
+            from config import ModulesManager
+            self._modman = ModulesManager()
 
+        solver_module = self._modman.find_module(model.experiment_info['exp_type'],
+                                                 submodule='run')
+        extract_data_fn = solver_module.extract_fn
 
+        # add computed data
+        return extract_data_fn(model)
+        if not flag:
+            value = None
+            print('Computation was not successfull. Data will not be saved.')
 
+        return value
 
+    def store_computation(self, model):
+        (flag, value) = self._extract(model)
+        if not flag:
+            value = None
+            print('Computation was not successfull. Data will not be saved.')
 
+        self._data['lines']['computed'] = value
+        self.store_value('model', model)
 
+    def store_references(self, references):
+        model = self.get_value('model')
+        stored_references = self.get_value('references')
+        data = self._data['lines']
 
+        if (not references) or (references == stored_references): return
 
+        ref_num = 1
+        if type(references) == dict: # single reference
+            references = (references, )
 
+        iterable_params =  model._iterable_parameters
+        for ref in references:
+            if 'id' in ref:
+                ref_id = ref['id']
+                del ref['id']
+            else:
+                ref_id = 'ref-' + str(ref_num)
+                ref_num +=1
 
+            iters = [val for val in ref.keys() if val in iterable_params]
+            if iters:
+                print('Referencing model cannot set iterable '
+                      'parameters of original model:', iters,
+                      '\nSkipping...')
+                continue
 
+            backup_params = model.get_parameters(ref.keys()) # backup
+            model.set_parameters(ref)
+
+            (flag, value) = self._extract(model)
+
+            model.set_parameters(backup_params) # restore
+
+            if not flag:
+                value = None
+                print('Computation of reference with ID: ', ref_id,
+                      '\nwith parameters: ', ref,
+                      '\nwas not successfull. Data will not be saved.')
+                continue
+
+            data[ref_id] = value
+
+    def store_measurements(measurements):
+        self._data['lines']['measured'] = measurements
 
     def dump(self, experiment_info):
         if not self.has_data():
