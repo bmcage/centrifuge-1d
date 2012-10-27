@@ -53,4 +53,4 @@ def extract_data(model):
     return (flag, extracted_data)
 
 def run(model):
-     show_results(extract_data, model)
+     show_results(model)
