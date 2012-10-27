@@ -229,6 +229,8 @@ class ResultsData():
     def has_data(self, data_type='lines'):
         return not self._data[data_type] is None
 
+    def store_value(name, value):
+        self._data[name] = value
 
     def get_value(self, name, not_found=None):
         if name in self._data:
@@ -247,11 +249,6 @@ class ResultsData():
 
 
 
-    def add_value(self, inv_params = None, cov = None):
-        if has_data(inv_params):
-            self._data['inv_params'] = inv_params
-        if has_data(cov):
-            self._data['cov'] = cov
 
     def dump(self, experiment_info):
         if not self.has_data():
