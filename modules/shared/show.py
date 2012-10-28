@@ -514,13 +514,13 @@ class DPlots():
         self._data = data
         self._experiment_info = experiment_info
 
+        self._plotstyles = PlotStyles(experiment_info)
+
         if not data.has_data('lines'):
                 print('No data is provided. Nothing to display.')
         else: # generate dplots
             (self._dplots, self._plotstyles) = \
               self._mk_dplots(data, experiment_info)
-
-        self._plotstyles = PlotStyles(experiment_info)
 
         references = self._plotstyles.get_value('params_ref')
         if references:
