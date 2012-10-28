@@ -517,7 +517,7 @@ class DPlots():
         self._plotstyles = PlotStyles(experiment_info)
 
         if not data.has_data('lines'):
-                print('No data is provided. Nothing to display.')
+            print('No data is provided. Nothing to display.')
         else: # generate dplots
             self._dplots = self._mk_dplots(data, experiment_info)
 
