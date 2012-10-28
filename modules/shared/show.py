@@ -519,8 +519,7 @@ class DPlots():
         if not data.has_data('lines'):
                 print('No data is provided. Nothing to display.')
         else: # generate dplots
-            (self._dplots, self._plotstyles) = \
-              self._mk_dplots(data, experiment_info)
+            self._dplots = self._mk_dplots(data, experiment_info)
 
         references = self._plotstyles.get_value('params_ref')
         if references:
@@ -621,7 +620,7 @@ class DPlots():
 
         ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
 
-        return (ordered_dplots, plot_styles)
+        return ordered_dplots
 
     def display(self, fignum = None):
         if fignum is not None:
