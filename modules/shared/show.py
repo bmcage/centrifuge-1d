@@ -269,6 +269,7 @@ class ResultsData():
         if model is None:
             from run_experiments import (load_configuration,
                                          process_global_constants)
+            from config import ModelParameters
 
             experiment_info = self.get_value('experiment_info')
             (cfg, consts_cfg) = load_configuration(experiment_info)
