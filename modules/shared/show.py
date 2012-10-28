@@ -321,6 +321,8 @@ class ResultsData():
 
             data[ref_id] = value
 
+        self.store_value('references', references)
+
         self.dump(experiment_info)
 
     def store_measurements(self, measurements):
