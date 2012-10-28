@@ -500,7 +500,7 @@ class PlotStyles():
 
         if 'h' in data_types: line_styles['h'] = '-'
         if 'u' in data_types: line_styles['u'] = '-'
-        if ('theta' in data_types) and (not linetype == 'measured'):
+        if ('theta' in data_types) and (not line_id == 'measured'):
              line_styles['theta'] = '-'
 
         user_styles = self.get_value('lines')
@@ -725,8 +725,10 @@ class DPlots():
         def _show_status(data):
             status_items = []
 
-            measurements = data.get_linedata('measured', 'measured')
-            computed     = data.get_linedata('computed', 'computed')
+            measurements = data.get_linedata('measured')
+            computed     = data.get_linedata('computed')
+
+            if not measurements: return
 
             for (key, m_data) in measurements.items():
                 if m_data[1] is None: continue
