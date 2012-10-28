@@ -321,6 +321,8 @@ class ResultsData():
 
             data[ref_id] = value
 
+        self.dump(experiment_info)
+
     def store_measurements(self, measurements):
         self._data['lines']['measured'] = measurements
 
