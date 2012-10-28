@@ -258,12 +258,32 @@ class ResultsData():
             print('Computation was not successfull. Data will not be saved.')
 
         self._data['lines']['computed'] = value
+        self.store_value('experiment_info', model.experiment_info)
 
     def store_references(self, references, model=None):
         stored_references = self.get_value('references')
         data = self._data['lines']
 
         if (not references) or (references == stored_references): return
+
+        if model is None:
+            from run_experiments import (load_configuration,
+                                         process_global_constants)
+
+            info = self.get_value(experiment_info)
+            (cfg, consts_cfg) = load_configuration(experiment_info)
+            if self._modman is None:
+                from config import ModulesManager
+                self._modman = ModulesManager()
+
+            modman = self._modman
+            cfg.set_defaults(modman)
+            process_global_constants(cfg, consts_cfg)
+            cfg.adjust_cfg(modman)
+            solver_module = modman.find_module(cfg.get_value('exp_type'),
+                                               submodule='run')
+            model = ModelParameters(cfg)
+            model.experiment_info = info
 
         ref_num = 1
         if type(references) == dict: # single reference
