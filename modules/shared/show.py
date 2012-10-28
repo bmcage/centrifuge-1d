@@ -270,7 +270,7 @@ class ResultsData():
             from run_experiments import (load_configuration,
                                          process_global_constants)
 
-            info = self.get_value(experiment_info)
+            experiment_info = self.get_value('experiment_info')
             (cfg, consts_cfg) = load_configuration(experiment_info)
             if self._modman is None:
                 from config import ModulesManager
@@ -283,7 +283,7 @@ class ResultsData():
             solver_module = modman.find_module(cfg.get_value('exp_type'),
                                                submodule='run')
             model = ModelParameters(cfg)
-            model.experiment_info = info
+            model.experiment_info = experiment_info
 
         ref_num = 1
         if type(references) == dict: # single reference
