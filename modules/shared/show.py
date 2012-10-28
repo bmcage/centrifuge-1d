@@ -3,7 +3,7 @@ from __future__ import print_function
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-from const import FIGS_DIR, PLOTSTYLE_ININAME, MEASUREMENTS_NAMES
+from const import FIGS_DIR, PLOTSTYLE_ININAME
 from os import makedirs, path
 from shared import get_directories
 from config import parse_value
@@ -329,7 +329,7 @@ class ResultsData():
         return True
 
     def get_linedatatypes(self):
-        return MEASUREMENTS_NAMES.keys()
+        return DG_AXES_LABELS.keys()
 
     def get_linedata(self, line_id, not_found=None):
         data = self._data['lines']
