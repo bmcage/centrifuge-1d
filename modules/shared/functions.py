@@ -102,13 +102,13 @@ def y2x(y, s1, s2):
 
     return x
 
-def show_results(extract_data, model, inv_params=None, cov=None):
+def show_results(model, inv_params=None, cov=None):
     from modules.shared.show import ResultsData, DPlots
 
     data = ResultsData()
-    data.extract(extract_data, model, model.params_ref,
-                 measurements=model.measurements)
-    data.add_value(inv_params=inv_params, cov=cov)
+    data.store_computation(model)
+    data.store_value('inv_params', inv_params)
+    data.store_value('cov', cov)
 
     if model.save_data:
         data.dump(model.experiment_info)

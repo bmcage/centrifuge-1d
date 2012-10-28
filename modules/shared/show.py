@@ -212,85 +212,122 @@ def display_status(data_plots=None):
 # ResultData: hold the data of the computation
 # Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
 # where:
-# lines_structure: dictionary of types: {line_type: line_type_data} where:
-#     line_type is (by default) one of ['computed', 'measured', 'references']
-#     line_type_data is a dictionary of types: {line_id: line_data}, with
-#         line_id the ID of the line
-#         line_data a dict of types {data_type: (xdata, ydata)},
-#              where data_type is (by default) one of
-#              ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'], xdata is the x-axis
-#              coordinate and ydata is the y-axis coordinate (computed value)
-# inv_params: dict of inverse parameters {param_name: param_value} (or None)
-# cov: the covariance matrix (or None)
+# lines_structure: dictionary of types: {line_id: line_data} where:
+#     line_id the ID of the line
+#     line_data a dict of types {data_type: (xdata, ydata)}, where:
+#          data_type is (by default) one of ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'],
+#          xdata (ydata)is the x-axis (y-axis) coordinate
 class ResultsData():
     def __init__(self):
-        self._data = {name: None for name in ['lines', 'inv_params', 'cov']}
-
-    def extract(self, extract_data_fn, model, referencing_parameters=[],
-                 measurements=None):
-        # add computed data
-        (flag, value) = extract_data_fn(model)
-        if not flag:
-            print('Computation was not successfull. No data will be saved.')
-            self._data['lines'] = None
-            return
-
-        data = {'computed': {'computed': value}}
-
-        # add referenced data
-        references = {}
-        ref_num = 1
-        if referencing_parameters:
-            if type(referencing_parameters) == dict: # single reference
-                referencing_parameters = (referencing_parameters, )
-
-            iterable_params =  model._iterable_parameters
-            for ref in referencing_parameters:
-                if 'id' in ref:
-                    ref_id = ref['id']
-                    del ref['id']
-                else:
-                    ref_id = 'ref-' + str(ref_num)
-                    ref_num +=1
-
-                iters = [val for val in ref.keys() if val in iterable_params]
-                if iters:
-                    print('Referencing model cannot set iterable '
-                          'parameters of original model:', iters)
-                    exit(1)
-
-                backup_params = model.get_parameters(ref.keys()) # backup
-                model.set_parameters(ref)
-
-                (flag, extracted_data) = extract_data_fn(model)
-
-                model.set_parameters(backup_params) # restore
-
-                if not flag: continue
-
-                references[ref_id] = extracted_data
-
-            if references:
-                data['references'] = references
-
-        # add measured data
-        if measurements:
-            data['measured'] = {'measured': measurements}
-
-        self._data['lines'] = data
+        self._data = {'lines': {}}
+        self._modman = None
 
     def has_data(self, data_type='lines'):
         return not self._data[data_type] is None
 
-    def get_value(self, data_name):
-        if data_name in ['cov', 'inv_params', 'lines']:
-            return self._data[data_name]
+    def store_value(self, name, value):
+        self._data[name] = value
 
-    def add_value(self, inv_params = None, cov = None):
-        if has_data(inv_params):
-            self._data['inv_params'] = inv_params
-        if has_data(cov):
-            self._data['cov'] = cov
+    def get_value(self, name, not_found=None):
+        if name in self._data:
+            return self._data[name]
+        else:
+            return not_found
+
+    def _extract(self, model):
+        if self._modman is None:
+            from config import ModulesManager
+            self._modman = ModulesManager()
+
+        solver_module = self._modman.find_module(model.exp_type,
+                                                 submodule='run')
+        extract_data_fn = solver_module.extract_data
+
+        # add computed data
+        return extract_data_fn(model)
+        if not flag:
+            value = None
+            print('Computation was not successfull. Data will not be saved.')
+
+        return value
+
+    def store_computation(self, model):
+        (flag, value) = self._extract(model)
+        if not flag:
+            value = None
+            print('Computation was not successfull. Data will not be saved.')
+
+        self._data['lines']['computed'] = value
+        self.store_value('experiment_info', model.experiment_info)
+
+    def store_references(self, references, model=None):
+        stored_references = self.get_value('references')
+        data = self._data['lines']
+
+        if (not references) or (references == stored_references): return
+
+        if model is None:
+            from run_experiments import (load_configuration,
+                                         process_global_constants)
+            from config import ModelParameters
+
+            experiment_info = self.get_value('experiment_info')
+            (cfg, consts_cfg) = load_configuration(experiment_info)
+            if self._modman is None:
+                from config import ModulesManager
+                self._modman = ModulesManager()
+
+            modman = self._modman
+            cfg.set_defaults(modman)
+            process_global_constants(cfg, consts_cfg)
+            cfg.adjust_cfg(modman)
+            solver_module = modman.find_module(cfg.get_value('exp_type'),
+                                               submodule='run')
+            model = ModelParameters(cfg)
+            model.experiment_info = experiment_info
+
+        ref_num = 1
+        if type(references) == dict: # single reference
+            references = (references, )
+
+        iterable_params =  model._iterable_parameters
+        for ref in references:
+            if 'id' in ref:
+                ref_id = ref['id']
+                del ref['id']
+            else:
+                ref_id = 'ref-' + str(ref_num)
+                ref_num +=1
+
+            iters = [val for val in ref.keys() if val in iterable_params]
+            if iters:
+                print('Referencing model cannot set iterable '
+                      'parameters of original model:', iters,
+                      '\nSkipping...')
+                continue
+
+            backup_params = model.get_parameters(ref.keys()) # backup
+            model.set_parameters(ref)
+
+            (flag, value) = self._extract(model)
+
+            model.set_parameters(backup_params) # restore
+
+            if not flag:
+                value = None
+                print('Computation of reference with ID: ', ref_id,
+                      '\nwith parameters: ', ref,
+                      '\nwas not successfull. Data will not be saved.')
+                continue
+
+            data[ref_id] = value
+
+        self.store_value('references', references)
+
+        self.dump(experiment_info)
+
+    def store_measurements(self, measurements):
+        self._data['lines']['measured'] = measurements
 
     def dump(self, experiment_info):
         if not self.has_data():
@@ -317,25 +354,21 @@ class ResultsData():
         return True
 
     def get_linedatatypes(self):
-         # line_type 'computed' with ID 'computed' has to be present
-        return self._data['lines']['computed']['computed'].keys()
-    def get_linetypes(self):
-        return self._data['lines'].keys()
+        return DG_AXES_LABELS.keys()
 
-    def get_linedata(self, line_type, line_id):
+    def get_linedata(self, line_id, not_found=None):
         data = self._data['lines']
-        if (line_type in data) and (line_id in data[line_type]):
-            return data[line_type][line_id]
+        if line_id in data:
+            return data[line_id]
         else:
-            return None
+            return not_found
 
     def iterate_lines(self):
         if not self.has_data('lines'):
             yield None
         else:
-            for (data_type, lines) in self._data['lines'].items():
-                for (line_id, line_data) in lines.items():
-                    yield (data_type, line_id, line_data)
+            for (line_id, line_data) in self._data['lines'].items():
+                yield (line_id, line_data)
 
 class PlotStyles():
     def __init__(self, experiment_info):
@@ -409,7 +442,7 @@ class PlotStyles():
 
         return plot_cfg
 
-    def _get_value(self, key):
+    def get_value(self, key):
         if key in self._userstyles:
             return self._userstyles[key]
         else:
@@ -417,8 +450,8 @@ class PlotStyles():
 
     def _mk_display_options(self):
         opts = {'separate_figures': False, 'show_figures': True,
-                'save_figures': True}
-        user_opts = self._get_value('options')
+                'save_figures': True, 'matplotlib_backend': None}
+        user_opts = self.get_value('options')
         if user_opts: opts.update(user_opts)
 
         return opts
@@ -434,7 +467,7 @@ class PlotStyles():
                                               'legend_bbox', 'legend_loc',
                                               'show']}
 
-        user_styles = self._get_value('datasets')
+        user_styles = self.get_value('datasets')
         if user_styles and (dplot_id in user_styles):
             dplot_styles.update(user_styles[dplot_id])
 
@@ -482,8 +515,8 @@ class PlotStyles():
 
         return self._dplotstyles[dtype]
 
-    def _mk_linestyle(self, linetype, line_id, data_types):
-        if linetype == 'measured':
+    def get_linestyle(self, line_id, data_types):
+        if line_id == 'measured':
             lineopt = 'x'
         else:
             lineopt = '.'
@@ -492,29 +525,41 @@ class PlotStyles():
 
         if 'h' in data_types: line_styles['h'] = '-'
         if 'u' in data_types: line_styles['u'] = '-'
-        if ('theta' in data_types) and (not linetype == 'measured'):
+        if ('theta' in data_types) and (not line_id == 'measured'):
              line_styles['theta'] = '-'
 
-        user_styles = self._get_value('lines')
+        user_styles = self.get_value('lines')
         if user_styles and (line_id in user_styles):
             line_styles.update(user_styles[line_id])
 
         return line_styles
 
-    def get_linestyle(self, line_type, line_id, data_types):
-        return self._mk_linestyle(line_type, line_id, data_types)
-
 class DPlots():
     def __init__(self, data, experiment_info):
         self._data = data
         self._experiment_info = experiment_info
-        self._dplots = None
-        self._plotstyles = None
+
+        self._plotstyles = PlotStyles(experiment_info)
+
+        if not data.has_data('lines'):
+            print('No data is provided. Nothing to display.')
+        else: # generate dplots
+            self._dplots = self._mk_dplots(data, experiment_info)
+
+        references = self._plotstyles.get_value('params_ref')
+        if references:
+            data.store_references(references)
+
         self.fignum = 1
 
-    def display(self, fignum = None):
-        if fignum is not None:
-            self.fignum = fignum
+        display_options = self._plotstyles.get_display_options()
+        if 'matplotlib_backend' in display_options:
+            matplotlib_backend = display_options['matplotlib_backend']
+        if matplotlib_backend: # chosen other backend than the default one
+            import matplotlib
+            matplotlib.use(matplotlib_backend)
+
+    def _mk_dplots(self, data, experiment_info):
         def _mk_dplots_bucket(data_types, plot_styles):
             dplots_bucket = \
               {dtype: {'id': dtype, 'data': [],
@@ -523,11 +568,10 @@ class DPlots():
 
             return dplots_bucket
 
-        def _add_plotline(line_type, line_id, line_data, data_types,
-                          plot_styles, dplots_bucket):
+        def _add_plotline(line_id, line_data, data_types, plot_styles,
+                          dplots_bucket):
 
-            line_styles = plot_styles.get_linestyle(line_type, line_id,
-                                                        data_types)
+            line_styles = plot_styles.get_linestyle(line_id, data_types)
             if 'label' in line_styles:
                 label = line_styles['label']
             else:
@@ -590,18 +634,22 @@ class DPlots():
 
             return ordered_dplots
 
-        def _mk_dplots(data, experiment_info):
-            plot_styles   = PlotStyles(experiment_info)
-            data_types    = data.get_linedatatypes()
-            dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
+        # function body
+        plot_styles   = self._plotstyles
+        data_types    = data.get_linedatatypes()
+        dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
 
-            for (line_type, line_id, line_data) in data.iterate_lines():
-                _add_plotline(line_type, line_id, line_data, data_types,
-                              plot_styles, dplots_bucket)
+        for (line_id, line_data) in data.iterate_lines():
+            _add_plotline(line_id, line_data, data_types, plot_styles,
+                          dplots_bucket)
 
-            ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
+        ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
 
-            return (ordered_dplots, plot_styles)
+        return ordered_dplots
+
+    def display(self, fignum = None):
+        if fignum is not None:
+            self.fignum = fignum
 
         def _show_dplots(ordered_dplots, display_options, experiment_info):
 
@@ -702,8 +750,10 @@ class DPlots():
         def _show_status(data):
             status_items = []
 
-            measurements = data.get_linedata('measured', 'measured')
-            computed     = data.get_linedata('computed', 'computed')
+            measurements = data.get_linedata('measured')
+            computed     = data.get_linedata('computed')
+
+            if not measurements: return
 
             for (key, m_data) in measurements.items():
                 if m_data[1] is None: continue
@@ -727,14 +777,7 @@ class DPlots():
         # function body
         data   = self._data
 
-        if self._dplots is None: # if data is provided, generate dplots
-            if not data.has_data('lines'):
-                print('No data is provided. Nothing to display.')
-            else:
-                (self._dplots, self._plotstyles) = \
-                  _mk_dplots(data, self._experiment_info)
-
-        if not self._dplots is None: # is True if data was provided
+        if not self._dplots is None: # all OK, dplots were generated
             _show_status(data)
 
             if data.has_data('cov'):
