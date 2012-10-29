@@ -1,14 +1,11 @@
 #!/usr/bin/python
 from __future__ import print_function
-from sys import path as syspath, argv as sysargv
 from os import listdir
 from os.path import exists
 from shared import get_directories, yn_prompt
 from config import ModulesManager, ModelParameters, Configuration
 from optparse import OptionParser
 from const import DEFAULTS_ININAME, CONSTANTS_ININAME
-
-syspath.append('/'.join(['.', 'odes', 'build', 'lib.linux-x86_64-3.2']))
 
 def list_experiments(verbose=True):
     from os import listdir
