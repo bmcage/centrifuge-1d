@@ -3,7 +3,10 @@ from const import INI_DIR, MASKS_DIRNAME, FIGS_DIR
 
 def yn_prompt(question_str, default='y'):
     while True:
-        answ = input(question_str)
+        try:
+            answ = raw_input(question_str)
+        except:
+            answ = input(question_str)
         if answ == '': answ = default
         else: answ = answ.lower()
         if answ in ['y', 'yes']: return True
