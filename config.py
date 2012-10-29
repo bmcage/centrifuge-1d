@@ -692,8 +692,8 @@ class ModelParameters:
         for (key, value) in parameters_dict.items():
             setattr(self, key, value)
 
-        if key == 'n':
-            setattr(self, 'm', 1-1/value)
+            if key == 'n':
+                setattr(self, 'm', 1-1/value)
 
     def get_parameters(self, parameters):
         params = {}
