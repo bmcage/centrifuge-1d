@@ -107,6 +107,7 @@ def show_results(model, inv_params=None, cov=None):
 
     data = ResultsData()
     data.store_computation(model)
+    data.store_measurements(model.measurements)
     data.store_value('inv_params', inv_params)
     data.store_value('cov', cov)
 
