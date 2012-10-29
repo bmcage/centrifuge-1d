@@ -68,7 +68,7 @@ def parse_input():
     (options, args) = optparser.parse_args()
     arg_len = len(args)
     if arg_len == 0:
-        if options.list: or :
+        if options.list:
             list_experiments(options.verbose)
         elif options.modules_list:
             list_modules(options.verbose)

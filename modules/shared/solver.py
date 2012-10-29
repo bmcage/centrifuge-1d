@@ -45,10 +45,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
         t[0]    = t0
         z[0, :] = z0
         i = 1
-        t_meas = measurements_times[1]
     else:
         i = 0
-        t_meas = measurements_times[0]
+    t_meas = measurements_times[i]
 
     solver = ida.IDA(residual_fn,
                      compute_initcond='yp0',
@@ -125,7 +124,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 if previous_phase != phase: on_phase_change(model, phase)
 
             while True:
-                (flag, t_out) = solver.step(t_end, z[i, :])
+                (flag, t_out) = solver.step(t_meas, z[i, :])
 
                 if flag < 0:     # error occured
                     if verbosity > 1:
@@ -146,13 +145,18 @@ def simulate_direct(initialize_z0, model, residual_fn,
                              print('Root found: aborted further computation.')
                         return (False, t[:i], z[:i, :])
                 else: # success or t_stop reached
-                    if (flag == 0) or (t_end == t_meas):
+                    if (flag == 0) or (t_out == t_meas):
                         t[i] = t_out
-                        t_meas = measurements_times[i]
                         i += 1
+                        if i < measurements_nr:
+                            t_meas = measurements_times[i]
+                        else:
+                            # previous measurement was the last measurement we
+                            # have taken so we can abort further computation
+                            break
 
                     # Assuming t_out is t_end+numerical_error
-                    if (flag == 1) or (t_end == t_meas):
+                    if (flag == 1) or (t_end == t_out):
                         break
 
             t0 = t_out
