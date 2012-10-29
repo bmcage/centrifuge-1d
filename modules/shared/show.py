@@ -136,7 +136,8 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                             ('none', 'pressure'))}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
 
-def get_unit_coef(unit):
+def get_unit_coef(unit_base):
+    unit = unit_base.lower()
     # units used for computation are: cm, s, pa and "no units"
     if unit in ['cm', 's', 'pa', '']: coef = 1.0
     elif unit == 'mm': coef = 10.
@@ -145,7 +146,7 @@ def get_unit_coef(unit):
     elif unit == 'm': coef = 0.01
     elif unit == 'kpa': coef = 0.001
     else:
-        print('Unknown unit:', unit, '\nKnown units are only:\n', DATA_UNITS)
+        print('Unknown unit:', unit_base, '\nKnown units are only:', DATA_UNITS)
         exit(1)
     return coef
 
