@@ -147,8 +147,13 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 else: # success or t_stop reached
                     if (flag == 0) or (t_out == t_meas):
                         t[i] = t_out
-                        t_meas = measurements_times[i]
                         i += 1
+                        if i < measurements_nr:
+                            t_meas = measurements_times[i]
+                        else:
+                            # previous measurement was the last measurement we
+                            # have taken so we can abort further computation
+                            break
 
                     # Assuming t_out is t_end+numerical_error
                     if (flag == 1) or (t_end == t_out):
