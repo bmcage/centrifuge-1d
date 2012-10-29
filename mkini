@@ -166,7 +166,10 @@ class ExperimentData():
         if not path.exists(savedir):
             makedirs(savedir)
 
-        fout = open(savedir + filename, mode='w', encoding='utf-8')
+        try:
+            fout = open(savedir + filename, mode='w', encoding='utf-8')
+        except:
+            fout = open(savedir + filename, mode='w')
         fout.write('[{}]\n'.format(section_name))
 
         self.iterate(_princ, user_data=fout)
