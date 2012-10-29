@@ -45,10 +45,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
         t[0]    = t0
         z[0, :] = z0
         i = 1
-        t_meas = measurements_times[1]
     else:
         i = 0
-        t_meas = measurements_times[0]
+    t_meas = measurements_times[i]
 
     solver = ida.IDA(residual_fn,
                      compute_initcond='yp0',
