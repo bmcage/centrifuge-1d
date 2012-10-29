@@ -7,10 +7,11 @@ def solve(model):
     theta_measured = model.measurements['theta'][0]
 
     def direct_wrapper(optim_args):
+        out = ''
         if model.verbosity > 1:
             for (name, value) in zip(params_names, optim_args):
-                print('{}: {: >10.7f}     '.format(name, value), end='')
-            print()
+                out += '{}: {: >10.7f}     '.format(name, value)
+            print(out)
 
         for (name, value) in zip(params_names, optim_args):
             setattr(model, name, value)
