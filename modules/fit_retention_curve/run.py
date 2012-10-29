@@ -56,8 +56,10 @@ def extract_data(model):
                                     model.theta_s, model.theta_r)
     theta = theta_r + ((theta_s - theta_r)
                        * h2u(-10.*P_DISP/model.rho/model.g, n, 1.-1./n, gamma))
+    p = np.asarray(model.p, dtype=float)
+    h = -10.*p / model.rho /model.g
     theta_in_measured_points = theta_r + ((theta_s - theta_r)
-                                          * h2u(model.h, n, 1.-1./n, gamma))
+                                          * h2u(h, n, 1.-1./n, gamma))
 
     extracted_data = {'theta': (theta, P_DISP, theta_in_measured_points)}
 
