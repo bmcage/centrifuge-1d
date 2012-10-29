@@ -7,7 +7,7 @@ lines = {'computed': {'label': 'Computed'},
 
 # options for displayed measurements. ID corresponds to a particular
 # measurement.
-# IDs: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2',
+# IDs: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2', 'theta'
 #
 # Description:
 #	Following measurements use as x-axis value time (unit: time):
@@ -28,6 +28,10 @@ lines = {'computed': {'label': 'Computed'},
 #	along the sample:
 #	'h': hydraulic head; unit: length
 #	'u': relative saturation; unit: None
+#
+#	'theta' - saturation theta; used by the retention curve fitting
+#		- x-axis on this measurement is 'theta', y-axis is the hydraulic head 'h'
+#		- unit: pressure
 #
 datasets = {ID: {# display given measurement; value: True/False
 		 'show': True,
