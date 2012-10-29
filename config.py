@@ -698,7 +698,8 @@ class ModelParameters:
     def get_parameters(self, parameters):
         params = {}
         for key in parameters:
-            params[key] = getattr(self, key)
+            if hasattr(self, key):
+                params[key] = getattr(self, key)
         return params
 
     def next_iteration(self):

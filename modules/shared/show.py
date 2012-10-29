@@ -404,7 +404,7 @@ class PlotStyles():
             parser   = configparser.ConfigParser()
             try:
                 read_files = parser.read(filename)
-            except configparser.DuplicateOptionError as E:
+            except configparser.ParsingError as E:
                 print(E)
                 exit(0)
             # Write data from parser to configuration
@@ -436,7 +436,7 @@ class PlotStyles():
         plot_cfg = read_plotstyles_cfg(plotstyles_filenames[0])
 
         for fname in plotstyles_filenames[1:]:
-            deep_dictupdate(plot_cfg, read_plotcfg(fname))
+            deep_dictupdate(plot_cfg, read_plotstyles_cfg(fname))
 
         self._userstyles = plot_cfg
 

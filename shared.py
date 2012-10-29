@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 from const import INI_DIR, MASKS_DIRNAME, FIGS_DIR
 
