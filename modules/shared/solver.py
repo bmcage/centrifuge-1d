@@ -151,7 +151,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                         i += 1
 
                     # Assuming t_out is t_end+numerical_error
-                    if (flag == 1) or (t_end == t_meas):
+                    if (flag == 1) or (t_end == t_out):
                         break
 
             t0 = t_out
