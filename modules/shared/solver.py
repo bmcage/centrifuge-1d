@@ -124,7 +124,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                 if previous_phase != phase: on_phase_change(model, phase)
 
             while True:
-                (flag, t_out) = solver.step(t_end, z[i, :])
+                (flag, t_out) = solver.step(t_meas, z[i, :])
 
                 if flag < 0:     # error occured
                     if verbosity > 1:
