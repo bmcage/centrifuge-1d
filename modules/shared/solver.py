@@ -145,7 +145,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                              print('Root found: aborted further computation.')
                         return (False, t[:i], z[:i, :])
                 else: # success or t_stop reached
-                    if (flag == 0) or (t_end == t_meas):
+                    if (flag == 0) or (t_out == t_meas):
                         t[i] = t_out
                         t_meas = measurements_times[i]
                         i += 1
