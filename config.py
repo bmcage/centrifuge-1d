@@ -593,7 +593,7 @@ class Configuration:
             from shared import yn_prompt
 
             if not yn_prompt('\nAlien options found. Do you wish to '
-                             'continue? [y/N]: ', default='n'):
+                             'continue? [Y/n]: ', default='y'):
                 return False
 
         if not modman.traverse_ancestors(self.get_value('exp_type'),
