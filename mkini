@@ -578,7 +578,8 @@ def data2ini(data, experiment_info):
 
             else:
                 default_configuration = \
-                  ExperimentData({'exp_type': repr(experiment_info['exp_id'])})
+                  ExperimentData('defaults',
+                                 {'exp_type': repr(experiment_info['exp_type'])})
 
                 default_configuration.save(exp_base_path,
                                            filename=DEFAULTS_ININAME,
