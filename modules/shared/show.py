@@ -579,10 +579,11 @@ class DPlots():
                 label = line_id
 
             for (data_type, data_value) in line_data.items():
+
                 if not has_data(data_value): continue
 
                 # we skip other 'h' and 'u' data, as it would be mess
-                if (data_type in ['h', 'u']) and (not label == 'computed'):
+                if (data_type in ['h', 'u']) and (not line_id == 'computed'):
                     continue
 
                 (xdata, ydata) = (data_value[0], data_value[1])
@@ -596,7 +597,6 @@ class DPlots():
                     ilabel = label
 
                 item = (xdata, ydata, ilabel, line_styles[data_type])
-
                 dplots_bucket[data_type]['data'].append(item)
 
         def _filter_dplots(dplots_bucket):
