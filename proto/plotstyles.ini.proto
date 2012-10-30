@@ -69,20 +69,22 @@ datasets = {ID: {# display given measurement; value: True/False
 	 ...}
 
 # Displaying options
-options = {# Include all figures in one image or each figure should be
-	   # drawn separately; value: True/False
-	   'separate_figures': False,
-	   # Show figures; if displaying figures is not needed (e.g. we
-	   # know they are good, we just need to save them with different
-	   # backend), this can turn displaying off; value: True/False
-	   'show_figures': True,
-	   # automatically save figures; value: True/False
-           'save_figures': True,
-	   # Use different backend for matplotlib. If value is None, the
-	   # default one for matplotlib is used. Note: given backend has
-	   # to be installed just as python bindings for it.
-	   # Example of backends: 'ps', 'TkAgg', 'WX', 'QTAgg', 'QT4Agg',
-	   #                      'cairo.pdf', 'cairo.png'
-	   # Value: backend name or None
-	   'matplotlib_backend': None
-	   }
+# 'separate_figures' 	- Include all figures in one image or each figure should be
+# 			  drawn separately; value: True/False; Default: False
+# 'show_figures'	- Determines the displaying of figures (useful e.g. when we
+#			  know they are good, we just need to save them with different
+#			  backend); value: True/False; Default: True
+# 'save_figures'       	- automatically save figures after computation; value: True/False
+#			  Default: True
+# 'matplotlib_backend' 	- Use different backend for matplotlib. If value is None, the
+#			  default one for matplotlib is used. Note: given backend has
+#			  to be installed just as python bindings for it.
+#			  Example of backends: 'ps', 'TkAgg', 'WX', 'QTAgg', 'QT4Agg',
+#	                  'cairo.pdf', 'cairo.png'
+#			  Value: backend name or None; Default: None
+#
+#options = {'separate_figures': False,
+#	    'show_figures': True,
+#	    'save_figures': True,
+#	    'matplotlib_backend': None
+#	   }
