@@ -47,8 +47,8 @@ def extract_data(model):
     if not flag:
         print('For given model the solver did not find results. Skipping.')
 
-    extracted_data = {'MI': (t, z[model.mass_in_idx]),
-                      'MI': (t, z[model.mass_out_idx])}
+    extracted_data = {'MI': (t, z[:, model.mass_in_idx]),
+                      'MO': (t, z[:, model.mass_out_idx])}
     return (flag, extracted_data)
 
 def run(model):
