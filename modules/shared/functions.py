@@ -128,11 +128,13 @@ def has_data(x):
 
 def phases_end_times(a_duration, d_duration, g_duration,
                      include_acceleration):
-    if (not include_acceleration) or (a_duration is None):
+    if a_duration is None:
         a_duration = 0.0
     else:
         a_duration = np.asarray(a_duration, dtype=float)
-        if (not d_duration  is None): a_duration += d_duration
+
+    if include_acceleration and (not d_duration  is None):
+        a_duration += d_duration
 
     if g_duration is None:
         g_duration = 0.0
