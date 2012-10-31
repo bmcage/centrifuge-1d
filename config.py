@@ -424,6 +424,8 @@ class Configuration:
                     if option_type == str:
                         required_options.append(option)
                     elif (option_type == list) or (option_type == tuple):
+                        if option == []: continue
+
                         if hasattr(option[0], '__call__'):
                             if option[0](self):
                                 classify_options(option[1])
