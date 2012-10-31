@@ -14,6 +14,8 @@ CONFIG_OPTIONS = {
                      "\n\t 0 - no outflow [q_last = 0]"
                      "\n\t 1 - free outflow"
                      "\n\t 2 - prescribed pressure (see h_last)"
+                     "\n\t 3 - sample is dipped in a basin with water level "
+                     "         height hb"
                      "\nType: integer"),
          'h_last': ("The prescribed pressure on the right boundary - only for "
                     "'rb_type' = 2")

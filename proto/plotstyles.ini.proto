@@ -1,16 +1,13 @@
 [plotting-styles]
-lines = {'computed': {'label': 'Computed'},
-	 'measured': {'label': 'Measured'},
-	 'line-id-1': {'label': 'Measured'},
-	 'line-id-2': {'label': 'Measured'},
-	 'line-id-3': {'label': 'Measured'}}
+# Reference parameters:
+#params_ref =  ({'id': 'line-id-1', parameter1-1: value1-1, parameter1-2: value1-2, parameter1-3: value1-3},
+#		{'id': 'line-id-2', parameter2-1: value2-1, parameter2-2: value2-2, parameter2-3: value2-3}
+#		)
 
-# options for displayed measurements. ID corresponds to a particular
-# measurement.
-# IDs: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2',
-#
-# Description:
-#	Following measurements use as x-axis value time (unit: time):
+# IDs represent some type of measured value
+# Recognized IDs are: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2', 'theta'
+# Description of IDs:
+# 	Following measurements use as x-axis value time (unit: time):
 #
 # 	'GC' - gravitational center; unit: length
 #	'RM' - rotational momentum
@@ -29,56 +26,100 @@ lines = {'computed': {'label': 'Computed'},
 #	'h': hydraulic head; unit: length
 #	'u': relative saturation; unit: None
 #
-datasets = {ID: {# display given measurement; value: True/False
-		 'show': True,
-		 # axes labels
-		 'xlabel': 'X-axis label',
-		 'ylabel', 'Y-axis label',
-		 # scaling of axes:	None  - linear
-		 #			'log' - logaritmic
-                 'xscale', 'yscale',
-		 # units of measurements - by default 'cm', 's' are used
-		 # units - time   - 's', 'min' 'h'
-		 #	   - length - 'mm', 'cm', 'm'
-		 'xunit': 's',
-		 'yunit': 'cm',
-		 # legend should be displayed; value: True/False
-                 'show_legend': True,
-		 # title of legend; value: string or None
-		 'legend_title': None,
-		 # legend location:	1 - upper right corner
-                 #		     	2 - upper left corner
-                 #		     	2 - lower left corner
-                 #		     	2 - lower right corner
-		 'legend_loc': 1,
-		 # If default placement of legend is not suitable, an box
-		 # in which the legend should be aligned can be specified
-		 # byt his value; value: (x_coord, y_coord) or None
-		 # the corner of the legend specified by the 'legend_loc'
-		 # will be attached to this point.
-		 # Coordinates x_coor, y_coord are relative to given plot
-		 # image - i.e. point (1., 1.) corresponds to the upper right
-		 # corner of the image, whereas (0., 0.) to the lower left
-		 # If value is None, the default is used
-                 'legend_bbox': None},
-	{ID2: {'legend_loc': 1, ...},
-	 ...}
+#	'theta' - saturation theta; used by the retention curve fitting
+#		- x-axis on this measurement is 'theta', y-axis is the hydraulic head 'h'
+#		- unit: pressure
+
+# lines set the displaying properties to one particular line (i.e.
+lines = {'computed': {'label': 'Computed', 'GC': 'x', 'MO': 'x', 'theta': 'x'},
+	 'measured': {'label': 'Measured', 'GC': '.', 'MO': '.', 'theta': '.'},
+	 'line-id-1': {'label': 'Label 1', 'GC': '^', 'MO': '^', 'theta': '^'},
+	 'line-id-2': {'label': 'Label 2', 'GC': 'v', 'MO': 'v', 'theta': 'v'},
+	 'line-id-3': {'label': 'Label 3', 'GC': '-', 'MO': '-', 'theta': '-'}}
+
+# options for displayed measurements. ID corresponds to a particular
+# measurement.
+# IDs:
+#
+# Description:
+# IDs:
+#
+# options - settable for every ID:
+#	'show'		   - display values of given measurement; value: True/FalseTrue; Default: True
+#	'xlabel', 'ylabel' - axes labels; value: string; Default: ''
+#	'xscale', 'yscale' - scaling of axes; values: None (linear scaling) or 'log' (logaritmic)
+#	'xunit',  'yunit'  - units of displayed measurements; units types - time   - 's', 'min' 'h'
+#									  - length - 'mm', 'cm', 'm'
+#									  - pressure - 'Pa', 'kPa'
+#			   - By default time unit is 's', length unit is 'cm' and pressure unit is 'Pa'
+# 	'show_legend'	   - legend should be displayed; value: True/False; default: True
+# 	'legend_title'	   - title of legend; value: string or None; default: None
+# 	'legend_loc'	   - legend location:	1 - upper right corner
+#		     	 			2 - upper left corner
+#						3 - lower left corner
+#						4 - lower right corner
+#			   - value: 1,2,3,4
+#			   - default: 2 (upper right), for 'h' and 'u' is outside the figure
+#	'legend_bbox'	   - if default placement of legend is not suitable, an box
+# 			     in which the legend should be aligned can be specified
+# 			     by this value; value: (x_coord, y_coord) or None
+# 			     the corner of the legend specified by the 'legend_loc'
+#			     will be attached to this point.
+#			     Coordinates x_coor, y_coord are relative to given plot
+#			     image - i.e. point (1., 1.) corresponds to the upper right
+#			     corner of the image, whereas (0., 0.) to the lower left
+#			     If value is None, the default legend location is used (see 'legend_loc')
+#			   - default: None
+
+#datasets = {'GC': {'show': True,
+#		   'xlabel': 'X-axis label',
+#		   'ylabel', 'Y-axis label',
+#		   'xscale', 'yscale',
+#		   'xunit': 's',
+#		   'yunit': 'cm',
+#		   'show_legend': True,
+#		   'legend_title': None,
+#		   'legend_loc': 1,
+#		   'legend_bbox': None},
+#	    'h':  {'show': True,
+#		   'xlabel': 'X-axis label',
+#		   'ylabel', 'Y-axis label',
+#		   'xscale', 'yscale',
+#		   'xunit': 's',
+#		   'yunit': 'cm',
+#		   'show_legend': True,
+#		   'legend_title': None,
+#		   'legend_loc': 1,
+#		   'legend_bbox': None},
+#	    'theta': {'show': True,
+#		   'xlabel': 'X-axis label',
+#		   'ylabel', 'Y-axis label',
+#		   'xscale', 'yscale',
+#		   'xunit': 's',
+#		   'yunit': 'cm',
+#		   'show_legend': True,
+#		   'legend_title': None,
+#		   'legend_loc': 1,
+#		   'legend_bbox': None}
+#	    }
 
 # Displaying options
-options = {# Include all figures in one image or each figure should be
-	   # drawn separately; value: True/False
-	   'separate_figures': False,
-	   # Show figures; if displaying figures is not needed (e.g. we
-	   # know they are good, we just need to save them with different
-	   # backend), this can turn displaying off; value: True/False
-	   'show_figures': True,
-	   # automatically save figures; value: True/False
-           'save_figures': True,
-	   # Use different backend for matplotlib. If value is None, the
-	   # default one for matplotlib is used. Note: given backend has
-	   # to be installed just as python bindings for it.
-	   # Example of backends: 'ps', 'TkAgg', 'WX', 'QTAgg', 'QT4Agg',
-	   #                      'cairo.pdf', 'cairo.png'
-	   # Value: backend name or None
-	   'matplotlib_backend': None
-	   }
+# 'separate_figures' 	- Include all figures in one image or each figure should be
+# 			  drawn separately; value: True/False; Default: False
+# 'show_figures'	- Determines the displaying of figures (useful e.g. when we
+#			  know they are good, we just need to save them with different
+#			  backend); value: True/False; Default: True
+# 'save_figures'       	- automatically save figures after computation; value: True/False
+#			  Default: True
+# 'matplotlib_backend' 	- Use different backend for matplotlib. If value is None, the
+#			  default one for matplotlib is used. Note: given backend has
+#			  to be installed just as python bindings for it.
+#			  Example of backends: 'ps', 'TkAgg', 'WX', 'QTAgg', 'QT4Agg',
+#	                  'cairo.pdf', 'cairo.png'
+#			  Value: backend name or None; Default: None
+#
+#options = {'separate_figures': False,
+#	    'show_figures': True,
+#	    'save_figures': True,
+#	    'matplotlib_backend': None
+#	   }
