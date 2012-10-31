@@ -32,7 +32,7 @@ def solve(model):
         z0[model.mass_in_idx]  = model.wl0
         z0[model.mass_out_idx] = 0.0
 
-    def update_init(z0, model):
+    def update_init(i, z0, model):
         z0[0] = model.wl0
 
     (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
