@@ -298,6 +298,9 @@ class Configuration:
                 value = cfg.get_value(iname, not_found=None)
                 if value == None: continue
 
+                if type(value) in [int, float]:
+                    value = (value, )
+
                 cfg.del_value(iname)
                 if name == 'MO':
                     value = cumsum(asarray(value, dtype=float))
@@ -440,7 +443,6 @@ class Configuration:
                         exit(1)
 
             classify_options(options)
-
             return required_options, default_options
 
         required_options    = set([])

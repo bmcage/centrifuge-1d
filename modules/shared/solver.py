@@ -280,6 +280,8 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
         data = mdata[1] # mdata = (xdata, ydata, ...)
         if not has_data(data): continue
+        if type(data) in [float, int]:
+            data = (data, )
 
         measurement = asarray(data, dtype=float)
         if name in user_scale_coefs:
