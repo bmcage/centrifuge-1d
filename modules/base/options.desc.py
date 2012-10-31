@@ -89,6 +89,21 @@ CONFIG_OPTIONS = {
                     "(measured) time. Units: array of floats or None"),
          'gc1': "Measured gravitational center. Units: array of floats or None",
          'rm1': "Measured rotational momentum. Units: array of floats or None",
+         'measurements_scale_coefs': ("When running inverse problem, multiple "
+                                      "meaurements can be given, potentially "
+                                      "with different scales (e.g. MO ~ 0.5 "
+                                      "whereas GC ~ 2.5, which can cause that "
+                                      "solver \"prefers\" the optimization of "
+                                      "GC in favour of MO, because it introduces "
+                                      "adds more error in least-squares. "
+                                      "Therefore a scaling is important to make "
+                                      "the data of roughly the same order.) By "
+                                      "default the data is scaled so that the "
+                                      "biggest number in measurements of given "
+                                      "type is in "
+                                      "<1, 10) interval. See also *_weights, "
+                                      "options, which specify a weight - i.e. "
+                                      "importance of given measurement.")
          },
     'solver' : \
       {'atol': ("Set absolute tolerances for the solver. "
