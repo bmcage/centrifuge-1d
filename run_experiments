@@ -195,11 +195,7 @@ def run_experiments(exp_id, first_experiment, last_experiment, mask,
             # Assign global values not present in (or based on) configuration
             process_global_constants(cfg, consts_cfg)
 
-            if not cfg.is_valid(modman):
-                print('\n\nConfiguration is NOT VALID.\n'
-                      'The full configuration is:')
-                cfg.echo()
-                exit(1)
+            if not cfg.is_valid(modman, verbose=True): exit(1)
 
             cfg.adjust_cfg(modman)
 

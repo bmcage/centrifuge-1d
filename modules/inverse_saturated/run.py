@@ -26,6 +26,8 @@ def run(model):
     (inv_params, cov) = solve(model)
 
     if inv_params:
+        from modules.shared.functions import show_results
+
         model.set_parameters(inv_params)
         # run once again the direct problem with optimal parameters
         model.calc_wm = True

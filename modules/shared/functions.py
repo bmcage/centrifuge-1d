@@ -134,7 +134,7 @@ def phases_end_times(a_duration, d_duration, g_duration,
         a_duration = np.asarray(a_duration, dtype=float)
 
     if include_acceleration and (not d_duration  is None):
-        a_duration[:] = a_duration + d_duration
+        a_duration += d_duration
 
     if g_duration is None:
         g_duration = 0.0

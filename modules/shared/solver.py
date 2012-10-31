@@ -272,14 +272,22 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
     (measurements_names, data_M, measurements_scales) = ([], [], [])
     weights = []
+    user_scale_coefs = model.measurements_scale_coefs
+    if not type(user_scale_coefs) == dict:
+        user_scale_coefs = {}
     for (name, mdata) in measurements.items():
         if name == 't': continue
 
         data = mdata[1] # mdata = (xdata, ydata, ...)
         if not has_data(data): continue
+        if type(data) in [float, int]:
+            data = (data, )
 
         measurement = asarray(data, dtype=float)
-        data_scale_coef = determine_scaling_factor(measurement)
+        if name in user_scale_coefs:
+            data_scale_coef = user_scale_coefs[name]
+        else:
+            data_scale_coef = determine_scaling_factor(measurement)
         data_scale = data_scale_coef * ones(measurement.shape, dtype=float)
 
         measurements_names.append(name)
