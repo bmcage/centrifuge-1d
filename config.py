@@ -540,7 +540,7 @@ class Configuration:
                                    }
 
 
-    def is_valid(self, modman):
+    def is_valid(self, modman, verbose=True):
 
         def custom_cfg_check(options_module):
             if hasattr(options_module, 'check_cfg'):
@@ -559,9 +559,15 @@ class Configuration:
 
         missing_options = self.missing_options(required_options)
         if missing_options:
-            print('Following required options are not present: ')
+            if verbose:
+                print('\nThe full configuration is:')
+                self.echo()
+
+            print('\nConfiguration is NOT VALID.'
+                  '\nFollowing required options are not present: ')
             for option in missing_options:
                 print('  ', repr(option))
+            print()
 
             return False
 
