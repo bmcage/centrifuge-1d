@@ -2,7 +2,6 @@ import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.solver import simulate_direct
-from modules.shared.functions import show_results
 
 class direct_saturated_rhs(IDA_RhsFunction):
     def evaluate(self, t, x, xdot, result, model):
@@ -53,4 +52,5 @@ def extract_data(model):
     return (flag, extracted_data)
 
 def run(model):
-     show_results(model)
+    from modules.shared.functions import show_results
+    show_results(model)
