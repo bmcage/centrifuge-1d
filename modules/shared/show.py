@@ -268,8 +268,8 @@ class ResultsData():
         if (not references) or (references == stored_references): return
 
         if model is None:
-            from run_experiments import (load_configuration,
-                                         process_global_constants)
+            from shared import (load_configuration,
+                                process_global_constants)
             from config import ModelParameters
 
             experiment_info = self.get_value('experiment_info')

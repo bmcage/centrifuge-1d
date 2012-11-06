@@ -173,3 +173,58 @@ def parse_value(str_value):
     except:
         print('Error:Could not parse value: ', str_value, '\nExiting...')
         exit(1)
+
+def process_global_constants(cfg, consts_cfg):
+    if not consts_cfg: return
+
+    tube_no = cfg.get_value('tube_no')
+    cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
+
+def load_configuration(experiment_info):
+    (search_dirs, data_dir, masks_dir) = \
+      get_directories('ini', ['search', 'data', 'masks'], experiment_info)
+
+    filter_existing = lambda fnames: list(filter(lambda fname: exists(fname),
+                                                 fnames))
+    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
+                                                dirs)
+
+    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
+                                                       search_dirs))
+
+    measurements_filenames = listdir(data_dir)
+    measurements_files = []
+    for fname in measurements_filenames:
+        # valid measurement files are *.ini (i.e. >4 chars filename)
+        # except for 'defaults.ini'
+        if ((fname == DEFAULTS_ININAME) or (len(fname) <= 4)
+            or (fname[-4:] != '.ini')):
+            continue
+
+        measurements_files.append(data_dir + fname)
+
+    mask_filename = ''
+    mask = experiment_info['mask']
+    if mask:
+        mask_filename = masks_dir + mask + '.ini'
+        if not exists(mask_filename):
+            print('Mask file "{}" does not exist in expected location:'
+                  '\n{}.'.format(mask, masks_dir))
+            if not yn_prompt('Do you wish to continue without applying '
+                         'the mask? [Y/n]: '):
+                exit(0)
+
+            mask_filename = ''
+
+    cfg_files = defaults_files + measurements_files + [mask_filename]
+
+    cfg = Configuration().read_from_files(*cfg_files)
+
+    # Handle CONSTANTS inifiles
+    constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
+                                                        search_dirs))
+    consts_cfg = None
+    if constants_files:
+        consts_cfg = Configuration().read_from_files(*constants_files)
+
+    return (cfg, consts_cfg)
