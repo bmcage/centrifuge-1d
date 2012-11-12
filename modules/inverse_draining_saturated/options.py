@@ -35,13 +35,16 @@ PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys()),
 OPTIONS_ITERABLE_LISTS = []
 
 def check_cfg(cfg):
-    if ((cfg.get_value('wl_out') is None) and (cfg.get_value('gc1') is None)
-        and (cfg.get_value('rm1') is None) and (cfg.get_value('wl1') is None)):
-        print('No measured data (wl1, wl_out, gc1, rm1) is specified. Cannot '
-              'run the inverse problem')
-        return False
+    from config import MEASUREMENTS_NAMES
 
-    for meas_name in ['wl1', 'wl_out', 'gc1', 'rm1']:
+    measurements_present = False
+    for name in MEASUREMENTS_NAMES.values():
+        meas = cfg.get_value(meas_name)
+
+        if meas is None: continue
+
+        measurements_present = True
+
         weights = cfg.get_value(meas_name + '_weights')
 
         if not weights: continue

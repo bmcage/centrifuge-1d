@@ -4,8 +4,8 @@ import csv
 import numpy as np
 from os import makedirs, path, sep
 from optparse import OptionParser
-from config import ModulesManager
-from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME, MEASUREMENTS_NAMES
+from config import ModulesManager, MEASUREMENTS_NAMES
+from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME
 from shared import get_directories
 from collections import namedtuple, defaultdict
 

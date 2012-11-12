@@ -16,7 +16,17 @@ from shared import parse_value
 from os import listdir
 from sys import modules as sysmodules
 from types import MethodType
-from const import MEASUREMENTS_NAMES
+
+##################################################################
+#                Internal configuration settings                 #
+##################################################################
+# MEASUREMENTS_NAMES are the mapping between the internal
+# denotation of measured data (used during computation and for
+# plotting) and corresponding options that are to be found in
+# configuration inifile(s).
+MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
+                      'CF': 'cf', 'theta': 'theta'}
+
 
 ##################################################################
 #                   ModulesManager class                         #
