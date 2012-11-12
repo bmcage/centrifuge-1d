@@ -3,7 +3,7 @@ from __future__ import print_function
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-from const import FIGS_DIR, PLOTSTYLE_ININAME
+from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
 from os import makedirs, path
 from shared import get_directories
 from config import parse_value
@@ -340,7 +340,7 @@ class ResultsData():
             makedirs(savedir)
 
         with open(savedir + 'data_results.dat', 'wb') as f:
-            pickle.dump(self._data, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self._data, f, DUMP_DATA_VERSION)
 
     def load(self, experiment_info):
         pathdir = get_directories('figs', 'mask', experiment_info)

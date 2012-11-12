@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from os import sep, getcwd
+from pickle import HIGHEST_PROTOCOL
 
 #-------------------------------------------------------------------------
 # Paths
@@ -19,4 +20,9 @@ PLOTSTYLE_ININAME = 'plotstyles.ini'
 MASKS_DIRNAME    = 'masks'
 
 #-------------------------------------------------------------------------
+# Plotting
 #-------------------------------------------------------------------------
+# Dumping data format: This specifies the format used for data dumping.
+# For compatibility with python 2.x the value of '2' is used. In general,
+# if compatibility is not needed, the HIGHEST_PROTOCOL value could be used
+DUMP_DATA_VERSION=2
