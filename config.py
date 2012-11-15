@@ -6,10 +6,12 @@ from the configuration files.
 
 from __future__ import print_function
 
+import numpy as np
 try:
     import ConfigParser as configparser
 except:
     import configparser
+from modules.shared.functions import determine_scaling_factor
 from shared import parse_value
 from os import listdir
 from sys import modules as sysmodules
@@ -24,6 +26,113 @@ from types import MethodType
 # configuration inifile(s).
 MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'CF': 'cf', 'theta': 'theta'}
+
+class Measurements():
+    def read(self, cfg):
+        from modules.shared.functions import phases_end_times
+        from collections import OrderedDict
+
+        measurements = OrderedDict()
+        measurements_xdata = OrderedDict()
+        measurements_weights = OrderedDict()
+
+        t = phases_end_times(cfg.get_value('duration', not_found=None),
+                             cfg.get_value('deceleration_duration',
+                                           not_found=None),
+                             cfg.get_value('fh_duration', not_found=None),
+                             cfg.get_value('include_acceleration',
+                                               not_found=True))
+        if not t is None:
+            t_meas = t[1:]
+
+        same_weights = True
+        common_weight  = None
+
+        for (name, iname) in MEASUREMENTS_NAMES.items():
+            value = cfg.get_value(iname, not_found=None)
+            if value == None: continue
+
+            # Process measurements
+            if type(value) in [int, float]:
+                value = (value, )
+            value = np.asarray(value, dtype=float)
+
+            if name == 'MO':
+                value = np.cumsum(value)
+
+            measurements[name] = value
+
+            if name == 'theta':
+                measurements_xdata[name] = np.asarray(cfg.get_value('p'),
+                                                      dtype=float)
+            else:
+                measurements_xdata[name] = t_meas
+
+            cfg.del_value(iname) # remove from cfg
+
+            # Process measurements weights
+            iname_w = iname + '_weights'
+            value_w = cfg.get_value(iname_w, not_found=None)
+            if value_w == None:
+                value_w = 1.0
+            else:
+                cfg.del_value(iname_w)
+
+            if same_weights: # are all weights the same float/integer?
+                # (if yes, we don't have to preallocate array for each)
+                if not type(value_w) in [float, int]:
+                    same_weights = False
+                elif common_weight is None:
+                    common_weight = value_w
+                elif commong_weight != value_w:
+                    same_weights = False
+
+            if type(value_w) in [float, int]:
+                value_w = value_w * np.ones(value.shape, dtype=float)
+            else:
+                value_w = np.asarray(value_w, dtype=float)
+
+            measurements_weights[name] = value_w
+
+        # Weights postpocessing - if all weights are the same, we drop them
+        if same_weights: measurements_weights = OrderedDict()
+
+        self._measurements = measurements
+        self._measurements_weights = measurements_weights
+
+    def dump(self):
+        return (self._measurements, self._measurements_weights)
+
+    def load(self, raw_data):
+        (self._measurements, self._measurements_weights) = raw_data
+
+    def get_names(self):
+        return list(self._measurements.keys())
+
+    def get_values(self, scaling=True):
+        return list(self._measurements.values())
+
+    def get_scales(self, scaling_coefs={})
+        scales = []
+
+        for (name, measurement) in self._measurements.items():
+
+            if name in scaling_coefs:
+                scaling_coef = scaling_coefs[name]
+            else:
+                scaling_coef = determine_scaling_factor(measurement)
+
+            data_scale = scaling_coef * np.ones(measurement.shape, dtype=float)
+
+            scales.append(data_scale)
+
+        return scales
+
+    def get_weights(self):
+        return list(self._measurements_weights.values())
+
+    def get_xvalues(self):
+        return list(self.measurements_xdata.values())
 
 
 ##################################################################
@@ -286,50 +395,10 @@ class Configuration:
         return self
 
     def _group(self):
-        def _group_measurments(cfg):
-            from modules.shared.functions import phases_end_times
+        measurements = Measurements()
+        measurements.read(self)
 
-            measurements = {}
-            measurements_weights = {}
-
-            t = phases_end_times(cfg.get_value('duration', not_found=None),
-                                 cfg.get_value('deceleration_duration',
-                                               not_found=None),
-                                 cfg.get_value('fh_duration', not_found=None),
-                                 cfg.get_value('include_acceleration',
-                                               not_found=True))
-            if not t is None:
-                measurements['t'] = t
-                t_meas = t[1:]
-
-            for (name, iname) in MEASUREMENTS_NAMES.items():
-                value = cfg.get_value(iname, not_found=None)
-                if value == None: continue
-
-                if type(value) in [int, float]:
-                    value = (value, )
-
-                cfg.del_value(iname)
-                if name == 'MO':
-                    value = cumsum(asarray(value, dtype=float))
-
-                if name == 'theta':
-                    measurements[name] = (value, cfg.get_value('p'))
-                else:
-                    measurements[name] = (t_meas, value)
-
-                iname_w = iname + '_weights'
-                value_w = cfg.get_value(iname_w, not_found=None)
-                if value_w == None: continue
-
-                self.del_value(iname_w)
-                measurements_weights[name] = value_w
-
-            cfg.set_value('measurements', measurements)
-            cfg.set_value('measurements_weights', measurements_weights)
-
-        # Function body
-        _group_measurments(self)
+        self.measurements = measurements
 
     def adjust_cfg(self, modman):
 

@@ -211,7 +211,6 @@ def simulate_inverse(direct_fn, model, init_parameters,
                      measurements, measurements_weights={},
                      optimfn='leastsq'):
 
-    from modules.shared.functions import determine_scaling_factor
     from modules.shared.show import display_status, mk_status_item
     from numpy import log, exp, alen
 
@@ -270,42 +269,21 @@ def simulate_inverse(direct_fn, model, init_parameters,
             add_weights = True
             break
 
-    (measurements_names, data_M, measurements_scales) = ([], [], [])
-    weights = []
-    user_scale_coefs = model.measurements_scale_coefs
-    if not type(user_scale_coefs) == dict:
-        user_scale_coefs = {}
-    for (name, mdata) in measurements.items():
-        if name == 't': continue
-
-        data = mdata[1] # mdata = (xdata, ydata, ...)
-        if not has_data(data): continue
-        if type(data) in [float, int]:
-            data = (data, )
-
-        measurement = asarray(data, dtype=float)
-        if name in user_scale_coefs:
-            data_scale_coef = user_scale_coefs[name]
-        else:
-            data_scale_coef = determine_scaling_factor(measurement)
-        data_scale = data_scale_coef * ones(measurement.shape, dtype=float)
-
-        measurements_names.append(name)
-        data_M.append(measurement)
-        measurements_scales.append(data_scale)
-
-        if add_weights:
-            if ((name in measurements_weights)
-                and (not measurements_weights[name] is None)):
-                weights.append(asarray(measurements_weights[name], dtype=float))
-            else:
-                weights.append(ones(measurement.shape, dtype=float))
+    measurements_names = measurements.get_names()
+    data_M = measuremetns.get_values()
+    measurements_scales = \
+       measurements.get_scales(scaling_coefs=model.measurements_scale_coefs)
+    (measurements_names, data_M, ) = ([], [], [])
+    weights = measurements.get_weights()
 
     data_scale_coef = concatenate(measurements_scales)
     measurements_sc = concatenate(data_M) * data_scale_coef
 
-    if add_weights:
+    if weights:
+        add_weights = True
         weights = concatenate(weights)
+    else:
+        add_weights = False
 
     global ITERATION # Python 2.7 hack (no support for nonlocal variables)
     ITERATION = 0

@@ -328,8 +328,12 @@ class ResultsData():
         self.dump(experiment_info)
 
     def store_measurements(self, measurements):
-        self._data['lines']['measured'] = measurements
+        m = {}
 
+        for (name, xvalue, yvalue) in zip(measurements.get_names(),
+                                          measuremetns.get_xvalue(),
+                                          measurements.get_value()):
+            m[name] = (xvalue, yvalue)
     def dump(self, experiment_info):
         if not self.has_data():
             print('No data is provided. Skipping data dumping.')
