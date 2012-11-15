@@ -108,11 +108,17 @@ def show_results(model, inv_params=None, cov=None):
     data = ResultsData()
     data.store_computation(model)
     data.store_measurements(model.measurements)
+    data.store_value(model.experiment_info)
     data.store_value('inv_params', inv_params)
     data.store_value('cov', cov)
 
     if model.save_data:
-        data.dump(model.experiment_info)
+        from config import DataStorage
+
+        storage = DataStorage()
+        storage.store('ResultsData', data.dump())
+
+        storage.save(model.experiment_info)
 
     if model.show_figures:
         dplots = DPlots(data, model.experiment_info)

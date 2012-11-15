@@ -7,13 +7,16 @@ from the configuration files.
 from __future__ import print_function
 
 import numpy as np
+import pickle
+
 try:
     import ConfigParser as configparser
 except:
     import configparser
+from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION
 from modules.shared.functions import determine_scaling_factor
 from shared import parse_value
-from os import listdir
+from os import listdir, makedirs, path
 from sys import modules as sysmodules
 from types import MethodType
 
@@ -133,6 +136,43 @@ class Measurements():
 
     def get_xvalues(self):
         return list(self.measurements_xdata.values())
+
+class DataStorage():
+    def __init__(self):
+        self._data = {}
+
+    def store(key, value):
+        self._data[key] = value
+
+    def get(key, value, not_found=None):
+        if key in self._data:
+            return self._data[key]
+        else:
+            return not_found
+
+    def save(experiment_info):
+        if not self._data:
+            print('No data was stored. Nothing to be saved. Skipping saving...')
+            return
+
+        savedir = get_directories('figs', 'mask', experiment_info)
+        if not path.exists(savedir):
+            makedirs(savedir)
+
+        with open(savedir + DUMP_DATA_FILENAME, 'wb') as f:
+            pickle.dump(self._data, f, DUMP_DATA_VERSION)
+
+    def load(self, experiment_info):
+        pathdir = get_directories('figs', 'mask', experiment_info)
+        filename = pathdir + DUMP_DATA_FILENAME
+        if not path.exists(filename):
+            print('File with computation results does not exist:', filename)
+            return False
+
+        with open(filename, 'rb') as f:
+            self._data = pickle.load(f)
+
+        return True
 
 
 ##################################################################

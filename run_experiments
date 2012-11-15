@@ -222,13 +222,16 @@ if __name__ == "__main__":
     options = parse_input()
 
     if options.show_p:
-        from modules.shared.show import ResultsData, DPlots
+        from modules.shared.show import DataStorage, ResultsData, DPlots
 
         experiment_info =  \
           {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
            'mask': options.mask}
-        data = ResultsData()
-        if data.load(experiment_info):
+
+        storage = DataStorage()
+
+        if storage.load(experiment_info):
+            data = ResultsData().load(storage.get('ResultsData'))
             dplots = DPlots(data, experiment_info)
             dplots.display()
 
