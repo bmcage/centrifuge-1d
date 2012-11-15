@@ -10,8 +10,6 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
-from numpy import inf, concatenate, cumsum, asarray, any as np_any
-from modules.shared.functions import has_data
 from shared import parse_value
 from os import listdir
 from sys import modules as sysmodules
