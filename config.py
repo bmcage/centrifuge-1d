@@ -115,7 +115,7 @@ class Measurements():
     def get_values(self, scaling=True):
         return list(self._measurements.values())
 
-    def get_scales(self, scaling_coefs={})
+    def get_scales(self, scaling_coefs={}):
         scales = []
 
         for (name, measurement) in self._measurements.items():
