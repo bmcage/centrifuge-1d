@@ -295,7 +295,7 @@ def solve(model):
     mass_in  = z[:, model.mass_in_idx]
     mass_out = z[:, model.mass_out_idx]
 
-    no_measurements = np.empty([0,], dtype=float)
+    measurements = {}
 
     (u0, wm0) = (initialization_data['u0'], initialization_data['wm0'])
     wm_in_tube0 = initialization_data['wm_in_tube0']
@@ -319,10 +319,10 @@ def solve(model):
                          model.fp2)
             WM[i]         = wm_total
             WM_in_tube[i] = wm_in_tube
-    else:
-        u          = no_measurements
-        WM         = no_measurements
-        WM_in_tube = no_measurements
+
+        measurements['u'] = u
+        measurements['WM'] = WM
+        measurements['WM_in_tube'] = WM_in_tube
 
     if model.calc_gc:
         GC = np.empty(t.shape, dtype=float)
@@ -332,16 +332,16 @@ def solve(model):
                             mass_in[i], s2[i], model.l0, model.porosity,
                             model.fl2, model.fp2, model.l0, WM_in_tube[i],
                             model.density, from_end=model.l0 + model.fl2)
-    else:
-        GC = no_measurements
+
+        measurements['GC'] = GC
 
     if model.calc_rm:
         RM = np.empty(t.shape, dtype=float)
 
         for i in range(k):
             RM[i] = calc_rm(t[i], u[i, :], mass_in[i], s1[i], s2[i], model)
-    else:
-        RM = no_measurements
+
+        measurements['RM'] = RM
 
     if model.calc_cf:
         CF = np.empty(t.shape, dtype=float)
@@ -359,19 +359,19 @@ def solve(model):
             CF[i] = calc_cf(omega2g, u[i, :], model.y, model.dy, r0, s1[i],
                             s2[i], mass_in[i], s2[i], model.l0, model.porosity,
                             model.fl2, model.fp2, model.l0, model.density)
-    else:
-        CF = no_measurements
+
+        measurements['CF'] = CF
 
     if model.calc_f_mo:
         for (i, omega2g) in enumerate(omega2g_col):
             F_MO[i] = calc_rm(omega2g, mass_out[i], model.MO_calibration_curve)
-    else:
-        F_MO = no_measurements
 
-    return (flag, t, z, GC, RM, CF, F_MO, u, WM, WM_in_tube)
+        measurements['F_MO'] = F_MO
+
+    return (flag, t, z, measurements)
 
 def extract_data(model):
-    (flag, t, z, GC, RM, CF, F_MO, u, WM, WM_in_tube) = solve(model)
+    (flag, t, z, measurements) = solve(model)
 
     if not flag:
         print('For given model the solver did not find results. Skipping.')
@@ -380,15 +380,18 @@ def extract_data(model):
     s2 = z[:, model.s2_idx]
     x = y2x(model.y, s1, s2).transpose()
     h = z[:, model.first_idx:model.last_idx+1].transpose()
-    u = u.transpose()
     MO = z[:, model.mass_out_idx]
     MI = z[:, model.mass_in_idx]
 
-    extracted_data = {'h': (x, h, t), 'u': (x, u, t),
-                      'GC': (t, GC), 'RM': (t, CF),
-                      'CF': (t, CF), 'F_MO': (t, F_MO),
-                      'WM': (t, WM), 'MI': (t, MI), 'MO': (t, MO),
+    extracted_data = {'h': (x, h, t),
+                      'MI': (t, MI), 'MO': (t, MO),
                       's1': (t, s1), 's2': (t, s2)}
+    for (name, value) in measurements:
+        if name == 'u':
+            extracted_data[name] = (x, value.transpose(), t)
+        else:
+            extracted_data[name] = (t, value)
+
     return (flag, extracted_data)
 
 def run(model):
