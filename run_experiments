@@ -1,9 +1,9 @@
 #!/usr/bin/python
 from __future__ import print_function
 from os import listdir
-from shared import get_directories, yn_prompt, process_global_constants, \
+from shared import get_directories, yn_prompt
+from config import ModulesManager, ModelParameters, process_global_constants, \
      load_configuration
-from config import ModulesManager, ModelParameters, Configuration
 from optparse import OptionParser
 from const import DEFAULTS_ININAME, CONSTANTS_ININAME
 

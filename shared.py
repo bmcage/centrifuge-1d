@@ -3,6 +3,7 @@ import numpy as np
 from os import listdir
 from os.path import exists
 from const import INI_DIR, MASKS_DIRNAME, FIGS_DIR, DEFAULTS_ININAME
+from config import Configuration
 
 def yn_prompt(question_str, default='y'):
     while True:
