@@ -29,7 +29,7 @@ from types import MethodType
 # plotting) and corresponding options that are to be found in
 # configuration inifile(s).
 MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
-                      'CF': 'cf', 'theta': 'theta'}
+                      'F_MO': 'f_mo', 'F_MT': 'f_mt', 'theta': 'theta'}
 
 class Measurements():
     def read(self, cfg):
