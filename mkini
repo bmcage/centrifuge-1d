@@ -21,16 +21,25 @@ DYNAMIC_OPTIONS = {'measurements_length': None}
 def parse_input():
 
     usage_str = (
-         '\n\t%prog <csv_ID>'
+         '\n\t %prog csv_ID'
          '\n\nwhere'
-         '\n  csv_ID:'
-         '\n        ID of the csv file. By default will be searched for '
-         '\n        the file ''./sources/csv/<csv_ID>[.cvs]'' ')
+         '\n   csv_ID:'
+         '\n       ID of the csv file to be processed. It will search for the '
+         '.csv files in the CSV directory: \n       "' + CSV_DIR + '"'
+         '\n       Inside has to be either file named csv_ID.csv (with .csv '
+         'extension) or directory named \n       csv_ID containing file '
+         'csv_ID.csv.'
+         '\n\n       Example: '
+         '\n           To process file named "experiment.csv" in the CSV '
+         'directory (or in a subdirectory '
+         '\n           named "experiment" inside the CSV directory), the '
+         'command is:'
+        '\n\t\t./mkini experiment')
 
     optparser = OptionParser(usage=usage_str)
     optparser.add_option('-l', '--list', dest='list', action="store_true",
                          default=False,
-                         help="Lists all available CSV files")
+                         help="Lists all available CSV IDs")
 
     (options, args) = optparser.parse_args()
 
@@ -40,7 +49,13 @@ def parse_input():
         if options.list:
             from os import listdir
 
-            print('\n'.join(sorted(listdir(CSV_DIR))))
+            print('\nAvailable CSV IDs:\n--------------------')
+            for csv_id in sorted(listdir(CSV_DIR)):
+                if (len(csv_id) > 4) and (csv_id[-4:] == '.csv'):
+                    print(csv_id[:-4])
+                else:
+                    print(csv_id)
+            print()
         else:
             optparser.print_help()
         exit(0)
