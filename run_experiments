@@ -221,7 +221,8 @@ if __name__ == "__main__":
     options = parse_input()
 
     if options.show_p:
-        from modules.shared.show import DataStorage, ResultsData, DPlots
+        from modules.shared.show import ResultsData, DPlots
+        from config import DataStorage
 
         experiment_info =  \
           {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
@@ -230,7 +231,8 @@ if __name__ == "__main__":
         storage = DataStorage()
 
         if storage.load(experiment_info):
-            data = ResultsData().load(storage.get('ResultsData'))
+            data = ResultsData()
+            data.load(storage.get('ResultsData'))
 
             dplots = DPlots(data, experiment_info)
             dplots.display()

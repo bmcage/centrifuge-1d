@@ -328,8 +328,8 @@ class ResultsData():
         m = {}
 
         for (name, xvalue, yvalue) in zip(measurements.get_names(),
-                                          measuremetns.get_xvalue(),
-                                          measurements.get_value()):
+                                          measurements.get_xvalues(),
+                                          measurements.get_values()):
             m[name] = (xvalue, yvalue)
 
         self._data['lines']['measured'] = measurements
@@ -528,7 +528,7 @@ class DPlots():
 
         self._plotstyles = PlotStyles(experiment_info)
 
-        if not data.has_data('lines'):
+        if not data.has_data(data_type='lines'):
             print('No data is provided. Nothing to display.')
         else: # generate dplots
             self._dplots = self._mk_dplots(data, experiment_info)

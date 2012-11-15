@@ -142,16 +142,16 @@ class DataStorage():
     def __init__(self):
         self._data = {}
 
-    def store(key, value):
+    def store(self, key, value):
         self._data[key] = value
 
-    def get(key, value, not_found=None):
+    def get(self, key, not_found=None):
         if key in self._data:
             return self._data[key]
         else:
             return not_found
 
-    def save(experiment_info):
+    def save(self, experiment_info):
         if not self._data:
             print('No data was stored. Nothing to be saved. Skipping saving...')
             return
