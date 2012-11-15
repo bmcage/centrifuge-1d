@@ -35,30 +35,28 @@ PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys()),
 OPTIONS_ITERABLE_LISTS = []
 
 def check_cfg(cfg):
-    if ((cfg.get_value('wl_out') is None) and (cfg.get_value('gc1') is None)
-        and (cfg.get_value('rm1') is None) and (cfg.get_value('wl1') is None)):
-        print('No measured data (wl1, wl_out, gc1, rm1) is specified. Cannot '
-              'run the inverse problem')
-        return False
+    from config import MEASUREMENTS_NAMES
 
-    for meas_name in ['wl1', 'wl_out', 'gc1', 'rm1']:
-        weights = cfg.get_value(meas_name + '_weights')
+    measurements_present = False
+    for name in MEASUREMENTS_NAMES.values():
+        meas = cfg.get_value(name)
+
+        if meas is None: continue
+
+        measurements_present = True
+
+        w_name = name + '_weights'
+        weights = cfg.get_value(w_name)
 
         if not weights: continue
 
-        meas = cfg.get_value(meas_name)
-        if not meas:
-            print('Weight cannot be specified if measurement is not present: '
-                  '{}'.format(meas_name))
-            return False
-
         if not type(weights) == list:
-            print('Weights has to be a list: {}'.format(meas_name))
+            print('Weights has to be a list: {}'.format(w_name))
             return False
 
         if not (len(weights) == len(meas)):
             print('Weights have to be of the same length as measurement: '
-                  '{}'.format(meas_name))
+                  '{}'.format(name))
             return False
 
     return True

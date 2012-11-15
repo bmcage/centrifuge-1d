@@ -2,8 +2,7 @@ from __future__ import print_function
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
-from const import FIGS_DIR, PLOTSTYLE_ININAME
+from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
 from os import makedirs, path
 from shared import get_directories
 from config import parse_value
@@ -325,34 +324,15 @@ class ResultsData():
 
         self.store_value('references', references)
 
-        self.dump(experiment_info)
-
     def store_measurements(self, measurements):
+        m = {}
+
+        for (name, xvalue, yvalue) in zip(measurements.get_names(),
+                                          measuremetns.get_xvalue(),
+                                          measurements.get_value()):
+            m[name] = (xvalue, yvalue)
+
         self._data['lines']['measured'] = measurements
-
-    def dump(self, experiment_info):
-        if not self.has_data():
-            print('No data is provided. Skipping data dumping.')
-            return
-
-        savedir = get_directories('figs', 'mask', experiment_info)
-        if not path.exists(savedir):
-            makedirs(savedir)
-
-        with open(savedir + 'data_results.dat', 'wb') as f:
-            pickle.dump(self._data, f, pickle.HIGHEST_PROTOCOL)
-
-    def load(self, experiment_info):
-        pathdir = get_directories('figs', 'mask', experiment_info)
-        filename = pathdir + 'data_results.dat'
-        if not path.exists(filename):
-            print('File with computation results does not exist:', filename)
-            return False
-
-        with open(filename, 'rb') as f:
-            self._data = pickle.load(f)
-
-        return True
 
     def get_linedatatypes(self):
         return DG_AXES_LABELS.keys()
@@ -370,6 +350,12 @@ class ResultsData():
         else:
             for (line_id, line_data) in self._data['lines'].items():
                 yield (line_id, line_data)
+
+    def dump(self):
+        return self._data
+
+    def load(self, value):
+        self._data = value
 
 class PlotStyles():
     def __init__(self, experiment_info):
@@ -596,7 +582,10 @@ class DPlots():
                 else:
                     ilabel = label
 
-                item = (xdata, ydata, ilabel, line_styles[data_type])
+                if data_type == 'theta':
+                    item = (ydata, xdata, ilabel, line_styles[data_type])
+                else:
+                    item = (xdata, ydata, ilabel, line_styles[data_type])
                 dplots_bucket[data_type]['data'].append(item)
 
         def _filter_dplots(dplots_bucket):

@@ -1,10 +1,9 @@
 #!/usr/bin/python
 from __future__ import print_function
 from os import listdir
-from os.path import exists
-from shared import get_directories, yn_prompt, process_global_constants, \
+from shared import get_directories, yn_prompt
+from config import ModulesManager, ModelParameters, process_global_constants, \
      load_configuration
-from config import ModulesManager, ModelParameters, Configuration
 from optparse import OptionParser
 from const import DEFAULTS_ININAME, CONSTANTS_ININAME
 
@@ -222,13 +221,17 @@ if __name__ == "__main__":
     options = parse_input()
 
     if options.show_p:
-        from modules.shared.show import ResultsData, DPlots
+        from modules.shared.show import DataStorage, ResultsData, DPlots
 
         experiment_info =  \
           {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
            'mask': options.mask}
-        data = ResultsData()
-        if data.load(experiment_info):
+
+        storage = DataStorage()
+
+        if storage.load(experiment_info):
+            data = ResultsData().load(storage.get('ResultsData'))
+
             dplots = DPlots(data, experiment_info)
             dplots.display()
 

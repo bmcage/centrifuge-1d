@@ -6,17 +6,175 @@ from the configuration files.
 
 from __future__ import print_function
 
+import numpy as np
+import pickle
+
 try:
     import ConfigParser as configparser
 except:
     import configparser
-from numpy import inf, concatenate, cumsum, asarray, any as np_any
-from modules.shared.functions import has_data
-from shared import parse_value
-from os import listdir
+from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
+     DEFAULTS_ININAME, CONSTANTS_ININAME
+from modules.shared.functions import determine_scaling_factor
+from shared import parse_value, get_directories
+from os import listdir, makedirs, path
 from sys import modules as sysmodules
 from types import MethodType
-from const import MEASUREMENTS_NAMES
+
+##################################################################
+#                Internal configuration settings                 #
+##################################################################
+# MEASUREMENTS_NAMES are the mapping between the internal
+# denotation of measured data (used during computation and for
+# plotting) and corresponding options that are to be found in
+# configuration inifile(s).
+MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
+                      'CF': 'cf', 'theta': 'theta'}
+
+class Measurements():
+    def read(self, cfg):
+        from modules.shared.functions import phases_end_times
+        from collections import OrderedDict
+
+        measurements = OrderedDict()
+        measurements_xdata = OrderedDict()
+        measurements_weights = OrderedDict()
+
+        t = phases_end_times(cfg.get_value('duration', not_found=None),
+                             cfg.get_value('deceleration_duration',
+                                           not_found=None),
+                             cfg.get_value('fh_duration', not_found=None),
+                             cfg.get_value('include_acceleration',
+                                               not_found=True))
+        if not t is None:
+            t_meas = t[1:]
+
+        same_weights = True
+        common_weight  = None
+
+        for (name, iname) in MEASUREMENTS_NAMES.items():
+            value = cfg.get_value(iname, not_found=None)
+            if value == None: continue
+
+            # Process measurements
+            if type(value) in [int, float]:
+                value = (value, )
+            value = np.asarray(value, dtype=float)
+
+            if name == 'MO':
+                value = np.cumsum(value)
+
+            measurements[name] = value
+
+            if name == 'theta':
+                measurements_xdata[name] = np.asarray(cfg.get_value('p'),
+                                                      dtype=float)
+            else:
+                measurements_xdata[name] = t_meas
+
+            cfg.del_value(iname) # remove from cfg
+
+            # Process measurements weights
+            iname_w = iname + '_weights'
+            value_w = cfg.get_value(iname_w, not_found=None)
+            if value_w == None:
+                value_w = 1.0
+            else:
+                cfg.del_value(iname_w)
+
+            if same_weights: # are all weights the same float/integer?
+                # (if yes, we don't have to preallocate array for each)
+                if not type(value_w) in [float, int]:
+                    same_weights = False
+                elif common_weight is None:
+                    common_weight = value_w
+                elif common_weight != value_w:
+                    same_weights = False
+
+            if type(value_w) in [float, int]:
+                value_w = value_w * np.ones(value.shape, dtype=float)
+            else:
+                value_w = np.asarray(value_w, dtype=float)
+
+            measurements_weights[name] = value_w
+
+        # Weights postpocessing - if all weights are the same, we drop them
+        if same_weights: measurements_weights = OrderedDict()
+
+        self._measurements = measurements
+        self._measurements_weights = measurements_weights
+
+    def dump(self):
+        return (self._measurements, self._measurements_weights)
+
+    def load(self, raw_data):
+        (self._measurements, self._measurements_weights) = raw_data
+
+    def get_names(self):
+        return list(self._measurements.keys())
+
+    def get_values(self, scaling=True):
+        return list(self._measurements.values())
+
+    def get_scales(self, scaling_coefs={}):
+        scales = []
+
+        for (name, measurement) in self._measurements.items():
+
+            if name in scaling_coefs:
+                scaling_coef = scaling_coefs[name]
+            else:
+                scaling_coef = determine_scaling_factor(measurement)
+
+            data_scale = scaling_coef * np.ones(measurement.shape, dtype=float)
+
+            scales.append(data_scale)
+
+        return scales
+
+    def get_weights(self):
+        return list(self._measurements_weights.values())
+
+    def get_xvalues(self):
+        return list(self.measurements_xdata.values())
+
+class DataStorage():
+    def __init__(self):
+        self._data = {}
+
+    def store(key, value):
+        self._data[key] = value
+
+    def get(key, value, not_found=None):
+        if key in self._data:
+            return self._data[key]
+        else:
+            return not_found
+
+    def save(experiment_info):
+        if not self._data:
+            print('No data was stored. Nothing to be saved. Skipping saving...')
+            return
+
+        savedir = get_directories('figs', 'mask', experiment_info)
+        if not path.exists(savedir):
+            makedirs(savedir)
+
+        with open(savedir + DUMP_DATA_FILENAME, 'wb') as f:
+            pickle.dump(self._data, f, DUMP_DATA_VERSION)
+
+    def load(self, experiment_info):
+        pathdir = get_directories('figs', 'mask', experiment_info)
+        filename = pathdir + DUMP_DATA_FILENAME
+        if not path.exists(filename):
+            print('File with computation results does not exist:', filename)
+            return False
+
+        with open(filename, 'rb') as f:
+            self._data = pickle.load(f)
+
+        return True
+
 
 ##################################################################
 #                   ModulesManager class                         #
@@ -278,50 +436,10 @@ class Configuration:
         return self
 
     def _group(self):
-        def _group_measurments(cfg):
-            from modules.shared.functions import phases_end_times
+        measurements = Measurements()
+        measurements.read(self)
 
-            measurements = {}
-            measurements_weights = {}
-
-            t = phases_end_times(cfg.get_value('duration', not_found=None),
-                                 cfg.get_value('deceleration_duration',
-                                               not_found=None),
-                                 cfg.get_value('fh_duration', not_found=None),
-                                 cfg.get_value('include_acceleration',
-                                               not_found=True))
-            if not t is None:
-                measurements['t'] = t
-                t_meas = t[1:]
-
-            for (name, iname) in MEASUREMENTS_NAMES.items():
-                value = cfg.get_value(iname, not_found=None)
-                if value == None: continue
-
-                if type(value) in [int, float]:
-                    value = (value, )
-
-                cfg.del_value(iname)
-                if name == 'MO':
-                    value = cumsum(asarray(value, dtype=float))
-
-                if name == 'theta':
-                    measurements[name] = (value, cfg.get_value('p'))
-                else:
-                    measurements[name] = (t_meas, value)
-
-                iname_w = iname + '_weights'
-                value_w = cfg.get_value(iname_w, not_found=None)
-                if value_w == None: continue
-
-                self.del_value(iname_w)
-                measurements_weights[name] = value_w
-
-            cfg.set_value('measurements', measurements)
-            cfg.set_value('measurements_weights', measurements_weights)
-
-        # Function body
-        _group_measurments(self)
+        self.set_value('measurements', measurements)
 
     def adjust_cfg(self, modman):
 
@@ -618,6 +736,61 @@ class Configuration:
         self._cfg_dict.update(parameters_dict)
 
         ###alien_options.difference_update([opt[0] for opt in default_options])
+
+def process_global_constants(cfg, consts_cfg):
+    if not consts_cfg: return
+
+    tube_no = cfg.get_value('tube_no')
+    cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
+
+def load_configuration(experiment_info):
+    (search_dirs, data_dir, masks_dir) = \
+      get_directories('ini', ['search', 'data', 'masks'], experiment_info)
+
+    filter_existing = \
+      lambda fnames: list(filter(lambda fname: path.exists(fname), fnames))
+    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
+                                                dirs)
+
+    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
+                                                       search_dirs))
+
+    measurements_filenames = listdir(data_dir)
+    measurements_files = []
+    for fname in measurements_filenames:
+        # valid measurement files are *.ini (i.e. >4 chars filename)
+        # except for 'defaults.ini'
+        if ((fname == DEFAULTS_ININAME) or (len(fname) <= 4)
+            or (fname[-4:] != '.ini')):
+            continue
+
+        measurements_files.append(data_dir + fname)
+
+    mask_filename = ''
+    mask = experiment_info['mask']
+    if mask:
+        mask_filename = masks_dir + mask + '.ini'
+        if not path.exists(mask_filename):
+            print('Mask file "{}" does not exist in expected location:'
+                  '\n{}.'.format(mask, masks_dir))
+            if not yn_prompt('Do you wish to continue without applying '
+                         'the mask? [Y/n]: '):
+                exit(0)
+
+            mask_filename = ''
+
+    cfg_files = defaults_files + measurements_files + [mask_filename]
+
+    cfg = Configuration().read_from_files(*cfg_files)
+
+    # Handle CONSTANTS inifiles
+    constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
+                                                        search_dirs))
+    consts_cfg = None
+    if constants_files:
+        consts_cfg = Configuration().read_from_files(*constants_files)
+
+    return (cfg, consts_cfg)
 
 ##################################################################
 #                 ModelParameters class                          #
