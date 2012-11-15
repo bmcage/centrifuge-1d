@@ -1,7 +1,6 @@
 #!/usr/bin/python
 from __future__ import print_function
 from os import listdir
-from os.path import exists
 from shared import get_directories, yn_prompt, process_global_constants, \
      load_configuration
 from config import ModulesManager, ModelParameters, Configuration
@@ -232,6 +231,7 @@ if __name__ == "__main__":
 
         if storage.load(experiment_info):
             data = ResultsData().load(storage.get('ResultsData'))
+
             dplots = DPlots(data, experiment_info)
             dplots.display()
 
