@@ -115,6 +115,33 @@ def calc_cf_i(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
 def calc_cf_o(omega2g, rS, rE, fluid_density):
     return (omega2g * calc_sat_force(rS, rE, fluid_density))
 
+def calc_F_MO(self, omega2g, mo, MO_calibration_curve):
+    calibration = MO_calibration_curve
+
+    (mo0, gc0) = calibration[0]
+
+    if mo < mo0:
+        print('Amount of water: ', mo, ' is less than first point on the '
+              'calibration curve: ', calibration[0],'. Cannot proceed, '
+              'exiting...')
+        exit(1)
+
+    GC = -1.0
+
+    for (mo1, gc1) in calibration[1:]:
+        if mo < mo1:
+            GC = gc0 + (mo - mo0)/(mo1 - mo0) * (gc1 - gc0)
+
+    if GC < 0.0:
+        print('Amount of expelled water: ', mo,  ' is more than the last '
+              'point on the calibration curve: ', calibration[0],'. Cannot '
+              'proceed, exiting...')
+        exit(1)
+
+    F = omega2g * self.GC * mo
+
+    return F
+
 def calc_rm(t, u, mass_in, mass_out, s1, s2, model):
 
     raise NotImplementedError('Calculation of rotational momentum is not '
