@@ -1,5 +1,6 @@
 from __future__ import print_function
 import numpy as np
+from os import listdir
 from os.path import exists
 from const import INI_DIR, MASKS_DIRNAME, FIGS_DIR, DEFAULTS_ININAME
 
