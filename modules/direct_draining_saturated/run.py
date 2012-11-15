@@ -362,10 +362,16 @@ def solve(model):
     else:
         CF = no_measurements
 
-    return (flag, t, z, GC, RM, CF, u, WM, WM_in_tube)
+    if model.calc_f_mo:
+        for (i, omega2g) in enumerate(omega2g_col):
+            F_MO[i] = calc_rm(omega2g, mass_out[i], model.MO_calibration_curve)
+    else:
+        F_MO = no_measurements
+
+    return (flag, t, z, GC, RM, CF, F_MO, u, WM, WM_in_tube)
 
 def extract_data(model):
-    (flag, t, z, GC, RM, CF, u, WM, WM_in_tube) = solve(model)
+    (flag, t, z, GC, RM, CF, F_MO, u, WM, WM_in_tube) = solve(model)
 
     if not flag:
         print('For given model the solver did not find results. Skipping.')
@@ -379,7 +385,8 @@ def extract_data(model):
     MI = z[:, model.mass_in_idx]
 
     extracted_data = {'h': (x, h, t), 'u': (x, u, t),
-                      'GC': (t, GC), 'RM': (t, CF), 'RM': (t, CF),
+                      'GC': (t, GC), 'RM': (t, CF),
+                      'CF': (t, CF), 'F_MO': (t, F_MO),
                       'WM': (t, WM), 'MI': (t, MI), 'MO': (t, MO),
                       's1': (t, s1), 's2': (t, s2)}
     return (flag, extracted_data)

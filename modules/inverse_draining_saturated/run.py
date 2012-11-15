@@ -20,7 +20,7 @@ def solve(model):
 
     def ip_direct_drainage(model, measurements_names):
         update_runtime_variables(model)
-        (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
+        (flag, t, z, gc1, rm1, cf, f_mo, u, wm, wm_in_tube) = solve_direct(model)
 
         contains_data = (alen(t) > 1)
 
@@ -36,13 +36,20 @@ def solve(model):
                 result.append(gc1[1:])
             elif name == 'RM':
                 result.append(rm1[1:])
+            elif name == 'CF':
+                result.append(cf[1:])
+            elif name == 'F_MO':
+                result.append(f_mo[1:])
 
         return result
 
-    calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm')) # backup
+    calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm',
+                                   'calc_cf', 'calc_f_mo')) # backup
     measurements_names = model.measurements.get_names()
     model.calc_gc = 'GC' in measurements_names
     model.calc_rm = 'RM' in measurements_names
+    model.calc_gc = 'CF' in measurements_names
+    model.calc_rm = 'F_MO' in measurements_names
     model.calc_wm = model.calc_gc or model.calc_rm
 
     (inv_params, cov) = \
