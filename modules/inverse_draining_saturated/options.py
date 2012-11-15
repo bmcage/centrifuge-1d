@@ -39,29 +39,24 @@ def check_cfg(cfg):
 
     measurements_present = False
     for name in MEASUREMENTS_NAMES.values():
-        meas = cfg.get_value(meas_name)
+        meas = cfg.get_value(name)
 
         if meas is None: continue
 
         measurements_present = True
 
-        weights = cfg.get_value(meas_name + '_weights')
+        w_name = name + '_weights'
+        weights = cfg.get_value(w_name)
 
         if not weights: continue
 
-        meas = cfg.get_value(meas_name)
-        if not meas:
-            print('Weight cannot be specified if measurement is not present: '
-                  '{}'.format(meas_name))
-            return False
-
         if not type(weights) == list:
-            print('Weights has to be a list: {}'.format(meas_name))
+            print('Weights has to be a list: {}'.format(w_name))
             return False
 
         if not (len(weights) == len(meas)):
             print('Weights have to be of the same length as measurement: '
-                  '{}'.format(meas_name))
+                  '{}'.format(name))
             return False
 
     return True

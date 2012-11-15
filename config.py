@@ -88,7 +88,7 @@ class Measurements():
                     same_weights = False
                 elif common_weight is None:
                     common_weight = value_w
-                elif commong_weight != value_w:
+                elif common_weight != value_w:
                     same_weights = False
 
             if type(value_w) in [float, int]:
@@ -439,7 +439,7 @@ class Configuration:
         measurements = Measurements()
         measurements.read(self)
 
-        self.measurements = measurements
+        self.set_value('measurements', measurements)
 
     def adjust_cfg(self, modman):
 
@@ -791,6 +791,7 @@ def load_configuration(experiment_info):
         consts_cfg = Configuration().read_from_files(*constants_files)
 
     return (cfg, consts_cfg)
+
 ##################################################################
 #                 ModelParameters class                          #
 ##################################################################

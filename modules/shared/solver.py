@@ -208,8 +208,7 @@ def set_optimized_variables(optim_params, model, untransform=None):
                 print('{:5}: {: .8g}'.format(name, getattr(model, name)))
 
 def simulate_inverse(direct_fn, model, init_parameters,
-                     measurements, measurements_weights={},
-                     optimfn='leastsq'):
+                     measurements, optimfn='leastsq'):
 
     from modules.shared.show import display_status, mk_status_item
     from numpy import log, exp, alen
@@ -263,17 +262,12 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
         return penalization
 
-    add_weights = False
-    for weight in measurements_weights.values():
-        if not weight is None:
-            add_weights = True
-            break
-
     measurements_names = measurements.get_names()
-    data_M = measuremetns.get_values()
+    data_M = measurements.get_values()
+    user_scales = model.measurements_scale_coefs
+    if user_scales is None: user_scales = {}
     measurements_scales = \
-       measurements.get_scales(scaling_coefs=model.measurements_scale_coefs)
-    (measurements_names, data_M, ) = ([], [], [])
+       measurements.get_scales(scaling_coefs=user_scales)
     weights = measurements.get_weights()
 
     data_scale_coef = concatenate(measurements_scales)

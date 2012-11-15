@@ -38,14 +38,14 @@ def solve(model):
         return result
 
     calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm')) # backup
-    model.calc_gc = bool('GC'in model.measurements and model.measurements['GC'])
-    model.calc_rm = bool('RM'in model.measurements and model.measurements['RM'])
+    measurements_names = model.measurements.get_names()
+    model.calc_gc = 'GC' in measurements_names
+    model.calc_rm = 'RM' in measurements_names
     model.calc_wm = model.calc_gc or model.calc_rm
 
     (inv_params, cov) = \
       simulate_inverse(ip_direct_drainage, model, model.inv_init_params,
-                       model.measurements, model.measurements_weights,
-                       optimfn=model.optimfn)
+                       model.measurements, optimfn=model.optimfn)
 
     model.set_parameters(calc_p) # ...and restore values
 

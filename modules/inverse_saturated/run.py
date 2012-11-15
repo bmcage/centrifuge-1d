@@ -18,8 +18,7 @@ def solve(model):
         return result
 
     inv_params = simulate_inverse(ip_direct_saturated_heights, model,
-                                  model.inv_init_params, model.measurements,
-                                  optimfn=model.optimfn)
+                                  model.inv_init_params, optimfn=model.optimfn)
     return inv_params
 
 def run(model):
