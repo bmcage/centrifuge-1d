@@ -39,7 +39,7 @@ def calc_sat_force(rS, rE, fluid_density):
     return 1/2 * fluid_density * (np.power(rE, 2) - np.power(rS, 2))
 
 def calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
-               soil_porosity, fl2, fp2, fluid_density):
+               soil_porosity, fl2, fp2, fr2, fluid_density):
 
     F_unsat = calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity,
                                fluid_density)
@@ -48,7 +48,7 @@ def calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
                                             fluid_density)
                 + calc_sat_force(r0-mass_in, r0, fluid_density))
     if fl2 > 0.0:
-        F_sat += fp2 * calc_sat_force(r0+fr2, r0+fr2+fl2, fluid_density))
+        F_sat += fp2 * calc_sat_force(r0+fr2, r0+fr2+fl2, fluid_density)
 
     return F_unsat + F_sat
 
@@ -78,8 +78,8 @@ def calc_gc(u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e, soil_porosity,
     """
     r0 = 0.0
 
-    gc =  (calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
-                      soil_porosity, fl2, fp2, fluid_density)
+    gc =  (calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
+                      soil_porosity, fl2, fp2, fr2, fluid_density)
             / WM_in_tube)
 
     if not from_end is None: gc = from_end - gc
@@ -87,8 +87,8 @@ def calc_gc(u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e, soil_porosity,
     return gc
 
 def calc_cf_i(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
-            soil_porosity, fl2, fp2, l0, fluid_density):
-     """
+            soil_porosity, fl2, fp2, fr2, l0, fluid_density):
+    """
       Determine the centrifugal force of water in the sample. The water
       on the inflow is taken into account (but not water on the outflow).
       Computed centrifugal force is measured from the BEGINNING of the soil
@@ -110,7 +110,7 @@ def calc_cf_i(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
     """
 
     return (omega2g * calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
-                             soil_porosity, fl2, fp2, fluid_density))
+                                 soil_porosity, fl2, fp2, fr2, fluid_density))
 
 def calc_cf_o(omega2g, rS, rE, fluid_density):
     return (omega2g * calc_sat_force(rS, rE, fluid_density))

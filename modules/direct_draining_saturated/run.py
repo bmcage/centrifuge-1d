@@ -386,7 +386,8 @@ def extract_data(model):
     extracted_data = {'h': (x, h, t),
                       'MI': (t, MI), 'MO': (t, MO),
                       's1': (t, s1), 's2': (t, s2)}
-    for (name, value) in measurements:
+
+    for (name, value) in measurements.items():
         if name == 'u':
             extracted_data[name] = (x, value.transpose(), t)
         else:
