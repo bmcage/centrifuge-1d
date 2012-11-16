@@ -37,7 +37,7 @@ class Measurements():
         from collections import OrderedDict
 
         measurements = OrderedDict()
-        measurements_xdata = OrderedDict()
+        measurements_xvalues = OrderedDict()
         measurements_weights = OrderedDict()
 
         t = phases_end_times(cfg.get_value('duration', not_found=None),
@@ -67,10 +67,10 @@ class Measurements():
             measurements[name] = value
 
             if name == 'theta':
-                measurements_xdata[name] = np.asarray(cfg.get_value('p'),
+                measurements_xvalues[name] = np.asarray(cfg.get_value('p'),
                                                       dtype=float)
             else:
-                measurements_xdata[name] = t_meas
+                measurements_xvalues[name] = t_meas
 
             cfg.del_value(iname) # remove from cfg
 
@@ -103,6 +103,7 @@ class Measurements():
 
         self._measurements = measurements
         self._measurements_weights = measurements_weights
+        self._measurements_xvalues = measurements_xvalues
 
     def dump(self):
         return (self._measurements, self._measurements_weights)
@@ -136,7 +137,7 @@ class Measurements():
         return list(self._measurements_weights.values())
 
     def get_xvalues(self):
-        return list(self.measurements_xdata.values())
+        return list(self._measurements_xvalues.values())
 
 class DataStorage():
     def __init__(self):

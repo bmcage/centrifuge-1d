@@ -332,7 +332,7 @@ class ResultsData():
                                           measurements.get_values()):
             m[name] = (xvalue, yvalue)
 
-        self._data['lines']['measured'] = measurements
+        self._data['lines']['measured'] = m
 
     def get_linedatatypes(self):
         return DG_AXES_LABELS.keys()
