@@ -131,6 +131,8 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                          dg_unit_time_length),
                   'WM': ((dg_label_time, "Water mass [{}]"),
                          dg_unit_time_length),
+                  'WM_in_tube': ((dg_label_time, "Water mass in tube [{}]"),
+                                 dg_unit_time_length),
                   'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                             ('none', 'pressure'))}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
