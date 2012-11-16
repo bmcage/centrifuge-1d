@@ -566,6 +566,9 @@ class DPlots():
 
             for (data_type, data_value) in line_data.items():
 
+                # Filter out supplied data not recognized as valid
+                if not data_type in data_types: continue
+
                 if not has_data(data_value): continue
 
                 # we skip other 'h' and 'u' data, as it would be mess
