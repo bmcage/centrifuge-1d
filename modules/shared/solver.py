@@ -14,6 +14,92 @@ def simulate_direct(initialize_z0, model, residual_fn,
                     root_fn = None, nr_rootfns=None, algvars_idx=None,
                     on_phase_change = None, continue_on_root_found=None,
                     measurements={}, take_measurement=None):
+    """
+      initialize_z0 - function with signature f(z0, model), where:
+                        z0 - vector to be filled with initial values
+                        model - argument supplied to simulate_direct() function.
+                    Returns nothing.
+      model       - model variable containing data needed to run simulation
+      residual_fn - function with signature f(t, z, zdot, result, model)
+                    where:
+                        t - current time
+                        z - current variables vector
+                        zdot - vector of derivatives
+                        results - vector of residuals, needs to be filled
+                        model - supplied model variable
+                    Returns nothing.
+      initialize_zp0 - function with signature f(zp0, model). This allows to
+                    provide the solver with better estimates of derivatives,
+                    which in turn can speed-up the starting of the computation.
+                    Function arguments are:
+                        zp0 - vector to be filled with initial values
+                              of derivative (or it's estimates)
+                        model - argument supplied to simulate_direct() function.
+                    Returns nothing.
+      update_initial_condition - function with signature f(z0, model) or None.
+                    The function is called on phase changing and allows to
+                    adjust the re-starting condition for the solver.
+                    Function arguments are:
+                        z0 - vector of initial values of the next phase
+                        model - supplied model variable
+                    Returns nothing
+      root_fn     - rooting function with signature f(t, z, zdot, result, model)
+                    or None. If the function is present, the solver stops when
+                    for any 'i' the value of result[i] is zero. Depending on the
+                    'continue_on_root_found' argument the solver handles further
+                    computation.
+                    Function arguments:
+                        t - current time
+                        z - current variables vector
+                        zdot - vector of derivatives
+                        results - vector of values that needs to be filled;
+                            the vector is of length nr_rootfns (see also
+                            'nr_rootfns' argument). If some value
+                            in results is zero, computation terminates.
+                            (see also 'continue_on_root_found' argument)
+                        model - supplied model variable
+                    Returns nothing.
+      nr_rootfns   - number of rooting functions (length of results vector, see
+                    also the 'root_fn' argument). Value: interger.
+      continue_on_root_found - function with signature f(model, t, z) or None.
+                    Function can decide to return True or False depending on the
+                    supplied arguments. If False is returned, computation is
+                    aborted and the solver returns values found so far.
+                    Function arguments:
+                        model - supplied model variable
+                        t - current time
+                        z - current variables (values) vector
+                    Returns True/False.
+      algvars_idx  - vector or None. If vector, then specifies the indexes of
+                    the vector 'z' which value is specified as algebraic
+                    condition instead of differential one.
+      on_phase_change - None or function with signature f(model, phase). This
+                    function is called when phases are changed to allow adapt
+                    the internal state of supplied data - model.
+                    Function arguments:
+                        model - supplied model variable
+                        phase - new phase; phase is one of:
+                            'a' - acceleration/centrifugation phase
+                            'd' - deceleration phase
+                            'g' - gravitation only
+                    Returns nothing.
+      measurements - None or measurements structure. This value is passed when
+                    a measurement has to be added (see also 'take_measurement'
+                    argument). This structure is user specified and used only
+                    as argument to 'take_measurements' function.
+      take_measurement - None or a function with signature
+                    f(t, z, model, measurements). The function is called when
+                    a time of measurement is reached.
+                    Function arguments:
+                        t - current time
+                        z - current variables vector
+                        model - supplied model variable
+                        measurements - user specified variable (see also
+                            'measurements' argument) in which extra measurements
+                            are to be stored. If the user does not specify one,
+                            by default it's an (empty) dict.
+                    Returns nothing.
+    """
 
     # Check supplied arguments
     if (not root_fn is None) and (nr_rootfns is None):
