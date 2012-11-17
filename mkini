@@ -413,12 +413,13 @@ def CSV2data(csv_dir, csv_filebasename):
         else:
             data.append_row(row)
 
-    if csv_type == 'scanned_data': # remove useless columns from data structure
+    if csv_type == 'scanned_data':
+        # remove useless columns from data structure
         data.delete('scan', 'time', 'elapsed', 's101', 's119', 's120')
 
+        # force to use '.' as a delimiter for floats (and not ',')
         for name in ('s102', 's103'):
             dval = []
-             # floats have to be separated by '.' and not ','
             for value in data.get_value(name):
                 dval.append(value.replace(',', '.'))
 
