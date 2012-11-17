@@ -28,12 +28,7 @@ def solve(model):
 
         for name in measurements_names:
             # we discard values at t=0 (for given measurement)
-            if name == 'MO':
-                result.append(z[1:, model.mass_out_idx].transpose())
-            elif name == 'MI':
-                result.append(z[1:, model.mass_in_idx].transpose())
-            else:
-                result.append(measurements[name][1:])
+            result.append(measurements[name][1:])
 
         return result
 

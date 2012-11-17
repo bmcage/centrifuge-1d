@@ -295,11 +295,14 @@ def solve(model):
     k  = np.alen(t)
     s1 = z[:, model.s1_idx]
     s2 = z[:, model.s2_idx]
-    mass_in  = z[:, model.mass_in_idx]
-    mass_out = z[:, model.mass_out_idx]
+    MI = z[:, model.mass_in_idx].transpose()
+    MO = z[:, model.mass_out_idx].transpose()
 
     (u0, wm0) = (initialization_data['u0'], initialization_data['wm0'])
     wm_in_tube0 = initialization_data['wm_in_tube0']
+
+    measurements['MI'] = MI
+    measurements['MO'] = MO
 
     if model.calc_wm:
         h  = z[:, model.first_idx: model.last_idx+1]
@@ -315,8 +318,8 @@ def solve(model):
             u[i, :] = h2u(h[i, :], model.n, model.m, model.gamma)
 
             (wm_total, wm_in_tube) = \
-              water_mass(u[i, :], model.dy, s1[i], s2[i], mass_in[i],
-                         model.l0-s2[i], mass_out[i], model.porosity, model.fl2,
+              water_mass(u[i, :], model.dy, s1[i], s2[i], MI[i],
+                         model.l0-s2[i], MO[i], model.porosity, model.fl2,
                          model.fp2)
             WM[i]         = wm_total
             WM_in_tube[i] = wm_in_tube
@@ -330,7 +333,7 @@ def solve(model):
 
         for i in range(k):
             GC[i] = calc_gc(u[i, :], model.y, model.dy, s1[i], s2[i],
-                            mass_in[i], s2[i], model.l0, model.porosity,
+                            MI[i], s2[i], model.l0, model.porosity,
                             model.fl2, model.fp2, model.l0, WM_in_tube[i],
                             model.density, from_end=model.l0 + model.fl2)
 
@@ -340,7 +343,7 @@ def solve(model):
         RM = np.empty(t.shape, dtype=float)
 
         for i in range(k):
-            RM[i] = calc_rm(t[i], u[i, :], mass_in[i], s1[i], s2[i], model)
+            RM[i] = calc_rm(t[i], u[i, :], MI[i], s1[i], s2[i], model)
 
         measurements['RM'] = RM
 
@@ -361,16 +364,16 @@ def solve(model):
             if iterable_l0_p:
                 r0 = rL - l0[i]
             CF[i] = calc_cf_i(omega2g, u[i, :], model.y, model.dy, r0, s1[i],
-                            s2[i], mass_in[i], s2[i], model.l0, model.porosity,
+                            s2[i], MI[i], s2[i], model.l0, model.porosity,
                             model.fl2, model.fp2, model.l0, model.density)
 
         measurements['CF'] = CF
 
     if model.calc_f_mo:
-        F_MO = np.empty(mass_out.shape, dtype=float)
+        F_MO = np.empty(MO.shape, dtype=float)
 
         for (i, omega2g) in enumerate(omega2gs):
-            F_MO[i] = calc_f_mo(omega2g, mass_out[i],
+            F_MO[i] = calc_f_mo(omega2g, MO[i],
                                 model.MO_calibration_curve)
 
         measurements['F_MO'] = F_MO
@@ -387,11 +390,8 @@ def extract_data(model):
     s2 = z[:, model.s2_idx]
     x = y2x(model.y, s1, s2).transpose()
     h = z[:, model.first_idx:model.last_idx+1].transpose()
-    MO = z[:, model.mass_out_idx]
-    MI = z[:, model.mass_in_idx]
 
     extracted_data = {'h': (x, h, t),
-                      'MI': (t, MI), 'MO': (t, MO),
                       's1': (t, s1), 's2': (t, s2)}
 
     for (name, value) in measurements.items():
