@@ -341,7 +341,7 @@ def quote_csv_file_string(key, value):
         return value
 
 def CSV2data(csv_dir, csv_filebasename):
-    print('Reading CSV file... ')
+    print('\t\t\tReading CSV file... ', end="")
 
     csv_filename = csv_dir + csv_filebasename + '.csv'
     # open CSV file
@@ -611,9 +611,9 @@ def data2ini(data, experiment_info):
 
     def _pre_process_data(lname, lvalue, experiment_info):
         if lname == 'exp_id':
-             print("\tProcessing experiment(s) with ID: ", repr(lvalue))
+            print("\tProcessing experiment(s) with ID: ", repr(lvalue))
         else:
-            print("\t\tProcessing experiment number: ", lvalue, end="")
+            print("\t\tProcessing experiment number: ", lvalue)
 
     def _post_process_data(lname, lvalue, experiment_info):
 
@@ -683,7 +683,7 @@ def data2ini(data, experiment_info):
         experiment.save(data_dir, filename='measurements.ini',
                         section_name='experiment-data')
 
-        print('\t\tDone')
+        print('\t\t\tDone')
 
     print('\nCreating data inifiles...')
     experiment_info.update(dict.fromkeys(('exp_id', 'exp_no', 'mask',
