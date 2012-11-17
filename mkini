@@ -487,7 +487,6 @@ def process_scanned_data(experiment, experiment_info):
                     for (sc, mi) in zip(range(d_scan+1, scan_next),
                                         scanned_inflow_weights[(d_scan+1):scan_next]):
                         mi = float(mi)
-                        print(sc, mi, mi0, abs(mi - mi0) > 0.5)
                         if abs(mi - mi0) < 0.5: # rough estimage of change
                             mi0 = mi # normal centrifugation; continue
                         else: # deceleration was triggered
