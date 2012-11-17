@@ -7,15 +7,12 @@ def solve(model):
 
     def ip_direct_saturated_heights(model, measurements_names):
 
-        (flag, t, z) = direct_solve(model)
+        (flag, t, z, measurements) = direct_solve(model)
 
         result = [flag, t]
 
         for name in measurements_names:
-            if name == 'MI':
-                result.append(z[1:, model.mass_in_idx].transpose())
-            elif name == 'MO':
-                result.append(z[1:, model.mass_out_idx].transpose())
+            result.append(measurements[name][1:]
 
         return result
 

@@ -4,6 +4,7 @@ import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.solver import simulate_direct
+from characteristics import calc_f_mo
 
 class direct_saturated_rhs(IDA_RhsFunction):
     def evaluate(self, t, x, xdot, result, model):
@@ -37,19 +38,40 @@ def solve(model):
     def update_init(i, z0, model):
         z0[model.mass_in_idx] = model.wl0
 
-    (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
-                                   update_initial_condition=update_init)
+    def add_extra_measurement(t, z, model, measurements):
+         measurements['omega2g'].append(model.find_omega2g(t))
 
-    return (flag, t, z)
+     measurements = {'omega2g': []}
+
+    (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
+                                   update_initial_condition=update_init,
+                                   measurements=measurements,
+                                   take_measurement=add_extra_measurement)
+
+    MI = z[:, model.mass_in_idx].transpose()
+    MO = z[:, model.mass_out_idx].transpose()
+
+    measurements['MI'] = MI
+    measurements['MO'] = MO
+
+    if model.calc_f_mo:
+        F_MO = np.empty(MO.shape, dtype=float)
+
+        for (i, omega2g) in enumerate(omega2gs):
+            F_MO[i] = calc_f_mo(omega2g, MO[i], model.MO_calibration_curve)
+
+        measurements['F_MO'] = F_MO
+
+    return (flag, t, z, measurements)
 
 def extract_data(model):
-    (flag, t, z) = solve(model)
+    (flag, t, z, measurements) = solve(model)
 
     if not flag:
         print('For given model the solver did not find results. Skipping.')
 
-    extracted_data = {'MI': (t, z[:, model.mass_in_idx]),
-                      'MO': (t, z[:, model.mass_out_idx])}
+    extracted_data = {name: (t, value) for (name, value) in measurements}
+
     return (flag, extracted_data)
 
 def run(model):
