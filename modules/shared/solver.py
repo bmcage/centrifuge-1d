@@ -13,7 +13,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None,
                     on_phase_change = None, continue_on_root_found=None,
-                    on_measurement = None):
+                    measurements={}, take_measurement=None):
 
     # Check supplied arguments
     if (not root_fn is None) and (nr_rootfns is None):
@@ -148,8 +148,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
                         return (False, t[:i], z[:i, :])
                 else: # success or t_stop reached
                     if (flag == 0) or (t_out == t_meas):
-                        if not on_measurement is None:
-                            on_measurement(t_out, model)
+                        if not take_measurement is None:
+                            take_measurement(t_out, z[i, :], model,
+                                             measurements)
 
                         t[i] = t_out
                         i += 1
