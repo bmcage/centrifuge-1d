@@ -315,6 +315,31 @@ def missing_fields_in_csv(csv_fields, fields):
                           fields))
     return missing
 
+def quote_string(string):
+    tmp_str = string.strip()
+    if len(tmp_str) > 1:
+        if ((tmp_str[0] == tmp_str[-1] == '"')
+            or (tmp_str[0] == tmp_str[-1] == "'")):
+            pass
+        else:
+            tmp_str = "'" + tmp_str + "'"
+    else:
+        tmp_str = "'" + tmp_str + "'"
+
+    return tmp_str
+
+def quote_csv_file_string(key, value):
+
+    if (key == 'csv_file') and (not value is None):
+        new_value = []
+
+        for csv_file_name in value:
+            new_value.append(quote_string(csv_file_name))
+
+        return new_value
+    else:
+        return value
+
 def CSV2data(csv_dir, csv_filebasename):
     print('Reading CSV file... ')
 
@@ -399,6 +424,10 @@ def CSV2data(csv_dir, csv_filebasename):
 
             data.set_value(name, dval)
 
+    if csv_type == 'scan_ini':
+        # if needed, add quotes to values in csv_file field
+        data.on_modify(quote_csv_file_string)
+
     f_csv.close()
 
     return data
@@ -433,7 +462,10 @@ def process_scanned_data(experiment, experiment_info):
     data_dir  = get_directories('ini', 'data', experiment_info)
 
     if type(csv_files) == str:
-        csv_scanned = csv_files
+        csv_scanned = csv_files.strip()
+        if ((csv_scanned[0] == csv_scanned[-1] == '"')
+            or (csv_scanned[0] == csv_scanned[-1] == "'")):
+            csv_scanned = csv_scanned[1:-1]
         scanned_data = CSV2data(experiment_info['csv_path'], csv_scanned)
     else:
         raise ValueError('CSV file describing scanned data can contain '
