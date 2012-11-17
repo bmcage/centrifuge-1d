@@ -5,7 +5,8 @@ import numpy as np
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.functions import right_derivative, y2x, show_results
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
-from modules.shared.characteristics import water_mass, calc_gc, calc_rm
+from modules.shared.characteristics import water_mass, calc_gc, calc_rm, \
+     calc_cf_i, calc_f_mo
 from modules.shared.solver import simulate_direct
 
 #TODO: will the new characteristics work also for the previous
@@ -250,8 +251,8 @@ def solve(model):
         zp0[first_idx+1:last_idx] = \
           (dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt + y[1:-1]*ds2dt)
            - 2./(porosity*du_dh[1:-1]*(dy[:-1] + dy[1:])*ds) * (q12[1:] - q12[:-1]))
-    def on_measurement(t, model):
-         omega2g_col.append(model.find_omega2g(t))
+    def add_extra_measurement(t, z, model, measurements):
+         measurements['omega2g'].append(model.find_omega2g(t))
 
     # Initialization
     if model.rb_type == 3:
@@ -272,18 +273,20 @@ def solve(model):
     else:
         zp0_init = None
 
-    if model.calc_cf:
-        omega2g_col = []
-        on_measurement_fn = on_measurement
+    if model.calc_cf or model.calc_f_mo or model.calc_f_mt:
+        take_measurement_fn = add_extra_measurement
     else:
-        on_measurement_fn = None
+        take_measurement_fn = None
+
+    measurements = {'omega2g': []}
 
     # Computation
     (flag, t, z) = simulate_direct(initialize_z0, model, RESIDUAL_FN,
                                    root_fn = None, nr_rootfns=None,
                                    initialize_zp0=zp0_init,
                                    algvars_idx=algvars_idx,
-                                   on_measurement=on_measurement_fn)
+                                   measurements=measurements,
+                                   take_measurement=take_measurement_fn)
 
     # Restore modified values
     model.atol = atol_backup
@@ -294,8 +297,6 @@ def solve(model):
     s2 = z[:, model.s2_idx]
     mass_in  = z[:, model.mass_in_idx]
     mass_out = z[:, model.mass_out_idx]
-
-    measurements = {}
 
     (u0, wm0) = (initialization_data['u0'], initialization_data['wm0'])
     wm_in_tube0 = initialization_data['wm_in_tube0']
@@ -343,6 +344,9 @@ def solve(model):
 
         measurements['RM'] = RM
 
+    if model.calc_cf or model.calc_f_mo or model.calc_f_mt:
+        omega2gs = measurements['omega2g']
+
     if model.calc_cf:
         CF = np.empty(t.shape, dtype=float)
 
@@ -353,18 +357,21 @@ def solve(model):
         else:
             r0 = model.re - model.fl2 - model.l0
 
-        for (i, omega2g) in enumerate(omega2g_col):
+        for (i, omega2g) in enumerate(omega2gs):
             if iterable_l0_p:
                 r0 = rL - l0[i]
-            CF[i] = calc_cf(omega2g, u[i, :], model.y, model.dy, r0, s1[i],
+            CF[i] = calc_cf_i(omega2g, u[i, :], model.y, model.dy, r0, s1[i],
                             s2[i], mass_in[i], s2[i], model.l0, model.porosity,
                             model.fl2, model.fp2, model.l0, model.density)
 
         measurements['CF'] = CF
 
     if model.calc_f_mo:
-        for (i, omega2g) in enumerate(omega2g_col):
-            F_MO[i] = calc_rm(omega2g, mass_out[i], model.MO_calibration_curve)
+        F_MO = np.empty(mass_out.shape, dtype=float)
+
+        for (i, omega2g) in enumerate(omega2gs):
+            F_MO[i] = calc_f_mo(omega2g, mass_out[i],
+                                model.MO_calibration_curve)
 
         measurements['F_MO'] = F_MO
 
