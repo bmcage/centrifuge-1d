@@ -115,7 +115,7 @@ def calc_cf_i(omega2g, u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
 def calc_cf_o(omega2g, rS, rE, fluid_density):
     return (omega2g * calc_sat_force(rS, rE, fluid_density))
 
-def calc_F_MO(self, omega2g, mo, MO_calibration_curve):
+def calc_f_mo(self, omega2g, mo, MO_calibration_curve):
     calibration = MO_calibration_curve
 
     (mo0, gc0) = calibration[0]
