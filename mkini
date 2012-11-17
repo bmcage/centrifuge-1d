@@ -355,7 +355,7 @@ def CSV2data(csv_dir, csv_filebasename):
             print('CSV error: cannot process CSV file, aborting...')
             exit(1)
 
-        extended_fields = ('scan', 'csv_file', 'rpm')
+        extended_fields = ('scan', 'csv_file', 'omega')
         missing = missing_fields_in_csv(csv_fields, extended_fields)
         if missing:
             if len(missing) == len(extended_fields):
