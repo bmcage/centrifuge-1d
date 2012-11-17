@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 from scipy.optimize import leastsq
 from modules.shared.vangenuchten import h2u

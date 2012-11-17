@@ -1,3 +1,5 @@
+from __future__ import division
+
 PARENTAL_MODULES = ['base', 'direct_draining_saturated']
 
 CONFIG_OPTIONS = ['percent_in_saturation', 30]

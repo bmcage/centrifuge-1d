@@ -1,3 +1,5 @@
+from __future__ import division
+
 PARENTAL_MODULES = []
 
 CONFIG_OPTIONS = {

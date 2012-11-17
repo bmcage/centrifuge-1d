@@ -1,8 +1,10 @@
+from __future__ import division
 from __future__ import print_function
 from modules.direct_draining_saturated.run import solve as solve_direct, \
      extract_data
 from modules.shared.functions import show_results
 from modules.shared.solver import simulate_inverse
+
 from modules.shared.vangenuchten import h2u
 from numpy import alen
 

@@ -1,3 +1,5 @@
+from __future__ import division
+
 PARENTAL_MODULES = ['direct_draining_saturated']
 
 CONFIG_OPTIONS = ['inv_init_params',

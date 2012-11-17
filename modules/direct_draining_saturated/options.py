@@ -1,3 +1,5 @@
+from __future__ import division
+
 from modules.shared.functions import lagrangean_derivative_coefs
 from numpy import linspace, power, asarray, empty
 
@@ -45,9 +47,9 @@ def adjust_cfg(cfg):
     # Handle depending variables
     value = cfg.get_value('n')
     if type(value) == list:
-        m = [1-1/n for n in value]
+        m = [1.-1./n for n in value]
     else:
-        m = 1 - 1/value
+        m = 1. - 1./value
     cfg.set_value('m', m)
 
     # Set array indexes

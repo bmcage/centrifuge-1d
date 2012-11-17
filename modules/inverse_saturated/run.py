@@ -1,3 +1,5 @@
+from __future__ import division
+
 from modules.direct_saturated.run import solve as direct_solve, extract_data
 from modules.shared.solver import simulate_inverse
 

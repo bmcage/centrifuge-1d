@@ -1,3 +1,5 @@
+from __future__ import division
+
 PARENTAL_MODULES = ['direct-saturated-heights']
 
 CONFIG_OPTIONS = ['inv_init_params', ('optimfn', 'leastsq'),

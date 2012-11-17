@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
