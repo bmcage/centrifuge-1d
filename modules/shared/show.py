@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
 from os import makedirs, path
-from shared import get_directories
-from config import parse_value
+from shared import get_directories, parse_value
+from config import ModelParameters, load_configuration, process_global_constants
 from modules.shared.functions import has_data
 try:
     import ConfigParser as configparser
@@ -269,10 +269,6 @@ class ResultsData():
         if (not references) or (references == stored_references): return
 
         if model is None:
-            from shared import (load_configuration,
-                                process_global_constants)
-            from config import ModelParameters
-
             experiment_info = self.get_value('experiment_info')
             (cfg, consts_cfg) = load_configuration(experiment_info)
             if self._modman is None:
