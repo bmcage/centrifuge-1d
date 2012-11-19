@@ -508,7 +508,7 @@ class Configuration:
 
         return self
 
-    def _load_config_definition(self, modman):
+    def load_definition(self, modman):
 
         if not self._preserve_sections_p:
             section = 'foo'
@@ -640,7 +640,7 @@ class Configuration:
                 return True
 
         if not self._config_definition:
-            self._load_config_definition(modman)
+            self.load_definition(modman)
 
         cfg_definition      = self._config_definition
         required_options    = cfg_definition['required']
@@ -775,6 +775,7 @@ class ModelParameters:
     def __init__(self, cfg):
         self._cfg            = cfg
         cfg_definition       = cfg._config_definition
+
         excluded_options     = cfg_definition['excluded']
         self._iterable_options_names = cfg_definition['iterable']
 

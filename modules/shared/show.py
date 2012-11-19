@@ -276,7 +276,10 @@ class ResultsData():
                 self._modman = ModulesManager()
 
             modman = self._modman
+
+            cfg.load_definition(modman)
             process_global_constants(cfg, consts_cfg)
+
             cfg.adjust_cfg(modman)
             solver_module = modman.find_module(cfg.get_value('exp_type'),
                                                submodule='run')
