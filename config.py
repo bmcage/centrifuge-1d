@@ -410,32 +410,6 @@ class Configuration:
             print()
             echo_section(cfg_dict)
 
-    def set_defaults(self, modman):
-        """
-          Set options that are missing in current configuration, but have
-          specified a default value in modules.
-        """
-
-        cfg_dict = self._cfg_dict
-
-        if not self._config_definition:
-            self._load_config_definition(modman)
-
-        defaults_options    = self._config_definition['default']
-        blacklisted_options = self._config_definition['blacklisted']
-
-        if not self._preserve_sections_p:
-            section = 'foo'
-        else:
-            raise NotImplementedError('Section preserving is not implemented.')
-
-        for (option, value) in defaults_options:
-            if ((not option in cfg_dict)
-                and (not option in blacklisted_options)):
-                self.set_value(option, value, section)
-
-        return self
-
     def _group(self):
         measurements = Measurements()
         measurements.read(self)
@@ -536,11 +510,36 @@ class Configuration:
 
     def _load_config_definition(self, modman):
 
-        def parse_options(options):
-            required_options = []
-            default_options = []
+        if not self._preserve_sections_p:
+            section = 'foo'
+        else:
+            raise NotImplementedError('Section preserving is not implemented.')
 
-            def classify_options(options):
+        cfg_dict = self._cfg_dict
+
+        parsed_options = {'required': set([]),
+                          'default': [],
+                          'provided': set([]),
+                          'blacklisted': set([]),
+                          'internal': set([]),
+                          'excluded': set([]),
+                          'iterable': set([])}
+
+        name2id = {'PROVIDE_OPTIONS': 'provided',
+                   'BLACKLIST_OPTIONS': 'blacklisted',
+                   'INTERNAL_OPTIONS': 'internal',
+                   'EXCLUDE_FROM_MODEL': 'excluded',
+                   'OPTIONS_ITERABLE_LISTS': 'iterable'}
+
+        def parse_options(options):
+            required_options  = []
+            default_options   = []
+
+            while options:
+                defaults = []
+                dependent_options = []
+
+                # options classification: required, defaults, dependent
                 for option in options:
                     option_type = type(option)
                     if option_type == str:
@@ -549,85 +548,69 @@ class Configuration:
                         if option == []: continue
 
                         if hasattr(option[0], '__call__'):
-                            if option[0](self):
-                                classify_options(option[1])
-                            elif len(option) == 3:
-                                classify_options(option[2])
+                            dependent_options.append(option)
                         else:
-                            default_options.append(option)
+                            defaults.append(option)
                     elif hasattr(option, '__call__'):
-                        classify_options(option(self))
+                        dependent_options.append(option)
                     else:
                         print('Unknown option type:', option)
                         exit(1)
 
-            classify_options(options)
-            return required_options, default_options
+                # setting the defaults values if option not present
+                default_options.extend(defaults)
+                for (option, value) in defaults:
+                    if not option in cfg_dict:
+                        self.set_value(option, value, section)
 
-        required_options    = set([])
-        default_options     = []
-        provided_options    = set([])
-        blacklisted_options = set([])
-        internal_options    = set([])
-        excluded_options    = set([])
-        iterable_options    = set([])
+                # all supplied  options were processed
+                # build new options group by parsing the dependent options
+                options = []
+
+                # process dependent options
+                for option in dependent_options:
+                    if hasattr(option, '__call__'):
+                        new_opts = option(self)
+                    elif option[0](self):
+                        new_opts = option[1]
+                    elif len(option) > 2:
+                        new_opts = option[2]
+
+                    if type(new_opts) in (list, tuple):
+                        options.extend(new_opts)
+                    else:
+                        options.append(new_opts)
+
+            return (required_options, default_options)
 
         def read_options_definition(options_module):
-            if hasattr(options_module, 'CONFIG_OPTIONS'):
-                (required, defaults) = parse_options(options_module.CONFIG_OPTIONS)
-                required_options.update(required)
-                default_options.extend(defaults)
-
-            options_name = 'PROVIDE_OPTIONS'
-            if hasattr(options_module, options_name):
-                (options, defaults) = \
-                  parse_options(getattr(options_module, options_name))
-                if defaults:
-                    raise ValueError("Options in '%s' cannot have a "
-                                     "default value: " % options_name,
-                                     getattr(options_module, options_name))
-                provided_options.update(options)
-
-            options_name = 'BLACKLIST_OPTIONS'
-            if hasattr(options_module, options_name):
-                (options, defaults) = \
-                  parse_options(getattr(options_module, options_name))
-                if defaults:
-                    raise ValueError("Options in '%s' cannot have a "
-                                     "default value: " % options_name,
-                                     getattr(options_module, options_name))
-                blacklisted_options.update(options)
-
             # options_name = 'INTERNAL_OPTIONS'
-            # if hasattr(options_module, options_name):
-            #     (options, defaults) = \
-            #       parse_options(getattr(options_module, options_name))
-            #     if defaults:
-            #         raise ValueError("Options in '%s' cannot have a "
-            #                          "default value: " % options_name,
-            #                          getattr(options_module, options_name))
-            #     internal_options.update(options)
+            for (options_name) in ('CONFIG_OPTIONS', 'PROVIDE_OPTIONS',
+                                   'BLACKLIST_OPTIONS', 'EXCLUDE_FROM_MODEL',
+                                   'OPTIONS_ITERABLE_LISTS'):
 
+                if not hasattr(options_module, options_name): continue
 
-            options_name = 'EXCLUDE_FROM_MODEL'
-            if hasattr(options_module, options_name):
-                (options, defaults) = \
+                (required, defaults) = \
                   parse_options(getattr(options_module, options_name))
-                if defaults:
-                    raise ValueError("Options in '%s' cannot have a "
-                                     "default value: " % options_name,
-                                     getattr(options_module, options_name))
-                excluded_options.update(options)
 
-            options_name = 'OPTIONS_ITERABLE_LISTS'
-            if hasattr(options_module, options_name):
-                (options, defaults) = \
-                  parse_options(getattr(options_module, options_name))
-                if defaults:
-                    raise ValueError("Options in '%s' cannot have a "
-                                     'default value: ' % options_name,
-                                     getattr(options_module, options_name))
-                iterable_options.update(options)
+                if options_name == 'CONFIG_OPTIONS':
+                    parsed_options['required'].update(required)
+                    parsed_options['default'].extend(defaults)
+                else:
+                    if defaults:
+                        print("Options in '" + options_name + "' cannot have a "
+                              "default value:\n",
+                              getattr(options_module, options_name),
+                              '\nExiting...')
+                        exit(1)
+
+                    parsed_options[name2id[options_name]].update(required)
+
+                    # from required options remove blacklisted options
+                    # and options provided by module
+                    if options_name in ['PROVIDE_OPTIONS', 'BLACKLIST_OPTIONS']:
+                        parsed_options['required'].difference_update(required)
 
             return True
 
@@ -646,20 +629,7 @@ class Configuration:
             print('Could not parse options definitions... Exiting...')
             exit(1)
 
-        # from required options remove blacklisted options
-        # and options provided by module
-        required_options.difference_update(provided_options)
-        required_options.difference_update(blacklisted_options)
-
-        self._config_definition = {'required': required_options,
-                                   'default': default_options,
-                                   'provided': provided_options,
-                                   'blacklisted': blacklisted_options,
-                                   #'internal', internal_options,
-                                   'excluded': excluded_options,
-                                   'iterable': iterable_options
-                                   }
-
+        self._config_definition = parsed_options
 
     def is_valid(self, modman, verbose=True):
 

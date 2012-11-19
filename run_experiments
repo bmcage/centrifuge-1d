@@ -135,8 +135,6 @@ def run_experiments(exp_id, first_experiment, last_experiment, mask,
                 cfg.echo()
                 continue
 
-            cfg.set_defaults(modman)
-
             # Assign global values not present in (or based on) configuration
             process_global_constants(cfg, consts_cfg)
 
