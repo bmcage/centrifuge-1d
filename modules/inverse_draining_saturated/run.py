@@ -64,7 +64,8 @@ def run(model):
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
 
-        show_results(model, inv_params=inv_params, cov=cov)
+        show_results(model.experiment_info, model=model,
+                     inv_params=inv_params, cov=cov)
 
         model.verbosity = model_verbosity # restore verbosity
 

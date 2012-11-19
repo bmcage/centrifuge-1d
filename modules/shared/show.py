@@ -262,11 +262,15 @@ class ResultsData():
         self._data['lines']['computed'] = value
         self.store_value('experiment_info', model.experiment_info)
 
-    def store_references(self, references, model=None):
+    def store_references(self, user_references, model=None):
         stored_references = self.get_value('references')
         data = self._data['lines']
 
-        if (not references) or (references == stored_references): return
+        if user_references == stored_references: return False
+
+        self.store_value('references', user_references)
+
+        references = list(map(lambda x: x.copy(), user_references))
 
         if model is None:
             experiment_info = self.get_value('experiment_info')
@@ -322,7 +326,7 @@ class ResultsData():
 
             data[ref_id] = value
 
-        self.store_value('references', references)
+        return True
 
     def store_measurements(self, measurements):
         m = {}
@@ -533,10 +537,6 @@ class DPlots():
         else: # generate dplots
             self._dplots = self._mk_dplots(data, experiment_info)
 
-        references = self._plotstyles.get_value('params_ref')
-        if references:
-            data.store_references(references)
-
         self.fignum = 1
 
         display_options = self._plotstyles.get_display_options()
@@ -545,6 +545,9 @@ class DPlots():
         if matplotlib_backend: # chosen other backend than the default one
             import matplotlib
             matplotlib.use(matplotlib_backend)
+
+    def get_references(self):
+        return self._plotstyles.get_value('params_ref')
 
     def _mk_dplots(self, data, experiment_info):
         def _mk_dplots_bucket(data_types, plot_styles):

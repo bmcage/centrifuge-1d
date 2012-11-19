@@ -54,4 +54,4 @@ def extract_data(model):
 
 def run(model):
     from modules.shared.functions import show_results
-    show_results(model)
+    show_results(model.experiment_info, model=model)

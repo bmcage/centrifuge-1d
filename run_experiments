@@ -219,21 +219,13 @@ if __name__ == "__main__":
     options = parse_input()
 
     if options.show_p:
-        from modules.shared.show import ResultsData, DPlots
-        from config import DataStorage
+        from modules.shared.functions import show_results
 
         experiment_info =  \
           {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
            'mask': options.mask}
 
-        storage = DataStorage()
-
-        if storage.load(experiment_info):
-            data = ResultsData()
-            data.load(storage.get('ResultsData'))
-
-            dplots = DPlots(data, experiment_info)
-            dplots.display()
+        show_results(experiment_info)
 
     elif options.compare_p:
         compare2configs(options)
