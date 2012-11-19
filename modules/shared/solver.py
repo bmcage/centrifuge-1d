@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 import scikits.odes.sundials.ida as ida
 from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
                    asarray, cumsum, empty, ones)

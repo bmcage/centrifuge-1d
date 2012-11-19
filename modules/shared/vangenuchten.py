@@ -1,3 +1,5 @@
+from __future__ import division
+
 """
   This modules contains function based on Van Genuchten formulas
   and formulas derived from them.

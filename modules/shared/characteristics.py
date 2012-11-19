@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 
 def water_mass(u, dy, s1, s2, mass_in, saturated_length, free_fluid_length,

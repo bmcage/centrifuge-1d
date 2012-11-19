@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 from const import INI_DIR, MASKS_DIRNAME, FIGS_DIR
 
 def yn_prompt(question_str, default='y'):

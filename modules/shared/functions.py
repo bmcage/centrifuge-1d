@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 from math import sqrt
 
@@ -47,7 +48,7 @@ def f3(t):
     return 0.1332308098 * np.log(t) + 9.5952480661
 
 def find_omega2g_fh(model, t):
-    return 1/model.r0_fall
+    return 1./model.r0_fall
 
 def find_omega2g(model, t_total):
     if model.include_acceleration:

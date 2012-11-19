@@ -4,7 +4,7 @@ the ModelParameters class which stores the setting obtained
 from the configuration files.
 """
 
-from __future__ import print_function
+from __future__ import print_function, division
 
 import numpy as np
 import pickle
@@ -848,7 +848,7 @@ class ModelParameters:
             setattr(self, key, value)
 
             if key == 'n':
-                setattr(self, 'm', 1-1/value)
+                setattr(self, 'm', 1.-1./value)
 
     def get_parameters(self, parameters):
         params = {}

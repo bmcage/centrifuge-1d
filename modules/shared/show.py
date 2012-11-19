@@ -1,4 +1,4 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -142,8 +142,8 @@ def get_unit_coef(unit_base):
     # units used for computation are: cm, s, pa and "no units"
     if unit in ['cm', 's', 'pa', '']: coef = 1.0
     elif unit == 'mm': coef = 10.
-    elif unit == 'min': coef = 1/60.
-    elif unit == 'h': coef = 1/3600.
+    elif unit == 'min': coef = 1./60.
+    elif unit == 'h': coef = 1./3600.
     elif unit == 'm': coef = 0.01
     elif unit == 'kpa': coef = 0.001
     else:
