@@ -102,27 +102,41 @@ def y2x(y, s1, s2):
 
     return x
 
-def show_results(model, inv_params=None, cov=None):
+def show_results(experiment_info,
+                 model=None, inv_params=None, cov=None,
+                 show_figures=True):
+
     from modules.shared.show import ResultsData, DPlots
+    from config import DataStorage
 
-    data = ResultsData()
-    data.store_computation(model)
-    data.store_measurements(model.measurements)
-    data.store_value('experiment_info', model.experiment_info)
-    data.store_value('inv_params', inv_params)
-    data.store_value('cov', cov)
+    storage = DataStorage()
+    data    = ResultsData()
 
-    if model.save_data:
-        from config import DataStorage
+    if storage.load(experiment_info):
+        data.load(storage.get('ResultsData'))
 
-        storage = DataStorage()
-        storage.store('ResultsData', data.dump())
+    save_data = False
 
-        storage.save(model.experiment_info)
+    if not model is None:
+        data.store_computation(model)
+        data.store_measurements(model.measurements)
+        save_data = True
 
-    if model.show_figures:
-        dplots = DPlots(data, model.experiment_info)
+    if show_figures:
+        dplots = DPlots(data, experiment_info)
+
+        if data.store_references(dplots.get_references()): save_data = True
+
         dplots.display()
+
+    if save_data:
+        if data.get_value('experiment_info') is None:
+            data.store_value('experiment_info', experiment_info)
+        if not inv_params is None: data.store_value('inv_params', inv_params)
+        if not cov is None: data.store_value('cov', cov)
+
+        storage.store('ResultsData', data.dump())
+        storage.save(experiment_info)
 
 def has_data(x):
     if x is None:

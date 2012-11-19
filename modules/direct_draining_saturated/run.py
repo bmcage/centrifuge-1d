@@ -356,4 +356,4 @@ def extract_data(model):
     return (flag, extracted_data)
 
 def run(model):
-    show_results(model)
+    show_results(model.experiment_info, model=model)
