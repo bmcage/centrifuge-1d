@@ -116,6 +116,10 @@ def show_results(experiment_info,
     if storage.load(experiment_info):
         data.load(storage.get('ResultsData'))
 
+    if not inv_params is None: data.store_value('inv_params', inv_params)
+    if not cov is None: data.store_value('cov', cov)
+
+
     save_data = False
 
     if not model is None:
@@ -133,8 +137,6 @@ def show_results(experiment_info,
     if save_data:
         if data.get_value('experiment_info') is None:
             data.store_value('experiment_info', experiment_info)
-        if not inv_params is None: data.store_value('inv_params', inv_params)
-        if not cov is None: data.store_value('cov', cov)
 
         storage.store('ResultsData', data.dump())
         storage.save(experiment_info)
