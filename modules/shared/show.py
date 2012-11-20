@@ -225,7 +225,8 @@ class ResultsData():
         self._modman = None
 
     def has_data(self, data_type='lines'):
-        return not self._data[data_type] is None
+        return not ((data_type in self._data)
+                    and (self._data[data_type] is None))
 
     def store_value(self, name, value):
         self._data[name] = value
