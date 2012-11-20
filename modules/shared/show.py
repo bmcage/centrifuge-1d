@@ -359,7 +359,8 @@ class ResultsData():
         return self._data
 
     def load(self, value):
-        self._data = value
+        if not value is None:
+            self._data = value
 
 class PlotStyles():
     def __init__(self, experiment_info):
