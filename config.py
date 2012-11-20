@@ -16,7 +16,7 @@ except:
 from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
      DEFAULTS_ININAME, CONSTANTS_ININAME
 from modules.shared.functions import determine_scaling_factor
-from shared import parse_value, get_directories
+from shared import parse_value, get_directories, yn_prompt
 from os import listdir, makedirs, path
 from sys import modules as sysmodules
 from types import MethodType
@@ -688,8 +688,6 @@ class Configuration:
                       'by a module:')
                 for option in alien_options:
                     print('  ', option)
-
-            from shared import yn_prompt
 
             if not yn_prompt('\nAlien options found. Do you wish to '
                              'continue? [Y/n]: ', default='y'):
