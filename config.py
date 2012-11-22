@@ -301,21 +301,6 @@ class ModulesManager():
 #                   Configuration class                          #
 ##################################################################
 
-def flatten(cfg):
-    cfg_dict = cfg._cfg_dict
-
-    def flatten_dict(base_dict, dict_tree):
-        for (key, value) in dict_tree.items():
-            if type(value) == dict:
-                dict_flatten(base_dict, value)
-            else:
-                base_dict[key] = value
-
-    flattened_cfg = Configuration()
-    flattened_cfg._cfg_dict = flatten_dict({}, cfg)
-
-    return flattened_cfg
-
 class Configuration:
     def __init__(self, preserve_sections_p = False):
 
