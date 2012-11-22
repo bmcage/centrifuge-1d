@@ -1,7 +1,6 @@
 from __future__ import print_function, division
 import scikits.odes.sundials.ida as ida
-from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
-                   asarray, cumsum, empty, ones)
+import numpy as np
 from modules.shared.functions import has_data
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
@@ -112,10 +111,10 @@ def simulate_direct(initialize_z0, model, residual_fn,
 
     measurements_times = model.measurements_times
 
-    measurements_nr = len(measurements_times)
+    measurements_nr = np.alen(measurements_times)
 
-    t   = empty([measurements_nr, ], dtype=float)
-    z   = empty([measurements_nr, model.z_size], dtype=float)
+    t   = np.empty([measurements_nr, ], dtype=float)
+    z   = np.empty([measurements_nr, model.z_size], dtype=float)
 
     t0 = 0.0
 
@@ -123,8 +122,8 @@ def simulate_direct(initialize_z0, model, residual_fn,
     model.set_value('t0', t0)
     model.set_value('phase', 'U') # initialize to dummy value
 
-    z0 = empty([model.z_size, ], float)
-    zp0 = zeros(z0.shape, float)
+    z0 = np.empty([model.z_size, ], float)
+    zp0 = np.zeros(z0.shape, float)
 
     initialize_z0(z0, model) # compute the initial state
     if not initialize_zp0 is None: initialize_zp0(zp0, z0, model)
@@ -267,7 +266,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
         if update_initial_condition:
             z0[:] = z[i-1, :]
             update_initial_condition(i, z0, model)
-            if not all(z0 == z[i-1, :]):
+            if not np.all(z0 == z[i-1, :]):
                 solver_initialized = False
         else:
             z0 = z[i-1, :]
@@ -361,12 +360,12 @@ def simulate_inverse(direct_fn, model, init_parameters,
        measurements.get_scales(scaling_coefs=user_scales)
     weights = measurements.get_weights()
 
-    data_scale_coef = concatenate(measurements_scales)
-    measurements_sc = concatenate(data_M) * data_scale_coef
+    data_scale_coef = np.concatenate(measurements_scales)
+    measurements_sc = np.concatenate(data_M) * data_scale_coef
 
     if weights:
         add_weights = True
-        weights = concatenate(weights)
+        weights = np.concatenate(weights)
     else:
         add_weights = False
 
@@ -407,7 +406,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
                 display_status(data_plots=status_items)
 
-            computation_sc = data_scale_coef * concatenate(data_C)
+            computation_sc = data_scale_coef * np.concatenate(data_C)
             error = computation_sc - measurements_sc
 
             if add_weights:
@@ -416,7 +415,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
             if optimfn == 'leastsq':
                 return error
             else:
-                return sum(power(error, 2))
+                return np.sum(np.power(error, 2))
 
         else:
             # something is wrong, so penalize
@@ -519,7 +518,7 @@ def compute_raster(model):
         ubounds = xdata.inv_ubounds
         raster_size = xdata.raster_grid_size
         nrlevels = len(lbounds)
-        if isscalar(raster_size):
+        if np.isscalar(raster_size):
             raster_size = [raster_size] * nrlevels
 
         optimargs = [0]* nrlevels
@@ -528,7 +527,7 @@ def compute_raster(model):
 
         from copy import copy
         for (lb, ub, rsize) in zip(lbounds, ubounds, raster_size):
-            grid.append(linspace(float(lb), float(ub), float(rsize)))
+            grid.append(np.linspace(float(lb), float(ub), float(rsize)))
 
         def loopsingle(level):
             for (ind, val) in enumerate(grid[level]):
