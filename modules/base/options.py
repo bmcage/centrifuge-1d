@@ -93,7 +93,7 @@ def check_cfg(cfg):
     for F_name in ('f_mo', 'f_mt'):
         F = cfg.get_value(F_name)
 
-        if F is None: continue
+        if (F is None) or (not cfg.get_value('calc_' + F_name)): continue
 
         F_calibration_curve = cfg.get_value(F_name + '_calibration_curve')
 
@@ -106,7 +106,7 @@ def check_cfg(cfg):
         elif type(F_calibration_curve) in (float, int):
             pass
         elif F_calibration_curve is None:
-            print('Calibration curve: ' +  F_calibration_curve + ' was not '
+            print('Calibration curve: ' +  F_name + ' was not '
                   'specified. Cannot continue.')
             return False
         else:
@@ -128,7 +128,7 @@ def check_cfg(cfg):
                   MO_GC)
             return False
 
-        if not len(MO_calibration_curve) > 1:
+        if not len(MO_GC) > 1:
             print('Calibration curve must by of length at least 2: ',
                   MO_GC)
             return False
