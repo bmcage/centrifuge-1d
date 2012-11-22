@@ -374,7 +374,7 @@ def solve(model):
 
         for (i, omega2g) in enumerate(omega2gs):
             F_MO[i] = calc_f_mo(omega2g, MO[i],
-                                model.MO_calibration_curve)
+                                model.mo_gc_calibration_curve)
 
         measurements['F_MO'] = F_MO
 

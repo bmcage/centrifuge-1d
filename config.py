@@ -63,7 +63,7 @@ class Measurements():
 
             if name == 'MO':
                 value = np.cumsum(value)
-            elif name in ('F_MT', 'F_MO'):
+            elif name in ('f_mt', 'f_mo'):
                 calibration_curve = \
                   np.asarray(cfg.get_value(name + '_calibration_curve'),
                              dtype=float)
