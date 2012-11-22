@@ -244,7 +244,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                         else:
                             # previous measurement was the last measurement we
                             # have taken so we can abort further computation
-                            break
+                            return (True, t, z)
 
                     # Assuming t_out is t_end+numerical_error
                     if (flag == 1) or (t_end == t_out):
