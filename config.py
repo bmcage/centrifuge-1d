@@ -16,7 +16,7 @@ except:
 from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
      DEFAULTS_ININAME, CONSTANTS_ININAME
 from modules.shared.functions import determine_scaling_factor
-from shared import parse_value, get_directories, yn_prompt
+from shared import parse_value, get_directories, yn_prompt, flatten
 from os import listdir, makedirs, path
 from sys import modules as sysmodules
 from types import MethodType
@@ -40,15 +40,24 @@ class Measurements():
         measurements_xvalues = OrderedDict()
         measurements_weights = OrderedDict()
 
-        t = phases_end_times(cfg.get_value('duration', not_found=None),
-                             cfg.get_value('deceleration_duration',
-                                           not_found=None),
-                             cfg.get_value('fh_duration', not_found=None),
-                             cfg.get_value('include_acceleration',
+        # 1. determine measurements times
+        if cfg.get_value('measurements_times'):
+            t = np.asarray(flatten(cfg.get_value('measurements_times')),
+                           dtype=float)
+            if not t[0] == 0.0:
+                t= np.concatenate(([0.0], t))
+        else:
+            t = phases_end_times(cfg.get_value('duration', not_found=None),
+                                 cfg.get_value('deceleration_duration',
+                                               not_found=None),
+                                 cfg.get_value('fh_duration', not_found=None),
+                                 cfg.get_value('include_acceleration',
                                                not_found=True))
-        if not t is None:
-            t_meas = t[1:]
 
+        t_meas = t[1:]
+        cfg.del_value('measurements_times')
+
+        # 2. a) determine measured data
         same_weights = True
         common_weight  = None
 
@@ -56,31 +65,43 @@ class Measurements():
             value = cfg.get_value(iname, not_found=None)
             if value == None: continue
 
-            # Process measurements
-            if type(value) in [int, float]:
-                value = (value, )
+            if type(value) in [int, float]: value = (value, )
+
             value = np.asarray(value, dtype=float)
 
-            if name == 'MO':
-                value = np.cumsum(value)
-            elif name in ('f_mt', 'f_mo'):
-                calibration_curve = \
-                  np.asarray(cfg.get_value(name + '_calibration_curve'),
-                             dtype=float)
-                value -= calibration_curve
-
             measurements[name] = value
-
-            if name == 'theta':
-                measurements_xvalues[name] = np.asarray(cfg.get_value('p'),
-                                                      dtype=float)
-            else:
-                measurements_xvalues[name] = t_meas
+            measurements_xvalues[name] = t_meas
 
             cfg.del_value(iname) # remove from cfg
 
-            # Process measurements weights
-            iname_w = iname + '_weights'
+        #    b) postprocessing MO: MO is has cumulative value
+        if 'MO' in measurements:
+            measurements['MO'] = np.cumsum(measurements['MO'])
+
+        #    c) postprocessing F_MO, F_MT:
+        #           - correct data usind calibration curve
+        #           - filter out values outside the measured times
+        F_filter = None
+        for F_name in ('F_MT', 'F_MO'):
+            if F_name in measurements:
+                calibration_curve = \
+                  np.asarray(cfg.get_value(MEASUREMENTS_NAMES[F_name]
+                                           + '_calibration_curve'),
+                             dtype=float)
+
+                if F_filter is None: F_filter = np.asarray(t_meas, dtype=int)
+                measurements[F_name] -= calibration_curve
+
+                measurements[F_name]  = measurements[F_name][F_filter]
+
+        #    d) theta uses pressure as x-value (and not time)
+        if 'theta' in measurements:
+            measurements_xvalues['theta'] = np.asarray(cfg.get_value('p'),
+                                                       dtype=float)
+
+        # 3. a) determine weights of measurements
+        for (name, value) in measurements.items():
+            iname_w = MEASUREMENTS_NAMES[name] + '_weights'
             value_w = cfg.get_value(iname_w, not_found=None)
             if value_w == None:
                 value_w = 1.0
@@ -101,11 +122,21 @@ class Measurements():
             else:
                 value_w = np.asarray(value_w, dtype=float)
 
+            if not np.alen(value) == np.alen(value_w):
+                print('Length of measurements array and it''s weight has to be '
+                      'the same:\nMeasurement name: ', name,
+                      '\nMeasurements:\n  ', value,
+                      '\nWeights:\n  ', value_w,
+                      '\nLenghts: Measurements: ', np.alen(value),
+                      '  Weights: ', np.alen(value_w))
+                exit(1)
+
             measurements_weights[name] = value_w
 
-        # Weights postpocessing - if all weights are the same, we drop them
+        #    b) weights postpocessing - if all weights are the same, drop them
         if same_weights: measurements_weights = OrderedDict()
 
+        # 4. set all data to internal variables
         self._measurements = measurements
         self._measurements_weights = measurements_weights
         self._measurements_xvalues = measurements_xvalues
