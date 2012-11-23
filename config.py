@@ -187,7 +187,7 @@ def get_ancestors(options_module):
 class ModulesManager():
     def __init__(self):
         available_modules = listdir('modules')
-        for name in ('__init__.py', '__pycache__'):
+        for name in ('__init__.py', '__init__.pyc', '__pycache__'):
             if name in available_modules: available_modules.remove(name)
 
         loaded_modules = {}
@@ -227,7 +227,8 @@ class ModulesManager():
         print('\n\nCentrifuge modules:')
 
         for module_name in sorted(self._available_modules):
-            module = find_module(module_name, submodule='info')
+            module = find_module(module_name, submodule='info', not_found=None)
+            if module is None: continue
             print('\n  %s:' % module_name)
             print('        Experiment types:', module.types)
             if verbose:
@@ -263,18 +264,16 @@ class ModulesManager():
 
         return traverse(module)
 
-    def find_module(self, modname_or_exptype, submodule=''):
+    def find_module(self, modname_or_exptype, submodule='', not_found=None):
         """
           Return an module determined by it's name or the type of experiment.
           Loading of modules is done only on demand.
         """
 
         if not modname_or_exptype in self._modules_names:
-            print('\n\n',modname_or_exptype, self._modules_names,'\n\n')
             print('\nFind module error: Unknown module name or experiment '
-                  'type: "%s".\nAvailable modules are: %s'
-                  % (modname_or_exptype, list(self._modules_names.keys())))
-            exit(1)
+                  'type: "'+ modname_or_exptype + '".\tSkipping...')
+            return not_found
 
         if submodule:
             module_name = (self._modules_names[modname_or_exptype]

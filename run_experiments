@@ -16,14 +16,13 @@ def list_experiments(verbose=True):
                                              'mask']})))))
 
 def list_modules(verbose=True):
-    if modules_list:
-        modman = ModulesManager()
-        modman.echo(verbose)
+    modman = ModulesManager()
+    modman.echo(verbose)
 
 def parse_input():
 
     usage_str = \
-      ('\n  %prog [options] exp_ID, first_experiment[, last_experiment]'
+      ('\n  %prog [options] exp_ID first_experiment [last_experiment]'
        '\n\nArguments:'
        '\n  exp_ID:'
        '\n      ID identifying an experiment (see -l for all available '
@@ -42,14 +41,16 @@ def parse_input():
     optparser.add_option('-m', '--mask', dest='mask', default='',
                          metavar='MASK_NAME',
                          help=("Run given experiment with a mask MASK_NAME "
-                               "file. Used in conjuction with ''-t'' parameter."))
+                               "file. The file \'MASK_NAME.ini\' in the masks "
+                               "directory should exist."))
     optparser.add_option('-c', '--compare', dest='compare_p', default=False,
                          action='store_true',
                          help=("Compare two configuration files."))
     optparser.add_option('-d', '--modules-list', dest='modules_list',
                          action="store_true", default=False,
                          help=("Get the list of all available centrifuge "
-                               "modules"))
+                               "modules. Using the -v option gives also "
+                               "more detailed description of modules."))
     optparser.add_option('-p', '--print-config', dest='print_config_p',
                          action='store_true', default=False,
                          help=('Print the used configuration file for given '
