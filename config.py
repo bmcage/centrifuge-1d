@@ -140,12 +140,17 @@ class Measurements():
         self._measurements = measurements
         self._measurements_weights = measurements_weights
         self._measurements_xvalues = measurements_xvalues
+        self._measurements_times   = t_meas
+        self._times                = t
 
     def dump(self):
         return (self._measurements, self._measurements_weights)
 
     def load(self, raw_data):
         (self._measurements, self._measurements_weights) = raw_data
+
+    def get_times(self):
+        return self._times
 
     def get_names(self):
         return list(self._measurements.keys())

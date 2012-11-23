@@ -109,7 +109,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
     # Initialization
     verbosity = model.verbosity
 
-    measurements_times = model.measurements_times
+    measurements_times = model.measurements.get_times()
 
     measurements_nr = np.alen(measurements_times)
 

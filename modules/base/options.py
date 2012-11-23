@@ -168,16 +168,6 @@ def adjust_cfg(cfg):
             rE = list(rE)
         cfg.set_value('re', rE)
 
-    if not cfg.get_value('measurements_times'):
-        from modules.shared.functions import phases_end_times
-        times = phases_end_times(cfg.get_value('duration', not_found=None),
-                                 cfg.get_value('deceleration_duration',
-                                               not_found=None),
-                                 cfg.get_value('fh_duration', not_found=None),
-                                 cfg.get_value('include_acceleration',
-                                               not_found=True))
-        cfg.set_value('measurements_times', times)
-
 def prior_adjust_cfg(cfg):
     """
       This function is called prior to the adjust_cfg() function. It is intended
