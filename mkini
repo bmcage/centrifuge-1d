@@ -438,6 +438,9 @@ def CSV2data(csv_dir, csv_filebasename):
 ############################################################
 ITERABLE_LISTS = {}
 
+def multiply_list(lst, coef):
+    return [str(float(value) * coef) for value in lst]
+
 def get_iterables_list(exp_type, modman):
 
     def extend_iterables_list(module):
@@ -566,6 +569,8 @@ def process_scanned_data(experiment, experiment_info):
     # Truncate unused values
     for (csv_name, ini_name) in CSV2INI_NAMES.items():
         scanned_force_weights = scanned_data.get_value(csv_name)
+        scanned_force_weights = \
+          multiply_list(scanned_force_weights, 1000.) # kg -> g
         scanned_data.set_value(ini_name,
                                scanned_force_weights[scan_first: (scan_last+1)])
         scanned_data.delete(csv_name)
