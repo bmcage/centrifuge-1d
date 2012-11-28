@@ -164,6 +164,9 @@ def display_status(data_plots=None):
         in_row = 10
         remaining = np.alen(data_computed)
 
+        float_disp_size = 12
+        fstr = '% {}.6f'.format(float_disp_size)
+
         print('\n')
         while remaining > 0:
             if remaining > in_row:
@@ -172,17 +175,17 @@ def display_status(data_plots=None):
                 disp_items = remaining
 
             print('%s measured: ' % name,
-                  disp_items * '% 10.6f' % tuple(data_measured[i0:i0+disp_items]))
+                  disp_items * fstr % tuple(data_measured[i0:i0+disp_items]))
             if disp_all:
                 print('%s computed: ' % name,
-                      disp_items * '% 10.6f' % tuple(data_computed[i0:i0+disp_items]))
+                      disp_items * fstr % tuple(data_computed[i0:i0+disp_items]))
                 print('AbsError: ', name_len * ' ',
-                      disp_items * '% 10.6f' % tuple(abs_error[i0:i0+disp_items]))
+                      disp_items * fstr % tuple(abs_error[i0:i0+disp_items]))
                 print('Error (%):', name_len * ' ',
-                      disp_items * '% 10.2f' % tuple(relerror[i0:i0+disp_items]))
+                      disp_items * fstr % tuple(relerror[i0:i0+disp_items]))
 
             remaining = remaining - disp_items
-            print(108 * '-')
+            print((16 + float_disp_size*in_row) * '-')
             i0 = i0 + in_row
 
         print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
