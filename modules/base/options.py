@@ -93,7 +93,10 @@ def check_cfg(cfg):
     for F_name in ('f_mo', 'f_mt'):
         F = cfg.get_value(F_name)
 
-        if (F is None) or (not cfg.get_value('calc_' + F_name)): continue
+        if (F is None): continue
+        if (not cfg.get_value('calc_' + F_name)):
+            cfg.set_value('calc_' + F_name, None)
+            continue
 
         F_calibration_curve = cfg.get_value(F_name + '_calibration_curve')
 
