@@ -72,7 +72,8 @@ def extract_data(model):
     if not flag:
         print('For given model the solver did not find results. Skipping.')
 
-    extracted_data = {name: (t, value) for (name, value) in measurements}
+    extracted_data = {name: (t, value)
+                      for (name, value) in measurements.items()}
 
     return (flag, extracted_data)
 
