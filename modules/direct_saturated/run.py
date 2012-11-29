@@ -4,7 +4,6 @@ import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.solver import simulate_direct
-from modules.shared.characteristics import calc_f_mo
 
 class direct_saturated_rhs(IDA_RhsFunction):
     def evaluate(self, t, x, xdot, result, model):
@@ -29,6 +28,9 @@ class direct_saturated_rhs(IDA_RhsFunction):
 
 residual_fn = direct_saturated_rhs()
 
+def on_measurement(t, z, model, measurements):
+    MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
+    MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
 def solve(model):
 
     def initialize_z0(z0, model):
@@ -38,33 +40,16 @@ def solve(model):
     def update_init(i, z0, model):
         z0[model.mass_in_idx] = model.wl0
 
-    def add_extra_measurement(t, z, model, measurements):
-         measurements['omega2g'].append(model.find_omega2g(t))
-
-    measurements = {'omega2g': []}
-
-    (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
-                                   update_initial_condition=update_init,
-                                   measurements=measurements,
-                                   take_measurement=add_extra_measurement)
-
-    MI = z[:, model.mass_in_idx].transpose()
-    MO = z[:, model.mass_out_idx].transpose()
-
-    measurements['MI'] = MI
-    measurements['MO'] = MO
-
     if model.calc_f_mo:
-        F_MO = np.empty(MO.shape, dtype=float)
+        omega2g = model.find_omega2g(t)
 
-        omega2gs = measurements['omega2g']
+        measurements.store_calc_f_mo(omega2g, MO,
+                                     model.mo_gc_calibration_curve)
 
-        for (i, omega2g) in enumerate(omega2gs):
-            F_MO[i] = calc_f_mo(omega2g, MO[i], model.mo_gc_calibration_curve)
 
-        measurements['F_MO'] = F_MO
 
-    return (flag, t, z, measurements)
+
+
 
 def extract_data(model):
     (flag, t, z, measurements) = solve(model)
@@ -72,8 +57,9 @@ def extract_data(model):
     if not flag:
         print('For given model the solver did not find results. Skipping.')
 
-    extracted_data = {name: (t, value)
-                      for (name, value) in measurements.items()}
+    extracted_data = \
+      {name: (t, value)
+       for (name, value) in measurements.iterate_calc_measurements()}
 
     return (flag, extracted_data)
 
