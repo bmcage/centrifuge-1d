@@ -198,7 +198,8 @@ class Measurements():
             yield (meas_id, value)
 
     def store_calc_wm(self, u, dy, s1, s2, mass_in, saturated_length,
-                      free_fluid_length, porosity, fl2, fp2):
+                      free_fluid_length, porosity, fl2, fp2, tube_area=1.0,
+                      store=True):
         """
           Determine the amount of water contained in the experiment.
           The amount is the sum of water in inflow chamber (mass_in), outflow
@@ -208,6 +209,10 @@ class Measurements():
           porosity (porosity).
           Also water in filter of length fl2 with porosity fp2 is considered,
           but only for fully saturated filter.
+
+          Arguments:
+          tube_area - the cross-section area of the tube containing the sample
+          store - if set to False, value will not be saved
         """
         # Water mass
         ds = s2 - s1
@@ -216,13 +221,15 @@ class Measurements():
 
         WM_in_tube = (mass_in + porosity*(saturated_length + unsat))
         WM_in_tube += fp2 * fl2
+        WM_in_tube *= tube_area
 
-        WM_total   = WM_in_tube + free_fluid_length
+        WM_total   = WM_in_tube + free_fluid_length * tube_area
 
-        self.store_calc_measurement('WM', WM_total)
-        self.store_calc_measurement('WM_in_tube', WM_in_tube)
+        if store:
+            self.store_calc_measurement('WM', WM_total)
+            self.store_calc_measurement('WM_in_tube', WM_in_tube)
 
-        return WM_total, WM_in_tube
+        return (WM_total, WM_in_tube)
 
     def store_calc_gc(self, u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e,
                       soil_porosity, fl2, fp2, fr2, WM_in_tube, fluid_density,
