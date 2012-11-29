@@ -286,6 +286,82 @@ class Measurements():
 
         return self.store_calc_measurement('F_MO', F)
 
+    def store_calc_cf_mo(self, omega2g, rS, rE, fluid_density, chamber_area):
+        """
+          Computes the centrifugal force acting on the expelled mass based on
+          the assumption of mass being uniformly distributed
+
+          Arguments:
+          chamber_area - the cross-section area of the outflow chamber
+        """
+        raise NotImplementedError('Broken. For calculation the amount of'
+                                  'expelled water needs to be recalculated'
+                                  '- chamber area vs. tube area.')
+        F = omega2g * calc_sat_force(rS, rE, fluid_density) * chamber_area
+        return self.store_calc_measurement('CF_MO', F)
+
+    def store_calc_f_mt(self, omega2g, u, y, dy, r0, s1, s2, mass_in,
+                        d_sat_s, d_sat_e, soil_porosity, fl2, fp2, fr2, l0,
+                        fluid_density, chamber_area):
+        """
+          Determine the centrifugal force of water in the sample. The water
+          on the inflow is taken into account (but not water on the outflow).
+          Computed centrifugal force is measured from the BEGINNING of the soil
+          mple (in the direction from centrifuge axis)
+
+          Arguments:
+          omega2g - value of (omega^2/g) at given time
+          u - relative saturation
+          y - transformed interval where holds: u(x) = u(fl1 + s1 + (s2-s1)y)
+          dy - difference of y: dy = diff(y) = y(i+1) - y(i)
+          r0 - distance from the centrifuge axis to soil sample beginning
+          s1, s2 - interfaces (s1 < s2); between them is the unsaturated part
+          mass_in - water in the inflow chamber
+          d_sat_s - distance of the beginning of saturated part from r0
+          d_sat_e - distance of the end of saturated part from r0
+          soil_porosity - porosity of the soil sample
+          fl2, fp2, fr2 - ending filter length, porosity and distance from
+                          sample beginning (to filter's beginning)
+          chamber_area - the cross-section area of the outflow chamber
+        """
+        F = (calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
+                        soil_porosity, fl2, fp2, fr2, fluid_density)
+             * omega2g * chamber_area)
+        return self.store_calc_measurement('F_MI', F)
+
+    def store_calc_rm(t, u, mass_in, mass_out, s1, s2, model):
+
+        raise NotImplementedError('Calculation of rotational momentum is not '
+                                  'verified and therefore not provided.')
+
+        porosity = model.porosity
+        y  = model.y
+        dy = model.dy
+        L  = model.l0
+        l0_out = L + model.wt_out
+        l_out  = L + model.wt_out - mass_out
+
+        ds = s2 - s1
+
+        P = np.pi * model.d / 4
+        omega2g = find_omega2g(t, model.omega, model)
+
+        # Rotational momentum
+        r0 = model.r0
+        rm_unsat = (porosity * 1/4 * model.density * ds
+                    * (np.power(r0 + s1, 2)*dy[0]*u[0]
+                       + np.power(r0 + s2, 2)*dy[-1]*u[-1]
+                       + np.sum((dy[:-1]+dy[1:]) * u[1:-1]
+                                * np.power(r0 + s1 + ds*y[1:-1], 2))))
+        rm_sat   = (1/6 * model.density
+                    * (porosity * (np.power(r0 + s1, 3) - np.power(r0, 3))
+                       + (np.power(r0, 3) - np.power(r0 - mass_in, 3))
+                       + (np.power(r0 + l0_out, 3) - np.power(r0 + l_out, 3))))
+
+        RM = omega2g * P * (rm_unsat + rm_sat)
+
+        return RM
+
 ##################################################################
 #                     Auxiliary functions                        #
 ##################################################################
