@@ -31,14 +31,6 @@ residual_fn = direct_saturated_rhs()
 def on_measurement(t, z, model, measurements):
     MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
     MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
-def solve(model):
-
-    def initialize_z0(z0, model):
-        z0[model.mass_in_idx]  = model.wl0
-        z0[model.mass_out_idx] = 0.0
-
-    def update_init(i, z0, model):
-        z0[model.mass_in_idx] = model.wl0
 
     if model.calc_f_mo:
         omega2g = model.find_omega2g(t)
@@ -46,10 +38,22 @@ def solve(model):
         measurements.store_calc_f_mo(omega2g, MO,
                                      model.mo_gc_calibration_curve)
 
+def initialize_z0(z0, model):
+    z0[model.mass_in_idx]  = model.wl0
+    z0[model.mass_out_idx] = 0.0
 
+    print('z0', z0)
 
+def update_init(i, z0, model):
+    z0[model.mass_in_idx] = model.wl0
 
+def solve(model):
+    (flag, t, z) = simulate_direct(initialize_z0, model, model.measurements,
+                                   residual_fn,
+                                   update_initial_condition=update_init,
+                                   on_measurement=on_measurement)
 
+    return (flag, t, z, model.measurements)
 
 def extract_data(model):
     (flag, t, z, measurements) = solve(model)
