@@ -13,6 +13,11 @@ MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'F_MO': 'f_mo', 'F_MT': 'f_mt', 'theta': 'theta'}
 
 class Measurements():
+    def __init__(self):
+        self._computed = {}
+        self._indexes  = {}
+        self._measurements_nr = -1
+
     def read(self, cfg):
         from modules.shared.functions import phases_end_times
         from collections import OrderedDict
@@ -123,6 +128,7 @@ class Measurements():
         self._measurements_xvalues = measurements_xvalues
         self._measurements_times   = t_meas
         self._times                = t
+        self._measurements_nr      = np.alen(t)
 
     def dump(self):
         return (self._measurements, self._measurements_weights)
@@ -160,6 +166,119 @@ class Measurements():
 
     def get_xvalues(self):
         return list(self._measurements_xvalues.values())
+
+    def store_calc_measurement(meas_id, value):
+        if not id in self._computed:
+            self._computed[meas_id] = np.empty([self._measurements_nr, ],
+                                          dtype=float)
+            self._indexes[meas_id]  = 0
+
+        self._computed[meas_id][self._indexes[meas_id]] = value
+        self._indexes[meas_id] += 1
+
+        return value
+
+    def reset_calc_measurements(self):
+        indexes = self._indexes
+        for calc_id in indexes.keys():
+            indexes[calc_id] = 0
+
+    def get_calc_measurement(self, meas_id, not_found=None):
+        if meas_id in self._computed: return self._computed[meas_id]
+        else: return not_found
+
+    def iterate_calc_measurements(self):
+        for (meas_id, value) in self._computed.items():
+            yield (meas_id, value)
+
+    def store_calc_wm(self, u, dy, s1, s2, mass_in, saturated_length,
+                      free_fluid_length, porosity, fl2, fp2):
+        """
+          Determine the amount of water contained in the experiment.
+          The amount is the sum of water in inflow chamber (mass_in), outflow
+          chamber + any other source like water in basin (free_fluid_length)
+          and saturated zone (saturated_length) just as unsaturated zone
+          (which is between s1 and s2). The soil is characterized by it's
+          porosity (porosity).
+          Also water in filter of length fl2 with porosity fp2 is considered,
+          but only for fully saturated filter.
+        """
+        # Water mass
+        ds = s2 - s1
+        unsat = ds/2  * (dy[0]* u[0] + dy[-1]*u[-1]
+                         + np.sum((dy[:-1] + dy[1:])*u[1:-1]))
+
+        WM_in_tube = (mass_in + porosity*(saturated_length + unsat))
+        WM_in_tube += fp2 * fl2
+
+        WM_total   = WM_in_tube + free_fluid_length
+
+        self.store_calc_measurement('WM', WM_total)
+        self.store_calc_measurement('WM_in_tube', WM_in_tube)
+
+        return WM_total, WM_in_tube
+
+    def store_calc_gc(self, u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e,
+                      soil_porosity, fl2, fp2, fr2, WM_in_tube, fluid_density,
+                      from_end=None):
+        """
+          Determine the gravitational center of water in the sample. The water
+          on the inflow is taken into account (but not water on the outflow).
+          Computed GC is measured from the BEGINNING of the soil sample
+          (in the direction from centrifuge axis)
+
+          Arguments:
+          u - relative saturation
+          y - transformed interval where holds: u(x) = u(fl1 + s1 + (s2-s1)y)
+          dy - difference of y: dy = diff(y) = y(i+1) - y(i)
+          s1, s2 - interfaces (s1 < s2); between them is the unsaturated part
+          mass_in - water in the inflow chamber
+          d_sat_s - distance of the beginning of saturated part from r0
+          d_sat_e - distance of the end of saturated part from r0
+          soil_porosity - porosity of the soil sample
+          fl2, fp2, fr2 - ending filter length, porosity and distance from
+                          sample beginning (to filter's beginning)
+          WM_in_tube - amount of water contained inside the tube
+          fluid_density - density of used fluid (in g/cm3)
+          from_end - (optional) if specified, computed GC will be returned as
+                     distance from the "from_end" point
+        """
+        r0 = 0.0
+
+        gc =  (calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
+                          soil_porosity, fl2, fp2, fr2, fluid_density)
+                / WM_in_tube)
+
+        if not from_end is None: gc = from_end - gc
+
+        return self.store_calc_measurement('GC', gc)
+
+    def store_calc_f_mo(self, omega2g, mo, MO_calibration_curve):
+        calibration = MO_calibration_curve
+
+        (mo0, gc0) = calibration[0]
+
+        if mo < mo0:
+            print('Amount of water: ', mo, ' is less than first point on the '
+                  'calibration curve: ', calibration[0],'. Cannot proceed, '
+                  'exiting...')
+            exit(1)
+
+        GC = -1.0
+
+        for (mo1, gc1) in calibration[1:]:
+            if mo < mo1:
+                GC = gc0 + (mo - mo0)/(mo1 - mo0) * (gc1 - gc0)
+
+        if GC < 0.0:
+            print('Amount of expelled water: ', mo,  ' is more than the last '
+                  'point on the calibration curve: ', calibration[0],'. Cannot '
+                  'proceed, exiting...')
+            exit(1)
+
+        F = omega2g * GC * mo
+
+        return self.store_calc_measurement('F_MO', F)
 
 ##################################################################
 #                     Auxiliary functions                        #
