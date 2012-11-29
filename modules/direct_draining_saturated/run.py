@@ -317,7 +317,7 @@ def solve(model):
     # Restore modified values
     model.atol = atol_backup
 
-    return (flag, t, z, measurements)
+    return (flag, t, z, model.measurements)
 
 def extract_data(model):
     (flag, t, z, measurements) = solve(model)
