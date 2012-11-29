@@ -161,30 +161,9 @@ class Measurements():
     def get_xvalues(self):
         return list(self._measurements_xvalues.values())
 
-
-def water_mass(u, dy, s1, s2, mass_in, saturated_length, free_fluid_length,
-               porosity, fl2, fp2):
-    """
-      Determine the amount of water contained in the experiment.
-      The amount is the sum of water in inflow chamber (mass_in), outflow
-      chamber + any other source like water in basin (free_fluid_length)
-      and saturated zone (saturated_length) just as unsaturated zone
-      (which is between s1 and s2). The soil is characterized by it's
-      porosity (porosity).
-      Also water in filter of length fl2 with porosity fp2 is considered,
-      but only for fully saturated filter.
-    """
-    # Water mass
-    ds = s2 - s1
-    unsat = ds/2  * (dy[0]* u[0] + dy[-1]*u[-1]
-                     + np.sum((dy[:-1] + dy[1:])*u[1:-1]))
-
-    WM_in_tube = (mass_in + porosity*(saturated_length + unsat))
-    WM_in_tube += fp2 * fl2
-
-    WM_total   = WM_in_tube + free_fluid_length
-
-    return WM_total, WM_in_tube
+##################################################################
+#                     Auxiliary functions                        #
+##################################################################
 
 def calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity, fluid_density):
     ds = s2 - s1
@@ -211,6 +190,30 @@ def calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
         F_sat += fp2 * calc_sat_force(r0+fr2, r0+fr2+fl2, fluid_density)
 
     return F_unsat + F_sat
+
+def water_mass(u, dy, s1, s2, mass_in, saturated_length, free_fluid_length,
+               porosity, fl2, fp2):
+    """
+      Determine the amount of water contained in the experiment.
+      The amount is the sum of water in inflow chamber (mass_in), outflow
+      chamber + any other source like water in basin (free_fluid_length)
+      and saturated zone (saturated_length) just as unsaturated zone
+      (which is between s1 and s2). The soil is characterized by it's
+      porosity (porosity).
+      Also water in filter of length fl2 with porosity fp2 is considered,
+      but only for fully saturated filter.
+    """
+    # Water mass
+    ds = s2 - s1
+    unsat = ds/2  * (dy[0]* u[0] + dy[-1]*u[-1]
+                     + np.sum((dy[:-1] + dy[1:])*u[1:-1]))
+
+    WM_in_tube = (mass_in + porosity*(saturated_length + unsat))
+    WM_in_tube += fp2 * fl2
+
+    WM_total   = WM_in_tube + free_fluid_length
+
+    return WM_total, WM_in_tube
 
 def calc_gc(u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e, soil_porosity,
             fl2, fp2, fr2, WM_in_tube, fluid_density, from_end=None):
