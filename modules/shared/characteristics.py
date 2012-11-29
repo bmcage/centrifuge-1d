@@ -1,6 +1,166 @@
 from __future__ import division
 
 import numpy as np
+from modules.shared.functions import determine_scaling_factor
+from shared import get_directories, flatten
+from os import makedirs, path
+
+# MEASUREMENTS_NAMES are the mapping between the internal
+# denotation of measured data (used during computation and for
+# plotting) and corresponding options that are to be found in
+# configuration inifile(s).
+MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
+                      'F_MO': 'f_mo', 'F_MT': 'f_mt', 'theta': 'theta'}
+
+class Measurements():
+    def read(self, cfg):
+        from modules.shared.functions import phases_end_times
+        from collections import OrderedDict
+
+        measurements = OrderedDict()
+        measurements_xvalues = OrderedDict()
+        measurements_weights = OrderedDict()
+
+        # 1. determine measurements times
+        if cfg.get_value('measurements_times'):
+            t = np.asarray(flatten(cfg.get_value('measurements_times')),
+                           dtype=float)
+            if not t[0] == 0.0:
+                t= np.concatenate(([0.0], t))
+        else:
+            t = phases_end_times(cfg.get_value('duration', not_found=None),
+                                 cfg.get_value('deceleration_duration',
+                                               not_found=None),
+                                 cfg.get_value('fh_duration', not_found=None),
+                                 cfg.get_value('include_acceleration',
+                                               not_found=True))
+
+        t_meas = t[1:]
+        cfg.del_value('measurements_times')
+
+        # 2. a) determine measured data
+        same_weights = True
+        common_weight  = None
+
+        for (name, iname) in MEASUREMENTS_NAMES.items():
+            value = cfg.get_value(iname, not_found=None)
+            if value == None: continue
+
+            if type(value) in [int, float]: value = (value, )
+
+            value = np.asarray(value, dtype=float)
+
+            measurements[name] = value
+            measurements_xvalues[name] = t_meas
+
+            cfg.del_value(iname) # remove from cfg
+
+        #    b) postprocessing MO: MO is has cumulative value
+        if 'MO' in measurements:
+            measurements['MO'] = np.cumsum(measurements['MO'])
+
+        #    c) postprocessing F_MO, F_MT:
+        #           - correct data usind calibration curve
+        #           - filter out values outside the measured times
+        F_filter = None
+        for F_name in ('F_MT', 'F_MO'):
+            if F_name in measurements:
+                calibration_curve = \
+                  np.asarray(cfg.get_value(MEASUREMENTS_NAMES[F_name]
+                                           + '_calibration_curve'),
+                             dtype=float)
+
+                if F_filter is None: F_filter = np.asarray(t_meas, dtype=int)
+                measurements[F_name] -= calibration_curve
+
+                measurements[F_name]  = measurements[F_name][F_filter]
+
+        #    d) theta uses pressure as x-value (and not time)
+        if 'theta' in measurements:
+            measurements_xvalues['theta'] = np.asarray(cfg.get_value('p'),
+                                                       dtype=float)
+
+        # 3. a) determine weights of measurements
+        for (name, value) in measurements.items():
+            iname_w = MEASUREMENTS_NAMES[name] + '_weights'
+            value_w = cfg.get_value(iname_w, not_found=None)
+            if value_w == None:
+                value_w = 1.0
+            else:
+                cfg.del_value(iname_w)
+
+            if same_weights: # are all weights the same float/integer?
+                # (if yes, we don't have to preallocate array for each)
+                if not type(value_w) in [float, int]:
+                    same_weights = False
+                elif common_weight is None:
+                    common_weight = value_w
+                elif common_weight != value_w:
+                    same_weights = False
+
+            if type(value_w) in [float, int]:
+                value_w = value_w * np.ones(value.shape, dtype=float)
+            else:
+                value_w = np.asarray(value_w, dtype=float)
+
+            if not np.alen(value) == np.alen(value_w):
+                print('Length of measurements array and it''s weight has to be '
+                      'the same:\nMeasurement name: ', name,
+                      '\nMeasurements:\n  ', value,
+                      '\nWeights:\n  ', value_w,
+                      '\nLenghts: Measurements: ', np.alen(value),
+                      '  Weights: ', np.alen(value_w))
+                exit(1)
+
+            measurements_weights[name] = value_w
+
+        #    b) weights postpocessing - if all weights are the same, drop them
+        if same_weights: measurements_weights = OrderedDict()
+
+        # 4. set all data to internal variables
+        self._measurements = measurements
+        self._measurements_weights = measurements_weights
+        self._measurements_xvalues = measurements_xvalues
+        self._measurements_times   = t_meas
+        self._times                = t
+
+    def dump(self):
+        return (self._measurements, self._measurements_weights)
+
+    def load(self, raw_data):
+        (self._measurements, self._measurements_weights) = raw_data
+
+    def get_times(self):
+        return self._times
+
+    def get_names(self):
+        return list(self._measurements.keys())
+
+    def get_values(self, scaling=True):
+        return list(self._measurements.values())
+
+    def get_scales(self, scaling_coefs={}):
+        scales = []
+
+        for (name, measurement) in self._measurements.items():
+
+            if name in scaling_coefs:
+                scaling_coef = scaling_coefs[name]
+            else:
+                scaling_coef = determine_scaling_factor(measurement)
+
+            data_scale = scaling_coef * np.ones(measurement.shape, dtype=float)
+
+            scales.append(data_scale)
+
+        return scales
+
+    def get_weights(self):
+        return list(self._measurements_weights.values())
+
+    def get_xvalues(self):
+        return list(self._measurements_xvalues.values())
+
 
 def water_mass(u, dy, s1, s2, mass_in, saturated_length, free_fluid_length,
                porosity, fl2, fp2):
