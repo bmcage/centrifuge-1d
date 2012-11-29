@@ -233,7 +233,7 @@ class Measurements():
 
     def store_calc_gc(self, u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e,
                       soil_porosity, fl2, fp2, fr2, WM_in_tube, fluid_density,
-                      from_end=None):
+                      tube_area=1.0, from_end=None):
         """
           Determine the gravitational center of water in the sample. The water
           on the inflow is taken into account (but not water on the outflow).
@@ -253,6 +253,7 @@ class Measurements():
                           sample beginning (to filter's beginning)
           WM_in_tube - amount of water contained inside the tube
           fluid_density - density of used fluid (in g/cm3)
+          tube_area - the cross-section area of the tube containing the sample
           from_end - (optional) if specified, computed GC will be returned as
                      distance from the "from_end" point
         """
@@ -260,7 +261,7 @@ class Measurements():
 
         gc =  (calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
                           soil_porosity, fl2, fp2, fr2, fluid_density)
-                / WM_in_tube)
+                / WM_in_tube * tube_area)
 
         if not from_end is None: gc = from_end - gc
 
