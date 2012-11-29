@@ -132,6 +132,8 @@ def simulate_direct(initialize_z0, model, residual_fn,
         t[0]    = t0
         z[0, :] = z0
         i = 1
+        if not take_measurement is None:
+            take_measurement(t0, z0, model, measurements)
     else:
         i = 0
     t_meas = measurements_times[i]
