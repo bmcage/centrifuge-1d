@@ -8,17 +8,19 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
                       'Reached time: % 10.6f\nExpected time: % 10.6f')
 
 
-def simulate_direct(initialize_z0, model, residual_fn,
+def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None,
                     on_phase_change = None, continue_on_root_found=None,
-                    measurements={}, take_measurement=None):
+                    on_measurement=None):
     """
       initialize_z0 - function with signature f(z0, model), where:
                         z0 - vector to be filled with initial values
                         model - argument supplied to simulate_direct() function.
                     Returns nothing.
       model       - model variable containing data needed to run simulation
+      measurements - measurements structure. This value is also passed to the
+                    'on_measurement' function (if specified).
       residual_fn - function with signature f(t, z, zdot, result, model)
                     where:
                         t - current time
@@ -82,21 +84,15 @@ def simulate_direct(initialize_z0, model, residual_fn,
                             'd' - deceleration phase
                             'g' - gravitation only
                     Returns nothing.
-      measurements - None or measurements structure. This value is passed when
-                    a measurement has to be added (see also 'take_measurement'
-                    argument). This structure is user specified and used only
-                    as argument to 'take_measurements' function.
-      take_measurement - None or a function with signature
+      on_measurement - None or a function with signature
                     f(t, z, model, measurements). The function is called when
                     a time of measurement is reached.
                     Function arguments:
                         t - current time
                         z - current variables vector
                         model - supplied model variable
-                        measurements - user specified variable (see also
-                            'measurements' argument) in which extra measurements
-                            are to be stored. If the user does not specify one,
-                            by default it's an (empty) dict.
+                        measurements - the measurements object (see also the
+                            'measurements' argument).
                     Returns nothing.
     """
 
@@ -107,9 +103,11 @@ def simulate_direct(initialize_z0, model, residual_fn,
                         "functions 'nr_rootfns'.")
 
     # Initialization
+    measurements.reset_calc_measurements() # reset if previously stored values
+
     verbosity = model.verbosity
 
-    measurements_times = model.measurements.get_times()
+    measurements_times = measurements.get_times()
 
     measurements_nr = np.alen(measurements_times)
 
@@ -132,8 +130,8 @@ def simulate_direct(initialize_z0, model, residual_fn,
         t[0]    = t0
         z[0, :] = z0
         i = 1
-        if not take_measurement is None:
-            take_measurement(t0, z0, model, measurements)
+        if not on_measurement is None:
+            on_measurement(t0, z0, model, measurements)
     else:
         i = 0
     t_meas = measurements_times[i]
@@ -235,9 +233,9 @@ def simulate_direct(initialize_z0, model, residual_fn,
                         return (False, t[:i], z[:i, :])
                 else: # success or t_stop reached
                     if (flag == 0) or (t_out == t_meas):
-                        if not take_measurement is None:
-                            take_measurement(t_out, z[i, :], model,
-                                             measurements)
+                        if not on_measurement is None:
+                            on_measurement(t_out, z[i, :], model,
+                                           measurements)
 
                         t[i] = t_out
                         i += 1
