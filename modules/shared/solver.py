@@ -354,6 +354,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
     measurements_names = measurements.get_names()
     data_M = measurements.get_values()
+
     user_scales = model.measurements_scale_coefs
     if user_scales is None: user_scales = {}
     measurements_scales = \
@@ -400,6 +401,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
             # direct computation went O.K.
             if model.verbosity > 0:
                 status_items = []
+
                 for (name, value_C, value_M) in zip(measurements_names,
                                                     data_C, data_M):
                     status_items.append(mk_status_item(name, value_C, value_M))
