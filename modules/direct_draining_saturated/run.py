@@ -5,8 +5,6 @@ import numpy as np
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.functions import right_derivative, y2x, show_results
 from modules.shared.vangenuchten import h2Kh, dudh, h2u
-from modules.shared.characteristics import water_mass, calc_gc, calc_rm, \
-     calc_cf_i, calc_f_mo
 from modules.shared.solver import simulate_direct
 
 #TODO: will the new characteristics work also for the previous
@@ -88,9 +86,11 @@ class centrifuge_residual(IDA_RhsFunction):
 
             u = h2u(h, n, m, gamma)
             (WM_total, WM_in_tube) = \
-              water_mass(u, model.dy, s1, s2, z[model.mass_in_idx], L-s2,
-                         z[model.mass_out_idx], model.porosity, model.fl2,
-                         model.fp2)
+              model.measurements.store_calc_wm(u, model.dy, s1, s2,
+                                               z[model.mass_in_idx], L-s2,
+                                               z[model.mass_out_idx],
+                                               model.porosity, model.fl2,
+                                               model.fp2, store=False)
             result[last_idx]  = hdot[-1]
             result[model.s2_idx] = WM_total - model.wm0
             result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_sat
@@ -137,6 +137,46 @@ class centrifuge_residual(IDA_RhsFunction):
 
 RESIDUAL_FN = centrifuge_residual()
 
+def on_measurement(t, z, model, measurements):
+
+    s1 = measurements.store_calc_measurement('s1', z[model.s1_idx])
+    s2 = measurements.store_calc_measurement('s2', z[model.s2_idx])
+    MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
+    MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
+    if model.calc_wm:
+        u = measurements.store_calc_u(z[model.first_idx: model.last_idx+1],
+                                      model.n, model.m, model.gamma)
+
+        (WM, WM_in_tube) = \
+          measurements.store_calc_wm(u, model.dy, s1, s2, MI,
+                                     model.l0-s2, MO, model.porosity,
+                                     model.fl2, model.fp2)
+    if model.calc_gc:
+        measurements.store_calc_gc(u, model.y, model.dy, s1, s2,
+                                   MI, s2, model.l0, model.porosity,
+                                   model.fl2, model.fp2, model.l0,
+                                   WM_in_tube, model.density,
+                                   from_end=model.l0 + model.fl2)
+    if model.calc_rm:
+        measurements.store_calc_rm(t, u, MI, s1, s2, model)
+
+    if model.calc_cf or model.calc_f_mo or model.calc_f_mt:
+        omega2g = model.find_omega2g(t)
+
+    if model.calc_f_mt:
+        l0 = model.l0
+        rL = model.rE - model.fl2
+        r0 = model.re - model.fl2 - l0
+
+        measurements.store_calc_f_mt(omega2g, u, model.y, model.dy, r0,
+                                     s1, s2, MI, s2, l0, model.porosity,
+                                     model.fl2, model.fp2, l0,
+                                     model.density)
+
+    if model.calc_f_mo:
+        measurements.store_calc_f_mo(omega2g, MO,
+                                     model.mo_gc_calibration_curve)
+
 def solve(model):
     # define s1, s2, mass_in, mass_out, u0, wm0, wm_in_tube0
     initialization_data = {'u0': None, 'wm0': 0.0, 'wm_in_tube0': 0.0}
@@ -152,6 +192,21 @@ def solve(model):
 
     s1 = 0.0
     mass_in = mass_out = 0.0
+
+    z0[model.s1_idx] = s1
+    z0[model.s2_idx] = s2
+    z0[model.mass_in_idx]  = mass_in
+    z0[model.mass_out_idx] = mass_out
+
+    # assign value to u0, WM0 and wm0 (wm0 is needed for mass balance)
+    u0 = h2u(z0[model.first_idx: model.last_idx+1],
+             model.n, model.m, model.gamma)
+    (wm0, wm_in_tube0) = \
+      model.measurements.store_calc_wm(u0, model.dy, s1, s2, mass_in,
+                                       model.l0-s2, mass_out, model.porosity,
+                                       model.fl2, model.fp2, store=False)
+
+    model.wm0 = wm0
 
     # z0 inicialization
     def initialize_z0(z0, model):
@@ -251,8 +306,6 @@ def solve(model):
         zp0[first_idx+1:last_idx] = \
           (dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt + y[1:-1]*ds2dt)
            - 2./(porosity*du_dh[1:-1]*(dy[:-1] + dy[1:])*ds) * (q12[1:] - q12[:-1]))
-    def add_extra_measurement(t, z, model, measurements):
-         measurements['omega2g'].append(model.find_omega2g(t))
 
     # Initialization
     if model.rb_type == 3:
@@ -273,110 +326,16 @@ def solve(model):
     else:
         zp0_init = None
 
-    if model.calc_cf or model.calc_f_mo or model.calc_f_mt:
-        take_measurement_fn = add_extra_measurement
-    else:
-        take_measurement_fn = None
-
-    measurements = {'omega2g': []}
-
     # Computation
-    (flag, t, z) = simulate_direct(initialize_z0, model, RESIDUAL_FN,
+    (flag, t, z) = simulate_direct(initialize_z0, model, model.measurements,
+                                   RESIDUAL_FN,
                                    root_fn = None, nr_rootfns=None,
                                    initialize_zp0=zp0_init,
                                    algvars_idx=algvars_idx,
-                                   measurements=measurements,
-                                   take_measurement=take_measurement_fn)
+                                   on_measurement=on_measurement)
 
     # Restore modified values
     model.atol = atol_backup
-
-    # Results
-    k  = np.alen(t)
-    s1 = z[:, model.s1_idx]
-    s2 = z[:, model.s2_idx]
-    MI = z[:, model.mass_in_idx].transpose()
-    MO = z[:, model.mass_out_idx].transpose()
-
-    (u0, wm0) = (initialization_data['u0'], initialization_data['wm0'])
-    wm_in_tube0 = initialization_data['wm_in_tube0']
-
-    measurements['MI'] = MI
-    measurements['MO'] = MO
-
-    if model.calc_wm:
-        h  = z[:, model.first_idx: model.last_idx+1]
-        u  = np.empty([k, model.inner_points+2], dtype=float)
-
-        WM = np.empty(t.shape, dtype=float)
-        WM_in_tube = np.empty(t.shape, dtype=float)
-
-        u[0, :] = u0
-        WM[0]   = wm0
-        WM_in_tube[0] = wm_in_tube0
-        for i in range(1, k):
-            u[i, :] = h2u(h[i, :], model.n, model.m, model.gamma)
-
-            (wm_total, wm_in_tube) = \
-              water_mass(u[i, :], model.dy, s1[i], s2[i], MI[i],
-                         model.l0-s2[i], MO[i], model.porosity, model.fl2,
-                         model.fp2)
-            WM[i]         = wm_total
-            WM_in_tube[i] = wm_in_tube
-
-        measurements['u'] = u
-        measurements['WM'] = WM
-        measurements['WM_in_tube'] = WM_in_tube
-
-    if model.calc_gc:
-        GC = np.empty(t.shape, dtype=float)
-
-        for i in range(k):
-            GC[i] = calc_gc(u[i, :], model.y, model.dy, s1[i], s2[i],
-                            MI[i], s2[i], model.l0, model.porosity,
-                            model.fl2, model.fp2, model.l0, WM_in_tube[i],
-                            model.density, from_end=model.l0 + model.fl2)
-
-        measurements['GC'] = GC
-
-    if model.calc_rm:
-        RM = np.empty(t.shape, dtype=float)
-
-        for i in range(k):
-            RM[i] = calc_rm(t[i], u[i, :], MI[i], s1[i], s2[i], model)
-
-        measurements['RM'] = RM
-
-    if model.calc_cf or model.calc_f_mo or model.calc_f_mt:
-        omega2gs = measurements['omega2g']
-
-    if model.calc_cf:
-        CF = np.empty(t.shape, dtype=float)
-
-        rL = model.rE - model.fl2
-        iterable_l0_p = (type(l0) in (list, tuple))
-        if iterable_l0_p:
-            l0 = model._get_iterable_value('l0')
-        else:
-            r0 = model.re - model.fl2 - model.l0
-
-        for (i, omega2g) in enumerate(omega2gs):
-            if iterable_l0_p:
-                r0 = rL - l0[i]
-            CF[i] = calc_cf_i(omega2g, u[i, :], model.y, model.dy, r0, s1[i],
-                            s2[i], MI[i], s2[i], model.l0, model.porosity,
-                            model.fl2, model.fp2, model.l0, model.density)
-
-        measurements['CF'] = CF
-
-    if model.calc_f_mo:
-        F_MO = np.empty(MO.shape, dtype=float)
-
-        for (i, omega2g) in enumerate(omega2gs):
-            F_MO[i] = calc_f_mo(omega2g, MO[i],
-                                model.mo_gc_calibration_curve)
-
-        measurements['F_MO'] = F_MO
 
     return (flag, t, z, measurements)
 
@@ -394,7 +353,7 @@ def extract_data(model):
     extracted_data = {'h': (x, h, t),
                       's1': (t, s1), 's2': (t, s2)}
 
-    for (name, value) in measurements.items():
+    for (name, value) in measurements.iterate_calc_measurements():
         if name == 'u':
             extracted_data[name] = (x, value.transpose(), t)
         else:
