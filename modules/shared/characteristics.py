@@ -131,10 +131,16 @@ class Measurements():
         self._measurements_nr      = np.alen(t)
 
     def dump(self):
-        return (self._measurements, self._measurements_weights)
+        return (self._measurements, self._measurements_weights,
+                self._measurements_xvalues, self._measurements_times,
+                self._times, self._measurements_nr, self._computed,
+                self._indexes)
 
     def load(self, raw_data):
-        (self._measurements, self._measurements_weights) = raw_data
+        (self._measurements, self._measurements_weights,
+         self._measurements_xvalues, self._measurements_times,
+         self._times, self._measurements_nr, self._computed,
+         self._indexes) = raw_data
 
     def get_times(self):
         return self._times
