@@ -173,8 +173,8 @@ class Measurements():
     def get_xvalues(self):
         return list(self._measurements_xvalues.values())
 
-    def store_calc_measurement(meas_id, value):
-        if not id in self._computed:
+    def store_calc_measurement(self, meas_id, value):
+        if not meas_id in self._computed:
             self._computed[meas_id] = np.empty([self._measurements_nr, ],
                                           dtype=float)
             self._indexes[meas_id]  = 0
