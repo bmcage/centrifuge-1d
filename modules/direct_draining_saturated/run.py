@@ -160,7 +160,7 @@ def on_measurement(t, z, model, measurements):
     if model.calc_rm:
         measurements.store_calc_rm(t, u, MI, s1, s2, model)
 
-    if model.calc_cf or model.calc_f_mo or model.calc_f_mt:
+    if model.calc_cf_mo or model.calc_f_mo or model.calc_f_mt:
         omega2g = model.find_omega2g(t)
 
     if model.calc_f_mt:

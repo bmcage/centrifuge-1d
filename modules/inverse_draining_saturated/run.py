@@ -32,13 +32,12 @@ def solve(model):
 
         return result
 
-    calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm',
-                                   'calc_cf', 'calc_f_mo')) # backup
+    calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm', 'calc_f_mt',
+                                   'calc_f_mo', 'calc_cf_mo')) # backup
     measurements_names = model.measurements.get_names()
-    model.calc_gc   = 'GC' in measurements_names
-    model.calc_rm   = 'RM' in measurements_names
-    model.calc_cf   = 'CF' in measurements_names
-    model.calc_f_mo = 'F_MO' in measurements_names
+    for name in ('GC', 'RM', 'F_MT', 'F_MO', 'CF_MO'):
+        # calculate measurement for direct problem only if we have measurement
+        setattr(model, 'calc_'+name.lower(), name in measurements_names)
     model.calc_wm   = model.calc_gc or model.calc_rm
 
     (inv_params, cov) = \
