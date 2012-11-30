@@ -718,11 +718,8 @@ class ModelParameters:
                 setattr(self, 'm', 1.-1./value)
 
     def get_parameters(self, parameters):
-        params = {}
-        for key in parameters:
-            if hasattr(self, key):
-                params[key] = getattr(self, key)
-        return params
+        return {key: getattr(self, key)
+                for key in parameters if hasattr(self, key) }
 
     def next_iteration(self):
         """
