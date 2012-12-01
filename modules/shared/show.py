@@ -104,10 +104,12 @@ def nd2strlist(nd):
     return result
 
 # Default unit is the first one
-DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa', 'none': ''}
+DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
+                 'weight': 'g', 'none': ''}
 DATA_UNITS = {'length': ('cm', 'mm', 'm'),
               'time': ('min', 's', 'h'),
               'pressure': ('Pa', 'kPa'),
+              'weight': ('kg', 'g'),
               'none': ('', )}
 
 dg_label_time = "Time [{}]"
@@ -134,18 +136,23 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                   'WM_in_tube': ((dg_label_time, "Water mass in tube [{}]"),
                                  dg_unit_time_length),
                   'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
-                            ('none', 'pressure'))}
-DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('s1', 's2'))
+                            ('none', 'pressure')),
+                  'F_MO': ((dg_label_time, "Expelled water weight in cen. [{}]"),
+                           ('time', 'weight')),
+                  'F_MT': ((dg_label_time, "Water in tube weight in cen. [{}]"),
+                           ('time', 'weight'))}
+DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('F_MT', 'F_MO'),
+            ('s1', 's2'))
 
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
     # units used for computation are: cm, s, pa and "no units"
-    if unit in ['cm', 's', 'pa', '']: coef = 1.0
+    if unit in ['cm', 's', 'pa', 'g', '']: coef = 1.0
     elif unit == 'mm': coef = 10.
     elif unit == 'min': coef = 1./60.
     elif unit == 'h': coef = 1./3600.
     elif unit == 'm': coef = 0.01
-    elif unit == 'kpa': coef = 0.001
+    elif unit in ['kpa', 'kg']: coef = 0.001
     else:
         print('Unknown unit:', unit_base, '\nKnown units are only:', DATA_UNITS)
         exit(1)
