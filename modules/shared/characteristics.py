@@ -425,7 +425,7 @@ class Measurements():
         F = (calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
                         soil_porosity, fl2, fp2, fr2, fluid_density)
              * omega2g * chamber_area)
-        return self.store_calc_measurement('F_MI', F)
+        return self.store_calc_measurement('F_MT', F)
 
     def store_calc_rm(t, u, mass_in, mass_out, s1, s2, model):
 
