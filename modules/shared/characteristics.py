@@ -14,12 +14,31 @@ MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'F_MO': 'f_mo', 'F_MT': 'f_mt', 'theta': 'theta'}
 
 class Measurements():
+    """
+    This class is for handling with measurements of all types - measured data
+    just as computed data. It reads needed informations from a configuration
+    object and/or from saved data to files.
+    For handling the (external) measurements it transforms the data to needed
+    format and stores also additional information (weights of individual
+    measurements i.e. the importance just as scaling them to avoid too wide
+    range of the measured data that may lead to unintentional "preference" of
+    larger-value measuremts).
+    For the computed data it contains methods for computing needing measured
+    value and storing the value, together with easy re-setting (meant for
+    running an inverse problem to avoid unnecessary re-allocation).
+    """
     def __init__(self):
         self._computed = {}
         self._indexes  = {}
         self._measurements_nr = -1
 
     def read(self, cfg):
+        """
+        Read and transform data from configuration object.
+        Data are the (external) measurements. Read and save also additional
+        information - measurements times, weights and scaling.
+        """
+
         from modules.shared.functions import phases_end_times
         from collections import OrderedDict
 
@@ -61,7 +80,7 @@ class Measurements():
 
             cfg.del_value(iname) # remove from cfg
 
-        #    b) postprocessing MO: MO is has cumulative value
+        #    b) postprocessing MO: MO is a cumulative value
         if 'MO' in measurements:
             measurements['MO'] = np.cumsum(measurements['MO'])
 
@@ -132,27 +151,35 @@ class Measurements():
         self._measurements_nr      = np.alen(t)
 
     def dump(self):
+        """ Collect stored data to simple format for saving. """
         return (self._measurements, self._measurements_weights,
                 self._measurements_xvalues, self._measurements_times,
                 self._times, self._measurements_nr, self._computed,
                 self._indexes)
 
     def load(self, raw_data):
+        """ Restore data in simple format from saved file. """
         (self._measurements, self._measurements_weights,
          self._measurements_xvalues, self._measurements_times,
          self._times, self._measurements_nr, self._computed,
          self._indexes) = raw_data
 
     def get_times(self):
+        """ Return time of measurements. """
         return self._times
 
     def get_names(self):
+        """ Return names of (external) measurements that are stored. """
         return list(self._measurements.keys())
 
     def get_values(self, scaling=True):
+        """ Return values of (external) measurements that are stored. """
         return list(self._measurements.values())
 
     def get_scales(self, scaling_coefs={}):
+        """
+        Return scaling coeficients of (external) measurements that are stored.
+        """
         scales = []
 
         for (name, measurement) in self._measurements.items():
@@ -169,12 +196,15 @@ class Measurements():
         return scales
 
     def get_weights(self):
+        """ Return weights of (external) measurements that are stored. """
         return list(self._measurements_weights.values())
 
     def get_xvalues(self):
+        """ Return x-axis values of (external) measurements that are stored. """
         return list(self._measurements_xvalues.values())
 
     def store_calc_measurement(self, meas_id, value):
+        """ Store (calculated) value of measurement. """
         if not meas_id in self._computed:
             self._computed[meas_id] = np.empty([self._measurements_nr, ],
                                           dtype=float)
@@ -186,19 +216,29 @@ class Measurements():
         return value
 
     def reset_calc_measurements(self):
+        """ Reset all calculated values of measurements. """
         indexes = self._indexes
         for calc_id in indexes.keys():
             indexes[calc_id] = 0
 
     def get_calc_measurement(self, meas_id, not_found=None):
+        """ Return stored value of calculated measurements with ID meas_id. """
         if meas_id in self._computed: return self._computed[meas_id]
         else: return not_found
 
     def iterate_calc_measurements(self):
+        """ Iterate over stored values of calculated measurements. """
         for (meas_id, value) in self._computed.items():
             yield (meas_id, value)
 
     def store_calc_u(self, h, n, m, gamma):
+        """
+        Calculate and store relative saturation u.
+
+        Arguments:
+        h - hydraulic head
+        n, m, gamma - corresponding van Genuchten parameters
+        """
         meas_id = 'u'
         if not meas_id in self._computed:
             self._computed[meas_id] = \
@@ -216,7 +256,7 @@ class Measurements():
                       free_fluid_length, porosity, fl2, fp2, tube_area=1.0,
                       store=True):
         """
-          Determine the amount of water contained in the experiment.
+          Calculate and store the value of water contained in the experiment.
           The amount is the sum of water in inflow chamber (mass_in), outflow
           chamber + any other source like water in basin (free_fluid_length)
           and saturated zone (saturated_length) just as unsaturated zone
@@ -226,6 +266,20 @@ class Measurements():
           but only for fully saturated filter.
 
           Arguments:
+          u - relative saturation
+          dy - difference of y: dy = diff(y) = y(i+1) - y(i)
+          s1, s2 - interfaces (s1 < s2); between them is the unsaturated part
+          mass_in - water in the inflow chamber
+          saturated_length - length of saturated part inside the sample
+          free_fluid_length - length of mass outside the sample (measured
+                     to the 1D length relatively to the tube diameter)
+          soil_porosity - porosity of the soil sample
+          fl2, fp2 - ending filter length, porosity and distance from
+                     sample beginning (to filter's beginning)
+          fluid_density - density of used fluid (in g/cm3)
+          tube_area - the cross-section area of the tube containing the sample
+          from_end - (optional) if specified, computed GC will be returned as
+                     distance from the "from_end" point
           tube_area - the cross-section area of the tube containing the sample
           store - if set to False, value will not be saved
         """
@@ -250,8 +304,9 @@ class Measurements():
                       soil_porosity, fl2, fp2, fr2, WM_in_tube, fluid_density,
                       tube_area=1.0, from_end=None):
         """
-          Determine the gravitational center of water in the sample. The water
-          on the inflow is taken into account (but not water on the outflow).
+          Calculate and store the value of the gravitational center of water
+          contained in the sample - the water on the inflow is taken into
+          account (but not the water in the outflow chamber).
           Computed GC is measured from the BEGINNING of the soil sample
           (in the direction from centrifuge axis)
 
@@ -282,7 +337,26 @@ class Measurements():
 
         return self.store_calc_measurement('GC', gc)
 
-    def store_calc_f_mo(self, omega2g, mo, MO_calibration_curve):
+    def store_calc_f_mo(self, omega2g, mo, MO_calibration_curve, tube_area):
+        """
+          Calculate and store the value of the calculated centrifugal force
+          caused by the expelled water in water chamber. More preciselly it's
+          the weight that would be measured in 1g environment, i.e. W=F/g with
+          F being the centrifugal force and g the normal Gravitational
+          acceleration.
+
+          Arguments:
+          omega2g - value of omega^2/g, where omega is the rotational speed and
+                    g is the gravitation acceleration ~981 cm/s^2
+          mo      - amount of expelled water in gramms
+          MO_calibration_curve - the curve converting the the amount of expelled
+                    water to the value of the gravitational center of the
+                    expelled water.
+          tube_area - the cross-section area of the tube containing the sample
+                    (should not be contained in the mo?)
+
+          Returns the weight W.
+        """
         calibration = MO_calibration_curve
 
         (mo0, gc0) = calibration[0]
@@ -327,10 +401,11 @@ class Measurements():
                         d_sat_s, d_sat_e, soil_porosity, fl2, fp2, fr2, l0,
                         fluid_density, chamber_area):
         """
-          Determine the centrifugal force of water in the sample. The water
-          on the inflow is taken into account (but not water on the outflow).
-          Computed centrifugal force is measured from the BEGINNING of the soil
-          mple (in the direction from centrifuge axis)
+          Calculate and store the value of the centrifugal force of water in
+          the sample. The water on the inflow is taken into account, but not
+          the water on the outflow. Computed centrifugal force is measured
+          from the BEGINNING of the soil sample (in the direction from
+           centrifuge axis)
 
           Arguments:
           omega2g - value of (omega^2/g) at given time
