@@ -15,129 +15,15 @@ except:
     import configparser
 from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
      DEFAULTS_ININAME, CONSTANTS_ININAME
-from modules.shared.functions import determine_scaling_factor
-from shared import parse_value, get_directories
-from os import listdir, makedirs, path
+from shared import parse_value, get_directories, yn_prompt
+from os import listdir, path
 from sys import modules as sysmodules
 from types import MethodType
+from modules.shared.characteristics import Measurements
 
 ##################################################################
 #                Internal configuration settings                 #
 ##################################################################
-# MEASUREMENTS_NAMES are the mapping between the internal
-# denotation of measured data (used during computation and for
-# plotting) and corresponding options that are to be found in
-# configuration inifile(s).
-MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
-                      'CF': 'cf', 'theta': 'theta'}
-
-class Measurements():
-    def read(self, cfg):
-        from modules.shared.functions import phases_end_times
-        from collections import OrderedDict
-
-        measurements = OrderedDict()
-        measurements_xvalues = OrderedDict()
-        measurements_weights = OrderedDict()
-
-        t = phases_end_times(cfg.get_value('duration', not_found=None),
-                             cfg.get_value('deceleration_duration',
-                                           not_found=None),
-                             cfg.get_value('fh_duration', not_found=None),
-                             cfg.get_value('include_acceleration',
-                                               not_found=True))
-        if not t is None:
-            t_meas = t[1:]
-
-        same_weights = True
-        common_weight  = None
-
-        for (name, iname) in MEASUREMENTS_NAMES.items():
-            value = cfg.get_value(iname, not_found=None)
-            if value == None: continue
-
-            # Process measurements
-            if type(value) in [int, float]:
-                value = (value, )
-            value = np.asarray(value, dtype=float)
-
-            if name == 'MO':
-                value = np.cumsum(value)
-
-            measurements[name] = value
-
-            if name == 'theta':
-                measurements_xvalues[name] = np.asarray(cfg.get_value('p'),
-                                                      dtype=float)
-            else:
-                measurements_xvalues[name] = t_meas
-
-            cfg.del_value(iname) # remove from cfg
-
-            # Process measurements weights
-            iname_w = iname + '_weights'
-            value_w = cfg.get_value(iname_w, not_found=None)
-            if value_w == None:
-                value_w = 1.0
-            else:
-                cfg.del_value(iname_w)
-
-            if same_weights: # are all weights the same float/integer?
-                # (if yes, we don't have to preallocate array for each)
-                if not type(value_w) in [float, int]:
-                    same_weights = False
-                elif common_weight is None:
-                    common_weight = value_w
-                elif common_weight != value_w:
-                    same_weights = False
-
-            if type(value_w) in [float, int]:
-                value_w = value_w * np.ones(value.shape, dtype=float)
-            else:
-                value_w = np.asarray(value_w, dtype=float)
-
-            measurements_weights[name] = value_w
-
-        # Weights postpocessing - if all weights are the same, we drop them
-        if same_weights: measurements_weights = OrderedDict()
-
-        self._measurements = measurements
-        self._measurements_weights = measurements_weights
-        self._measurements_xvalues = measurements_xvalues
-
-    def dump(self):
-        return (self._measurements, self._measurements_weights)
-
-    def load(self, raw_data):
-        (self._measurements, self._measurements_weights) = raw_data
-
-    def get_names(self):
-        return list(self._measurements.keys())
-
-    def get_values(self, scaling=True):
-        return list(self._measurements.values())
-
-    def get_scales(self, scaling_coefs={}):
-        scales = []
-
-        for (name, measurement) in self._measurements.items():
-
-            if name in scaling_coefs:
-                scaling_coef = scaling_coefs[name]
-            else:
-                scaling_coef = determine_scaling_factor(measurement)
-
-            data_scale = scaling_coef * np.ones(measurement.shape, dtype=float)
-
-            scales.append(data_scale)
-
-        return scales
-
-    def get_weights(self):
-        return list(self._measurements_weights.values())
-
-    def get_xvalues(self):
-        return list(self._measurements_xvalues.values())
 
 class DataStorage():
     def __init__(self):
@@ -176,7 +62,6 @@ class DataStorage():
 
         return True
 
-
 ##################################################################
 #                   ModulesManager class                         #
 ##################################################################
@@ -187,7 +72,7 @@ def get_ancestors(options_module):
 class ModulesManager():
     def __init__(self):
         available_modules = listdir('modules')
-        for name in ('__init__.py', '__pycache__'):
+        for name in ('__init__.py', '__init__.pyc', '__pycache__'):
             if name in available_modules: available_modules.remove(name)
 
         loaded_modules = {}
@@ -227,7 +112,8 @@ class ModulesManager():
         print('\n\nCentrifuge modules:')
 
         for module_name in sorted(self._available_modules):
-            module = find_module(module_name, submodule='info')
+            module = find_module(module_name, submodule='info', not_found=None)
+            if module is None: continue
             print('\n  %s:' % module_name)
             print('        Experiment types:', module.types)
             if verbose:
@@ -263,18 +149,16 @@ class ModulesManager():
 
         return traverse(module)
 
-    def find_module(self, modname_or_exptype, submodule=''):
+    def find_module(self, modname_or_exptype, submodule='', not_found=None):
         """
           Return an module determined by it's name or the type of experiment.
           Loading of modules is done only on demand.
         """
 
         if not modname_or_exptype in self._modules_names:
-            print('\n\n',modname_or_exptype, self._modules_names,'\n\n')
             print('\nFind module error: Unknown module name or experiment '
-                  'type: "%s".\nAvailable modules are: %s'
-                  % (modname_or_exptype, list(self._modules_names.keys())))
-            exit(1)
+                  'type: "'+ modname_or_exptype + '".\tSkipping...')
+            return not_found
 
         if submodule:
             module_name = (self._modules_names[modname_or_exptype]
@@ -296,21 +180,6 @@ class ModulesManager():
 ##################################################################
 #                   Configuration class                          #
 ##################################################################
-
-def flatten(cfg):
-    cfg_dict = cfg._cfg_dict
-
-    def flatten_dict(base_dict, dict_tree):
-        for (key, value) in dict_tree.items():
-            if type(value) == dict:
-                dict_flatten(base_dict, value)
-            else:
-                base_dict[key] = value
-
-    flattened_cfg = Configuration()
-    flattened_cfg._cfg_dict = flatten_dict({}, cfg)
-
-    return flattened_cfg
 
 class Configuration:
     def __init__(self, preserve_sections_p = False):
@@ -689,8 +558,6 @@ class Configuration:
                 for option in alien_options:
                     print('  ', option)
 
-            from shared import yn_prompt
-
             if not yn_prompt('\nAlien options found. Do you wish to '
                              'continue? [Y/n]: ', default='y'):
                 return False
@@ -851,11 +718,8 @@ class ModelParameters:
                 setattr(self, 'm', 1.-1./value)
 
     def get_parameters(self, parameters):
-        params = {}
-        for key in parameters:
-            if hasattr(self, key):
-                params[key] = getattr(self, key)
-        return params
+        return {key: getattr(self, key)
+                for key in parameters if hasattr(self, key) }
 
     def next_iteration(self):
         """

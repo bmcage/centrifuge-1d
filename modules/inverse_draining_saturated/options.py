@@ -24,7 +24,8 @@ CONFIG_OPTIONS = ['inv_init_params',
                    ['h_init_max', ('c_gammah', 1e-3)]),
                   # measurement weights
                   ('wl1_weights', None), ('wl_out_weights', None),
-                  ('gc1_weights', None), ('rm1_weights', None)
+                  ('gc1_weights', None), ('rm1_weights', None),
+                  ('cf_weights', None)
                  ]
 
 INTERNAL_OPTIONS = []
@@ -37,7 +38,7 @@ PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys()),
 OPTIONS_ITERABLE_LISTS = []
 
 def check_cfg(cfg):
-    from config import MEASUREMENTS_NAMES
+    from modules.shared.characteristics import MEASUREMENTS_NAMES
 
     measurements_present = False
     for name in MEASUREMENTS_NAMES.values():
@@ -60,6 +61,11 @@ def check_cfg(cfg):
             print('Weights have to be of the same length as measurement: '
                   '{}'.format(name))
             return False
+
+    if not measurements_present:
+        print('Cannot run the inverse problem as none of measured data was '
+              'specified: ', MEASUREMENTS_NAMES.values())
+        return False
 
     return True
 

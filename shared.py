@@ -172,3 +172,13 @@ def parse_value(str_value):
     except:
         print('Error:Could not parse value: ', str_value, '\nExiting...')
         exit(1)
+
+def flatten(seq):
+    result = []
+    for element in seq:
+        if hasattr(element, "__iter__") and not type(element) == str:
+            result.extend(flatten(element))
+        else:
+            result.append(element)
+
+    return result

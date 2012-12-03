@@ -1,7 +1,6 @@
 from __future__ import print_function, division
 import scikits.odes.sundials.ida as ida
-from numpy import (zeros, concatenate, all, sum, power, isscalar, linspace,
-                   asarray, cumsum, empty, ones)
+import numpy as np
 from modules.shared.functions import has_data
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
@@ -9,10 +8,93 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
                       'Reached time: % 10.6f\nExpected time: % 10.6f')
 
 
-def simulate_direct(initialize_z0, model, residual_fn,
+def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None,
-                    on_phase_change = None, continue_on_root_found=None):
+                    on_phase_change = None, continue_on_root_found=None,
+                    on_measurement=None):
+    """
+      initialize_z0 - function with signature f(z0, model), where:
+                        z0 - vector to be filled with initial values
+                        model - argument supplied to simulate_direct() function.
+                    Returns nothing.
+      model       - model variable containing data needed to run simulation
+      measurements - measurements structure. This value is also passed to the
+                    'on_measurement' function (if specified).
+      residual_fn - function with signature f(t, z, zdot, result, model)
+                    where:
+                        t - current time
+                        z - current variables vector
+                        zdot - vector of derivatives
+                        results - vector of residuals, needs to be filled
+                        model - supplied model variable
+                    Returns nothing.
+      initialize_zp0 - function with signature f(zp0, model). This allows to
+                    provide the solver with better estimates of derivatives,
+                    which in turn can speed-up the starting of the computation.
+                    Function arguments are:
+                        zp0 - vector to be filled with initial values
+                              of derivative (or it's estimates)
+                        model - argument supplied to simulate_direct() function.
+                    Returns nothing.
+      update_initial_condition - function with signature f(z0, model) or None.
+                    The function is called on phase changing and allows to
+                    adjust the re-starting condition for the solver.
+                    Function arguments are:
+                        z0 - vector of initial values of the next phase
+                        model - supplied model variable
+                    Returns nothing
+      root_fn     - rooting function with signature f(t, z, zdot, result, model)
+                    or None. If the function is present, the solver stops when
+                    for any 'i' the value of result[i] is zero. Depending on the
+                    'continue_on_root_found' argument the solver handles further
+                    computation.
+                    Function arguments:
+                        t - current time
+                        z - current variables vector
+                        zdot - vector of derivatives
+                        results - vector of values that needs to be filled;
+                            the vector is of length nr_rootfns (see also
+                            'nr_rootfns' argument). If some value
+                            in results is zero, computation terminates.
+                            (see also 'continue_on_root_found' argument)
+                        model - supplied model variable
+                    Returns nothing.
+      nr_rootfns   - number of rooting functions (length of results vector, see
+                    also the 'root_fn' argument). Value: interger.
+      continue_on_root_found - function with signature f(model, t, z) or None.
+                    Function can decide to return True or False depending on the
+                    supplied arguments. If False is returned, computation is
+                    aborted and the solver returns values found so far.
+                    Function arguments:
+                        model - supplied model variable
+                        t - current time
+                        z - current variables (values) vector
+                    Returns True/False.
+      algvars_idx  - vector or None. If vector, then specifies the indexes of
+                    the vector 'z' which value is specified as algebraic
+                    condition instead of differential one.
+      on_phase_change - None or function with signature f(model, phase). This
+                    function is called when phases are changed to allow adapt
+                    the internal state of supplied data - model.
+                    Function arguments:
+                        model - supplied model variable
+                        phase - new phase; phase is one of:
+                            'a' - acceleration/centrifugation phase
+                            'd' - deceleration phase
+                            'g' - gravitation only
+                    Returns nothing.
+      on_measurement - None or a function with signature
+                    f(t, z, model, measurements). The function is called when
+                    a time of measurement is reached.
+                    Function arguments:
+                        t - current time
+                        z - current variables vector
+                        model - supplied model variable
+                        measurements - the measurements object (see also the
+                            'measurements' argument).
+                    Returns nothing.
+    """
 
     # Check supplied arguments
     if (not root_fn is None) and (nr_rootfns is None):
@@ -21,14 +103,16 @@ def simulate_direct(initialize_z0, model, residual_fn,
                         "functions 'nr_rootfns'.")
 
     # Initialization
+    measurements.reset_calc_measurements() # reset if previously stored values
+
     verbosity = model.verbosity
 
-    measurements_times = model.measurements_times
+    measurements_times = measurements.get_times()
 
-    measurements_nr = len(measurements_times)
+    measurements_nr = np.alen(measurements_times)
 
-    t   = empty([measurements_nr, ], dtype=float)
-    z   = empty([measurements_nr, model.z_size], dtype=float)
+    t   = np.empty([measurements_nr, ], dtype=float)
+    z   = np.empty([measurements_nr, model.z_size], dtype=float)
 
     t0 = 0.0
 
@@ -36,8 +120,8 @@ def simulate_direct(initialize_z0, model, residual_fn,
     model.set_value('t0', t0)
     model.set_value('phase', 'U') # initialize to dummy value
 
-    z0 = empty([model.z_size, ], float)
-    zp0 = zeros(z0.shape, float)
+    z0 = np.empty([model.z_size, ], float)
+    zp0 = np.zeros(z0.shape, float)
 
     initialize_z0(z0, model) # compute the initial state
     if not initialize_zp0 is None: initialize_zp0(zp0, z0, model)
@@ -46,6 +130,8 @@ def simulate_direct(initialize_z0, model, residual_fn,
         t[0]    = t0
         z[0, :] = z0
         i = 1
+        if not on_measurement is None:
+            on_measurement(t0, z0, model, measurements)
     else:
         i = 0
     t_meas = measurements_times[i]
@@ -147,6 +233,10 @@ def simulate_direct(initialize_z0, model, residual_fn,
                         return (False, t[:i], z[:i, :])
                 else: # success or t_stop reached
                     if (flag == 0) or (t_out == t_meas):
+                        if not on_measurement is None:
+                            on_measurement(t_out, z[i, :], model,
+                                           measurements)
+
                         t[i] = t_out
                         i += 1
                         if i < measurements_nr:
@@ -154,7 +244,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
                         else:
                             # previous measurement was the last measurement we
                             # have taken so we can abort further computation
-                            break
+                            return (True, t, z)
 
                     # Assuming t_out is t_end+numerical_error
                     if (flag == 1) or (t_end == t_out):
@@ -176,7 +266,7 @@ def simulate_direct(initialize_z0, model, residual_fn,
         if update_initial_condition:
             z0[:] = z[i-1, :]
             update_initial_condition(i, z0, model)
-            if not all(z0 == z[i-1, :]):
+            if not np.all(z0 == z[i-1, :]):
                 solver_initialized = False
         else:
             z0 = z[i-1, :]
@@ -264,18 +354,19 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
     measurements_names = measurements.get_names()
     data_M = measurements.get_values()
+
     user_scales = model.measurements_scale_coefs
     if user_scales is None: user_scales = {}
     measurements_scales = \
        measurements.get_scales(scaling_coefs=user_scales)
     weights = measurements.get_weights()
 
-    data_scale_coef = concatenate(measurements_scales)
-    measurements_sc = concatenate(data_M) * data_scale_coef
+    data_scale_coef = np.concatenate(measurements_scales)
+    measurements_sc = np.concatenate(data_M) * data_scale_coef
 
     if weights:
         add_weights = True
-        weights = concatenate(weights)
+        weights = np.concatenate(weights)
     else:
         add_weights = False
 
@@ -310,13 +401,14 @@ def simulate_inverse(direct_fn, model, init_parameters,
             # direct computation went O.K.
             if model.verbosity > 0:
                 status_items = []
+
                 for (name, value_C, value_M) in zip(measurements_names,
                                                     data_C, data_M):
                     status_items.append(mk_status_item(name, value_C, value_M))
 
                 display_status(data_plots=status_items)
 
-            computation_sc = data_scale_coef * concatenate(data_C)
+            computation_sc = data_scale_coef * np.concatenate(data_C)
             error = computation_sc - measurements_sc
 
             if add_weights:
@@ -325,7 +417,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
             if optimfn == 'leastsq':
                 return error
             else:
-                return sum(power(error, 2))
+                return np.sum(np.power(error, 2))
 
         else:
             # something is wrong, so penalize
@@ -428,7 +520,7 @@ def compute_raster(model):
         ubounds = xdata.inv_ubounds
         raster_size = xdata.raster_grid_size
         nrlevels = len(lbounds)
-        if isscalar(raster_size):
+        if np.isscalar(raster_size):
             raster_size = [raster_size] * nrlevels
 
         optimargs = [0]* nrlevels
@@ -437,7 +529,7 @@ def compute_raster(model):
 
         from copy import copy
         for (lb, ub, rsize) in zip(lbounds, ubounds, raster_size):
-            grid.append(linspace(float(lb), float(ub), float(rsize)))
+            grid.append(np.linspace(float(lb), float(ub), float(rsize)))
 
         def loopsingle(level):
             for (ind, val) in enumerate(grid[level]):

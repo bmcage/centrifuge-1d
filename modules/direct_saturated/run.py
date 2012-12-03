@@ -28,28 +28,44 @@ class direct_saturated_rhs(IDA_RhsFunction):
 
 residual_fn = direct_saturated_rhs()
 
+def on_measurement(t, z, model, measurements):
+    MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
+    MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
+
+    if model.calc_f_mo:
+        omega2g = model.find_omega2g(t)
+
+        measurements.store_calc_f_mo(omega2g, MO,
+                                     model.mo_gc_calibration_curve,
+                                     model.tube_crosssectional_area)
+
+def initialize_z0(z0, model):
+    z0[model.mass_in_idx]  = model.wl0
+    z0[model.mass_out_idx] = 0.0
+
+    print('z0', z0)
+
+def update_init(i, z0, model):
+    z0[model.mass_in_idx] = model.wl0
+
 def solve(model):
+    (flag, t, z) = simulate_direct(initialize_z0, model, model.measurements,
+                                   residual_fn,
+                                   update_initial_condition=update_init,
+                                   on_measurement=on_measurement)
 
-    def initialize_z0(z0, model):
-        z0[model.mass_in_idx]  = model.wl0
-        z0[model.mass_out_idx] = 0.0
-
-    def update_init(i, z0, model):
-        z0[model.mass_in_idx] = model.wl0
-
-    (flag, t, z) = simulate_direct(initialize_z0, model, residual_fn,
-                                   update_initial_condition=update_init)
-
-    return (flag, t, z)
+    return (flag, t, z, model.measurements)
 
 def extract_data(model):
-    (flag, t, z) = solve(model)
+    (flag, t, z, measurements) = solve(model)
 
     if not flag:
         print('For given model the solver did not find results. Skipping.')
 
-    extracted_data = {'MI': (t, z[:, model.mass_in_idx]),
-                      'MO': (t, z[:, model.mass_out_idx])}
+    extracted_data = \
+      {name: (t, value)
+       for (name, value) in measurements.iterate_calc_measurements()}
+
     return (flag, extracted_data)
 
 def run(model):

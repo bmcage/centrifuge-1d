@@ -7,20 +7,18 @@ def solve(model):
 
     def ip_direct_saturated_heights(model, measurements_names):
 
-        (flag, t, z) = direct_solve(model)
+        (flag, t, z, measurements) = direct_solve(model)
 
         result = [flag, t]
 
         for name in measurements_names:
-            if name == 'MI':
-                result.append(z[1:, model.mass_in_idx].transpose())
-            elif name == 'MO':
-                result.append(z[1:, model.mass_out_idx].transpose())
+            result.append(measurements.get_calc_measurement(name)[1:])
 
         return result
 
     inv_params = simulate_inverse(ip_direct_saturated_heights, model,
-                                  model.inv_init_params, optimfn=model.optimfn)
+                                  model.inv_init_params, model.measurements,
+                                  optimfn=model.optimfn)
     return inv_params
 
 def run(model):
