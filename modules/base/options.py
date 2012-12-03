@@ -14,6 +14,7 @@ CONFIG_OPTIONS = ['exp_type',
                   # defaults
                   ('g', 981),
                   ('tube_no', None),
+                  ('tube_diam', None),
                   'fl1',
                   (lambda cfg: cfg.get_value('fl1') > 0.0,
                       ['ks1'], [('ks1', -1.0)]),
@@ -53,10 +54,12 @@ CONFIG_OPTIONS = ['exp_type',
                  ]
 
 INTERNAL_OPTIONS = ['omega2g_fns', 'find_omega2g', 't0', 'omega_start',
-                    'calc_f_mt', 'calc_f_mo', 'calc_cf_mo']
+                    'calc_f_mt', 'calc_f_mo', 'calc_cf_mo',
+                    'tube_crosssectional_area']
 
 EXCLUDE_FROM_MODEL = ['measurements_length', 'omega2g_fns', 'r0',
-                      'f_mt_calibration_curve', 'f_mo_calibration_curve']
+                      'f_mt_calibration_curve', 'f_mo_calibration_curve',
+                      'tube_diam']
 
 PROVIDE_OPTIONS = []
 
@@ -87,6 +90,10 @@ def check_cfg(cfg):
         return False
     elif not (r0 or rE):
         print("One of 'r0' and 'rE' has to be specified (but not both).")
+        return False
+
+    if cfg.get_value('tube_diam') is None:
+        print('Tube diameter is not specified.')
         return False
 
     for F_name in ('f_mo', 'f_mt'):
@@ -174,6 +181,10 @@ def adjust_cfg(cfg):
     cfg.set_value('calc_cf_mo', False)
     if not cfg.get_value('mo_gc_calibration_curve') is None:
         cfg.set_value('calc_f_mo', True)
+
+    import numpy as np
+    cfg.set_value('tube_crosssectional_area',
+                  np.pi * np.power(cfg.get_value('tube_diam'), 2) / 4.)
 
 def prior_adjust_cfg(cfg):
     """
