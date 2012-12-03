@@ -171,11 +171,13 @@ def on_measurement(t, z, model, measurements):
         measurements.store_calc_f_mt(omega2g, u, model.y, model.dy, r0,
                                      s1, s2, MI, s2, l0, model.porosity,
                                      model.fl2, model.fp2, l0,
-                                     model.density)
+                                     model.density,
+                                     model.tube_crosssectional_area)
 
     if model.calc_f_mo:
         measurements.store_calc_f_mo(omega2g, MO,
-                                     model.mo_gc_calibration_curve)
+                                     model.mo_gc_calibration_curve,
+                                     model.tube_crosssectional_area)
 
 def initialize_z0(z0, model):
     z0[model.first_idx:model.last_idx+1] = model.h_init

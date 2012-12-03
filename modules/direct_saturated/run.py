@@ -36,7 +36,8 @@ def on_measurement(t, z, model, measurements):
         omega2g = model.find_omega2g(t)
 
         measurements.store_calc_f_mo(omega2g, MO,
-                                     model.mo_gc_calibration_curve)
+                                     model.mo_gc_calibration_curve,
+                                     model.tube_crosssectional_area)
 
 def initialize_z0(z0, model):
     z0[model.mass_in_idx]  = model.wl0

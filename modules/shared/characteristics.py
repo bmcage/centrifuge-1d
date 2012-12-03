@@ -337,7 +337,7 @@ class Measurements():
 
         return self.store_calc_measurement('GC', gc)
 
-    def store_calc_f_mo(self, omega2g, mo, MO_calibration_curve, tube_area):
+    def store_calc_f_mo(self, omega2g, mo_1d, MO_calibration_curve, tube_area):
         """
           Calculate and store the value of the calculated centrifugal force
           caused by the expelled water in water chamber. More preciselly it's
@@ -352,13 +352,14 @@ class Measurements():
           MO_calibration_curve - the curve converting the the amount of expelled
                     water to the value of the gravitational center of the
                     expelled water.
-          tube_area - the cross-section area of the tube containing the sample
+          tube_area - the cross-sectional area of the tube containing the sample
                     (should not be contained in the mo?)
 
           Returns the weight W.
         """
         calibration = MO_calibration_curve
 
+        mo = mo_1d * tube_area
         (mo0, gc0) = calibration[0]
 
         if mo < mo0:
@@ -399,7 +400,7 @@ class Measurements():
 
     def store_calc_f_mt(self, omega2g, u, y, dy, r0, s1, s2, mass_in,
                         d_sat_s, d_sat_e, soil_porosity, fl2, fp2, fr2, l0,
-                        fluid_density, chamber_area):
+                        fluid_density, tube_area):
         """
           Calculate and store the value of the centrifugal force of water in
           the sample. The water on the inflow is taken into account, but not
@@ -420,11 +421,11 @@ class Measurements():
           soil_porosity - porosity of the soil sample
           fl2, fp2, fr2 - ending filter length, porosity and distance from
                           sample beginning (to filter's beginning)
-          chamber_area - the cross-section area of the outflow chamber
+          tube_area - the cross-sectional area of the tube
         """
         F = (calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
                         soil_porosity, fl2, fp2, fr2, fluid_density)
-             * omega2g * chamber_area)
+             * omega2g * tube_area)
         return self.store_calc_measurement('F_MT', F)
 
     def store_calc_rm(t, u, mass_in, mass_out, s1, s2, model):
