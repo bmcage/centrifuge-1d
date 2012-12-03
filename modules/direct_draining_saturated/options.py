@@ -15,7 +15,6 @@ PARENTAL_MODULES = ['base']
 
 CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma',
                   'h_init', 'porosity',
-                  'calc_gc', 'calc_rm', 'calc_wm',
                   'rb_type',
                   'estimate_zp0',
                   dtype_deps,
@@ -35,7 +34,7 @@ CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma',
 INTERNAL_OPTIONS = ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
                     'first_idx', 'last_idx', 's1_idx', 's2_idx',
                     'mass_in_idx', 'mass_out_idx', 'pq_idx', 'z_size',
-                    'wm0']
+                    'wm0', 'calc_gc', 'calc_rm', 'calc_wm']
 
 EXCLUDE_FROM_MODEL = ['dtype']
 
@@ -93,5 +92,6 @@ def adjust_cfg(cfg):
     cfg.set_value('ldc2', ldc2)
     cfg.set_value('ldc3', ldc3)
 
-    cfg.set_value('calc_wm', cfg.get_value('calc_wm')
-                             or cfg.get_value('calc_gc'))
+    cfg.set_value('calc_wm', True)
+    cfg.set_value('calc_gc', True)
+    cfg.set_value('calc_rm', False)

@@ -151,6 +151,7 @@ def has_data(x):
 
 def phases_end_times(a_duration, d_duration, g_duration,
                      include_acceleration):
+
     if a_duration is None:
         a_duration = 0.0
     else:
@@ -167,6 +168,8 @@ def phases_end_times(a_duration, d_duration, g_duration,
     duration_times = a_duration + g_duration
     if not np.any(duration_times): return None # no times were specified
 
+    if np.isscalar(duration_times):
+        duration_times = duration_times.reshape([1,])
     stop_times = np.cumsum(np.concatenate(([0.0], duration_times)))
 
     return stop_times

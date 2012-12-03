@@ -129,15 +129,15 @@ def run_experiments(exp_id, first_experiment, last_experiment, mask,
 
             (cfg, consts_cfg) = load_configuration(experiment_info)
 
+            # Assign global values not present in (or based on) configuration
+            process_global_constants(cfg, consts_cfg)
+
             if print_cfg_only:
                 header = ("Configuration file of experiment '{}' number {:d}"
                           .format(exp_id, exp_no))
                 print("\n", header, '\n', len(header) * '-')
                 cfg.echo()
                 continue
-
-            # Assign global values not present in (or based on) configuration
-            process_global_constants(cfg, consts_cfg)
 
             if not cfg.is_valid(modman, verbose=True): exit(1)
 

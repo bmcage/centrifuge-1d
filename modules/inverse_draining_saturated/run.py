@@ -20,7 +20,7 @@ def solve(model):
 
     def ip_direct_drainage(model, measurements_names):
         update_runtime_variables(model)
-        (flag, t, z, gc1, rm1, u, wm, wm_in_tube) = solve_direct(model)
+        (flag, t, z, measurements) = solve_direct(model)
 
         contains_data = (alen(t) > 1)
 
@@ -28,22 +28,17 @@ def solve(model):
 
         for name in measurements_names:
             # we discard values at t=0 (for given measurement)
-            if name == 'MO':
-                result.append(z[1:, model.mass_out_idx].transpose())
-            elif name == 'MI':
-                result.append(z[1:, model.mass_in_idx].transpose())
-            elif name == 'GC':
-                result.append(gc1[1:])
-            elif name == 'RM':
-                result.append(rm1[1:])
+            result.append(measurements.get_calc_measurement(name)[1:])
 
         return result
 
-    calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm')) # backup
+    calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm', 'calc_f_mt',
+                                   'calc_f_mo', 'calc_cf_mo')) # backup
     measurements_names = model.measurements.get_names()
-    model.calc_gc = 'GC' in measurements_names
-    model.calc_rm = 'RM' in measurements_names
-    model.calc_wm = model.calc_gc or model.calc_rm
+    for name in ('GC', 'RM', 'F_MT', 'F_MO', 'CF_MO'):
+        # calculate measurement for direct problem only if we have measurement
+        setattr(model, 'calc_'+name.lower(), name in measurements_names)
+    model.calc_wm   = model.calc_gc or model.calc_rm
 
     (inv_params, cov) = \
       simulate_inverse(ip_direct_drainage, model, model.inv_init_params,
