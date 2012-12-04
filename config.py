@@ -229,7 +229,8 @@ class Configuration:
         else:
             cfg_dict = self._cfg_dict
 
-        del cfg_dict[key]
+        if key in cfg_dict:
+            del cfg_dict[key]
 
     def iterate_values(self, section = None):
         if self._preserve_sections_p and section:
