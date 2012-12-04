@@ -60,7 +60,10 @@ class Measurements():
                                  cfg.get_value('include_acceleration',
                                                not_found=True))
 
-        t_meas = t[1:]
+        if t is None:
+            t_meas = None
+        else:
+            t_meas = t[1:]
         cfg.del_value('measurements_times')
 
         # 2. a) determine measured data

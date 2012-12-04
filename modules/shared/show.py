@@ -266,6 +266,7 @@ class ResultsData():
 
     def store_computation(self, model):
         (flag, value) = self._extract(model)
+
         if not flag:
             value = None
             print('Computation was not successfull. Data will not be saved.')
@@ -769,10 +770,9 @@ class DPlots():
                 if key in computed:
                     if key == 'theta':
                         c_value = computed[key][2]
-                        m_value = m_data[0]
                     else:
                         c_value = computed[key][1][1:]
-                        m_value = m_data[1]
+                    m_value = m_data[1]
                 else:
                     continue
 

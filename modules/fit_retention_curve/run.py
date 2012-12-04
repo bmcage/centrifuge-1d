@@ -6,7 +6,8 @@ from modules.shared.vangenuchten import h2u
 from modules.shared.functions import show_results
 
 def solve(model):
-    theta_measured = model.measurements['theta'][0]
+     # list of measured data - we have only one measurement, so first item
+    theta_measured = model.measurements.get_values()[0]
 
     def direct_wrapper(optim_args):
         out = ''
@@ -38,7 +39,7 @@ def solve(model):
     (params_names, init_values) = ([], [])
     for (name, value) in model.inv_init_params.items():
         params_names.append(name)
-        init_values.append(value)
+        init_values.append(value[0])
 
     (opt_values, cov, infodic, msg, ier) = \
           leastsq(direct_wrapper, init_values,
