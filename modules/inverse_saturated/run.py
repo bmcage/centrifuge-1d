@@ -12,7 +12,8 @@ def solve(model):
         result = [flag, t]
 
         for name in measurements_names:
-            result.append(measurements.get_calc_measurement(name)[1:])
+            (time, value) = measurements.get_calc_measurement(name)
+            result.append(value[1:])
 
         return result
 

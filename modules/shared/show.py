@@ -137,12 +137,16 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                                  dg_unit_time_length),
                   'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                             ('none', 'pressure')),
-                  'F_MO': ((dg_label_time, "Expelled water weight in cen. [{}]"),
+                  'F_MO': ((dg_label_time, "Expelled water weight [{}]"),
                            ('time', 'weight')),
-                  'F_MT': ((dg_label_time, "Water in tube weight in cen. [{}]"),
+                  'F_MT': ((dg_label_time, "Water in tube weight [{}]"),
+                           ('time', 'weight')),
+                  'dF_MO': ((dg_label_time, "Difference in expelled water weight [{}]"),
+                           ('time', 'weight')),
+                  'dF_MT': ((dg_label_time, "Difference in weight of water in tube [{}]"),
                            ('time', 'weight'))}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('F_MT', 'F_MO'),
-            ('s1', 's2'))
+            ('dF_MT', 'dF_MO'), ('s1', 's2'))
 
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
