@@ -346,11 +346,11 @@ def extract_data(model):
                       's1': (t, s1), 's2': (t, s2),
                       'theta': (p, theta)}
 
-    for (name, value) in measurements.iterate_calc_measurements():
+    for (name, time, value) in measurements.iterate_calc_measurements():
         if name == 'u':
-            extracted_data[name] = (x, value.transpose(), t)
+            extracted_data[name] = (x, value.transpose(), time)
         else:
-            extracted_data[name] = (t, value)
+            extracted_data[name] = (time, value)
 
     return (flag, extracted_data)
 
