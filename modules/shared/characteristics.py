@@ -28,9 +28,19 @@ class Measurements():
     running an inverse problem to avoid unnecessary re-allocation).
     """
     def __init__(self):
-        self._computed = {}
-        self._indexes  = {}
-        self._measurements_nr = -1
+        # Stored computed measurements
+        self._computed = {} # values
+        self._indexes  = {} # index of next measurement to be stored
+        self._times = None  # times at which all the measurements were computed
+
+        # User supplied (physically done) measurements
+        self._measurements = {}         # values
+        self._measurements_weights = {} # weights of each of measurement's' values
+        self._measurements_xvalues = {} # x-axes values
+        self._measurements_times   = None # times at which measurements were taken
+
+        # Maximal number of values stored per measurement
+        self._measurements_nr = -1 # i.e. length(self._times)
 
     def read(self, cfg):
         """
