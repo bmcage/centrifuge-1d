@@ -33,7 +33,7 @@ CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma',
 
 INTERNAL_OPTIONS = ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
                     'first_idx', 'last_idx', 's1_idx', 's2_idx',
-                    'mass_in_idx', 'mass_out_idx', 'pq_idx', 'z_size',
+                    'mass_in_idx', 'mass_out_idx', 'pq_idx',
                     'wm0', 'calc_gc', 'calc_rm', 'calc_wm']
 
 EXCLUDE_FROM_MODEL = ['dtype']

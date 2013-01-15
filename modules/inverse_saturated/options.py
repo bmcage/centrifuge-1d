@@ -1,6 +1,6 @@
 from __future__ import division
 
-PARENTAL_MODULES = ['direct-saturated-heights']
+PARENTAL_MODULES = ['ds']
 
 CONFIG_OPTIONS = ['inv_init_params', ('optimfn', 'leastsq'),
                   (lambda cfg: cfg.get_value('optimfn') == 'leastsq',
