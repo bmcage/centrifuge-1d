@@ -238,9 +238,9 @@ class ResultsData():
         self._data = {'lines': {}}
         self._modman = None
 
-    def has_data(self, data_type='lines'):
-        return not ((data_type in self._data)
-                    and (self._data[data_type] is None))
+    def has_data(self, data_type):
+        return ((data_type in self._data)
+                and (not self._data[data_type] is None))
 
     def store_value(self, name, value):
         self._data[name] = value
@@ -549,7 +549,7 @@ class DPlots():
 
         self._plotstyles = PlotStyles(experiment_info)
 
-        if not data.has_data(data_type='lines'):
+        if not data.has_data('lines'):
             print('No data is provided. Nothing to display.')
         else: # generate dplots
             self._dplots = self._mk_dplots(data, experiment_info)

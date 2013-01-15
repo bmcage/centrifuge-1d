@@ -55,7 +55,7 @@ CONFIG_OPTIONS = ['exp_type',
 
 INTERNAL_OPTIONS = ['omega2g_fns', 'find_omega2g', 't0', 'omega_start',
                     'calc_f_mt', 'calc_f_mo', 'calc_cf_mo',
-                    'tube_crosssectional_area']
+                    'tube_crosssectional_area', 'z_size']
 
 EXCLUDE_FROM_MODEL = ['measurements_length', 'omega2g_fns', 'r0',
                       'f_mt_calibration_curve', 'f_mo_calibration_curve',
