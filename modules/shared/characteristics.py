@@ -421,9 +421,9 @@ class Measurements():
         (mo0, gc0) = calibration[0]
 
         if mo < mo0:
-            print('Amount of water: ', mo, ' is less than first point on the '
-                  'calibration curve: ', calibration[0],'. Cannot proceed, '
-                  'exiting...')
+            print('Amount of water: ', mo, ' is less than the amount at the '
+                  'first point on the calibration curve: ', calibration[0][0],
+                  '. Cannot proceed, exiting...')
             exit(1)
 
         GC = -1.0
@@ -433,9 +433,9 @@ class Measurements():
                 GC = gc0 + (mo - mo0)/(mo1 - mo0) * (gc1 - gc0)
 
         if GC < 0.0:
-            print('Amount of expelled water: ', mo,  ' is more than the last '
-                  'point on the calibration curve: ', calibration[0],'. Cannot '
-                  'proceed, exiting...')
+            print('Amount of expelled water: ', mo,  ' is more than the amount '
+                  'at the last point on the calibration curve: ',
+                  calibration[-1][0], '. Cannot proceed, exiting...')
             exit(1)
 
         F = omega2g * GC * mo
