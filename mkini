@@ -352,11 +352,15 @@ def CSV2data(csv_dir, csv_filebasename):
         csv_data = csv.reader(f_csv)
         csv_fields = next(csv_data)
     except UnicodeDecodeError:
+        f_csv.close()
+
         try:
             f_csv = io.open(csv_filename, encoding='utf-16')
             csv_data = csv.reader(f_csv, delimiter=';')
             csv_fields = next(csv_data)
         except Exception:
+            f_csv.close()
+
             print('\n\tCould not read CSV file:', csv_filebasename + '.csv',
                   'Unknown type of CSV file. Exiting...')
             exit(1)
@@ -365,8 +369,15 @@ def CSV2data(csv_dir, csv_filebasename):
     if ((len(csv_fields) >= 2) and (csv_fields[0] == 'Name:')
         and (len(csv_fields[1]) >= 10) and (csv_fields[1][:10] == 'Data Instr')):
 
-        for i in range(13): next(csv_data) # skip useless header
-            # replace original column names with something more readable
+        try:
+            for i in range(13): next(csv_data) # skip useless header
+        except:
+            f_csv.close()
+
+            print('Error during file reading occured. Exiting...')
+            exit(1)
+
+        # replace original column names with something more readable
         csv_fields = ('scan', 'time', 'elapsed', 's101', 's102', 's103',
                       's119', 's120')
         csv_type = 'scanned_data'
@@ -398,20 +409,28 @@ def CSV2data(csv_dir, csv_filebasename):
 
     csv_row = namedtuple('CSVRow', csv_fields)
 
-    for row in map(csv_row._make, csv_data):
-        if csv_type in ('regular_ini', 'scan_ini'):
-            module = MODMAN.find_module(row.exp_type, submodule='csv_parse')
-            skip   = get_module_function('skip', module)
+    try:
+        for row in map(csv_row._make, csv_data):
+            if csv_type in ('regular_ini', 'scan_ini'):
+                module = MODMAN.find_module(row.exp_type, submodule='csv_parse')
+                skip   = get_module_function('skip', module)
 
-            if skip(row): continue
+                if skip(row): continue
 
-            for id_name in ('exp_type', 'exp_id', 'exp_no'):
-                value = getattr(row, id_name)
-                if value: identifiers[id_name] = value # update if value present
-            (exp_id, exp_no) = (identifiers['exp_id'], identifiers['exp_no'])
-            data.append_row(row, exp_id, exp_no)
-        else:
-            data.append_row(row)
+                for id_name in ('exp_type', 'exp_id', 'exp_no'):
+                    value = getattr(row, id_name)
+                    if value:
+                         identifiers[id_name] = value # update if value present
+
+                (exp_id, exp_no) = (identifiers['exp_id'], identifiers['exp_no'])
+                data.append_row(row, exp_id, exp_no)
+            else:
+                data.append_row(row)
+    except:
+        f_csv.close()
+
+        print('Error during file reading occured. Exiting...')
+        exit(1)
 
     if csv_type == 'scanned_data':
         # remove useless columns from data structure
@@ -428,8 +447,6 @@ def CSV2data(csv_dir, csv_filebasename):
     if csv_type == 'scan_ini':
         # if needed, add quotes to values in csv_file field
         data.on_modify(quote_csv_file_string)
-
-    f_csv.close()
 
     return data
 
