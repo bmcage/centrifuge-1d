@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from __future__ import print_function
+import io
 import csv
 import numpy as np
 from os import makedirs, path, sep
@@ -343,16 +344,15 @@ def quote_csv_file_string(key, value):
 def CSV2data(csv_dir, csv_filebasename):
     print('\t\t\tReading CSV file... ', end="")
 
+
     csv_filename = csv_dir + csv_filebasename + '.csv'
     # open CSV file
     try:
-        f_csv = open(csv_filename)
+        f_csv = io.open(csv_filename, encoding='utf-8')
         csv_data = csv.reader(f_csv)
         csv_fields = next(csv_data)
     except UnicodeDecodeError:
         try:
-            import io
-
             f_csv = io.open(csv_filename, encoding='utf-16')
             csv_data = csv.reader(f_csv, delimiter=';')
             csv_fields = next(csv_data)
