@@ -4,7 +4,7 @@ import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.functions import right_derivative, y2x, show_results
-from modules.shared.vangenuchten import h2Kh, dudh, h2u
+from modules.shared.vangenuchten import h2Kh, dudh, h2u, retention_curve
 from modules.shared.solver import simulate_direct
 
 #TODO: will the new characteristics work also for the previous
@@ -332,8 +332,19 @@ def extract_data(model):
     x = y2x(model.y, s1, s2).transpose()
     h = z[:, model.first_idx:model.last_idx+1].transpose()
 
+    if hasattr(model, 'theta_s'): theta_s = model.theta_s
+    else: theta_s = model.porosity
+
+    if hasattr(model, 'theta_r'): theta_r = model.theta_r
+    else: theta_r = 0.0
+
+    (p, theta) = retention_curve(model.n, model.gamma,
+                                 theta_s, model.density, model.g,
+                                 theta_r=theta_r)
+
     extracted_data = {'h': (x, h, t),
-                      's1': (t, s1), 's2': (t, s2)}
+                      's1': (t, s1), 's2': (t, s2),
+                      'theta': (p, theta)}
 
     for (name, value) in measurements.iterate_calc_measurements():
         if name == 'u':
