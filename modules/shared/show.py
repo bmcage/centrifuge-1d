@@ -235,8 +235,8 @@ class ResultsData():
         self._modman = None
 
     def has_data(self, data_type='lines'):
-        return not ((data_type in self._data)
-                    and (self._data[data_type] is None))
+        return ((data_type in self._data)
+                and (not self._data[data_type] is None))
 
     def store_value(self, name, value):
         self._data[name] = value
@@ -361,10 +361,12 @@ class ResultsData():
             return not_found
 
     def iterate_lines(self):
-        if not self.has_data('lines'):
+        lines = self.get_value('lines')
+
+        if lines is None:
             yield None
         else:
-            for (line_id, line_data) in self._data['lines'].items():
+            for (line_id, line_data) in lines.items():
                 yield (line_id, line_data)
 
     def dump(self):
@@ -788,10 +790,12 @@ class DPlots():
         if not self._dplots is None: # all OK, dplots were generated
             _show_status(data)
 
-            if data.has_data('cov'):
-                print('\nCov:\n', data.get_value('cov'))
-            if  data.has_data('inv_params'):
-                params = data.get_value('inv_params')
+            cov = data.get_value('cov')
+            if not cov is None:
+                print('\nCov:\n', cov)
+
+            params = data.get_value('inv_params')
+            if not params is None:
                 print('\nOptimal parameters found:')
                 for (name, value) in params.items():
                     if name == 'ks':
