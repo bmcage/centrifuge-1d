@@ -694,6 +694,12 @@ class ModelParameters:
         else:
             return not_found
 
+    def get_value(self, key, not_found=None):
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            return not_found
+
     def set_value(self, key, value):
         """
           Set the value of parameter given as 'key'.
