@@ -64,3 +64,41 @@ def u2h(u, n, m, gamma, h = None):
         h    =  np.power(np.power(u, -1/m) - 1, 1/n) / gamma
 
     return h
+
+P_DEFAULT = np.arange(0, 10000000, 100)
+
+def retention_curve(n, gamma, theta_s, rho, g,
+                        theta_r=0.0, p=P_DEFAULT, h=None):
+    """
+      Determine the retention curve.
+
+      Parameters:
+        n, gamma - van Genuchten soil parameters
+        theta_s  - maximal saturation; equals to porosity
+        theta_r  - residual saturation
+        rho      - fluid density
+        g        - gravitation constant
+        p        - fluid pressure
+        h        - pressure head
+
+      Return values:
+        p        - fluid pressure
+        theta    - saturation corresponding to pressure p
+    """
+
+    if ((p is None) and (h is None)) or ((not p is None) and (not h is None)):
+        print('To display retention curve either pressure p or hydraulic head '
+              'h must be set, but not both.')
+        print('h = ', h)
+        print('p = ', p)
+        return None
+
+    if h is None:
+        h = -10.0* p /rho / g
+    else:
+        p = - h * g * rho / 10.0
+
+    theta = theta_r + ((theta_s - theta_r)
+                       * h2u(h, n, 1.-1./n, gamma))
+
+    return (p, theta)

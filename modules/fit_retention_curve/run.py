@@ -2,7 +2,7 @@ from __future__ import division
 
 import numpy as np
 from scipy.optimize import leastsq
-from modules.shared.vangenuchten import h2u
+from modules.shared.vangenuchten import h2u, retention_curve
 from modules.shared.functions import show_results
 
 def solve(model):
@@ -52,20 +52,19 @@ def solve(model):
 
     return (optim_params, cov)
 
-P_DISP = np.arange(0, 10000000, 100)
-
 def extract_data(model):
-    global P_DISP
     (n, gamma, theta_s, theta_r) = (model.n, model.gamma,
                                     model.theta_s, model.theta_r)
-    theta = theta_r + ((theta_s - theta_r)
-                       * h2u(-10.*P_DISP/model.rho/model.g, n, 1.-1./n, gamma))
-    p = np.asarray(model.p, dtype=float)
-    h = -10.*p / model.rho /model.g
-    theta_in_measured_points = theta_r + ((theta_s - theta_r)
-                                          * h2u(h, n, 1.-1./n, gamma))
 
-    extracted_data = {'theta': (P_DISP, theta, theta_in_measured_points)}
+    (p, theta) = retention_curve(n, gamma, theta_s, model.rho,
+                                 model.g, theta_r=theta_r)
+
+    p_meas = np.asarray(model.p, dtype=float)
+    (p_meas, theta_in_measured_points) = \
+      retention_curve(n, gamma, theta_s, model.rho, model.g,
+                      theta_r=theta_r, p=p_meas)
+
+    extracted_data = {'theta': (p, theta, theta_in_measured_points)}
 
     return (True, extracted_data)
 
