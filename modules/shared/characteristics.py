@@ -119,6 +119,7 @@ class Measurements():
                 if calibration_curve is not None:
                     calibration_curve = np.asarray(calibration_curve,
                                                    dtype=float)
+                    F -= calibration_curve
                     measurements[F_name] = F
                 else:
                     del measurements[F_name]
