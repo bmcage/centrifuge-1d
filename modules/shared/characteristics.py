@@ -11,7 +11,9 @@ from modules.shared.vangenuchten import h2u
 # plotting) and corresponding options that are to be found in
 # configuration inifile(s).
 MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
-                      'F_MO': 'f_mo', 'F_MT': 'f_mt', 'theta': 'theta'}
+                      'F_MO': 'f_mo', 'F_MT': 'f_mt',
+                      'dF_MO': None, 'dF_MT': None,
+                      'theta': 'theta'}
 
 class Measurements():
     """
@@ -28,9 +30,19 @@ class Measurements():
     running an inverse problem to avoid unnecessary re-allocation).
     """
     def __init__(self):
-        self._computed = {}
-        self._indexes  = {}
-        self._measurements_nr = -1
+        # Stored computed measurements
+        self._computed = {} # values
+        self._indexes  = {} # index of next measurement to be stored
+        self._times = None  # times at which all the measurements were computed
+
+        # User supplied (physically done) measurements
+        self._measurements = {}         # values
+        self._measurements_weights = {} # weights of each of measurement's' values
+        self._measurements_xvalues = {} # x-axes values
+        self._measurements_times   = None # times at which measurements were taken
+
+        # Maximal number of values stored per measurement
+        self._measurements_nr = -1 # i.e. length(self._times)
 
     def read(self, cfg):
         """
@@ -88,20 +100,35 @@ class Measurements():
             measurements['MO'] = np.cumsum(measurements['MO'])
 
         #    c) postprocessing F_MO, F_MT:
-        #           - correct data usind calibration curve
         #           - filter out values outside the measured times
+        #           - if calibration curve present, use directly force as
+        #              measurement, otherwise use difference between two
+        #              subsequent force measurements
         F_filter = None
         for F_name in ('F_MT', 'F_MO'):
             if F_name in measurements:
-                calibration_curve = \
-                  np.asarray(cfg.get_value(MEASUREMENTS_NAMES[F_name]
-                                           + '_calibration_curve'),
-                             dtype=float)
+                F  = measurements[F_name]
 
+                # Leave only values at desired point (t_meas)
                 if F_filter is None: F_filter = np.asarray(t_meas, dtype=int)
-                measurements[F_name] -= calibration_curve
 
-                measurements[F_name]  = measurements[F_name][F_filter]
+                F = measurements[F_name][F_filter]
+
+                calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[F_name]
+                                                  + '_calibration_curve')
+                if calibration_curve is not None:
+                    calibration_curve = np.asarray(calibration_curve,
+                                                   dtype=float)
+                    F -= calibration_curve
+                    measurements[F_name] = F
+                else:
+                    del measurements[F_name]
+                    del measurements_xvalues[F_name]
+
+                    dF = F[1:] - F[:-1] # forces difference
+
+                    measurements['d'+F_name] = dF
+                    measurements_xvalues[F_name] = t_meas[1:]
 
         #    d) theta uses pressure as x-value (and not time)
         if 'theta' in measurements:
@@ -110,7 +137,11 @@ class Measurements():
 
         # 3. a) determine weights of measurements
         for (name, value) in measurements.items():
-            iname_w = MEASUREMENTS_NAMES[name] + '_weights'
+            if name in ['dF_MT', 'dF_MO']:
+                # we use the same weights for forces differences (except first)
+                iname_w = name[1:].lower() + '_weights'
+            else:
+                iname_w = MEASUREMENTS_NAMES[name] + '_weights'
             value_w = cfg.get_value(iname_w, not_found=None)
             if value_w == None:
                 value_w = 1.0
@@ -140,6 +171,8 @@ class Measurements():
                       '  Weights: ', np.alen(value_w))
                 exit(1)
 
+            if name in ['dF_MT', 'dF_MO']:
+                value_w = value_w[1:] # cut off the first value
             measurements_weights[name] = value_w
 
         #    b) weights postpocessing - if all weights are the same, drop them
@@ -210,10 +243,11 @@ class Measurements():
         """ Store (calculated) value of measurement. """
         if not meas_id in self._computed:
             self._computed[meas_id] = np.empty([self._measurements_nr, ],
-                                          dtype=float)
+                                               dtype=float)
             self._indexes[meas_id]  = 0
 
-        self._computed[meas_id][self._indexes[meas_id]] = value
+        idx = self._indexes[meas_id]
+        self._computed[meas_id][idx] = value
         self._indexes[meas_id] += 1
 
         return value
@@ -225,14 +259,36 @@ class Measurements():
             indexes[calc_id] = 0
 
     def get_calc_measurement(self, meas_id, not_found=None):
-        """ Return stored value of calculated measurements with ID meas_id. """
-        if meas_id in self._computed: return self._computed[meas_id]
-        else: return not_found
+        """
+            Return stored times and value of calculated measurements with
+            measurement ID 'meas_id'.
+        """
+        if meas_id in self._computed:
+            times  = self._times
+            values = self._computed[meas_id]
+        elif meas_id in ('dF_MT', 'dF_MO'):
+            mid = meas_id[1:]
+            if mid in self._computed:
+                F = self._computed[mid]
+                times  = self._times[1:]
+                values = F[1:] - F[:-1]
+            else:
+                return not_found
+        else:
+            return not_found
+
+        return (times, values)
 
     def iterate_calc_measurements(self):
         """ Iterate over stored values of calculated measurements. """
-        for (meas_id, value) in self._computed.items():
-            yield (meas_id, value)
+        for meas_id in self._computed.keys():
+            (times, values) = self.get_calc_measurement(meas_id)
+            yield (meas_id, times, values)
+
+        for meas_id in ('dF_MT', 'dF_MO'):
+            calc_data = self.get_calc_measurement(meas_id)
+            if not calc_data is None:
+                yield (meas_id, calc_data[0], calc_data[1])
 
     def store_calc_u(self, h, n, m, gamma):
         """
@@ -366,9 +422,9 @@ class Measurements():
         (mo0, gc0) = calibration[0]
 
         if mo < mo0:
-            print('Amount of water: ', mo, ' is less than first point on the '
-                  'calibration curve: ', calibration[0],'. Cannot proceed, '
-                  'exiting...')
+            print('Amount of water: ', mo, ' is less than the amount at the '
+                  'first point on the calibration curve: ', calibration[0][0],
+                  '. Cannot proceed, exiting...')
             exit(1)
 
         GC = -1.0
@@ -378,9 +434,9 @@ class Measurements():
                 GC = gc0 + (mo - mo0)/(mo1 - mo0) * (gc1 - gc0)
 
         if GC < 0.0:
-            print('Amount of expelled water: ', mo,  ' is more than the last '
-                  'point on the calibration curve: ', calibration[0],'. Cannot '
-                  'proceed, exiting...')
+            print('Amount of expelled water: ', mo,  ' is more than the amount '
+                  'at the last point on the calibration curve: ',
+                  calibration[-1][0], '. Cannot proceed, exiting...')
             exit(1)
 
         F = omega2g * GC * mo
@@ -429,6 +485,7 @@ class Measurements():
         F = (calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
                         soil_porosity, fl2, fp2, fr2, fluid_density)
              * omega2g * tube_area)
+
         return self.store_calc_measurement('F_MT', F)
 
     def store_calc_rm(t, u, mass_in, mass_out, s1, s2, model):

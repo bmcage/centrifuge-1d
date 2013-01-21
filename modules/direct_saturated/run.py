@@ -63,8 +63,8 @@ def extract_data(model):
         print('For given model the solver did not find results. Skipping.')
 
     extracted_data = \
-      {name: (t, value)
-       for (name, value) in measurements.iterate_calc_measurements()}
+      {name: (time, value)
+       for (name, time, value) in measurements.iterate_calc_measurements()}
 
     return (flag, extracted_data)
 

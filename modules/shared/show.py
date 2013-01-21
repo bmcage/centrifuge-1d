@@ -137,12 +137,16 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                                  dg_unit_time_length),
                   'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                             ('none', 'pressure')),
-                  'F_MO': ((dg_label_time, "Expelled water weight in cen. [{}]"),
+                  'F_MO': ((dg_label_time, "Expelled water weight [{}]"),
                            ('time', 'weight')),
-                  'F_MT': ((dg_label_time, "Water in tube weight in cen. [{}]"),
+                  'F_MT': ((dg_label_time, "Water in tube weight [{}]"),
+                           ('time', 'weight')),
+                  'dF_MO': ((dg_label_time, "Difference in expelled water weight [{}]"),
+                           ('time', 'weight')),
+                  'dF_MT': ((dg_label_time, "Difference in weight of water in tube [{}]"),
                            ('time', 'weight'))}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('F_MT', 'F_MO'),
-            ('s1', 's2'))
+            ('dF_MT', 'dF_MO'), ('s1', 's2'))
 
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
@@ -234,7 +238,7 @@ class ResultsData():
         self._data = {'lines': {}}
         self._modman = None
 
-    def has_data(self, data_type='lines'):
+    def has_data(self, data_type):
         return ((data_type in self._data)
                 and (not self._data[data_type] is None))
 
@@ -547,7 +551,7 @@ class DPlots():
 
         self._plotstyles = PlotStyles(experiment_info)
 
-        if not data.has_data(data_type='lines'):
+        if not data.has_data('lines'):
             print('No data is provided. Nothing to display.')
         else: # generate dplots
             self._dplots = self._mk_dplots(data, experiment_info)
