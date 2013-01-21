@@ -445,6 +445,8 @@ class Configuration:
                         new_opts = option[1]
                     elif len(option) > 2:
                         new_opts = option[2]
+                    else:
+                        continue
 
                     if type(new_opts) in (list, tuple):
                         options.extend(new_opts)
