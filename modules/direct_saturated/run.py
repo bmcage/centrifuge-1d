@@ -49,7 +49,8 @@ def update_init(i, z0, model):
     z0[model.mass_in_idx] = model.wl0
 
 def solve(model):
-    (flag, t, z) = simulate_direct(initialize_z0, model, model.measurements,
+    (flag, t, z, i) = \
+      simulate_direct(initialize_z0, model, model.measurements,
                                    residual_fn,
                                    update_initial_condition=update_init,
                                    on_measurement=on_measurement)

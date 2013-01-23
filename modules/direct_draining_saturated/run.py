@@ -309,12 +309,12 @@ def solve(model):
         zp0_init = None
 
     # Computation
-    (flag, t, z) = simulate_direct(initialize_z0, model, model.measurements,
-                                   RESIDUAL_FN,
-                                   root_fn = None, nr_rootfns=None,
-                                   initialize_zp0=zp0_init,
-                                   algvars_idx=algvars_idx,
-                                   on_measurement=on_measurement)
+    (flag, t, z, i) = simulate_direct(initialize_z0, model, model.measurements,
+                                      RESIDUAL_FN,
+                                      root_fn = None, nr_rootfns=None,
+                                      initialize_zp0=zp0_init,
+                                      algvars_idx=algvars_idx,
+                                      on_measurement=on_measurement)
 
     # Restore modified values
     model.atol = atol_backup
