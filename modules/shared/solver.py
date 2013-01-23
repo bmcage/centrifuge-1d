@@ -12,8 +12,9 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None,
                     on_phase_change = None, continue_on_root_found=None,
-                    on_measurement=None):
+                    on_measurement=None, truncate_results_on_stop=True):
     """
+    Input:
       initialize_z0 - function with signature f(z0, model), where:
                         z0 - vector to be filled with initial values
                         model - argument supplied to simulate_direct() function.
@@ -94,6 +95,26 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                         measurements - the measurements object (see also the
                             'measurements' argument).
                     Returns nothing.
+      truncate_results_on_stop - Type: boolean
+                    If true, on root found or error returns only computed
+                    data and values at times not reached will be truncated
+                    (by default an array of size for all results is
+                    preallocated). Otherwise an full array containing also
+                    not-reached times data is returned.
+    Return values:
+      flag - Type: boolean
+           if True, computation was sucessfully finished; otherwise
+           a root was found/an error occured and value is set to False
+      t  - returned times at which solver sucessfully computed results;
+           if an error was encountered, the time at which it happened is
+           stored in t[i] (for index i see below);
+           if truncate_results_on_stop=False, remaining values are 0.0
+      z  - returned sucessfully computed values; if an error occured,
+           then z[i, :] (see index i below) contains the value at the
+           time the error occurred
+           if truncate_results_on_stop=False, remaining values are 0.0
+      i  - index of last sucessful measurement (returned only if
+           truncate_results_on_stop = False)
     """
 
     # Check supplied arguments
@@ -111,8 +132,12 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
 
     measurements_nr = np.alen(measurements_times)
 
-    t   = np.empty([measurements_nr, ], dtype=float)
-    z   = np.empty([measurements_nr, model.z_size], dtype=float)
+    if truncate_results_on_stop:
+        t   = np.empty([measurements_nr, ], dtype=float)
+        z   = np.empty([measurements_nr, model.z_size], dtype=float)
+    else:
+        t   = np.zeros([measurements_nr, ], dtype=float)
+        z   = np.zeros([measurements_nr, model.z_size], dtype=float)
 
     t0 = 0.0
 
@@ -203,7 +228,11 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
             if not solver_initialized:
                 (flag, t_init) = solver.init_step(t0, z0, zp0)
                 if not flag:
-                    return (False, t, z)
+                    if truncate_results_on_stop:
+                        return (False, t[:i+1], z[:i+1, :], i-1)
+                    else:
+                        return (False, t, z, i-1)
+
                 solver_initialized = True
 
             if not on_phase_change is None:
@@ -212,6 +241,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
 
             while True:
                 (flag, t_out) = solver.step(t_meas, z[i, :])
+                t[i] = t_out
 
                 if flag < 0:     # error occured
                     if verbosity > 1:
@@ -221,7 +251,10 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     if verbosity > 2:
                         print('Values at this time:\nz_err=', z[i, :])
 
-                    return (False, t[:i], z[:i, :])
+                    if truncate_results_on_stop:
+                        return (False, t[:i+1], z[:i+1, :], i)
+                    else:
+                        return (False, t, z, i)
                 elif flag == 2: # root found
                     if ((not continue_on_root_found is None)
                          and (continue_on_root_found(model, t_out, z[i, :]))):
@@ -230,21 +263,24 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     else:
                         if verbosity > 1:
                              print('Root found: aborted further computation.')
-                        return (False, t[:i], z[:i, :])
+
+                    if truncate_results_on_stop:
+                        return (False, t[:i+1], z[:i+1, :], i)
+                    else:
+                        return (False, t, z, i)
                 else: # success or t_stop reached
                     if (flag == 0) or (t_out == t_meas):
                         if not on_measurement is None:
                             on_measurement(t_out, z[i, :], model,
                                            measurements)
 
-                        t[i] = t_out
                         i += 1
                         if i < measurements_nr:
                             t_meas = measurements_times[i]
                         else:
                             # previous measurement was the last measurement we
                             # have taken so we can abort further computation
-                            return (True, t, z)
+                            return (True, t, z, i-1)
 
                     # Assuming t_out is t_end+numerical_error
                     if (flag == 1) or (t_end == t_out):
@@ -274,7 +310,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
         if model.always_restart_solver:
             solver_initialized = False
 
-    return (True, t, z)
+    return (True, t, z, i-1)
 
 
 def set_optimized_variables(optim_params, model, untransform=None):
