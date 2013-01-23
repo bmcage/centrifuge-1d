@@ -1,3 +1,6 @@
+import numpy as np
+from modules.shared.utils import test_related_options
+
 PARENTAL_MODULES = []
 
 CONFIG_OPTIONS = ['exp_type',
@@ -82,15 +85,10 @@ def check_cfg(cfg):
                   "if 'include_acceleration' is False.")
             return False
 
-    r0 = cfg.get_value('r0')
-    rE = cfg.get_value('re')
+    for options_names in (('r0', 're'), ):
+        if not test_related_options(cfg, options_names, mode='exact1'):
+            return False
 
-    if r0 and rE:
-        print("Only one of 'r0' and 'rE' can be specified.")
-        return False
-    elif not (r0 or rE):
-        print("One of 'r0' and 'rE' has to be specified (but not both).")
-        return False
 
     if cfg.get_value('tube_diam') is None:
         print('Tube diameter is not specified.')
@@ -167,14 +165,12 @@ def adjust_cfg(cfg):
 
     # if r0 was set (but not rE), we set rE (and discard r0)
     if not cfg.get_value('re'):
-        from numpy import asarray, isscalar
-
-        r0_np  = asarray(cfg.get_value('r0'), dtype=float)
-        l0_np  = asarray(cfg.get_value('l0'), dtype=float)
-        fl2_np = asarray(cfg.get_value('fl2'), dtype=float)
+        r0_np  = np.asarray(cfg.get_value('r0'), dtype=float)
+        l0_np  = np.asarray(cfg.get_value('l0'), dtype=float)
+        fl2_np = np.asarray(cfg.get_value('fl2'), dtype=float)
 
         rE = r0_np + l0_np + fl2_np
-        if not isscalar(rE):
+        if not np.isscalar(rE):
             rE = list(rE)
         cfg.set_value('re', rE)
 
@@ -183,7 +179,6 @@ def adjust_cfg(cfg):
     if not cfg.get_value('mo_gc_calibration_curve') is None:
         cfg.set_value('calc_f_mo', True)
 
-    import numpy as np
     cfg.set_value('tube_crosssectional_area',
                   np.pi * np.power(cfg.get_value('tube_diam'), 2) / 4.)
 
