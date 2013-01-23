@@ -6,6 +6,7 @@ PARENTAL_MODULES = []
 CONFIG_OPTIONS = ['exp_type',
                   'ks',
                   ('r0', None), ('re', None), ('wl0', None), 'l0', 'duration',
+                  ('ww0', None),
                   'fh_duration', 'r0_fall',
                   ('measurements_times', None),
                   'wt_out',
@@ -42,7 +43,7 @@ CONFIG_OPTIONS = ['exp_type',
                   # measurements and referencing parameters
                   ('l1', None), ('gc1', None), ('rm1', None ),
                   ('f_mo', None), ('f_mt', None),
-                  ('wl1', None), ('wl_out', None),
+                  ('wl1', None), ('wl_out', None), ('ww1', None),
 
                   ('descr', None), ('re', None),
                   ('measurements_scale_coefs', None),
@@ -62,7 +63,7 @@ INTERNAL_OPTIONS = ['omega2g_fns', 'find_omega2g', 't0', 'omega_start',
 
 EXCLUDE_FROM_MODEL = ['measurements_length', 'omega2g_fns', 'r0',
                       'f_mt_calibration_curve', 'f_mo_calibration_curve',
-                      'tube_diam']
+                      'tube_diam', 'ww0', 'ww1']
 
 PROVIDE_OPTIONS = []
 
@@ -89,6 +90,9 @@ def check_cfg(cfg):
         if not test_related_options(cfg, options_names, mode='exact1'):
             return False
 
+    for options_names in (('wl0', 'ww0'), ('wl1', 'ww1')):
+        if not test_related_options(cfg, options_names, mode='atmost1'):
+            return False
 
     if cfg.get_value('tube_diam') is None:
         print('Tube diameter is not specified.')
@@ -179,8 +183,17 @@ def adjust_cfg(cfg):
     if not cfg.get_value('mo_gc_calibration_curve') is None:
         cfg.set_value('calc_f_mo', True)
 
-    cfg.set_value('tube_crosssectional_area',
-                  np.pi * np.power(cfg.get_value('tube_diam'), 2) / 4.)
+    tube_crosssectional_area = \
+      np.pi * np.power(cfg.get_value('tube_diam'), 2) / 4.
+    cfg.set_value('tube_crosssectional_area', tube_crosssectional_area)
+
+    # if ww0 (ww1) was provided, we set wl0 (wl1)
+    for name in ('ww0', 'ww1'):
+        value = cfg.get_value('ww0')
+        if value:
+            new_value = (np.asarray(value, dtype=float)
+                         / cfg.get_value('density') / tube_crosssectional_area)
+            cfg.set_value('wl'+name[2], new_value)
 
 def prior_adjust_cfg(cfg):
     """
