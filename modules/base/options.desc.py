@@ -30,6 +30,9 @@ CONFIG_OPTIONS = {
                     "ignored. Type: float"),
          'wl0': ("Length of water on the inflow (above the soil) in cm. "
                  "Type: float")
+         'ww0': ("Weight of water on the inflow (above the soil) in gramms. "
+                 "Only one of 'wl0' and 'ww0' can be specified".
+                 "Type: float")
          'descr': "(optional) Description of the experiment. Type: string"
         },
     'filters': \
@@ -84,7 +87,9 @@ CONFIG_OPTIONS = {
          'l1': ("Soil sample length at measured time. "
                 "Type: array of floats or None"),
          'wl1': ("Measured length of water above the soil at given (measured) "
-                 "time. Units: array of floats or None"),
+                 "time in cm. Type: array of floats or None"),
+         'ww1': ("Measured weight of water above the soil at given (measured) "
+                 "time, in gramms. Type: array of floats or None"),
          'wl_out': ("Measured length of water in the outflow chamber at given "
                     "(measured) time. Units: array of floats or None"),
          'gc1': "Measured gravitational center. Units: array of floats or None",
