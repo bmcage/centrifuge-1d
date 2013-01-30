@@ -28,8 +28,8 @@ def solve(model):
 
         for name in measurements_names:
             # we discard values at t=0 (for given measurement)
-            (time, value) = measurements.get_calc_measurement(name)[1:]
-            result.append(value)
+            (time, value) = measurements.get_calc_measurement(name)
+            result.append(value[1:])
 
         return result
 
