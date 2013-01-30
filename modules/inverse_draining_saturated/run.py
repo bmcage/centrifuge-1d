@@ -33,19 +33,15 @@ def solve(model):
 
         return result
 
-    calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm', 'calc_f_mt',
-                                   'calc_f_mo', 'calc_cf_mo')) # backup
+    #calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm', 'calc_f_mt',
+    #                               'calc_f_mo', 'calc_cf_mo')) # backup
     measurements_names = model.measurements.get_names()
-    for name in ('GC', 'RM', 'F_MT', 'F_MO', 'CF_MO'):
-        # calculate measurement for direct problem only if we have measurement
-        setattr(model, 'calc_'+name.lower(), name in measurements_names)
-    model.calc_wm   = model.calc_gc or model.calc_rm
 
     (inv_params, cov) = \
       simulate_inverse(ip_direct_drainage, model, model.inv_init_params,
                        model.measurements, optimfn=model.optimfn)
 
-    model.set_parameters(calc_p) # ...and restore values
+    #model.set_parameters(calc_p) # ...and restore values
 
     return (inv_params, cov)
 
