@@ -102,9 +102,6 @@ def check_cfg(cfg):
         F = cfg.get_value(F_name)
 
         if (F is None): continue
-        if (not cfg.get_value('calc_' + F_name)):
-            cfg.set_value('calc_' + F_name, None)
-            continue
 
         F_calibration_curve = cfg.get_value(F_name + '_calibration_curve')
 
@@ -126,24 +123,24 @@ def check_cfg(cfg):
                   'float/int/array of floats or ints is allowe')
             return False
 
-    if cfg.get_value('calc_f_mo'):
-        MO_GC = cfg.get_value('mo_gc_calibration_curve')
+        if F_name == 'f_mo':
+            MO_GC = cfg.get_value('mo_gc_calibration_curve')
 
-        if MO_GC is None:
-            print('No calibration curve for expelled water was '
-                  'specified. Cannot continue. Exiting...')
-            return False
+            if MO_GC is None:
+                print('No calibration curve for expelled water was '
+                      'specified. Cannot continue. Exiting...')
+                return False
 
-        if ((not type(MO_GC) in (list, tuple))
-            or (not type(MO_GC[0]) in (list, tuple))):
-            print("Calibration curve must by of type 'list' or 'tuple': ",
-                  MO_GC)
-            return False
+            if ((not type(MO_GC) in (list, tuple))
+                or (not type(MO_GC[0]) in (list, tuple))):
+                print("Calibration curve must by of type 'list' or 'tuple': ",
+                      MO_GC)
+                return False
 
-        if not len(MO_GC) > 1:
-            print('Calibration curve must by of length at least 2: ',
-                  MO_GC)
-            return False
+            if not len(MO_GC) > 1:
+                print('Calibration curve must by of length at least 2: ',
+                      MO_GC)
+                return False
 
     return True
 
