@@ -102,13 +102,13 @@ class centrifuge_residual(IDA_RhsFunction):
             elif rb_type == 1:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                    -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
                 result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
                                      + 2 / dy[-1] / ds * (q_out - q12[-1]))
             elif rb_type == 2:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                    -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
                 result[last_idx]  = hdot[-1]
             else:
                 raise NotImplementedError('rb_type has to be 0 - 6')
@@ -266,15 +266,21 @@ def initialize_zp0(zp0, z0, model):
     else:
         if rb_type == 2:
             zp0_last = 0.0
+            Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+            q_out  = np.maximum(1e-12,
+                                -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
         else:
             if rb_type == 1:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                    -Kh_last*(dhdy_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last*(dhdy[-1]/ds - omega2g*(r0 + L)))
             else:
                 q_out = 0.0
+
             zp0_last = \
               (-2./(porosity * du_dh[-1] * dy[-1]*ds) * (q_out - q12[-1]))
+
+        dmodt = q_out
         ds2dt = 0.0
 
     zp0[last_idx] = zp0_last
