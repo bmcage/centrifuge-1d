@@ -323,7 +323,8 @@ def solve(model):
                                       on_measurement=on_measurement)
 
     # Restore modified values
-    model.atol = atol_backup
+    if model.rb_type == 3:
+        model.atol = atol_backup
 
     return (flag, t, z, model.measurements)
 
