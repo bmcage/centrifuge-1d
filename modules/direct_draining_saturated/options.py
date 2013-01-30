@@ -1,6 +1,6 @@
 from __future__ import division
 
-PARENTAL_MODULES = ['base-unsaturated']
+PARENTAL_MODULES = ['base_unsaturated']
 
 CONFIG_OPTIONS = ['h_init',
                   'rb_type',
