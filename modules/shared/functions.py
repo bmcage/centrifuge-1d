@@ -107,7 +107,7 @@ def show_results(experiment_info,
                  model=None, inv_params=None, cov=None,
                  show_figures=True):
 
-    from modules.shared.show import ResultsData, DPlots
+    from modules.shared.show import ResultsData, DPlots, print_status
     from config import DataStorage
 
     storage = DataStorage()
@@ -140,6 +140,11 @@ def show_results(experiment_info,
 
         storage.store('ResultsData', data.dump())
         storage.save(experiment_info)
+
+        from shared import get_directories
+        savedir = get_directories('figs', 'mask', experiment_info)
+        filename = savedir + '/' + 'Results.txt'
+        print_status(data, filename)
 
 def has_data(x):
     if x is None:
