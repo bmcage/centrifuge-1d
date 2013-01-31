@@ -165,41 +165,41 @@ def get_unit_coef(unit_base):
 def mk_status_item(data_id, data_computed, data_measured = []):
    return {'id': data_id, 'data': (data_computed, data_measured)}
 
+def compare_data(name, data_computed, data_measured, relerror, abserror):
+    name_len = len(name)
+    disp_all = (not data_measured is None)
+
+    i0 = 0
+    in_row = 10
+    remaining = np.alen(data_computed)
+
+    float_disp_size = 12
+    fstr = '% {}.6f'.format(float_disp_size)
+
+    print('\n')
+    while remaining > 0:
+        if remaining > in_row:
+            disp_items = in_row
+        else:
+            disp_items = remaining
+
+        print('%s measured: ' % name,
+              disp_items * fstr % tuple(data_measured[i0:i0+disp_items]))
+        if disp_all:
+            print('%s computed: ' % name,
+                  disp_items * fstr % tuple(data_computed[i0:i0+disp_items]))
+            print('AbsError: ', name_len * ' ',
+                  disp_items * fstr % tuple(abserror[i0:i0+disp_items]))
+            print('Error (%):', name_len * ' ',
+                  disp_items * fstr % tuple(relerror[i0:i0+disp_items]))
+
+        remaining = remaining - disp_items
+        print((16 + float_disp_size*in_row) * '-')
+        i0 = i0 + in_row
+
+    print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
+
 def display_status(data_plots=None):
-
-    def compare_data(name, data_computed, data_measured, relerror, abserror):
-        name_len = len(name)
-        disp_all = (not data_measured is None)
-
-        i0 = 0
-        in_row = 10
-        remaining = np.alen(data_computed)
-
-        float_disp_size = 12
-        fstr = '% {}.6f'.format(float_disp_size)
-
-        print('\n')
-        while remaining > 0:
-            if remaining > in_row:
-                disp_items = in_row
-            else:
-                disp_items = remaining
-
-            print('%s measured: ' % name,
-                  disp_items * fstr % tuple(data_measured[i0:i0+disp_items]))
-            if disp_all:
-                print('%s computed: ' % name,
-                      disp_items * fstr % tuple(data_computed[i0:i0+disp_items]))
-                print('AbsError: ', name_len * ' ',
-                      disp_items * fstr % tuple(abs_error[i0:i0+disp_items]))
-                print('Error (%):', name_len * ' ',
-                      disp_items * fstr % tuple(relerror[i0:i0+disp_items]))
-
-            remaining = remaining - disp_items
-            print((16 + float_disp_size*in_row) * '-')
-            i0 = i0 + in_row
-
-        print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
 
     if data_plots:
         for plot in data_plots:
