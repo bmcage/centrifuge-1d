@@ -206,39 +206,32 @@ def compare_data(name, data_computed, data_measured, relerror, abserror,
     print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)),
           file=stream)
 
-def display_status(data_plots=None, filename=None):
-    if filename is None:
-        from sys import stdout
-        fout = stdout
-    else:
-        fout = open(filename, 'w')
+def display_status(data_plots=None, stream=sys.stdout):
 
-    try:
-        if data_plots:
-            for plot in data_plots:
-                plot_id = plot['id']
+    if data_plots:
+        for plot in data_plots:
+            plot_id = plot['id']
 
-                data_items_nr = len(plot['data'])
-                if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
-                    continue
+            data_items_nr = len(plot['data'])
+            if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
+                continue
 
-                if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
-                    value_computed = plot['data'][0]
-                    value_measured = rel_error = abs_error = None
-                else:
-                    value_computed = np.asarray(plot['data'][0])
-                    value_measured = np.asarray(plot['data'][1])
-                    norm_measured = value_measured[:]
-                    norm_measured[norm_measured == 0.0] = 1.0e-10
-                    rel_error = ((value_computed - value_measured)
-                                 / norm_measured * 100.)
+            if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
+                value_computed = plot['data'][0]
+                value_measured = rel_error = abs_error = None
+            else:
+                value_computed = np.asarray(plot['data'][0])
+                value_measured = np.asarray(plot['data'][1])
+                norm_measured = value_measured[:]
+                norm_measured[norm_measured == 0.0] = 1.0e-10
+                rel_error = ((value_computed - value_measured)
+                             / norm_measured * 100.)
 
-                    abs_error = np.abs(value_computed - value_measured)
+                abs_error = np.abs(value_computed - value_measured)
 
-                compare_data(plot_id, value_computed, value_measured,
-                             rel_error, abs_error)
-    finally:
-        if not filename is None: fout.close()
+            compare_data(plot_id, value_computed, value_measured,
+                         rel_error, abs_error, stream)
+
 
 def show_status(data):
     status_items = []
