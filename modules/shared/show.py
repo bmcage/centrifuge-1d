@@ -265,6 +265,20 @@ def print_status(data, filename=None):
             if status_items:
                 display_status(status_items, stream)
 
+        # display additional data
+        cov = data.get_value('cov')
+        if not cov is None:
+            print('\nCov:\n', cov, file=stream)
+
+        params = data.get_value('inv_params')
+        if not params is None:
+            print('\nOptimal parameters found:', file=stream)
+            for (name, value) in params.items():
+                if name == 'ks':
+                    print('  Ks [cm/s]: {: .8g}'.format(value), file=stream)
+                else:
+                    print('  {:9}: {: .8g}'.format(name, value), file=stream)
+
     finally:
         if not stream is None: stream.close()
 
@@ -810,19 +824,6 @@ class DPlots():
 
         if not self._dplots is None: # all OK, dplots were generated
             print_status(data)
-
-            cov = data.get_value('cov')
-            if not cov is None:
-                print('\nCov:\n', cov)
-
-            params = data.get_value('inv_params')
-            if not params is None:
-                print('\nOptimal parameters found:')
-                for (name, value) in params.items():
-                    if name == 'ks':
-                        print('  Ks [cm/s]: {: .8g}'.format(value))
-                    else:
-                        print('  {:9}: {: .8g}'.format(name, value))
 
             _show_dplots(self._dplots, self._plotstyles.get_display_options(),
                          self._experiment_info)
