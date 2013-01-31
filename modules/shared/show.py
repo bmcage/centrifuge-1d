@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt, sys
 import numpy as np
 from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
 from os import makedirs, path
@@ -232,8 +232,12 @@ def display_status(data_plots=None, stream=sys.stdout):
             compare_data(plot_id, value_computed, value_measured,
                          rel_error, abs_error, stream)
 
+def print_status(data, filename=None):
+    if filename is None:
+        stream = sys.stdout
+    else:
+        stream = open(filename, 'w')
 
-def show_status(data):
     status_items = []
 
     measurements = data.get_linedata('measured')
@@ -241,23 +245,28 @@ def show_status(data):
 
     if not measurements: return
 
-    for (key, m_data) in measurements.items():
-        if m_data[1] is None: continue
+    try:
+        # compare measured vs. computed data
+        for (key, m_data) in measurements.items():
+            if m_data[1] is None: continue
 
-        if key in computed:
-            if key == 'theta':
-                c_value = computed[key][2]
+            if key in computed:
+                if key == 'theta':
+                    c_value = computed[key][2]
+                else:
+                    c_value = computed[key][1][1:]
+                m_value = m_data[1]
             else:
-                c_value = computed[key][1][1:]
-            m_value = m_data[1]
-        else:
-            continue
+                continue
 
-        if c_value is not None:
-            status_items.append(mk_status_item(key, c_value, m_value))
+            if c_value is not None:
+                status_items.append(mk_status_item(key, c_value, m_value))
 
-        if status_items:
-            display_status(status_items)
+            if status_items:
+                display_status(status_items, stream)
+
+    finally:
+        if not stream is None: stream.close()
 
 # ResultData: hold the data of the computation
 # Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
@@ -800,7 +809,7 @@ class DPlots():
         data   = self._data
 
         if not self._dplots is None: # all OK, dplots were generated
-            show_status(data)
+            print_status(data)
 
             cov = data.get_value('cov')
             if not cov is None:
