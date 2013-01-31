@@ -233,10 +233,31 @@ def display_status(data_plots=None, filename=None):
     finally:
         if not filename is None: fout.close()
 
+def show_status(data):
+    status_items = []
 
+    measurements = data.get_linedata('measured')
+    computed     = data.get_linedata('computed')
+
+    if not measurements: return
+
+    for (key, m_data) in measurements.items():
+        if m_data[1] is None: continue
+
+        if key in computed:
+            if key == 'theta':
+                c_value = computed[key][2]
             else:
+                c_value = computed[key][1][1:]
+            m_value = m_data[1]
+        else:
+            continue
 
+        if c_value is not None:
+            status_items.append(mk_status_item(key, c_value, m_value))
 
+        if status_items:
+            display_status(status_items)
 
 # ResultData: hold the data of the computation
 # Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
@@ -775,37 +796,11 @@ class DPlots():
             if save_figures and (img_num < images_per_figure):
                 plt.savefig(save_dir + 'image-' + str(self.fignum), dpi=300)
 
-        def _show_status(data):
-            status_items = []
-
-            measurements = data.get_linedata('measured')
-            computed     = data.get_linedata('computed')
-
-            if not measurements: return
-
-            for (key, m_data) in measurements.items():
-                if m_data[1] is None: continue
-
-                if key in computed:
-                    if key == 'theta':
-                        c_value = computed[key][2]
-                    else:
-                        c_value = computed[key][1][1:]
-                    m_value = m_data[1]
-                else:
-                    continue
-
-                if c_value is not None:
-                    status_items.append(mk_status_item(key, c_value, m_value))
-
-            if status_items:
-                display_status(status_items)
-
         # function body
         data   = self._data
 
         if not self._dplots is None: # all OK, dplots were generated
-            _show_status(data)
+            show_status(data)
 
             cov = data.get_value('cov')
             if not cov is None:
