@@ -94,8 +94,8 @@ class ModulesManager():
 
                 modules_names[module_name] = module_name
             except:
-                print('Module loading error:Submodule ''info'' of module "%s" '
-                      'could not be loaded. Skipping.'  % module_name)
+                print('INFO: Information about module "%s" could not be '
+                      'loaded. Module loading is skipped.'  % module_name)
 
         self._available_modules = available_modules
         self._loaded_modules = loaded_modules
