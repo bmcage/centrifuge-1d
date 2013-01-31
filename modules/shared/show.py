@@ -165,7 +165,9 @@ def get_unit_coef(unit_base):
 def mk_status_item(data_id, data_computed, data_measured = []):
    return {'id': data_id, 'data': (data_computed, data_measured)}
 
-def compare_data(name, data_computed, data_measured, relerror, abserror):
+def compare_data(name, data_computed, data_measured, relerror, abserror,
+                 stream):
+
     name_len = len(name)
     disp_all = (not data_measured is None)
 
@@ -176,7 +178,7 @@ def compare_data(name, data_computed, data_measured, relerror, abserror):
     float_disp_size = 12
     fstr = '% {}.6f'.format(float_disp_size)
 
-    print('\n')
+    print('\n', file=stream)
     while remaining > 0:
         if remaining > in_row:
             disp_items = in_row
@@ -184,20 +186,25 @@ def compare_data(name, data_computed, data_measured, relerror, abserror):
             disp_items = remaining
 
         print('%s measured: ' % name,
-              disp_items * fstr % tuple(data_measured[i0:i0+disp_items]))
+              disp_items * fstr % tuple(data_measured[i0:i0+disp_items]),
+              file=stream)
         if disp_all:
             print('%s computed: ' % name,
-                  disp_items * fstr % tuple(data_computed[i0:i0+disp_items]))
+                  disp_items * fstr % tuple(data_computed[i0:i0+disp_items]),
+                  file=stream)
             print('AbsError: ', name_len * ' ',
-                  disp_items * fstr % tuple(abserror[i0:i0+disp_items]))
+                  disp_items * fstr % tuple(abserror[i0:i0+disp_items]),
+                  file=stream)
             print('Error (%):', name_len * ' ',
-                  disp_items * fstr % tuple(relerror[i0:i0+disp_items]))
+                  disp_items * fstr % tuple(relerror[i0:i0+disp_items]),
+                  file=stream)
 
         remaining = remaining - disp_items
-        print((16 + float_disp_size*in_row) * '-')
+        print((16 + float_disp_size*in_row) * '-', file=stream)
         i0 = i0 + in_row
 
-    print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
+    print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)),
+          file=stream)
 
 def display_status(data_plots=None, filename=None):
     if filename is None:
