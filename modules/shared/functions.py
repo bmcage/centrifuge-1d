@@ -136,7 +136,7 @@ def show_results(experiment_info,
 
         from shared import get_directories
         savedir = get_directories('figs', 'mask', experiment_info)
-        filename = savedir + '/' + 'Results.txt'
+        filename = savedir + '/' + 'results.txt'
         print_status(data, filename)
 
     if show_figures:
