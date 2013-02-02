@@ -280,7 +280,7 @@ def print_status(data, filename=None):
                     print('  {:9}: {: .8g}'.format(name, value), file=stream)
 
     finally:
-        if not filename is None: stream.close()
+        if not stream is None: stream.close()
 
 # ResultData: hold the data of the computation
 # Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
@@ -834,8 +834,8 @@ class DPlots():
                 plt.ion()
                 plt.show()
 
-        if sys.version_info[0] == 2:
+        try:
             #python 2.7
             raw_input('Press ENTER to continue...')
-        else:
+        except:
             input('Press ENTER to continue...')
