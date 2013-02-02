@@ -2,7 +2,9 @@ from __future__ import division
 
 PARENTAL_MODULES = ['base_unsaturated']
 
-CONFIG_OPTIONS = ['h_init',
+CONFIG_OPTIONS = [('dynamic_h_init', False),
+                  (lambda cfg: cfg.get_value('dynamic_h_init'),
+                   ['h_init_max', ('c_gammah', 1e-3)], ['h_init']),
                   'rb_type',
                   # dependent
                   (lambda cfg: cfg.get_value('rb_type') == 2,
@@ -39,3 +41,5 @@ def adjust_cfg(cfg):
 
     # by default compute all measurements but rotational momentum
     cfg.set_value('calc_rm', False)
+
+    # if 'dynamic_h_init' then 'h_init' is set at runtime

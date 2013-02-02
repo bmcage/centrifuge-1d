@@ -295,6 +295,13 @@ def initialize_zp0(zp0, z0, model):
        - 2./(porosity*du_dh[1:-1]*(dy[:-1] + dy[1:])*ds) * (q12[1:] - q12[:-1]))
 
 def solve(model):
+    if model.dynamic_h_init:
+        model.h_init = min(model.c_gammah / model.gamma, model.h_init_max)
+        if model.verbosity > 1:
+            print('\nh_init: ', model.h_init,
+            'u_init', h2u(model.h_init, model.n,
+                          model.m, model.gamma), '\n')
+
     # Initialization
     if model.rb_type == 3:
         atol_backup        = model.atol # backup value

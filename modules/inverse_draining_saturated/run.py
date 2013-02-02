@@ -8,18 +8,9 @@ from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
 from numpy import alen
 
-def update_runtime_variables(model):
-    if model.dynamic_h_init:
-            model.h_init = min(model.c_gammah / model.gamma, model.h_init_max)
-            if model.verbosity > 1:
-                print('\nh_init: ', model.h_init,
-                      'u_init', h2u(model.h_init, model.n,
-                                    model.m, model.gamma), '\n')
-
 def solve(model):
 
     def ip_direct_drainage(model, measurements_names):
-        update_runtime_variables(model)
         (flag, t, z, measurements) = solve_direct(model)
 
         contains_data = (alen(t) > 1)

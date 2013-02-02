@@ -18,10 +18,6 @@ CONFIG_OPTIONS = ['inv_init_params',
                      ('disp_inv_conv', True)]),
                   (lambda cfg: cfg.get_value('optimfn') == 'raster',
                     ['raster_grid_size']),
-                  # experiment
-                  'dynamic_h_init',
-                  (lambda cfg: cfg.get_value('dynamic_h_init'),
-                   ['h_init_max', ('c_gammah', 1e-3)]),
                   # measurement weights
                   ('wl1_weights', None), ('wl_out_weights', None),
                   ('gc1_weights', None), ('rm1_weights', None),
@@ -32,8 +28,7 @@ INTERNAL_OPTIONS = []
 
 #EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
 
-PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys()),
-                   (lambda cfg: cfg.get_value('dynamic_h_init'), ['h_init'])]
+PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys())]
 
 OPTIONS_ITERABLE_LISTS = []
 
