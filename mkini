@@ -533,6 +533,8 @@ def process_scanned_data(experiment, experiment_info):
         if omega == 0.0:
             a_duration.append()
 
+        append_g_duration = False
+
         for (omega_next, scan_next) in zip(omegas[1:], scans[1:]):
             if omega == omega_next: continue
 
