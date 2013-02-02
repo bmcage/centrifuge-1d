@@ -343,7 +343,7 @@ def quote_csv_file_string(key, value):
         return value
 
 def CSV2data(csv_dir, csv_filebasename):
-    print('\t\t\tReading CSV file... ', end="")
+    print('\t\t\tReading CSV file', csv_filebasename, '... ', end="")
 
 
     csv_filename = csv_dir + csv_filebasename + '.csv'
@@ -372,10 +372,10 @@ def CSV2data(csv_dir, csv_filebasename):
 
         try:
             for i in range(13): next(csv_data) # skip useless header
-        except:
+        except Exception as msg:
             f_csv.close()
 
-            print('Error during file reading occured. Exiting...')
+            print('Error during file reading occured. Message', msg, 'Exiting...')
             exit(1)
 
         # replace original column names with something more readable
@@ -427,10 +427,10 @@ def CSV2data(csv_dir, csv_filebasename):
                 data.append_row(row, exp_id, exp_no)
             else:
                 data.append_row(row)
-    except:
+    except Exception as msg:
         f_csv.close()
 
-        print('Error during file reading occured. Exiting...')
+        print('Error during file reading occured, msg=\n', msg, ' Exiting...')
         exit(1)
 
     if csv_type == 'scanned_data':
