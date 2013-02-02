@@ -130,9 +130,8 @@ def show_results(experiment_info,
     if show_figures:
         dplots = DPlots(data, experiment_info)
 
-        if data.store_references(dplots.get_references()): save_data = True
-
-        dplots.display()
+        if data.store_references(dplots.get_references()):
+            save_data = True
 
     if save_data:
         if data.get_value('experiment_info') is None:
@@ -145,6 +144,9 @@ def show_results(experiment_info,
         savedir = get_directories('figs', 'mask', experiment_info)
         filename = savedir + '/' + 'results.txt'
         print_status(data, filename)
+
+    if show_figures:
+        dplots.display()
 
 def has_data(x):
     if x is None:
