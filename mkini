@@ -541,7 +541,7 @@ def process_scanned_data(experiment, experiment_info):
 
                 if omega < omega_next:
                     a_duration.append(scan_next - scan)
-                    d_duration.apped(0.0)
+                    d_duration.append(0.0)
                     g_duration.append(0.0)
                 elif omega_next == 0.0:
                     d_scan = scan_next - 15 # "guess" that dec takes at most 10s
