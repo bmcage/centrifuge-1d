@@ -371,16 +371,23 @@ def CSV2data(csv_dir, csv_filebasename):
         and (len(csv_fields[1]) >= 10) and (csv_fields[1][:10] == 'Data Instr')):
 
         try:
-            for i in range(13): next(csv_data) # skip useless header
+            #csv_fields = next(csv_data)
+            while csv_fields[0] != 'Scan':
+                csv_fields = next(csv_data) # skip useless header
         except Exception as msg:
             f_csv.close()
 
             print('Error during file reading occured. Message', msg, 'Exiting...')
             exit(1)
 
-        # replace original column names with something more readable
-        csv_fields = ('scan', 'time', 'elapsed', 's101', 's102', 's103',
-                      's119', 's120')
+        # replace original column names with something more readable:
+        # csv_fields = ('scan', 'time', 'elapsed', 's101', 's102', 's103', ...)
+        for i in range(0, 3):
+            csv_fields[i] = csv_fields[i].lower()
+        for i in range(3, len(csv_fields)):
+            fields = csv_fields[i].split(' ')
+            csv_fields[i] = 's' + fields[0]
+
         csv_type = 'scanned_data'
         data = ExperimentData(csv_type)
     else:
