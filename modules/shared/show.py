@@ -348,6 +348,8 @@ class ResultsData():
         if model is None:
             experiment_info = self.get_value('experiment_info')
             (cfg, consts_cfg) = load_configuration(experiment_info)
+            process_global_constants(cfg, consts_cfg)
+
             if self._modman is None:
                 from config import ModulesManager
                 self._modman = ModulesManager()
@@ -355,7 +357,6 @@ class ResultsData():
             modman = self._modman
 
             cfg.load_definition(modman)
-            process_global_constants(cfg, consts_cfg)
 
             cfg.adjust_cfg(modman)
             solver_module = modman.find_module(cfg.get_value('exp_type'),
