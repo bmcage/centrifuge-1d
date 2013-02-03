@@ -191,7 +191,10 @@ def adjust_cfg(cfg):
         if value:
             new_value = (np.asarray(value, dtype=float)
                          / cfg.get_value('density') / tube_crosssectional_area)
-            cfg.set_value('wl'+name[2], list(new_value))
+            if np.isscalar(new_value):
+                cfg.set_value('wl'+name[2], [new_value])
+            else:
+                cfg.set_value('wl'+name[2], list(new_value))
 
 def prior_adjust_cfg(cfg):
     """
