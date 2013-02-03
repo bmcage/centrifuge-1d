@@ -186,7 +186,8 @@ def adjust_cfg(cfg):
 
     # if ww0 (ww1) was provided, we set wl0 (wl1)
     for name in ('ww0', 'ww1'):
-        value = cfg.get_value('ww0')
+        value = cfg.get_value(name)
+
         if value:
             new_value = (np.asarray(value, dtype=float)
                          / cfg.get_value('density') / tube_crosssectional_area)
