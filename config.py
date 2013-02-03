@@ -16,7 +16,7 @@ except:
 from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
      DEFAULTS_ININAME, CONSTANTS_ININAME
 from shared import parse_value, get_directories, yn_prompt
-from os import listdir, path
+from os import listdir, path, makedirs
 from sys import modules as sysmodules
 from types import MethodType
 from modules.shared.characteristics import Measurements
