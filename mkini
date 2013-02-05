@@ -398,6 +398,7 @@ def CSV2data(csv_dir, csv_filebasename):
         required_fields = ('exp_type', 'exp_id', 'exp_no')
         missing = missing_fields_in_csv(csv_fields, required_fields)
         if not missing == []:
+            print()
             print("CSV file: missing identifiers: '%s' "% missing)
             print('CSV error: cannot process CSV file, aborting...')
             exit(1)
@@ -408,6 +409,7 @@ def CSV2data(csv_dir, csv_filebasename):
             if len(missing) == len(extended_fields):
                 pass # if all are missing, it's of type 'regular_ini'
             else:
+                print()
                 print("CSV file: missing identifiers: '%s' "% missing)
                 print('CSV error: cannot process CSV file, aborting...')
                 exit(1)
