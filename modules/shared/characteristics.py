@@ -60,10 +60,10 @@ class Measurements():
 
         # 1. determine measurements times
         if cfg.get_value('measurements_times'):
-            t = np.asarray(flatten(cfg.get_value('measurements_times')),
+            scans = np.asarray(flatten(cfg.get_value('measurements_times')),
                            dtype=float)
-            if not t[0] == 0.0:
-                t= np.concatenate(([0.0], t))
+            if not scans[0] == 0.0:
+                scans = np.concatenate(([0.0], scans))
         else:
             scans = phases_end_times(cfg.get_value('duration', not_found=None),
                                  cfg.get_value('deceleration_duration',
