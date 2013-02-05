@@ -403,7 +403,7 @@ def CSV2data(csv_dir, csv_filebasename):
             print('CSV error: cannot process CSV file, aborting...')
             exit(1)
 
-        extended_fields = ('scan', 'csv_file', 'omega', 'scan_span')
+        extended_fields = ('scan', 'csv_file', 'omega')
         missing = missing_fields_in_csv(csv_fields, extended_fields)
         if missing:
             if len(missing) == len(extended_fields):
@@ -510,11 +510,6 @@ def process_scanned_data(experiment, experiment_info):
     omegas = experiment.get_value('omega')
     scans  = np.asarray(experiment.get_value('scan'), dtype=int)
     (scan_first, scan_last) = (scans[0], scans[-1])
-    scan_span = compress_seq(experiment.get_value('scan_span'))
-    if not np.isscalar(scan_span):
-        print("\nERROR: Only one value for 'scan_span' may be specified.")
-        exit(1)
-    scan_span = float(scan_span)
 
     scanned_inflow_weights  = scanned_data.get_value('s102')
 
@@ -559,7 +554,7 @@ def process_scanned_data(experiment, experiment_info):
                 omega_cen.append(omega)
 
                 if omega < omega_next:
-                    a_duration.append(scan_span * (scan_next - scan))
+                    a_duration.append(scan_next - scan)
                     d_duration.append(0.0)
                     g_duration.append(0.0)
                 elif omega_next == 0.0:
@@ -573,8 +568,8 @@ def process_scanned_data(experiment, experiment_info):
                         else: # deceleration was triggered
                             d_scan = sc
                             break
-                    a_duration.append(scan_span * (d_scan - scan))
-                    d_duration.append(scan_span * (scan_next - d_scan))
+                    a_duration.append(d_scan - scan)
+                    d_duration.append(scan_next - d_scan)
                     append_g_duration = True # activate
                 elif omega == omega_next:
                     if not i+1 == scans_nr:
@@ -584,14 +579,14 @@ def process_scanned_data(experiment, experiment_info):
                     print('\nWARNING: Last provided omega ' + str(omega) + 'is the '
                           'same as the previous one, hence no deceleration at '
                           'the end is performed !')
-                    a_duration.append(scan_span * (scan_next - scan))
+                    a_duration.append(scan_next - scan)
                     d_duration.append(0.0)
                     g_duration.append(0.0)
                 else: # 0 < omega_next < omega
                     raise NotImplementedError('Decelerating to omega>0 is not '
                                               'supported.')
             else: # omega = 0.0 i.e. only g
-                g_duration.append(scan_span * (scan_next - scan))
+                g_duration.append(scan_next - scan)
                 append_g_duration = False # disable
                 # a_duration, d_duration were set in previous iteration
 
