@@ -95,8 +95,11 @@ def y2x(y, s1, s2):
 
     ds = s2 - s1
 
-    for i in range(s1_len):
-        x[i, :] = s1[i] + y * ds[i]
+    if s1_len > 1:
+        for i in range(s1_len):
+            x[i, :] = s1[i] + y * ds[i]
+    else:
+        x[:] = s1 + y*ds
 
     return x
 
