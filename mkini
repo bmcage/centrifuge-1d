@@ -577,6 +577,15 @@ def process_scanned_data(experiment, experiment_info):
             omega = omega_next
             scan  = scan_next
 
+        a_duration_compressed = compress_seq(a_duration)
+        d_duration_compressed = compress_seq(d_duration)
+        g_duration_compressed = compress_seq(g_duration)
+
+
+        if a_duration_compressed == 0.0: a_duration = 0.0
+        if d_duration_compressed == 0.0: d_duration = 0.0
+        if g_duration_compressed == 0.0: g_duration = 0.0
+
     else: # constant omega
         omega = c_omega
         if c_omega == 0.0:
@@ -592,9 +601,9 @@ def process_scanned_data(experiment, experiment_info):
 
     experiment.set_value('omega', omega_cen)
     experiment.set_value('include_acceleration', include_acceleration)
-    experiment.set_value('duration', compress_seq(a_duration))
-    experiment.set_value('deceleration_duration', compress_seq(d_duration))
-    experiment.set_value('fh_duration', compress_seq(g_duration))
+    experiment.set_value('duration', a_duration)
+    experiment.set_value('deceleration_duration', d_duration)
+    experiment.set_value('fh_duration', g_duration)
 
     # Truncate unused values
     for (csv_name, ini_name) in CSV2INI_NAMES.items():
