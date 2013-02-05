@@ -54,7 +54,8 @@ class DataStorage():
         pathdir = get_directories('figs', 'mask', experiment_info)
         filename = pathdir + DUMP_DATA_FILENAME
         if not path.exists(filename):
-            print('File with computation results does not exist:', filename)
+            print('INFO: File with computation results does not exist:',
+                  filename)
             return False
 
         with open(filename, 'rb') as f:
