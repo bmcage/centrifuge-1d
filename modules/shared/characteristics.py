@@ -65,20 +65,23 @@ class Measurements():
             if not t[0] == 0.0:
                 t= np.concatenate(([0.0], t))
         else:
-            t = phases_end_times(cfg.get_value('duration', not_found=None),
+            scans = phases_end_times(cfg.get_value('duration', not_found=None),
                                  cfg.get_value('deceleration_duration',
                                                not_found=None),
                                  cfg.get_value('fh_duration', not_found=None),
                                  cfg.get_value('include_acceleration',
                                                not_found=True))
 
-        t_span = float(cfg.get_value('scan_span', not_found=None))
+        scan_span = float(cfg.get_value('scan_span', not_found=None))
 
-        if t is None:
+        if scans is None:
+            t = None
             t_meas = None
         else:
-            t *= t_span
+            t = scans * scan_span
             t_meas = t[1:]
+            scans_meas = scans[1:]
+
         cfg.del_value('measurements_times')
 
         # 2. a) determine measured data
@@ -113,7 +116,8 @@ class Measurements():
                 F  = measurements[F_name]
 
                 # Leave only values at desired point (t_meas)
-                if F_filter is None: F_filter = np.asarray(t_meas, dtype=int)
+                if F_filter is None:
+                    F_filter = np.asarray(scans_meas, dtype=int)
 
                 F = measurements[F_name][F_filter]
 
