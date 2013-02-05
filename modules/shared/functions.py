@@ -115,6 +115,10 @@ def show_results(experiment_info,
 
     if storage.load(experiment_info):
         data.load(storage.get('ResultsData'))
+    elif model is None:
+        print('      (Was computation already run?)'
+              '\nINFO: Nothing to display. Exiting.')
+        exit(0)
 
     if not inv_params is None: data.store_value('inv_params', inv_params)
     if not cov is None: data.store_value('cov', cov)
