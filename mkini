@@ -538,8 +538,14 @@ def process_scanned_data(experiment, experiment_info):
 
         append_g_duration = False
 
-        for (omega_next, scan_next) in zip(omegas[1:], scans[1:]):
-            if omega == omega_next: continue
+        scans_nr = len(scans)
+
+        for i in range(1, scans_nr):
+            omega_next = omegas[i]
+            scan_next  = scans[i]
+
+            # handle case last two omegas are same - the last value is needed
+            if (omega == omega_next) and (i+1 < scans_nr): continue
 
             if omega > 0.0: # centrifugation
                 omega_cen.append(omega)
@@ -562,6 +568,17 @@ def process_scanned_data(experiment, experiment_info):
                     a_duration.append(d_scan - scan)
                     d_duration.append(scan_next - d_scan)
                     append_g_duration = True # activate
+                elif omega == omega_next:
+                    if not i+1 == scans_nr:
+                        raise ValueError('Something went wrong. omega can''t '
+                                         'be equal to omega_next unless they '
+                                         'are last values.')
+                    print('\nWARNING: Last provided omega ' + str(omega) + 'is the '
+                          'same as the previous one, hence no deceleration at '
+                          'the end is performed !')
+                    a_duration.append(scan_next - scan)
+                    d_duration.append(0.0)
+                    g_duration.append(0.0)
                 else: # 0 < omega_next < omega
                     raise NotImplementedError('Decelerating to omega>0 is not '
                                               'supported.')
