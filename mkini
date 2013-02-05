@@ -444,16 +444,17 @@ def CSV2data(csv_dir, csv_filebasename):
         exit(1)
 
     if csv_type == 'scanned_data':
-        # remove useless columns from data structure
-        data.delete('scan', 'time', 'elapsed', 's101', 's119', 's120')
+        for name in csv_fields:
+            if name in ('s102', 's103'):
+                # force to use '.' as a delimiter for floats (and not ',')
+                dval = []
+                for value in data.get_value(name):
+                    dval.append(value.replace(',', '.'))
 
-        # force to use '.' as a delimiter for floats (and not ',')
-        for name in ('s102', 's103'):
-            dval = []
-            for value in data.get_value(name):
-                dval.append(value.replace(',', '.'))
-
-            data.set_value(name, dval)
+                data.set_value(name, dval)
+            else:
+                # remove useless columns from data structure
+                data.delete(name)
 
     if csv_type == 'scan_ini':
         # if needed, add quotes to values in csv_file field
