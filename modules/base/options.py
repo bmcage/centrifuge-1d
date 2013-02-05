@@ -9,6 +9,7 @@ CONFIG_OPTIONS = ['exp_type',
                   ('ww0', None),
                   'fh_duration', 'r0_fall',
                   ('measurements_times', None),
+                  ('scan_span', 1.0),
                   'wt_out',
                   'include_acceleration',
                   # solver options

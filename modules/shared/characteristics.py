@@ -72,9 +72,12 @@ class Measurements():
                                  cfg.get_value('include_acceleration',
                                                not_found=True))
 
+        t_span = float(cfg.get_value('scan_span', not_found=None))
+
         if t is None:
             t_meas = None
         else:
+            t *= t_span
             t_meas = t[1:]
         cfg.del_value('measurements_times')
 
