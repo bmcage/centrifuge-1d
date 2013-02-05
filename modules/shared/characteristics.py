@@ -73,6 +73,13 @@ class Measurements():
                                                not_found=True))
 
         scan_span = float(cfg.get_value('scan_span', not_found=None))
+        if scan_span != 1.0:
+            for name in ('duration', 'fh_duration', 'deceleration_duration'):
+                duration = scan_span * np.asarray(cfg.get_value(name),
+                                                  dtype=float)
+                if not np.alen(duration) > 0:
+                    duration = list(duration)
+                cfg.set_value(name, duration)
 
         if scans is None:
             t = None
