@@ -168,8 +168,11 @@ class ExperimentData():
              section_name='experiment'):
 
         def _princ(key, value, stream):
-            if type(value) in (list, tuple):
-                value_str = '[' + (', '.join(value)) +  ']'
+            if value and type(value) in (list, tuple):
+                value_str = '[' + str(value[0])
+                for item in value[1:]:
+                    value_str += ', ' + str(item)
+                value_str += ']'
             else:
                 value_str = value
 
