@@ -542,7 +542,7 @@ def process_scanned_data(experiment, experiment_info):
             if omega == omega_next: continue
 
             if omega > 0.0: # centrifugation
-                omega_cen.append(str(omega))
+                omega_cen.append(omega)
 
                 if omega < omega_next:
                     a_duration.append(scan_next - scan)
