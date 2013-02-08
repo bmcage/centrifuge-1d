@@ -119,32 +119,56 @@ class Measurements():
         #           - if calibration curve present, use directly force as
         #              measurement, otherwise use difference between two
         #              subsequent force measurements
-        F_filter = None
+        filter = np.asarray(scans_meas, dtype=int)
         for F_name in ('F_MT', 'F_MO'):
             if F_name in measurements:
                 F  = measurements[F_name]
 
                 # Leave only values at desired point (t_meas)
-                if F_filter is None:
-                    F_filter = np.asarray(scans_meas, dtype=int)
-
-                F = measurements[F_name][F_filter]
+                F_filter = F[filter]
 
                 calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[F_name]
                                                   + '_calibration_curve')
-                if calibration_curve is not None:
-                    calibration_curve = np.asarray(calibration_curve,
-                                                   dtype=float)
-                    F -= calibration_curve
-                    measurements[F_name] = F
-                else:
+                if calibration_curve is None:
                     del measurements[F_name]
                     del measurements_xvalues[F_name]
 
-                    dF = F[1:] - F[:-1] # forces difference
+                    dF = F_filter[1:] - F_filter[:-1] # forces difference
 
                     measurements['d'+F_name] = dF
                     measurements_xvalues[F_name] = t_meas[1:]
+
+                    continue
+
+                if np.isscalar(calibration_curve):
+                    F_filter -= calibration_curve
+                    F = F_filter
+
+                elif type(calibration_curve) is dict:
+                    first_idx = 0
+                    omegas = cfg.get_value('omega')
+
+                    # phases_scans = [0.0, phase1_end, phase2_end, ...]
+                    for (phase_end, omega) in zip(phases_scans[1:], omegas):
+                        if not omega in calibration_curve:
+                            print('Value of omega=' + str(omega) + ' not '
+                                  'found in ' + F_name + '_calibration'
+                                  '_curve. Cannot proceed, exiting.')
+                            exit(1)
+
+                        base_weight = calibration_curve[omega]
+                        F[first_idx: phase_end+1] -= base_weight
+
+                        first_idx = phase_end+1
+
+                    F_filter = F[filter]
+                else:
+                    # type(calibration_curve) == list:
+                    calibration_curve = np.asarray(calibration_curve,
+                                                   dtype=float)
+                    F_filter -= calibration_curve
+
+                measurements[F_name] = F_filter
 
         #    d) theta uses pressure as x-value (and not time)
         if 'theta' in measurements:
@@ -211,6 +235,7 @@ class Measurements():
                 cfg.set_value(key, [rpm2radps(omega) for omega in value])
             else:
                 cfg.set_value(key, rpm2radps(value))
+
     def dump(self):
         """ Collect stored data to simple format for saving. """
         return (self._measurements, self._measurements_weights,
