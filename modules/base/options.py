@@ -44,6 +44,7 @@ CONFIG_OPTIONS = ['exp_type',
                   # measurements and referencing parameters
                   ('l1', None), ('gc1', None), ('rm1', None ),
                   ('f_mo', None), ('f_mt', None),
+                  ('f_mo_tara', None), ('f_mt_tara', None),
                   ('wl1', None), ('wl_out', None), ('ww1', None),
 
                   ('descr', None), ('re', None),
@@ -64,7 +65,7 @@ INTERNAL_OPTIONS = ['omega2g_fns', 'find_omega2g', 't0', 'omega_start',
 
 EXCLUDE_FROM_MODEL = ['measurements_length', 'omega2g_fns', 'r0',
                       'f_mt_calibration_curve', 'f_mo_calibration_curve',
-                      'tube_diam', 'ww0', 'ww1']
+                      'tube_diam', 'ww0', 'ww1', 'f_mo_tara', 'f_mt_tara']
 
 PROVIDE_OPTIONS = []
 
@@ -103,6 +104,15 @@ def check_cfg(cfg):
         F = cfg.get_value(F_name)
 
         if (F is None): continue
+
+        F_tara = cfg.get_value(F_name + '_tara')
+        if not F_tara is None:
+            if ((not type(F_tara) in (list, tuple))
+                or (len(F_tara) != 2)):
+                print('The tara value of ' + F_name + ' (' + F_name + '_tara) '
+                      'must be a list/tuple of length 2 of type '
+                      '[omega, weight]. Aborting.')
+                return False
 
         F_calibration_curve = cfg.get_value(F_name + '_calibration_curve')
 

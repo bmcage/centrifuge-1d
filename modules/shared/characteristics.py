@@ -16,6 +16,12 @@ MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'dF_MO': None, 'dF_MT': None,
                       'theta': 'theta'}
 
+def calc_f_tara(omega2g, WR_tara):
+    if WR_tara is None:
+        raise NotImplementedError
+
+    return omega2g * WR_tara
+
 class Measurements():
     """
     This class is for handling with measurements of all types - measured data
@@ -44,6 +50,10 @@ class Measurements():
 
         # Maximal number of values stored per measurement
         self._measurements_nr = -1 # i.e. length(self._times)
+
+        # Radius * weight of tara (R is at the gravitational centre)
+        self.WR_mt_tara = None
+        self.WR_mo_tara = None
 
     def read(self, cfg):
         """
@@ -122,6 +132,17 @@ class Measurements():
         filter = np.asarray(scans_meas, dtype=int)
         for F_name in ('F_MT', 'F_MO'):
             if F_name in measurements:
+
+                # Determine the influence of tara
+                F_tara = cfg.get_value(F_name.lower() + '_tara')
+                if not F_tara is None:
+                    (omega_rpm, weight_tara) = F_tara
+                    g = cfg.get_value('g')
+                    omega_radps = rpm2radps(omega_rpm)
+                    WR_tara = weight_tara * g / omega_radps / omega_radps
+                    setattr(self, 'WR' + F_name[1:].lower() + '_tara', WR_tara)
+
+                # Process the force measurements
                 F  = measurements[F_name]
 
                 # Leave only values at desired point (t_meas)
@@ -316,10 +337,20 @@ class Measurements():
         if meas_id in self._computed:
             times  = self._times
             values = self._computed[meas_id]
+
+            # Add force caused by tara to computed force
+            if ((meas_id in ('F_MO', 'F_MT'))
+                and ((meas_id + '_tara') in self._computed)):
+                values += self._computed[meas_id + '_tara']
+
         elif meas_id in ('dF_MT', 'dF_MO'):
             mid = meas_id[1:]
             if mid in self._computed:
                 F = self._computed[mid]
+                # Add force caused by tara to computed force
+                if (mid + '_tara') in self._computed:
+                    F += self._computed[mid + '_tara']
+
                 times  = self._times[1:]
                 values = F[1:] - F[:-1]
             else:
@@ -491,6 +522,10 @@ class Measurements():
 
         F = omega2g * GC * mo
 
+        if not self.WR_mo_tara is None:
+            self.store_calc_measurement('F_MO_tara',
+                                        calc_f_tara(omega2g, self.WR_mo_tara))
+
         return self.store_calc_measurement('F_MO', F)
 
     def store_calc_cf_mo(self, omega2g, rS, rE, fluid_density, chamber_area):
@@ -535,6 +570,10 @@ class Measurements():
         F = (calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
                         soil_porosity, fl2, fp2, fr2, fluid_density)
              * omega2g * tube_area)
+
+        if not self.WR_mt_tara is None:
+            self.store_calc_measurement('F_MT_tara',
+                                        calc_f_tara(omega2g, self.WR_mt_tara))
 
         return self.store_calc_measurement('F_MT', F)
 
