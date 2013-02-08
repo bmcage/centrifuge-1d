@@ -710,7 +710,7 @@ class ModelParameters:
 
         # Keep self._itarable_parameters up-to-date
         if key in self._iterable_options_names:
-            if type(value) in [list, tuple]:
+            if type(value) in [list, tuple, np.ndarray]:
                 self._iterable_parameters[key] = value
                 value = value[0] # initialize with first value
             else:
