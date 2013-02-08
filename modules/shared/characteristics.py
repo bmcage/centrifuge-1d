@@ -5,6 +5,7 @@ from modules.shared.functions import determine_scaling_factor
 from shared import get_directories, flatten
 from os import makedirs, path
 from modules.shared.vangenuchten import h2u
+from modules.shared.functions import rpm2radps
 
 # MEASUREMENTS_NAMES are the mapping between the internal
 # denotation of measured data (used during computation and for
@@ -200,6 +201,15 @@ class Measurements():
         self._times                = t
         self._measurements_nr      = np.alen(t)
 
+        # 5. convert omega from rpm to radians/s
+        #    NOTE: we do it here because *_calibration_curve is expressed
+        #          in terms of omega(rpm)
+        for key in ['omega']:
+            value = cfg.get_value(key)
+            if type(value) == list:
+                cfg.set_value(key, [rpm2radps(omega) for omega in value])
+            else:
+                cfg.set_value(key, rpm2radps(value))
     def dump(self):
         """ Collect stored data to simple format for saving. """
         return (self._measurements, self._measurements_weights,

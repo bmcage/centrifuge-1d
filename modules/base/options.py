@@ -112,7 +112,7 @@ def check_cfg(cfg):
                       +"' supplied as array has to be of the same length "
                     "as the measured force '"+ F + "'")
                 return False
-        elif type(F_calibration_curve) in (float, int):
+        elif type(F_calibration_curve) in (float, int, dict):
             pass
         elif F_calibration_curve is None:
             print('Info: Calibration curve: ' +  F_name + ' was not '
@@ -120,8 +120,8 @@ def check_cfg(cfg):
                   'used instead.')
             pass
         else:
-            print('Unsuppported type for ' + F_calibration_curve + '. Only '
-                  'float/int/array of floats or ints is allowe')
+            print('Unsuppported type for calibration_curve of ' + F_name + '.'
+                  '\nOnly float/int/array of floats/dict or ints is allowed.')
             return False
 
         if F_name == 'f_mo':
@@ -152,16 +152,11 @@ def adjust_cfg(cfg):
        by configuration file(s), e.g. allocate the discretized interval
        based on the discretization type and number of inner points.
     """
-    from modules.shared.functions import (rpm2radps, find_omega2g,
-                                          find_omega2g_fh, find_omega2g_dec)
-    # Handle depending variables
-    for key in ['omega']:
-        value = cfg.get_value(key)
-        if type(value) == list:
-            cfg.set_value(key, [rpm2radps(omega) for omega in value])
-        else:
-            cfg.set_value(key, rpm2radps(value))
+    from modules.shared.functions import (find_omega2g, find_omega2g_fh,
+                                          find_omega2g_dec)
 
+    # NOTE: conversion of omega from rpm to radians is done inside the
+    #       read() method of class Measurements
     cfg.set_value('omega2g_fns', {'a': find_omega2g, 'g': find_omega2g_fh,
                                   'd': find_omega2g_dec})
 
