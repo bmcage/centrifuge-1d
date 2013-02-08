@@ -9,6 +9,7 @@ CONFIG_OPTIONS = {
                      "an entry in the 'constants.ini' file, where starting "
                      "and ending filter proberties should be specified".
                      "Type: integer"),
+         'tube_diam': "Diameter of the tube."
          're': ("Distance (radius) from the centrifuge axis to the end of the "
                 "ending filter; on the other hand, value r0 is the distance "
                 "the centrifuge axis to the beginning of soil sample, i.e. "
@@ -108,7 +109,38 @@ CONFIG_OPTIONS = {
                                       "type is in "
                                       "<1, 10) interval. See also *_weights, "
                                       "options, which specify a weight - i.e. "
-                                      "importance of given measurement.")
+                                      "importance of given measurement."),
+         'f_mo': ("Measured centrifugal force of the expelled water. More "
+                  "precisely it is the force divided by g (= gravitational "
+                  "constant)."),
+         'f_mt': ("Measured centrifugal force of the water inside the tube. "
+                  "More precisely it is the force divided by g (= gravitational "
+                  "constant)."),
+         'f_mo_tara': ("Force implied on the sensor of expelled water by the "
+                       "holding aparatus. Value is a list of two items: "
+                       "(omega, W) where omega is the speed (in rpm) at which "
+                       "the force W was measured - force again is taken as if "
+                       "measured under 1g, i.e. W=F/g with F the centrifugal "
+                       "force."),
+         'f_mt_tara': ("Force implied on the sensor measuring the water inside "
+                       "of the tube. See also 'f_mo_tara'."),
+         'f_mo_calibration_curve':\
+             ("Calibration curve for measured f_mo. Useful when there is some "
+              "shift in measured data (e.g. in case of calibration with base "
+              "not equal to zero). So f_mo:= f_mo - f_mo_calibration_curve. "
+              "Calibration curve can be either constant, list (of the same "
+              "length as 'f_mo') or a dict of format: "
+              "{omega1: base1, omega2: base2, ...}. In the last case the "
+              "measurements will be shifted accordin to the rotational speed."),
+         'f_mt_calibration_curve': "See 'f_mo_calibration_curve'.",
+         'mo_gc_calibration_curve': \
+             ("Calibration curve for the expelled water. Allows to determine "
+              "the gravitational centre of the expelled water. Value is a list "
+              "of pairs of the format: [(mo1, R1), (mo2, R2), ...], where "
+              "mo1 < mo2 < ... and moX (X=1,2,...) is the amount of expelled "
+              "water (in cm3) and RX is the radius of GC corresponding to the "
+              "moX units of expelled water. The value of R for mo: "
+              "moX < mo < moY is linearly interpolated.")
          },
     'solver' : \
       {'atol': ("Set absolute tolerances for the solver. "
