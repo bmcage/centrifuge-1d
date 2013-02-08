@@ -60,18 +60,19 @@ class Measurements():
         measurements_weights = OrderedDict()
 
         # 1. determine measurements times
+        phases_scans = \
+          phases_end_times(cfg.get_value('duration', not_found=None),
+                           cfg.get_value('deceleration_duration', not_found=None),
+                           cfg.get_value('fh_duration', not_found=None),
+                           cfg.get_value('include_acceleration', not_found=True))
+
         if cfg.get_value('measurements_times'):
             scans = np.asarray(flatten(cfg.get_value('measurements_times')),
                            dtype=float)
             if not scans[0] == 0.0:
                 scans = np.concatenate(([0.0], scans))
         else:
-            scans = phases_end_times(cfg.get_value('duration', not_found=None),
-                                 cfg.get_value('deceleration_duration',
-                                               not_found=None),
-                                 cfg.get_value('fh_duration', not_found=None),
-                                 cfg.get_value('include_acceleration',
-                                               not_found=True))
+            scans = phases_end_times
 
         scan_span = float(cfg.get_value('scan_span', not_found=None))
         if scan_span != 1.0:
