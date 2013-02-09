@@ -95,27 +95,22 @@ CONFIG_OPTIONS = {
                     "(measured) time. Units: array of floats or None"),
          'gc1': "Measured gravitational center. Units: array of floats or None",
          'rm1': "Measured rotational momentum. Units: array of floats or None",
-         'measurements_scale_coefs': ("When running inverse problem, multiple "
-                                      "meaurements can be given, potentially "
-                                      "with different scales (e.g. MO ~ 0.5 "
-                                      "whereas GC ~ 2.5, which can cause that "
-                                      "solver \"prefers\" the optimization of "
-                                      "GC in favour of MO, because it introduces "
-                                      "adds more error in least-squares. "
-                                      "Therefore a scaling is important to make "
-                                      "the data of roughly the same order.) By "
-                                      "default the data is scaled so that the "
-                                      "biggest number in measurements of given "
-                                      "type is in "
-                                      "<1, 10) interval. See also *_weights, "
-                                      "options, which specify a weight - i.e. "
-                                      "importance of given measurement."),
+         'measurements_scale_coefs': \
+             ("When running inverse problem, multiple meaurements can be "
+              "given, potentially with different scales (e.g. MO ~ 0.5 whereas "
+              "GC ~ 2.5, which can cause that solver \"prefers\" the "
+              "optimization of GC in favour of MO, because it introduces adds "
+              "more error in least-squares. Therefore a scaling is important "
+              "to make the data of roughly the same order.) By default the "
+              "data is scaled so that the biggest number in measurements of "
+              "given type is in <1, 10) interval. See also *_weights, options, "
+              "which specify a weight - i.e. importance of given measurement."),
          'f_mo': ("Measured centrifugal force of the expelled water. More "
                   "precisely it is the force divided by g (= gravitational "
                   "constant)."),
          'f_mt': ("Measured centrifugal force of the water inside the tube. "
-                  "More precisely it is the force divided by g (= gravitational "
-                  "constant)."),
+                  "More precisely it is the force divided by g "
+                  "(= gravitational constant)."),
          'f_mo_tara': ("Force implied on the sensor of expelled water by the "
                        "holding aparatus. Value is a list of two items: "
                        "(omega, W) where omega is the speed (in rpm) at which "
