@@ -295,7 +295,7 @@ class Measurements():
         """ Return values of (external) measurements that are stored. """
         return list(self._measurements.values())
 
-    def get_scales(self):
+    def _get_scales(self):
         """
         Return scaling coeficients of (external) measurements that are stored.
         """
@@ -316,7 +316,7 @@ class Measurements():
 
         return self._scales
 
-    def get_weights(self):
+    def _get_weights(self):
         """ Return weights of (external) measurements that are stored. """
         if self._weights is None:
             weights = self._measurements_weights.values()
