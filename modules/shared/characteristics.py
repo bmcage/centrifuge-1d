@@ -61,6 +61,9 @@ class Measurements():
         self._scales_coefs = None
         self._scales = None
 
+        # Measurements weights
+        self._weights = None
+
     def read(self, cfg):
         """
         Read and transform data from configuration object.
@@ -252,6 +255,8 @@ class Measurements():
         self._measurements_times   = t_meas
         self._times                = t
         self._measurements_nr      = np.alen(t)
+        self._weights              = None # weights as numpy array
+
         # 5. scaling measurements
         self._scales_coefs = cfg.get_value('measurements_scale_coefs',
                                            not_found={})
@@ -316,7 +321,14 @@ class Measurements():
 
     def get_weights(self):
         """ Return weights of (external) measurements that are stored. """
-        return list(self._measurements_weights.values())
+        if self._weights is None:
+            weights = self._measurements_weights.values()
+            if weights:
+                self._weights = np.concatenate(weights)
+            else:
+                self._weights = np.asarray([], dtype=float)
+
+        return self._weights
 
     def get_xvalues(self):
         """ Return x-axis values of (external) measurements that are stored. """
