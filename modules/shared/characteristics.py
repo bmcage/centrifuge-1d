@@ -45,9 +45,9 @@ class Measurements():
         self._times = None  # times at which all the measurements were computed
 
         # User supplied (physically done) measurements
-        self._measurements = {}         # values
-        self._measurements_weights = {} # weights of each of measurement's' values
-        self._measurements_xvalues = {} # x-axes values
+        self._measurements = OrderedDict() # values
+        self._measurements_weights = OrderedDict() # weights of each of measurement's' values
+        self._measurements_xvalues = OrderedDict() # x-axes values
         self._measurements_times   = None # times at which measurements were taken
 
         # Maximal number of values stored per measurement
@@ -74,9 +74,9 @@ class Measurements():
         from modules.shared.functions import phases_end_times
         from collections import OrderedDict
 
-        measurements = OrderedDict()
-        measurements_xvalues = OrderedDict()
-        measurements_weights = OrderedDict()
+        measurements = self._measurements
+        measurements_xvalues = self._measurements_xvalues
+        measurements_weights = self._measurements_weights
 
         # 1. determine measurements times
         phases_scans = \
@@ -248,10 +248,7 @@ class Measurements():
         #    b) weights postpocessing - if all weights are the same, drop them
         if same_weights: measurements_weights = OrderedDict()
 
-        # 4. set all data to internal variables
-        self._measurements = measurements
-        self._measurements_weights = measurements_weights
-        self._measurements_xvalues = measurements_xvalues
+        # 4. set remaining data to internal variables
         self._measurements_times   = t_meas
         self._times                = t
         self._measurements_nr      = np.alen(t)
