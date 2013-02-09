@@ -1,7 +1,6 @@
 from __future__ import division
 
 import numpy as np
-from modules.shared.functions import determine_scaling_factor
 from shared import get_directories, flatten
 from os import makedirs, path
 from modules.shared.vangenuchten import h2u
@@ -21,6 +20,9 @@ def calc_f_tara(omega2g, WR_tara):
         raise NotImplementedError
 
     return omega2g * WR_tara
+
+def determine_scaling_factor(v):
+    return np.power(10, -np.floor(np.log10(np.max(np.abs(v)))))
 
 class Measurements():
     """
@@ -54,6 +56,10 @@ class Measurements():
         # Radius * weight of tara (R is at the gravitational centre)
         self.WR_mt_tara = None
         self.WR_mo_tara = None
+
+        # Measurements scales
+        self._scales_coefs = None
+        self._scales = None
 
     def read(self, cfg):
         """
@@ -246,8 +252,12 @@ class Measurements():
         self._measurements_times   = t_meas
         self._times                = t
         self._measurements_nr      = np.alen(t)
+        # 5. scaling measurements
+        self._scales_coefs = cfg.get_value('measurements_scale_coefs',
+                                           not_found={})
+        cfg.del_value('measurements_scale_coefs')
 
-        # 5. convert omega from rpm to radians/s
+        # 6. convert omega from rpm to radians/s
         #    NOTE: we do it here because *_calibration_curve is expressed
         #          in terms of omega(rpm)
         for key in ['omega']:
@@ -283,24 +293,26 @@ class Measurements():
         """ Return values of (external) measurements that are stored. """
         return list(self._measurements.values())
 
-    def get_scales(self, scaling_coefs={}):
+    def get_scales(self):
         """
         Return scaling coeficients of (external) measurements that are stored.
         """
-        scales = []
 
-        for (name, measurement) in self._measurements.items():
+        if self._scales is None:
+            scale_coef = self._scales_coefs
 
-            if name in scaling_coefs:
-                scaling_coef = scaling_coefs[name]
-            else:
-                scaling_coef = determine_scaling_factor(measurement)
+            scales = []
 
-            data_scale = scaling_coef * np.ones(measurement.shape, dtype=float)
+            for (name, measurement) in self._measurements.items():
+                if not name in measurements_scales:
+                    scale_coef[name] = determine_scaling_factor(measurement)
 
-            scales.append(data_scale)
+                scales.append(scale_coef[name]
+                              * np.ones(measurement.shape, dtype=float))
 
-        return scales
+            self._scales = np.concatenate(scales)
+
+        return self._scales
 
     def get_weights(self):
         """ Return weights of (external) measurements that are stored. """

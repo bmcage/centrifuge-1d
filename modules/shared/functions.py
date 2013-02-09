@@ -37,9 +37,6 @@ def right_derivative(dx12, fx13):
 
     return derivative
 
-def determine_scaling_factor(v):
-    return np.power(10, -np.floor(np.log10(np.max(np.abs(v)))))
-
 def f1(t):
     return 1.7032046506 * np.power(t, 1.233644749)
 def f2(t):
