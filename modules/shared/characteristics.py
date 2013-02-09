@@ -274,14 +274,14 @@ class Measurements():
         return (self._measurements, self._measurements_weights,
                 self._measurements_xvalues, self._measurements_times,
                 self._times, self._measurements_nr, self._computed,
-                self._indexes)
+                self._indexes, self._scales_coefs)
 
     def load(self, raw_data):
         """ Restore data in simple format from saved file. """
         (self._measurements, self._measurements_weights,
          self._measurements_xvalues, self._measurements_times,
          self._times, self._measurements_nr, self._computed,
-         self._indexes) = raw_data
+         self._indexes, self._scales_coefs) = raw_data
 
     def get_times(self):
         """ Return time of measurements. """
