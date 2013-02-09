@@ -279,7 +279,7 @@ class Measurements():
         """ Return names of (external) measurements that are stored. """
         return list(self._measurements.keys())
 
-    def get_values(self, scaling=True):
+    def get_values(self):
         """ Return values of (external) measurements that are stored. """
         return list(self._measurements.values())
 
