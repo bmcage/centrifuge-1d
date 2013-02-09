@@ -64,6 +64,13 @@ class Measurements():
         # Measurements weights
         self._weights = None
 
+        # Measurements arrays (stores all measurements in 1D array)
+        #     The array self._{computations,error}_array is allocated
+        #      when the size of self._measurements_array is determined
+        self._measurements_array = None
+        self._computations_array = None
+        self._error_array        = None
+
     def read(self, cfg):
         """
         Read and transform data from configuration object.
@@ -327,6 +334,40 @@ class Measurements():
 
         return self._weights
 
+    def _get_measurements(self):
+        if self._measurements_array is None:
+            for name in ('F_MO', 'F_MT'):
+                # For the forces we need to determine the influence of tara and
+                # subtract it from the measured values of force; but as we don't
+                # have the value from measurement, we subtract the force of tara
+                # found during computation - but this information is only
+                # available at runtime
+                if (name + '_tara' in self._computed):
+                    F_tara = self._computed[name + '_tara']
+                    self._measurements[name][:] -= F_tara
+            self._measurements_array = \
+              np.concatenate(self._measurements.values())
+            # preallocate arrays
+            self._computations_array = \
+              np.empty(self._measurements_array.shape, dtype=float)
+            self._error_array = \
+              np.empty(self._measurements_array.shape, dtype=float)
+
+        return self._measurements_array
+
+    def _get_computations(self):
+        computations = self._computations_array
+        data = self._computed
+
+        iS = 0
+        for name in self._measurements.keys():
+            value = data[name]
+            iE = iS + np.alen(value)
+            computations[iS:iE] = value
+            iS = iE
+
+        return computations
+
     def get_xvalues(self):
         """ Return x-axis values of (external) measurements that are stored. """
         return list(self._measurements_xvalues.values())
@@ -359,18 +400,10 @@ class Measurements():
             times  = self._times
             values = self._computed[meas_id]
 
-            # Add force caused by tara to computed force
-            if ((meas_id in ('F_MO', 'F_MT'))
-                and ((meas_id + '_tara') in self._computed)):
-                values += self._computed[meas_id + '_tara']
-
         elif meas_id in ('dF_MT', 'dF_MO'):
             mid = meas_id[1:]
             if mid in self._computed:
                 F = self._computed[mid]
-                # Add force caused by tara to computed force
-                if (mid + '_tara') in self._computed:
-                    F += self._computed[mid + '_tara']
 
                 times  = self._times[1:]
                 values = F[1:] - F[:-1]
@@ -630,6 +663,23 @@ class Measurements():
         RM = omega2g * P * (rm_unsat + rm_sat)
 
         return RM
+
+    def get_error(self):
+        """ Returns the difference between computed and measured values """
+
+        scale   = self._get_scales()
+        weights = self._get_weights()
+
+        measurements = self._get_measurements()
+        computations = self._get_computations()
+        error        = self._error_array
+
+        error[:] = scale * (computation - measurements)
+
+        if weights:
+            error[:] *= weights
+
+        return error
 
 ##################################################################
 #                     Auxiliary functions                        #
