@@ -104,7 +104,8 @@ CONFIG_OPTIONS = {
               "to make the data of roughly the same order.) By default the "
               "data is scaled so that the biggest number in measurements of "
               "given type is in <1, 10) interval. See also *_weights, options, "
-              "which specify a weight - i.e. importance of given measurement."),
+              "which specify a weight - i.e. importance of given measurement."
+              "Value: dict of type: {measurement_name1: scale_coef1, ...}."),
          'f_mo': ("Measured centrifugal force of the expelled water. More "
                   "precisely it is the force divided by g (= gravitational "
                   "constant)."),
