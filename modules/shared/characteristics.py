@@ -426,24 +426,34 @@ class Measurements():
             if not calc_data is None:
                 yield (meas_id, calc_data[0], calc_data[1])
 
-    def store_calc_u(self, h, n, m, gamma):
+    def store_calc_u(self, x, h, n, m, gamma):
         """
         Calculate and store relative saturation u.
 
         Arguments:
+        x - x-coordinates
         h - hydraulic head
         n, m, gamma - corresponding van Genuchten parameters
         """
         meas_id = 'u'
-        if not meas_id in self._computed:
-            self._computed[meas_id] = \
+        if not 'u' in self._computed:
+            self._computed['x'] = \
               np.empty([self._measurements_nr, np.alen(h)], dtype=float)
-            self._indexes[meas_id]  = 0
+            self._indexes['x']  = 0
 
-        value = self._computed[meas_id][self._indexes[meas_id], :] # reference
+            self._computed['u'] = \
+              np.empty([self._measurements_nr, np.alen(h)], dtype=float)
+            self._indexes['u']  = 0
+
+        # store x
+        self._computed['x'][self._indexes['x'], :] = x
+        self._indexes['x'] += 1
+
+        # store u
+        value = self._computed['u'][self._indexes['u'], :] # reference
 
         h2u(h, n, m, gamma, value)
-        self._indexes[meas_id] += 1
+        self._indexes['u'] += 1
 
         return value
 
