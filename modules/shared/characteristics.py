@@ -1,6 +1,7 @@
 from __future__ import division
 
 import numpy as np
+from collections import OrderedDict
 from shared import get_directories, flatten
 from os import makedirs, path
 from modules.shared.vangenuchten import h2u
@@ -79,7 +80,6 @@ class Measurements():
         """
 
         from modules.shared.functions import phases_end_times
-        from collections import OrderedDict
 
         measurements = self._measurements
         measurements_xvalues = self._measurements_xvalues
