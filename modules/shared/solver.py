@@ -398,7 +398,6 @@ def simulate_inverse(direct_fn, model, init_parameters,
         ITERATION += 1
 
         untransform_dict(optim_names, optimargs, optim_params, untransform)
-        model.set_parameters(optim_params)
 
         if model.verbosity > 0: print_params(optim_params)
 
@@ -412,6 +411,8 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
             return measurements.get_penalized(penalization,
                                               scalar=(optimfn != 'leastsq'))
+
+        model.set_parameters(optim_params)
 
         flag = direct_fn(model, measurements)
 
