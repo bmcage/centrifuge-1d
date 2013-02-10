@@ -337,7 +337,7 @@ def solve(model, measurements):
     if model.rb_type == 3:
         model.atol = atol_backup
 
-    return (flag, t, z, model.measurements)
+    return flag
 
 def extract_data(model, measurements):
     flag = solve(model, measurements)

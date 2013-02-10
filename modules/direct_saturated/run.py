@@ -54,7 +54,7 @@ def solve(model, measurements):
                       update_initial_condition=update_init,
                       on_measurement=on_measurement)
 
-    return (flag, t, z, model.measurements)
+    return flag
 
 def extract_data(model, measurements):
     flag = solve(model, measurements)
