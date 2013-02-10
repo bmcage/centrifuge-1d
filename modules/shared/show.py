@@ -217,7 +217,7 @@ def compare_data(name, value_computed, value_measured = None,
     print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)),
           file=stream)
 
-def display_status(data_plots=None, stream=sys.stdout):
+def display_status(data_plots=None, stream=None):
 
     if data_plots:
         for plot in data_plots:
@@ -227,21 +227,14 @@ def display_status(data_plots=None, stream=sys.stdout):
             if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
                 continue
 
+            value_computed = np.asarray(plot['data'][0])
+
             if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
-                value_computed = plot['data'][0]
-                value_measured = rel_error = abs_error = None
+                value_measured =  None
             else:
-                value_computed = np.asarray(plot['data'][0])
                 value_measured = np.asarray(plot['data'][1])
-                norm_measured = value_measured[:]
-                norm_measured[norm_measured == 0.0] = 1.0e-10
-                rel_error = ((value_computed - value_measured)
-                             / norm_measured * 100.)
 
-                abs_error = np.abs(value_computed - value_measured)
-
-            compare_data(plot_id, value_computed, value_measured,
-                         rel_error, abs_error, stream)
+            compare_data(plot_id, value_computed, value_measured, stream)
 
 def print_status(data, filename=None):
     if filename is None:
