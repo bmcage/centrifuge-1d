@@ -144,7 +144,7 @@ def on_measurement(t, z, model, measurements):
     s2 = measurements.store_calc_measurement('s2', z[model.s2_idx])
     MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
     MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
-    x  = y2s(model.y, s1, s2)
+    x  = y2x(model.y, s1, s2)
 
     if model.calc_wm:
         u = measurements.store_calc_u(x, z[model.first_idx: model.last_idx+1],
@@ -362,7 +362,7 @@ def extract_data(model, measurements):
 
     for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
         if name in ('h', 'u'):
-            extracted_data[name] = (xvalue, yvalue, t)
+            extracted_data[name] = (xvalue.transpose(), yvalue.transpose(), t)
         else:
             extracted_data[name] = (xvalue, yvalue)
 

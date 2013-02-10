@@ -7,7 +7,7 @@ from os import makedirs, path
 from shared import get_directories, parse_value
 from config import ModelParameters, load_configuration, \
      process_global_constants, DataStorage
-from modules.shared.functions import has_data
+from modules.shared.functions import has_data, compare_data
 try:
     import ConfigParser as configparser
 except:

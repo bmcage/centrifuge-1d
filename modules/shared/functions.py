@@ -176,10 +176,10 @@ def compare_data(name, value_computed, value_measured = None,
                   disp_items * fstr % tuple(data_computed[i0:i0+disp_items]),
                   file=stream)
             print('AbsError: ', name_len * ' ',
-                  disp_items * fstr % tuple(abserror[i0:i0+disp_items]),
+                  disp_items * fstr % tuple(abs_error[i0:i0+disp_items]),
                   file=stream)
             print('Error (%):', name_len * ' ',
-                  disp_items * fstr % tuple(relerror[i0:i0+disp_items]),
+                  disp_items * fstr % tuple(rel_error[i0:i0+disp_items]),
                   file=stream)
 
         remaining = remaining - disp_items

@@ -393,7 +393,6 @@ class Measurements():
 
     def iterate_calc_measurements(self):
         """ Iterate over stored values of calculated measurements. """
-        x = self.get_calc_measurement('x', not_found=None)
         t = self.get_times()
 
         for meas_id in self._computed.keys():
