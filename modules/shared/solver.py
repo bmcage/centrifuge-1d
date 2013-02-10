@@ -424,9 +424,9 @@ def simulate_inverse(direct_fn, model, init_parameters,
             error = measurements.get_error() # computed - measured
 
             if optimfn == 'leastsq':
-                return error
+                result = error
             else:
-                return np.sum(np.power(error, 2))
+                result = np.sum(np.power(error, 2))
 
         else:
             # something is wrong, so penalize
@@ -437,8 +437,9 @@ def simulate_inverse(direct_fn, model, init_parameters,
                 print('Direct problem did not converge for given optimization '
                       'parameters... Penalizing by ', penalization)
 
-            return measurements.get_penalized(penalization,
-                                              scalar=(optimfn != 'leastsq'))
+            result = measurements.get_penalized(penalization,
+                                                scalar=(optimfn != 'leastsq'))
+        return result
 
     optim_params = {}
     (optim_names, init_values, lbounds, ubounds) = \
