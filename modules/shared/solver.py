@@ -385,9 +385,6 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
         return penalization
 
-    measurements_names = measurements.get_names()
-    data_M = measurements.get_values()
-
     global ITERATION # Python 2.7 hack (no support for nonlocal variables)
     ITERATION = 0
 
@@ -410,15 +407,14 @@ def simulate_inverse(direct_fn, model, init_parameters,
             return measurements.get_penalized(penalization,
                                               scalar=(optimfn != 'leastsq'))
 
-        direct_data = direct_fn(model, measurements_names)
-        (flag, t, data_C) = (direct_data[0], direct_data[1], direct_data[2:])
+        flag = direct_fn(model, measurements)
 
         if flag:
             # direct computation went O.K.
             if model.verbosity > 0:
                 measurements.display_error()
 
-            error = measurements.get_error()
+            error = measurements.get_error() # computed - measured
 
             if optimfn == 'leastsq':
                 return error
