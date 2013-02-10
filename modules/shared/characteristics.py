@@ -362,7 +362,7 @@ class Measurements():
 
         iS = 0
         for name in self._measurements.keys():
-            value = data[name]
+            value = data[name][1:]
             iE = iS + np.alen(value)
             computations[iS:iE] = value
             iS = iE
