@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
 from math import sqrt
+from sys import stdout
 
 def rpm2radps(x):
     """
@@ -185,3 +186,55 @@ def phases_end_times(a_duration, d_duration, g_duration,
     stop_times = np.cumsum(np.concatenate(([0.0], duration_times)))
 
     return stop_times
+
+def compare_data(name, value_computed, value_measured = None,
+                 stream=None):
+
+    if stream is None: stream=stdout
+
+    name_len = len(name)
+    data_computed = np.asarray(value_computed, dtype=float)
+    disp_all = (not value_measured is None)
+
+    if disp_all:
+        data_measured = np.asarray(value_measured, dtype=float)
+
+        norm_measured = data_measured[:]
+        norm_measured[norm_measured == 0.0] = 1.0e-10
+        rel_error = (data_computed - data_measured) / norm_measured * 100.
+        abs_error = np.abs(data_computed - data_measured)
+
+    i0 = 0
+    in_row = 10
+    remaining = np.alen(data_computed)
+
+    float_disp_size = 12
+    fstr = '% {}.6f'.format(float_disp_size)
+
+    print('\n', file=stream)
+    while remaining > 0:
+        if remaining > in_row:
+            disp_items = in_row
+        else:
+            disp_items = remaining
+
+        print('%s measured: ' % name,
+              disp_items * fstr % tuple(data_measured[i0:i0+disp_items]),
+              file=stream)
+        if disp_all:
+            print('%s computed: ' % name,
+                  disp_items * fstr % tuple(data_computed[i0:i0+disp_items]),
+                  file=stream)
+            print('AbsError: ', name_len * ' ',
+                  disp_items * fstr % tuple(abserror[i0:i0+disp_items]),
+                  file=stream)
+            print('Error (%):', name_len * ' ',
+                  disp_items * fstr % tuple(relerror[i0:i0+disp_items]),
+                  file=stream)
+
+        remaining = remaining - disp_items
+        print((16 + float_disp_size*in_row) * '-', file=stream)
+        i0 = i0 + in_row
+
+    print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)),
+          file=stream)
