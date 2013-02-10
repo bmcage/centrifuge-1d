@@ -165,11 +165,22 @@ def get_unit_coef(unit_base):
 def mk_status_item(data_id, data_computed, data_measured = []):
    return {'id': data_id, 'data': (data_computed, data_measured)}
 
-def compare_data(name, data_computed, data_measured, relerror, abserror,
-                 stream):
+def compare_data(name, value_computed, value_measured = None,
+                 stream=None):
+
+    if stream is None: stream=sys.stdout
 
     name_len = len(name)
-    disp_all = (not data_measured is None)
+    data_computed = np.asarray(value_computed, dtype=float)
+    disp_all = (not value_measured is None)
+
+    if disp_all:
+        data_measured = np.asarray(value_measured, dtype=float)
+
+        norm_measured = data_measured[:]
+        norm_measured[norm_measured == 0.0] = 1.0e-10
+        rel_error = (data_computed - data_measured) / norm_measured * 100.
+        abs_error = np.abs(data_computed - data_measured)
 
     i0 = 0
     in_row = 10
