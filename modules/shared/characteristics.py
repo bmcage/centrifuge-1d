@@ -50,6 +50,7 @@ class Measurements():
         self._measurements_weights = OrderedDict() # weights of each of measurement's' values
         self._measurements_xvalues = OrderedDict() # x-axes values
         self._measurements_times   = None # times at which measurements were taken
+        self._measurements_diff    = []
 
         # Maximal number of values stored per measurement
         self._measurements_nr = -1 # i.e. length(self._times)
@@ -84,6 +85,7 @@ class Measurements():
         measurements = self._measurements
         measurements_xvalues = self._measurements_xvalues
         measurements_weights = self._measurements_weights
+        measurements_diff    = self._measurements_diff
 
         # 1. determine measurements times
         phases_scans = \
@@ -167,17 +169,9 @@ class Measurements():
                 calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[F_name]
                                                   + '_calibration_curve')
                 if calibration_curve is None:
-                    del measurements[F_name]
-                    del measurements_xvalues[F_name]
+                    measurements_diff.append(F_name)
 
-                    dF = F_filter[1:] - F_filter[:-1] # forces difference
-
-                    measurements['d'+F_name] = dF
-                    measurements_xvalues[F_name] = t_meas[1:]
-
-                    continue
-
-                if np.isscalar(calibration_curve):
+                elif np.isscalar(calibration_curve):
                     F_filter -= calibration_curve
                     F = F_filter
 
@@ -318,8 +312,13 @@ class Measurements():
                     #scales_coefs[name] = determine_scaling_factor(measurement)
                     scales_coefs[name] = 1.0
 
+                length = np.alen(measurement)
+
+                if name in self._measurements_diff:
+                    length -= 1
+
                 scales.append(scales_coefs[name]
-                              * np.ones(measurement.shape, dtype=float))
+                              * np.ones((1, length), dtype=float))
 
             self._scales = np.concatenate(scales)
 
@@ -328,30 +327,40 @@ class Measurements():
     def _get_weights(self):
         """ Return weights of (external) measurements that are stored. """
         if self._weights is None:
-            weights = list(self._measurements_weights.values())
-            print('WWW', weights)
-            if weights:
-                self._weights = np.concatenate(weights)
-            else:
-                self._weights = np.asarray([], dtype=float)
+            weights = []
+
+            for (name, weight) in self._measurements_weights.items():
+                if name in self._measurements_diff:
+                    weights.append(weight[1:] + weight[:-1])
+                else:
+                    weights.append(weight)
+
+            self._weights = np.concatenate(weights)
 
         return self._weights
 
     def _get_measurements(self):
         if self._measurements_array is None:
-            for name in ('F_MO', 'F_MT'):
-                # For the forces we need to determine the influence of tara and
-                # subtract it from the measured values of force; but as we don't
-                # have the value from measurement, we subtract the force of tara
-                # found during computation - but this information is only
-                # available at runtime
-                if not name in self._computed: continue
-
-                if (name + '_tara' in self._computed):
-                    F_tara = self._computed[name + '_tara']
+            values = []
+            for (name, value) in self._measurements.items():
+                if name in ('F_MO', 'F_MT'):
+                    # For the forces we need to determine the influence of tara
+                    # and subtract it from the measured values of force; but as
+                    # we don't have the value from measurement, we subtract the
+                    # force of tara found during computation - but this
+                    # information is only available at runtime
+                    if (name + '_tara' in self._computed):
+                        F_tara = self._computed[name + '_tara']
+                        print('tara', F_tara)
                     self._measurements[name][:] -= F_tara[1:]
-            self._measurements_array = \
-              np.concatenate(list(self._measurements.values()))
+                    print('FM', self._measurements[name])
+
+                if name in self._measurements_diff:
+                    values.append(value[1:] - value[:-1])
+                else:
+                    values.append(value)
+
+            self._measurements_array = np.concatenate(values)
             # preallocate arrays
             self._computations_array = \
               np.empty(self._measurements_array.shape, dtype=float)
@@ -367,8 +376,13 @@ class Measurements():
         iS = 0
         for name in self._measurements.keys():
             value = data[name][1:]
-            iE = iS + np.alen(value)
-            computations[iS:iE] = value
+
+            if name in self._measurements_diff:
+                iE = iS + np.alen(value) - 1
+                computations[iS:iE] = value[1:] - value[:-1]
+            else:
+                iE = iS + np.alen(value)
+                computations[iS:iE] = value
             iS = iE
 
         return computations
