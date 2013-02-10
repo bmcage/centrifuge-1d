@@ -686,6 +686,8 @@ class Measurements():
         return error
 
     def display_error(self, stream=None):
+        self._get_measurements() # ensure all runtime data is set
+
         status_items = []
 
         computed = self._computed
