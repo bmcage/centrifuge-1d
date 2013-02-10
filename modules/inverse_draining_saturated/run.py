@@ -1,6 +1,6 @@
 from __future__ import division
 from __future__ import print_function
-from modules.direct_draining_saturated.run import solve as solve_direct, \
+from modules.direct_draining_saturated.run import solve as solve_dds, \
      extract_data
 from modules.shared.functions import show_results
 from modules.shared.solver import simulate_inverse
@@ -8,32 +8,20 @@ from modules.shared.solver import simulate_inverse
 from modules.shared.vangenuchten import h2u
 from numpy import alen
 
-def solve(model):
-
-    def ip_direct_drainage(model, measurements_names):
-        (flag, t, z, measurements) = solve_direct(model)
-
-        result = [flag, t]
-
-        for name in measurements_names:
-            # we discard values at t=0 (for given measurement)
-            (time, value) = measurements.get_calc_measurement(name)
-            result.append(value[1:])
-
-        return result
+def solve(model, measurements):
 
     #calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm', 'calc_f_mt',
     #                               'calc_f_mo', 'calc_cf_mo')) # backup
     (inv_params, cov) = \
-      simulate_inverse(ip_direct_drainage, model, model.inv_init_params,
-                       model.measurements, optimfn=model.optimfn)
+      simulate_inverse(solve_dds, model, model.inv_init_params,
+                       measurements, optimfn=model.optimfn)
 
     #model.set_parameters(calc_p) # ...and restore values
 
     return (inv_params, cov)
 
 def run(model):
-    (inv_params, cov) = solve(model)
+    (inv_params, cov) = solve(model, model.measurements)
 
     # DISPLAY RESULTS:
     if inv_params:
