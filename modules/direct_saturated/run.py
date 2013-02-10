@@ -69,5 +69,5 @@ def extract_data(model, measurements):
     return (flag, extracted_data)
 
 def run(model):
-    from modules.shared.functions import show_results
+    from modules.shared.show import show_results
     show_results(model.experiment_info, model=model)

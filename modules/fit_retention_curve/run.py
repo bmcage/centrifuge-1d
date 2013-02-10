@@ -3,7 +3,7 @@ from __future__ import division
 import numpy as np
 from scipy.optimize import leastsq
 from modules.shared.vangenuchten import h2u, retention_curve
-from modules.shared.functions import show_results
+from modules.shared.show import show_results
 
 def solve(model):
      # list of measured data - we have only one measurement, so first item

@@ -14,7 +14,7 @@ def run(model):
     (inv_params, cov) = solve(model, model.measurements)
 
     if inv_params:
-        from modules.shared.functions import show_results
+        from modules.shared.show import show_results
 
         model.set_parameters(inv_params)
         # run once again the direct problem with optimal parameters

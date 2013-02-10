@@ -2,7 +2,7 @@ from __future__ import division
 from __future__ import print_function
 from modules.direct_draining_saturated.run import solve as solve_dds, \
      extract_data
-from modules.shared.functions import show_results
+from modules.shared.show import show_results
 from modules.shared.solver import simulate_inverse
 
 def solve(model, measurements):

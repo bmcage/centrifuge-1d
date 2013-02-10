@@ -104,56 +104,6 @@ def y2x(y, s1, s2):
 
     return x
 
-def show_results(experiment_info,
-                 model=None, inv_params=None, cov=None,
-                 show_figures=True):
-
-    from modules.shared.show import ResultsData, DPlots, print_status
-    from config import DataStorage
-
-    storage = DataStorage()
-    data    = ResultsData()
-
-    if model is None:
-        if storage.load(experiment_info):
-            data.load(storage.get('ResultsData'))
-        else:
-            print('      (Was computation already run?)'
-                  '\nINFO: Nothing to display. Exiting.')
-            exit(0)
-
-    if not inv_params is None: data.store_value('inv_params', inv_params)
-    if not cov is None: data.store_value('cov', cov)
-
-
-    save_data = False
-
-    if not model is None:
-        data.store_computation(model)
-        data.store_measurements(model.measurements)
-        save_data = True
-
-    if show_figures:
-        dplots = DPlots(data, experiment_info)
-
-        if data.store_references(dplots.get_references()):
-            save_data = True
-
-    if save_data:
-        if data.get_value('experiment_info') is None:
-            data.store_value('experiment_info', experiment_info)
-
-        storage.store('ResultsData', data.dump())
-        storage.save(experiment_info)
-
-        from shared import get_directories
-        savedir = get_directories('figs', 'mask', experiment_info)
-        filename = savedir + '/' + 'results.txt'
-        print_status(data, filename)
-
-    if show_figures:
-        dplots.display()
-
 def has_data(x):
     if x is None:
         return False

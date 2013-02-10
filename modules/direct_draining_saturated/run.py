@@ -3,9 +3,10 @@ from __future__ import division
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
-from modules.shared.functions import right_derivative, y2x, show_results
+from modules.shared.functions import right_derivative, y2x
 from modules.shared.vangenuchten import h2Kh, dudh, h2u, retention_curve
 from modules.shared.solver import simulate_direct
+from modules.shared.show import show_results
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
