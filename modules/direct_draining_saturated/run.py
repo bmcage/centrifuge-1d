@@ -143,8 +143,10 @@ def on_measurement(t, z, model, measurements):
     s2 = measurements.store_calc_measurement('s2', z[model.s2_idx])
     MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
     MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
+    x  = y2s(model.y, s1, s2)
+
     if model.calc_wm:
-        u = measurements.store_calc_u(z[model.first_idx: model.last_idx+1],
+        u = measurements.store_calc_u(x, z[model.first_idx: model.last_idx+1],
                                       model.n, model.m, model.gamma)
 
         (WM, WM_in_tube) = \
