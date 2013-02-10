@@ -1,4 +1,6 @@
-from __future__ import division
+from __future__ import division, print_function
+
+
 import numpy as np
 from math import sqrt
 from sys import stdout
