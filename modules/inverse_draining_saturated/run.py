@@ -5,9 +5,6 @@ from modules.direct_draining_saturated.run import solve as solve_dds, \
 from modules.shared.functions import show_results
 from modules.shared.solver import simulate_inverse
 
-from modules.shared.vangenuchten import h2u
-from numpy import alen
-
 def solve(model, measurements):
 
     #calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm', 'calc_f_mt',
