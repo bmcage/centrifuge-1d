@@ -5,6 +5,7 @@ from shared import get_directories, flatten
 from os import makedirs, path
 from modules.shared.vangenuchten import h2u
 from modules.shared.functions import rpm2radps
+from modules.shared.show import display_status, mk_status_item
 
 # MEASUREMENTS_NAMES are the mapping between the internal
 # denotation of measured data (used during computation and for
@@ -680,6 +681,17 @@ class Measurements():
             error[:] *= weights
 
         return error
+
+    def display_error(self, stream=None):
+        status_items = []
+
+        computed = self._computed
+        measured = self._measurements
+
+        for name in self._measurements.keys():
+            status_items.append(mk_status_item(name, computed[name], measured[name]))
+
+        display_status(data_plots=status_items)
 
 ##################################################################
 #                     Auxiliary functions                        #

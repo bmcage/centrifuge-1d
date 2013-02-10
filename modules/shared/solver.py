@@ -336,8 +336,6 @@ def set_optimized_variables(optim_params, model, untransform=None):
 def simulate_inverse(direct_fn, model, init_parameters,
                      measurements, optimfn='leastsq'):
 
-    from modules.shared.show import display_status, mk_status_item
-
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
                          'fmin_bfgs', 'raster']
     if not optimfn in available_solvers:
@@ -435,13 +433,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
         if flag:
             # direct computation went O.K.
             if model.verbosity > 0:
-                status_items = []
-
-                for (name, value_C, value_M) in zip(measurements_names,
-                                                    data_C, data_M):
-                    status_items.append(mk_status_item(name, value_C, value_M))
-
-                display_status(data_plots=status_items)
+                measurements.display_error()
 
             computation_sc = data_scale_coef * np.concatenate(data_C)
             error = computation_sc - measurements_sc
