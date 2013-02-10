@@ -692,7 +692,9 @@ class Measurements():
 
         measurements = self._get_measurements()
         computations = self._get_computations()
-        error        = self._error_array
+        #error        = self._error_array
+        # inverse solver needs to have freshly allocated
+        error         = np.empty(measurements.shape, dtype=float)
 
         error[:] = scale * (computations - measurements)
 
