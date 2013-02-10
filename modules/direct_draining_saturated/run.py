@@ -296,7 +296,9 @@ def initialize_zp0(zp0, z0, model):
       (dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt + y[1:-1]*ds2dt)
        - 2./(porosity*du_dh[1:-1]*(dy[:-1] + dy[1:])*ds) * (q12[1:] - q12[:-1]))
 
-def solve(model):
+def solve(model, measurements):
+    measurements.reset_calc_measurements()
+
     if model.dynamic_h_init:
         model.h_init = min(model.c_gammah / model.gamma, model.h_init_max)
         if model.verbosity > 1:
@@ -337,16 +339,11 @@ def solve(model):
 
     return (flag, t, z, model.measurements)
 
-def extract_data(model):
-    (flag, t, z, measurements) = solve(model)
+def extract_data(model, measurements):
+    flag = solve(model, measurements)
 
     if not flag:
         print('For given model the solver did not find results. Skipping.')
-
-    s1 = z[:, model.s1_idx]
-    s2 = z[:, model.s2_idx]
-    x = y2x(model.y, s1, s2).transpose()
-    h = z[:, model.first_idx:model.last_idx+1].transpose()
 
     if hasattr(model, 'theta_s'): theta_s = model.theta_s
     else: theta_s = model.porosity
@@ -358,15 +355,15 @@ def extract_data(model):
                                  theta_s, model.density, model.g,
                                  theta_r=theta_r)
 
-    extracted_data = {'h': (x, h, t),
-                      's1': (t, s1), 's2': (t, s2),
-                      'theta': (p, theta)}
+    extracted_data = {'theta': (p, theta)}
 
-    for (name, time, value) in measurements.iterate_calc_measurements():
-        if name == 'u':
-            extracted_data[name] = (x, value.transpose(), time)
+    t = measurements.get_times()
+
+    for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
+        if name in ('h', 'u'):
+            extracted_data[name] = (xvalue, yvalue, t)
         else:
-            extracted_data[name] = (time, value)
+            extracted_data[name] = (xvalue, yvalue)
 
     return (flag, extracted_data)
 
