@@ -13,8 +13,6 @@ def solve(model):
     def ip_direct_drainage(model, measurements_names):
         (flag, t, z, measurements) = solve_direct(model)
 
-        contains_data = (alen(t) > 1)
-
         result = [flag, t]
 
         for name in measurements_names:
@@ -26,8 +24,6 @@ def solve(model):
 
     #calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm', 'calc_f_mt',
     #                               'calc_f_mo', 'calc_cf_mo')) # backup
-    measurements_names = model.measurements.get_names()
-
     (inv_params, cov) = \
       simulate_inverse(ip_direct_drainage, model, model.inv_init_params,
                        model.measurements, optimfn=model.optimfn)
