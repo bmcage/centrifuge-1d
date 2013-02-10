@@ -337,7 +337,6 @@ def simulate_inverse(direct_fn, model, init_parameters,
                      measurements, optimfn='leastsq'):
 
     from modules.shared.show import display_status, mk_status_item
-    from numpy import log, exp, alen
 
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
                          'fmin_bfgs', 'raster']
@@ -348,12 +347,12 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
     max_value = 1e150
 
-    transform = {'ks': lambda ks: max(log(ks), -max_value),
-                 'n':  lambda n: max(log(n - 1.0), -max_value),
-                 'gamma': lambda gamma: max(log(-gamma), -max_value)}
-    untransform = {'ks': lambda ks_transf: min(exp(ks_transf), max_value),
-                   'n': lambda n_transf: 1+min(exp(n_transf), max_value),
-                   'gamma': lambda gamma_transf: -min(exp(gamma_transf), max_value)}
+    transform = {'ks': lambda ks: max(np.log(ks), -max_value),
+                 'n':  lambda n: max(np.log(n - 1.0), -max_value),
+                 'gamma': lambda gamma: max(np.log(-gamma), -max_value)}
+    untransform = {'ks': lambda ks_transf: min(np.exp(ks_transf), max_value),
+                   'n': lambda n_transf: 1+min(np.exp(n_transf), max_value),
+                   'gamma': lambda gamma_transf: -min(np.exp(gamma_transf), max_value)}
 
     optimized_parameters = []
 
@@ -369,18 +368,18 @@ def simulate_inverse(direct_fn, model, init_parameters,
             for param in optimized_parameters:
                 value = getattr(model, param)
                 if lbounds[param] > value:
-                    a = min(exp(value - lbounds[param]), max_penalization)
+                    a = min(np.exp(value - lbounds[param]), max_penalization)
                     penalization = (penalization
                                     + min(10 * (a + 1/a), max_penalization))
                 elif ubounds[param] < value:
-                    a = min(exp(value - ubounds[param]), max_penalization)
+                    a = min(np.exp(value - ubounds[param]), max_penalization)
                     penalization = (penalization
                                     + min(10 * (a + 1/a), max_penalization))
         else:
             for param in optimized_parameters:
                 value = getattr(model, param)
-                a = min(exp(value - lbounds[param]), max_penalization)
-                b = min(exp(value - ubounds[param]), max_penalization)
+                a = min(np.exp(value - lbounds[param]), max_penalization)
+                b = min(np.exp(value - ubounds[param]), max_penalization)
 
                 penalization = \
                   (penalization + min(10 * (a + 1/a) + 10 * (b + 1/b),
@@ -428,7 +427,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
             if optimfn == 'leastsq':
                 return penalization + measurements_sc
             else:
-                return penalization * alen(measurements_sc)
+                return penalization * np.alen(measurements_sc)
 
         direct_data = direct_fn(model, measurements_names)
         (flag, t, data_C) = (direct_data[0], direct_data[1], direct_data[2:])
@@ -465,7 +464,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
             if optimfn == 'leastsq':
                 return penalization + measurements_sc
             else:
-                return penalization * alen(measurements_sc)
+                return penalization * np.alen(measurements_sc)
 
             return penalization
 
