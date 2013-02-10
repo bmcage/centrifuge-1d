@@ -219,22 +219,23 @@ def compare_data(name, value_computed, value_measured = None,
 
 def display_status(data_plots=None, stream=None):
 
-    if data_plots:
-        for plot in data_plots:
-            plot_id = plot['id']
+    if not data_plots: return
 
-            data_items_nr = len(plot['data'])
-            if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
-                continue
+    for plot in data_plots:
+        plot_id = plot['id']
 
-            value_computed = np.asarray(plot['data'][0])
+        data_items_nr = len(plot['data'])
+        if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
+            continue
 
-            if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
-                value_measured =  None
-            else:
-                value_measured = np.asarray(plot['data'][1])
+        value_computed = np.asarray(plot['data'][0])
 
-            compare_data(plot_id, value_computed, value_measured, stream)
+        if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
+            value_measured =  None
+        else:
+            value_measured = np.asarray(plot['data'][1])
+
+        compare_data(plot_id, value_computed, value_measured, stream)
 
 def print_status(data, filename=None):
     if filename is None:
