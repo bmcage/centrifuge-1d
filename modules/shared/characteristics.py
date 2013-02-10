@@ -345,6 +345,8 @@ class Measurements():
                 # have the value from measurement, we subtract the force of tara
                 # found during computation - but this information is only
                 # available at runtime
+                if not name in self._computed: continue
+
                 if (name + '_tara' in self._computed):
                     F_tara = self._computed[name + '_tara']
                     self._measurements[name][:] -= F_tara[1:]
