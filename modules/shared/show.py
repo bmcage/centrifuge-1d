@@ -318,7 +318,7 @@ class ResultsData():
         extract_data_fn = solver_module.extract_data
 
         # add computed data
-        return extract_data_fn(model)
+        return extract_data_fn(model, model.measurements)
         if not flag:
             value = None
             print('Computation was not successfull. Data will not be saved.')
