@@ -346,6 +346,29 @@ def untransform_dict(names, values, result, untransform):
     for (name, value) in zip(names, values):
         result[name] = untransform[name](value)
 
+def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
+    max_penalization = 1e50
+
+    penalization = 0.0
+
+    if when == 'out_of_bounds':
+        for (name, value) in parameters.items():
+            if lbounds[name] > value:
+                a = min(np.exp(value - lbounds[name]), max_penalization)
+                penalization += min(10 * (a + 1/a), max_penalization)
+            elif ubounds[name] < value:
+                a = min(np.exp(value - ubounds[name]), max_penalization)
+                penalization += min(10 * (a + 1/a), max_penalization)
+    else:
+        for (name, value) in parameters.items():
+            a = min(np.exp(value - lbounds[name]), max_penalization)
+            b = min(np.exp(value - ubounds[name]), max_penalization)
+
+            penalization += min(10 * (a + 1/a) + 10 * (b + 1/b),
+                                max_penalization)
+
+    return penalization
+
 def simulate_inverse(direct_fn, model, init_parameters,
                      measurements, optimfn='leastsq'):
 
@@ -365,34 +388,6 @@ def simulate_inverse(direct_fn, model, init_parameters,
                    'n': lambda n_transf: 1+min(np.exp(n_transf), max_value),
                    'gamma': lambda gamma_transf: -min(np.exp(gamma_transf), max_value)}
 
-    def penalize(model, when='out_of_bounds'):
-        max_penalization = 1e50
-
-        penalization = 0.0
-
-        if when == 'out_of_bounds':
-            for param in optim_params:
-                value = getattr(model, param)
-                if lbounds[param] > value:
-                    a = min(np.exp(value - lbounds[param]), max_penalization)
-                    penalization = (penalization
-                                    + min(10 * (a + 1/a), max_penalization))
-                elif ubounds[param] < value:
-                    a = min(np.exp(value - ubounds[param]), max_penalization)
-                    penalization = (penalization
-                                    + min(10 * (a + 1/a), max_penalization))
-        else:
-            for param in optim_params:
-                value = getattr(model, param)
-                a = min(np.exp(value - lbounds[param]), max_penalization)
-                b = min(np.exp(value - ubounds[param]), max_penalization)
-
-                penalization = \
-                  (penalization + min(10 * (a + 1/a) + 10 * (b + 1/b),
-                                      max_penalization))
-
-        return penalization
-
     global ITERATION # Python 2.7 hack (no support for nonlocal variables)
     ITERATION = 0
 
@@ -407,7 +402,8 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
         if model.verbosity > 0: print_params(optim_params)
 
-        penalization = penalize(model, when='out_of_bounds')
+        penalization = penalize(optim_params, lbounds, ubounds,
+                                when='out_of_bounds')
 
         if penalization > 0.0:
             if model.verbosity > 1:
@@ -433,7 +429,9 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
         else:
             # something is wrong, so penalize
-            penalization = min(penalize(model, when='always'), 1e10)
+            penalization = \
+              min(penalize(optim_params, lbounds, ubounds, when='always'),
+                  1e10)
             if model.verbosity > 1:
                 print('Direct problem did not converge for given optimization '
                       'parameters... Penalizing by ', penalization)
