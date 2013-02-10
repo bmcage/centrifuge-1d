@@ -693,6 +693,20 @@ class Measurements():
 
         display_status(data_plots=status_items)
 
+    def get_penalized(self, penalization, scalar=False):
+        """
+          Return penalization for given measurement.
+          If 'scalar'=True, return it as a single scalar value.
+        """
+        if self._measurements_array is None:
+            print('ERROR: Cannot determine penalization if measurements'
+                  'are not specified. Exiting.')
+            exit(1)
+        elif scalar:
+            return penalization * np.alen(self._measurements_array)
+        else:
+            return (penalization + self._measurements_array)
+
 ##################################################################
 #                     Auxiliary functions                        #
 ##################################################################

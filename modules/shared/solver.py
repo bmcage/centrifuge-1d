@@ -408,9 +408,9 @@ def simulate_inverse(direct_fn, model, init_parameters,
                       penalization)
 
             if optimfn == 'leastsq':
-                return penalization + measurements_sc
+                return measurements.get_penalized(penalization, scalar=False)
             else:
-                return penalization * np.alen(measurements_sc)
+                return measurements.get_penalized(penalization, scalar=True)
 
         direct_data = direct_fn(model, measurements_names)
         (flag, t, data_C) = (direct_data[0], direct_data[1], direct_data[2:])
@@ -435,11 +435,9 @@ def simulate_inverse(direct_fn, model, init_parameters,
                       'parameters... Penalizing by ', penalization)
 
             if optimfn == 'leastsq':
-                return penalization + measurements_sc
+                return measurements.get_penalized(penalization, scalar=False)
             else:
-                return penalization * np.alen(measurements_sc)
-
-            return penalization
+                return measurements.get_penalized(penalization, scalar=True)
 
     init_values = []
 
