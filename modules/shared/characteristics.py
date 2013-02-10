@@ -392,39 +392,30 @@ class Measurements():
         for calc_id in indexes.keys():
             indexes[calc_id] = 0
 
-    def get_calc_measurement(self, meas_id, not_found=None):
-        """
-            Return stored times and value of calculated measurements with
-            measurement ID 'meas_id'.
-        """
-        if meas_id in self._computed:
-            times  = self._times
-            values = self._computed[meas_id]
+    def iterate_calc_measurements(self):
+        """ Iterate over stored values of calculated measurements. """
+        x = self.get_calc_measurement('x', not_found=None)
+        t = self.get_times()
 
-        elif meas_id in ('dF_MT', 'dF_MO'):
+        for meas_id in self._computed.keys():
+            if meas_id in ('x'): continue
+
+            value = self._computed[meas_id]
+
+            if meas_id in ('h', 'u'):
+                yield (meas_id, self._computed['x'], value)
+            else:
+                yield (meas_id, t, value)
+
+        for meas_id in ('dF_MT', 'dF_MO'):
             mid = meas_id[1:]
             if mid in self._computed:
                 F = self._computed[mid]
 
                 times  = self._times[1:]
-                values = F[1:] - F[:-1]
-            else:
-                return not_found
-        else:
-            return not_found
+                value = F[1:] - F[:-1]
 
-        return (times, values)
-
-    def iterate_calc_measurements(self):
-        """ Iterate over stored values of calculated measurements. """
-        for meas_id in self._computed.keys():
-            (times, values) = self.get_calc_measurement(meas_id)
-            yield (meas_id, times, values)
-
-        for meas_id in ('dF_MT', 'dF_MO'):
-            calc_data = self.get_calc_measurement(meas_id)
-            if not calc_data is None:
-                yield (meas_id, calc_data[0], calc_data[1])
+                yield (meas_id, t[1:], value)
 
     def store_calc_u(self, x, h, n, m, gamma):
         """
