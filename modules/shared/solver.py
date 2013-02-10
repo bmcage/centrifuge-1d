@@ -312,26 +312,39 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
 
     return (True, t, z, i-1)
 
+def print_params(params):
+    print()
+    for (name, value) in params.items():
+        if name == 'ks':
+            print('{:5}: {: .8g}'.format('Ks', value))
+        else:
+            print('{:5}: {: .8g}'.format(name, value))
 
-def set_optimized_variables(optim_params, model, untransform=None):
-    """ optim_params: dict of pairs param_name: param_value """
-    if untransform:
-        for (name, value) in optim_params.items():
-            setattr(model, name, untransform[name](value))
-    else:
-        for (name, value) in optim_params.items():
-            setattr(model, name, value)
+def parse_init(init_parameters, transform=None):
+    init_values = []
+    optim_names = []
+    lbounds     = {}
+    ubounds     = {}
 
-    if 'n' in optim_params:
-        model.m = 1 - 1/model.n
+    for (name, value) in init_parameters.items():
+        if value is None: continue
 
-    if model.verbosity > 0:
-        print()
-        for name in optim_params.keys():
-            if name == 'ks':
-                print('{:5}: {: .8g}'.format('Ks', getattr(model, name)))
-            else:
-                print('{:5}: {: .8g}'.format(name, getattr(model, name)))
+        optim_names. append(name)
+
+        (init_value, (lbound, ubound)) = value
+        lbounds[name] = lbound
+        ubounds[name] = ubound
+
+        if transform:
+            init_values.append(transform[name](init_value))
+        else:
+            init_values.append(transform[name](init_value))
+
+    return (optim_names, init_values, lbounds, ubounds)
+
+def untransform_dict(names, values, result, untransform):
+    for (name, value) in zip(names, values):
+        result[name] = untransform[name](value)
 
 def simulate_inverse(direct_fn, model, init_parameters,
                      measurements, optimfn='leastsq'):
@@ -352,18 +365,13 @@ def simulate_inverse(direct_fn, model, init_parameters,
                    'n': lambda n_transf: 1+min(np.exp(n_transf), max_value),
                    'gamma': lambda gamma_transf: -min(np.exp(gamma_transf), max_value)}
 
-    optimized_parameters = []
-
-    lbounds = {}
-    ubounds = {}
-
     def penalize(model, when='out_of_bounds'):
         max_penalization = 1e50
 
         penalization = 0.0
 
         if when == 'out_of_bounds':
-            for param in optimized_parameters:
+            for param in optim_params:
                 value = getattr(model, param)
                 if lbounds[param] > value:
                     a = min(np.exp(value - lbounds[param]), max_penalization)
@@ -374,7 +382,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
                     penalization = (penalization
                                     + min(10 * (a + 1/a), max_penalization))
         else:
-            for param in optimized_parameters:
+            for param in optim_params:
                 value = getattr(model, param)
                 a = min(np.exp(value - lbounds[param]), max_penalization)
                 b = min(np.exp(value - ubounds[param]), max_penalization)
@@ -394,8 +402,10 @@ def simulate_inverse(direct_fn, model, init_parameters,
         print(15 * '*', ' Iteration: {:4d}'.format(ITERATION), ' ', 15 * '*')
         ITERATION += 1
 
-        set_optimized_variables(dict(zip(optimized_parameters, optimargs)),
-                                model, untransform=untransform)
+        untransform_dict(optim_names, optimargs, optim_params, untransform)
+        model.set_parameters(optim_params)
+
+        if model.verbosity > 0: print_params(optim_params)
 
         penalization = penalize(model, when='out_of_bounds')
 
@@ -431,16 +441,9 @@ def simulate_inverse(direct_fn, model, init_parameters,
             return measurements.get_penalized(penalization,
                                               scalar=(optimfn != 'leastsq'))
 
-    init_values = []
-
-    for (param, value) in init_parameters.items():
-        if not value is None:
-            optimized_parameters.append(param)
-            (init_value, (lbound, ubound)) = value
-
-            init_values.append(transform[param](init_value))
-            lbounds[param] = lbound
-            ubounds[param] = ubound
+    optim_params = {}
+    (optim_names, init_values, lbounds, ubounds) = \
+      parse_init(init_parameters, transform=transform)
 
     import scipy.optimize
 
@@ -506,10 +509,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
             out += ' |{:8d}'.format(value)
     print(out, '|')
 
-    # Run experiment once more with optimal values to display results at optimum
-    set_optimized_variables(dict(zip(optimized_parameters, opt_params)),
-                            model, untransform)
-    optim_params = {name: getattr(model, name) for name in optimized_parameters}
+    untransform_dict(optim_names, opt_params, optim_params, untransform)
 
     return (optim_params, cov)
 
