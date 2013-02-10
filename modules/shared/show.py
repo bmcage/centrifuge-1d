@@ -239,7 +239,7 @@ def display_status(data_plots=None, stream=None):
 
 def print_status(data, filename=None):
     if filename is None:
-        stream = sys.stdout
+        stream = None
     else:
         stream = open(filename, 'w')
 
