@@ -388,21 +388,6 @@ def simulate_inverse(direct_fn, model, init_parameters,
     measurements_names = measurements.get_names()
     data_M = measurements.get_values()
 
-    user_scales = model.measurements_scale_coefs
-    if user_scales is None: user_scales = {}
-    measurements_scales = \
-       measurements.get_scales(scaling_coefs=user_scales)
-    weights = measurements.get_weights()
-
-    data_scale_coef = np.concatenate(measurements_scales)
-    measurements_sc = np.concatenate(data_M) * data_scale_coef
-
-    if weights:
-        add_weights = True
-        weights = np.concatenate(weights)
-    else:
-        add_weights = False
-
     global ITERATION # Python 2.7 hack (no support for nonlocal variables)
     ITERATION = 0
 
@@ -435,11 +420,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
             if model.verbosity > 0:
                 measurements.display_error()
 
-            computation_sc = data_scale_coef * np.concatenate(data_C)
-            error = computation_sc - measurements_sc
-
-            if add_weights:
-                error[:] = error * weights
+            error = measurements.get_error()
 
             if optimfn == 'leastsq':
                 return error
