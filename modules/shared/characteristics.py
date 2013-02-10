@@ -262,8 +262,9 @@ class Measurements():
         self._weights              = None # weights as numpy array
 
         # 5. scaling measurements
-        self._scales_coefs = cfg.get_value('measurements_scale_coefs',
-                                           not_found={})
+        self._scales_coefs = cfg.get_value('measurements_scale_coefs')
+        if not self._scales_coefs: self._scales_coefs = {}
+
         cfg.del_value('measurements_scale_coefs')
 
         # 6. convert omega from rpm to radians/s
@@ -308,15 +309,15 @@ class Measurements():
         """
 
         if self._scales is None:
-            scale_coef = self._scales_coefs
+            scales_coefs = self._scales_coefs
 
             scales = []
 
             for (name, measurement) in self._measurements.items():
-                if not name in measurements_scales:
-                    scale_coef[name] = determine_scaling_factor(measurement)
+                if not name in scales_coefs:
+                    scales_coefs[name] = determine_scaling_factor(measurement)
 
-                scales.append(scale_coef[name]
+                scales.append(scales_coefs[name]
                               * np.ones(measurement.shape, dtype=float))
 
             self._scales = np.concatenate(scales)
@@ -326,7 +327,8 @@ class Measurements():
     def _get_weights(self):
         """ Return weights of (external) measurements that are stored. """
         if self._weights is None:
-            weights = self._measurements_weights.values()
+            weights = list(self._measurements_weights.values())
+            print('WWW', weights)
             if weights:
                 self._weights = np.concatenate(weights)
             else:
@@ -344,9 +346,9 @@ class Measurements():
                 # available at runtime
                 if (name + '_tara' in self._computed):
                     F_tara = self._computed[name + '_tara']
-                    self._measurements[name][:] -= F_tara
+                    self._measurements[name][:] -= F_tara[1:]
             self._measurements_array = \
-              np.concatenate(self._measurements.values())
+              np.concatenate(list(self._measurements.values()))
             # preallocate arrays
             self._computations_array = \
               np.empty(self._measurements_array.shape, dtype=float)
@@ -675,9 +677,9 @@ class Measurements():
         computations = self._get_computations()
         error        = self._error_array
 
-        error[:] = scale * (computation - measurements)
+        error[:] = scale * (computations - measurements)
 
-        if weights:
+        if not weights is None:
             error[:] *= weights
 
         return error
@@ -689,7 +691,7 @@ class Measurements():
         measured = self._measurements
 
         for name in self._measurements.keys():
-            compare_data(name, computed[name], measured[name])
+            compare_data(name, computed[name][1:], measured[name])
 
     def get_penalized(self, penalization, scalar=False):
         """
