@@ -424,19 +424,20 @@ class Measurements():
         h - hydraulic head
         n, m, gamma - corresponding van Genuchten parameters
         """
-        meas_id = 'u'
         if not 'u' in self._computed:
-            self._computed['x'] = \
-              np.empty([self._measurements_nr, np.alen(h)], dtype=float)
-            self._indexes['x']  = 0
-
-            self._computed['u'] = \
-              np.empty([self._measurements_nr, np.alen(h)], dtype=float)
-            self._indexes['u']  = 0
+            # preallocate and initialize index
+            for meas_id in ('x', 'h', 'u'):
+                self._computed[meas_id] = \
+                  np.empty([self._measurements_nr, np.alen(h)], dtype=float)
+                self._indexes[meas_id]  = 0
 
         # store x
         self._computed['x'][self._indexes['x'], :] = x
         self._indexes['x'] += 1
+
+        # store h
+        self._computed['h'][self._indexes['h'], :] = h
+        self._indexes['h'] += 1
 
         # store u
         value = self._computed['u'][self._indexes['u'], :] # reference
