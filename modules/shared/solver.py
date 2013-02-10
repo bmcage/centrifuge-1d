@@ -407,10 +407,8 @@ def simulate_inverse(direct_fn, model, init_parameters,
                 print('Optimized arguments are out of bounds... Penalizing by ',
                       penalization)
 
-            if optimfn == 'leastsq':
-                return measurements.get_penalized(penalization, scalar=False)
-            else:
-                return measurements.get_penalized(penalization, scalar=True)
+            return measurements.get_penalized(penalization,
+                                              scalar=(optimfn != 'leastsq'))
 
         direct_data = direct_fn(model, measurements_names)
         (flag, t, data_C) = (direct_data[0], direct_data[1], direct_data[2:])
@@ -434,10 +432,8 @@ def simulate_inverse(direct_fn, model, init_parameters,
                 print('Direct problem did not converge for given optimization '
                       'parameters... Penalizing by ', penalization)
 
-            if optimfn == 'leastsq':
-                return measurements.get_penalized(penalization, scalar=False)
-            else:
-                return measurements.get_penalized(penalization, scalar=True)
+            return measurements.get_penalized(penalization,
+                                              scalar=(optimfn != 'leastsq'))
 
     init_values = []
 
