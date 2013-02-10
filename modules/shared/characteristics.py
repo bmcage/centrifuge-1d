@@ -315,7 +315,8 @@ class Measurements():
 
             for (name, measurement) in self._measurements.items():
                 if not name in scales_coefs:
-                    scales_coefs[name] = determine_scaling_factor(measurement)
+                    #scales_coefs[name] = determine_scaling_factor(measurement)
+                    scales_coefs[name] = 1.0
 
                 scales.append(scales_coefs[name]
                               * np.ones(measurement.shape, dtype=float))
