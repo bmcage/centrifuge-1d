@@ -339,7 +339,7 @@ class Measurements():
                 scales.append(scales_coefs[name]
                               * np.ones((1, length), dtype=float))
 
-            self._scales = np.concatenate(scales)
+            self._scales = np.concatenate(scales, axis=1)
 
         return self._scales
 
@@ -666,7 +666,7 @@ class Measurements():
                           sample beginning (to filter's beginning)
           tube_area - the cross-sectional area of the tube
         """
-        F = (calc_force(u, y, dy, r0, s1, s2, mass_in, dsat_s, d_sat_e,
+        F = (calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
                         soil_porosity, fl2, fp2, fr2, fluid_density)
              * omega2g * tube_area)
 

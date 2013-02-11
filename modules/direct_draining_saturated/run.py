@@ -168,12 +168,12 @@ def on_measurement(t, z, model, measurements):
 
     if model.calc_f_mt:
         l0 = model.l0
-        rL = model.rE - model.fl2
+        rL = model.re - model.fl2
         r0 = model.re - model.fl2 - l0
 
         measurements.store_calc_f_mt(omega2g, u, model.y, model.dy, r0,
                                      s1, s2, MI, s2, l0, model.porosity,
-                                     model.fl2, model.fp2, l0,
+                                     model.fl2, model.fp2, l0, l0,
                                      model.density,
                                      model.tube_crosssectional_area)
 
