@@ -163,6 +163,29 @@ class Measurements():
                     (omega_rpm, weight_tara) = F_tara
                     g = cfg.get_value('g')
                     omega_radps = rpm2radps(omega_rpm)
+
+                    if F_name == 'F_MT':
+                        print('INFO: for [d]F_MT tara we assume sample is full '
+                              'of water.')
+                        extra_values = {}
+                        for name in ('porosity', 'fl1', 'fl2', 'fp1', 'fp2'):
+                            extra_values[name] = cfg.get_value(name)
+                            if not np.isscalar(extra_values[name]):
+                                print(name + ' has to be scalar to compute '
+                                      'F_MT. Aborting.')
+                                exit(1)
+                        for name in ('wl0', 'l0'):
+                            value = cfg.get_value(name)
+                            if np.isscalar(value):
+                                extra_values[name] = value
+                            else:
+                                extra_values[name] = value[0]
+
+                        F_water = (extra_values['fl1'] * extra_values['fp1']
+                                   + extra_values['fl2'] * extra_values['fp2']
+                                   + extra_values['l0'] * extra_values['porosity'])
+                        weight_tara -= F_water
+
                     WR_tara = weight_tara * g / omega_radps / omega_radps
                     setattr(self, 'WR' + F_name[1:].lower() + '_tara', WR_tara)
 
