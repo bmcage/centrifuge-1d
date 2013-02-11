@@ -413,26 +413,31 @@ class Measurements():
     def iterate_calc_measurements(self):
         """ Iterate over stored values of calculated measurements. """
         t = self.get_times()
+        measurements_diff = self._measurements_diff
 
-        for meas_id in self._computed.keys():
-            if meas_id in ('x'): continue
+        for (name, yvalue) in self._computed.items():
+            if name in ('x'): continue
 
-            value = self._computed[meas_id]
-
-            if meas_id in ('h', 'u'):
-                yield (meas_id, self._computed['x'], value)
+            if name in ('h', 'u'):
+                xvalue = self._computed['x']
             else:
-                yield (meas_id, t, value)
+                xvalue = t
 
-        for meas_id in ('dF_MT', 'dF_MO'):
-            mid = meas_id[1:]
-            if mid in self._computed:
-                F = self._computed[mid]
+            yield (name, xvalue, yvalue)
 
-                times  = self._times[1:]
-                value = F[1:] - F[:-1]
+            if name in measurements_diff:
+                yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
 
-                yield (meas_id, t[1:], value)
+    def iterate_meas_measurements(self):
+        xvalue = self.get_times()[1:]
+        measurements_diff = self._measurements_diff
+
+        for (name, yvalue) in self._measurements.items():
+
+            yield (name, xvalue, yvalue)
+
+            if name in measurements_diff:
+                yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
 
     def store_calc_u(self, x, h, n, m, gamma):
         """

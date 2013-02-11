@@ -359,9 +359,7 @@ class ResultsData():
     def store_measurements(self, measurements):
         m = {}
 
-        for (name, xvalue, yvalue) in zip(measurements.get_names(),
-                                          measurements.get_xvalues(),
-                                          measurements.get_values()):
+        for (name, xvalue, yvalue) in measurements.iterate_meas_measurements():
             m[name] = (xvalue, yvalue)
 
         self._data['lines']['measured'] = m
