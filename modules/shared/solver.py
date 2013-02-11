@@ -423,10 +423,13 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
             error = measurements.get_error() # computed - measured
 
+            total_LSQ_error = np.sum(np.power(error, 2))
+            print('\nTotal LSQ error:', total_LSQ_error)
+
             if optimfn == 'leastsq':
                 result = error
             else:
-                result = np.sum(np.power(error, 2))
+                result = total_LSQ_error
 
         else:
             # something is wrong, so penalize
