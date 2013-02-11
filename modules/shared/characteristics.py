@@ -707,12 +707,19 @@ class Measurements():
         self._get_measurements() # ensure all runtime data is set
 
         status_items = []
+        measurements_diff = self._measurements_diff
 
         computed = self._computed
         measured = self._measurements
 
-        for name in self._measurements.keys():
-            compare_data(name, computed[name][1:], measured[name])
+        for (name, measured_value) in self._measurements.items():
+            computed_value = computed[name][1:]
+
+            if name in measurements_diff:
+                compare_data('d'+name, computed_value[1:] - computed_value[:-1],
+                             measured_value[1:] - measured_value[:-1])
+            else:
+                compare_data(name, computed_value, measured_value)
 
     def get_penalized(self, penalization, scalar=False):
         """
