@@ -331,7 +331,7 @@ class Measurements():
 
             for (name, weight) in self._measurements_weights.items():
                 if name in self._measurements_diff:
-                    weights.append(weight[1:] + weight[:-1])
+                    weights.append((weight[1:] + weight[:-1])/2.)
                 else:
                     weights.append(weight)
 
