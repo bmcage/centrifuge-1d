@@ -816,6 +816,14 @@ def show_results(experiment_info,
     if not model is None:
         data.store_computation(model, model.measurements)
         data.store_measurements(model.measurements)
+
+        from shared import get_directories
+        savedir = get_directories('figs', 'mask', experiment_info)
+        filename = savedir + '/' + 'results.txt'
+
+        with open(filename) as f:
+            model.measurements.display_error(stream = f)
+
         save_data = True
 
     if show_figures:
@@ -830,11 +838,6 @@ def show_results(experiment_info,
 
         storage.store('ResultsData', data.dump())
         storage.save(experiment_info)
-
-        from shared import get_directories
-        savedir = get_directories('figs', 'mask', experiment_info)
-        filename = savedir + '/' + 'results.txt'
-        print_status(data, filename)
 
     if show_figures:
         dplots.display()
