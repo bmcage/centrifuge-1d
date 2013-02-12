@@ -215,8 +215,8 @@ def print_status(data, filename=None):
             if c_value is not None:
                 status_items.append(mk_status_item(key, c_value, m_value))
 
-            if status_items:
-                display_status(status_items, stream)
+        if status_items:
+            display_status(status_items, stream)
 
         # display additional data
         cov = data.get_value('cov')
