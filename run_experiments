@@ -135,7 +135,7 @@ def run_experiments(exp_id, first_experiment, last_experiment, mask,
 
         solver_module = modman.find_module(model.exp_type, submodule='run')
 
-        results = solver_module.run(model)
+        solver_module.run(model)
 
 def iterate_value(arg):
 
