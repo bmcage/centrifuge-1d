@@ -108,9 +108,10 @@ DATA_UNITS = {'length': ('mm', 'cm', 'm'),
               'time': ('s', 'min', 'h'),
               'pressure': ('Pa', 'kPa'),
               'weight': ('g', 'kg'),
+              'force_kgp': ('gf', 'kgf'),
               'none': ('', )}
 DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
-                 'weight': 'g', 'none': ''}
+                 'force_kgp': 'gf', 'weight': 'g', 'none': ''}
 
 dg_label_time = "Time [{}]"
 dg_label_length = "Sample length $L$ [{}]"
@@ -137,26 +138,26 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                                  dg_unit_time_length),
                   'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                             ('none', 'pressure')),
-                  'F_MO': ((dg_label_time, "Expelled water weight [{}]"),
-                           ('time', 'weight')),
-                  'F_MT': ((dg_label_time, "Water in tube weight [{}]"),
-                           ('time', 'weight')),
-                  'dF_MO': ((dg_label_time, "Difference in expelled water weight [{}]"),
-                           ('time', 'weight')),
-                  'dF_MT': ((dg_label_time, "Difference in weight of water in tube [{}]"),
-                           ('time', 'weight'))}
-DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('F_MT', 'F_MO'),
+                  'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
+                           ('time', 'force_kgp')),
+                  'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
+                           ('time', 'force_kgp')),
+                  'dF_MO': ((dg_label_time, "Force difference of expelled water [{}]"),
+                           ('time', 'force_kgp')),
+                  'dF_MT': ((dg_label_time, "Force difference of water in tube [{}]"),
+                           ('time', 'force_kgp'))}
+DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
             ('dF_MT', 'dF_MO'), ('s1', 's2'))
 
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
-    # units used for computation are: cm, s, pa and "no units"
-    if unit in ['cm', 's', 'pa', 'g', '']: coef = 1.0
+    # units used for computation are: cm, s, pa, gf and "no units"
+    if unit in ['cm', 's', 'pa', 'g', 'gf', '']: coef = 1.0
     elif unit == 'mm': coef = 10.
     elif unit == 'min': coef = 1./60.
     elif unit == 'h': coef = 1./3600.
     elif unit == 'm': coef = 0.01
-    elif unit in ['kpa', 'kg']: coef = 0.001
+    elif unit in ['kpa', 'kg', 'kgp']: coef = 0.001
     else:
         print('Unknown unit:', unit_base, '\nKnown units are only:', DATA_UNITS)
         exit(1)
