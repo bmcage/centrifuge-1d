@@ -300,23 +300,8 @@ class ResultsData():
         references = list(map(lambda x: x.copy(), user_references))
 
         if model is None:
-            experiment_info = self.get_value('experiment_info')
-            (cfg, consts_cfg) = load_configuration(experiment_info)
-            process_global_constants(cfg, consts_cfg)
-
-            if self._modman is None:
-                from config import ModulesManager
-                self._modman = ModulesManager()
-
-            modman = self._modman
-
-            cfg.load_definition(modman)
-
-            cfg.adjust_cfg(modman)
-            solver_module = modman.find_module(cfg.get_value('exp_type'),
-                                               submodule='run')
-            model = ModelParameters(cfg)
-            model.experiment_info = experiment_info
+            from config import load_model
+            model = load_model(self.get_value('experiment_info'), validate=True)
 
         ref_num = 1
         if type(references) == dict: # single reference

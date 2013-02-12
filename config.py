@@ -798,3 +798,33 @@ class ModelParameters:
                 for meas in value: meas_nr += len(meas)
 
         return meas_nr
+
+
+def load_model(experiment_info, display_only=False, validate=True,
+               modman = None):
+
+    (cfg, consts_cfg) = load_configuration(experiment_info)
+
+    # Assign global values not present in (or based on) configuration
+    process_global_constants(cfg, consts_cfg)
+
+    if display_only:
+        header = ("Configuration file of experiment '{}' number {:d}"
+                  .format(exp_id, exp_no))
+        print("\n", header, '\n', len(header) * '-')
+        cfg.echo()
+
+        return None
+
+    if modman is None:
+        modman = ModulesManager()
+
+    if validate and (not cfg.is_valid(modman, verbose=True)): exit(1)
+
+    cfg.adjust_cfg(modman)
+
+    model = ModelParameters(cfg)
+
+    model.experiment_info = experiment_info
+
+    return model

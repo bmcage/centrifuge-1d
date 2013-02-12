@@ -2,8 +2,7 @@
 from __future__ import print_function
 from os import listdir
 from shared import get_directories, yn_prompt
-from config import ModulesManager, ModelParameters, process_global_constants, \
-     load_configuration
+from config import ModulesManager, load_model
 from optparse import OptionParser
 from const import DEFAULTS_ININAME, CONSTANTS_ININAME
 
@@ -114,7 +113,9 @@ def run_experiments(exp_id, first_experiment, last_experiment, mask,
               '\n---------------------------------------------------------'
               % (exp_id, first_experiment, last_experiment))
 
-    if not print_cfg_only:
+    if print_cfg_only:
+        modman = None
+    else:
         modman = ModulesManager()
 
     for exp_no in range(first_experiment, last_experiment+1):
@@ -127,28 +128,13 @@ def run_experiments(exp_id, first_experiment, last_experiment, mask,
             experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no,
                                 'mask': mask}
 
-            (cfg, consts_cfg) = load_configuration(experiment_info)
+            model = load_model(experiment_info, display_only=print_cfg_only,
+                               modman = modman)
 
-            # Assign global values not present in (or based on) configuration
-            process_global_constants(cfg, consts_cfg)
+            if print_cfg_only: continue
 
-            if print_cfg_only:
-                header = ("Configuration file of experiment '{}' number {:d}"
-                          .format(exp_id, exp_no))
-                print("\n", header, '\n', len(header) * '-')
-                cfg.echo()
-                continue
-
-            if not cfg.is_valid(modman, verbose=True): exit(1)
-
-            cfg.adjust_cfg(modman)
-
-            solver_module = modman.find_module(cfg.get_value('exp_type'),
+            solver_module = modman.find_module(model.exp_type,
                                                submodule='run')
-
-            model = ModelParameters(cfg)
-
-            model.experiment_info = experiment_info
 
             results = solver_module.run(model)
 
