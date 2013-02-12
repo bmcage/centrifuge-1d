@@ -1,11 +1,11 @@
 from __future__ import division
 
-from modules.direct_saturated.run import solve as solve_ds, extract_data
+from modules.direct_saturated.run import solve as solve_direct
 from modules.shared.solver import simulate_inverse
 
 def solve(model, measurements):
 
-    inv_params = simulate_inverse(solve_ds, model, model.inv_init_params,
+    inv_params = simulate_inverse(solve_direct, model, model.inv_init_params,
                                   measurements, optimfn=model.optimfn)
 
     return inv_params

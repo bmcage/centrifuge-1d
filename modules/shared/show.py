@@ -5,8 +5,7 @@ import numpy as np
 from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
 from os import makedirs, path
 from shared import get_directories, parse_value
-from config import ModelParameters, load_configuration, \
-     process_global_constants, DataStorage
+from config import ModulesManager, load_model, DataStorage
 from modules.shared.functions import has_data, compare_data
 try:
     import ConfigParser as configparser
@@ -262,32 +261,41 @@ class ResultsData():
         else:
             return not_found
 
-    def _extract(self, model):
+    def store_computation(self, model, measurements, ID='computed'):
+        """ Store computed values with ID """
         if self._modman is None:
-            from config import ModulesManager
             self._modman = ModulesManager()
 
-        solver_module = self._modman.find_module(model.exp_type,
-                                                 submodule='run')
-        extract_data_fn = solver_module.extract_data
-
-        # add computed data
-        return extract_data_fn(model, model.measurements)
-        if not flag:
-            value = None
-            print('Computation was not successfull. Data will not be saved.')
-
-        return value
-
-    def store_computation(self, model):
-        (flag, value) = self._extract(model)
+        solver_module = self._modman.find_module(model.exp_type, submodule='run')
+        if not hasattr(solver_module, 'solve_direct'):
+            print("WARNING: Module for type '" + model.exp_type + "' does not "
+                  "specify a 'solve_direct' variable. Function 'solve()' will "
+                  "be used instead.")
+            flag = solver_module.solve(model, measurements)
+        else:
+            flag = solver_module.solve_direct(model, measurements)
 
         if not flag:
-            value = None
-            print('Computation was not successfull. Data will not be saved.')
+            print("Computation of reference with ID '" + ID + "' was not "
+                  "successfull. Data will not be saved.")
+        else:
+            data = {}
 
-        self._data['lines']['computed'] = value
-        self.store_value('experiment_info', model.experiment_info)
+            # Store all computed data
+            for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
+                if name in ('h', 'u'):
+                    t = measurements.get_times()
+                    data[name] = (xvalue.transpose(), yvalue.transpose(), t)
+                else:
+                    data[name] = (xvalue, yvalue)
+
+
+
+
+            self._data['lines'][ID] = data
+            self.store_value('experiment_info', model.experiment_info)
+
+        return flag
 
     def store_references(self, user_references, model=None):
         stored_references = self.get_value('references')
@@ -326,18 +334,12 @@ class ResultsData():
             backup_params = model.get_parameters(ref.keys()) # backup
             model.set_parameters(ref)
 
-            (flag, value) = self._extract(model)
-
-            model.set_parameters(backup_params) # restore
+            flag = self.store_computation(model, model.measurements, ID=ref_id)
 
             if not flag:
-                value = None
-                print('Computation of reference with ID: ', ref_id,
-                      '\nwith parameters: ', ref,
-                      '\nwas not successfull. Data will not be saved.')
-                continue
+                print('Reference parameters: ', ref)
 
-            data[ref_id] = value
+            model.set_parameters(backup_params) # restore
 
         return True
 
@@ -799,7 +801,7 @@ def show_results(experiment_info,
     save_data = False
 
     if not model is None:
-        data.store_computation(model)
+        data.store_computation(model, model.measurements)
         data.store_measurements(model.measurements)
         save_data = True
 

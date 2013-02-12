@@ -59,18 +59,6 @@ def solve(model, measurements):
 
     return flag
 
-def extract_data(model, measurements):
-    flag = solve(model, measurements)
-
-    if not flag:
-        print('For given model the solver did not find results. Skipping.')
-
-    extracted_data = \
-      {name: (time, value)
-       for (name, time, value) in measurements.iterate_calc_measurements()}
-
-    return (flag, extracted_data)
-
 def run(model):
     from modules.shared.show import show_results
     show_results(model.experiment_info, model=model)

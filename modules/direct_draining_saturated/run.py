@@ -4,7 +4,7 @@ import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.functions import right_derivative, y2x
-from modules.shared.vangenuchten import h2Kh, dudh, h2u, retention_curve
+from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.shared.solver import simulate_direct
 from modules.shared.show import show_results
 
@@ -339,34 +339,6 @@ def solve(model, measurements):
         model.atol = atol_backup
 
     return flag
-
-def extract_data(model, measurements):
-    flag = solve(model, measurements)
-
-    if not flag:
-        print('For given model the solver did not find results. Skipping.')
-
-    if hasattr(model, 'theta_s'): theta_s = model.theta_s
-    else: theta_s = model.porosity
-
-    if hasattr(model, 'theta_r'): theta_r = model.theta_r
-    else: theta_r = 0.0
-
-    (p, theta) = retention_curve(model.n, model.gamma,
-                                 theta_s, model.density, model.g,
-                                 theta_r=theta_r)
-
-    extracted_data = {'theta': (p, theta)}
-
-    t = measurements.get_times()
-
-    for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
-        if name in ('h', 'u'):
-            extracted_data[name] = (xvalue.transpose(), yvalue.transpose(), t)
-        else:
-            extracted_data[name] = (xvalue, yvalue)
-
-    return (flag, extracted_data)
 
 def run(model):
     show_results(model.experiment_info, model=model)
