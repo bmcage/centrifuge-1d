@@ -119,24 +119,23 @@ def run_experiments(exp_id, first_experiment, last_experiment, mask,
         modman = ModulesManager()
 
     for exp_no in range(first_experiment, last_experiment+1):
-            if verbose:
-                header = ("Executing experiment {} number {:d}."
-                          "".format(exp_id, exp_no))
-                print('\n', len(header) * '=', '\n', header,
-                      '\n', len(header) * '=')
+        if verbose:
+            header = ("Executing experiment {} number {:d}."
+                      "".format(exp_id, exp_no))
+            print('\n', len(header) * '=', '\n', header,
+                  '\n', len(header) * '=')
 
-            experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no,
-                                'mask': mask}
+        experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no,
+                            'mask': mask}
 
-            model = load_model(experiment_info, display_only=print_cfg_only,
-                               modman = modman)
+        model = load_model(experiment_info, display_only=print_cfg_only,
+                           modman = modman)
 
-            if print_cfg_only: continue
+        if print_cfg_only: continue
 
-            solver_module = modman.find_module(model.exp_type,
-                                               submodule='run')
+        solver_module = modman.find_module(model.exp_type, submodule='run')
 
-            results = solver_module.run(model)
+        results = solver_module.run(model)
 
 def iterate_value(arg):
 
