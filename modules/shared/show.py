@@ -289,8 +289,21 @@ class ResultsData():
                 else:
                     data[name] = (xvalue, yvalue)
 
+            # Store extra data
+            # a) Retention curve
+            if hasattr(model, 'n') and hasattr(model, 'gamma'):
+                from modules.shared.vangenuchten import retention_curve
 
+                if hasattr(model, 'theta_s'): theta_s = model.theta_s
+                else: theta_s = model.porosity
 
+                if hasattr(model, 'theta_r'): theta_r = model.theta_r
+                else: theta_r = 0.0
+
+                (p, theta) = retention_curve(model.n, model.gamma,
+                                             theta_s, model.density, model.g,
+                                             theta_r=theta_r)
+                data['theta'] = (p, theta)
 
             self._data['lines'][ID] = data
             self.store_value('experiment_info', model.experiment_info)
