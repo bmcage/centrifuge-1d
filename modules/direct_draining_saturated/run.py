@@ -163,24 +163,24 @@ def on_measurement(t, z, model, measurements):
     if model.calc_rm:
         measurements.store_calc_rm(t, u, MI, s1, s2, model)
 
-    if model.calc_cf_mo or model.calc_f_mo or model.calc_f_mt:
+    if model.calc_gcf_mo or model.calc_gf_mo or model.calc_f_mt:
         omega2g = model.find_omega2g(t)
 
-    if model.calc_f_mt:
+    if model.calc_gf_mt:
         l0 = model.l0
         rL = model.re - model.fl2
         r0 = model.re - model.fl2 - l0
 
-        measurements.store_calc_f_mt(omega2g, u, model.y, model.dy, r0,
-                                     s1, s2, MI, s2, l0, model.porosity,
-                                     model.fl2, model.fp2, l0, l0,
-                                     model.density,
-                                     model.tube_crosssectional_area)
+        measurements.store_calc_gf_mt(omega2g, u, model.y, model.dy, r0,
+                                      s1, s2, MI, s2, l0, model.porosity,
+                                      model.fl2, model.fp2, l0, l0,
+                                      model.density,
+                                      model.tube_crosssectional_area)
 
-    if model.calc_f_mo:
-        measurements.store_calc_f_mo(omega2g, MO,
-                                     model.mo_gc_calibration_curve,
-                                     model.tube_crosssectional_area)
+    if model.calc_gf_mo:
+        measurements.store_calc_gf_mo(omega2g, MO,
+                                      model.mo_gc_calibration_curve,
+                                      model.tube_crosssectional_area)
 
 def initialize_z0(z0, model):
     z0[model.first_idx:model.last_idx+1] = model.h_init

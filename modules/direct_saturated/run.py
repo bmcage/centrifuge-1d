@@ -32,12 +32,15 @@ def on_measurement(t, z, model, measurements):
     MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
     MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
 
-    if model.calc_f_mo:
+    if model.calc_gf_mo:
         omega2g = model.find_omega2g(t)
 
-        measurements.store_calc_f_mo(omega2g, MO,
-                                     model.mo_gc_calibration_curve,
-                                     model.tube_crosssectional_area)
+        measurements.store_calc_gf_mo(omega2g, MO,
+                                      model.mo_gc_calibration_curve,
+                                      model.tube_crosssectional_area)
+
+    if model.calc_gf_mt:
+        raise NotImplementedError
 
 def initialize_z0(z0, model):
     z0[model.mass_in_idx]  = model.wl0

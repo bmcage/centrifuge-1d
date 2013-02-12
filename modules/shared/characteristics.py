@@ -13,7 +13,8 @@ from modules.shared.functions import rpm2radps, compare_data
 # configuration inifile(s).
 MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'F_MO': 'f_mo', 'F_MT': 'f_mt',
-                      'dF_MO': None, 'dF_MT': None,
+                      'gF_MO': 'gf_mo', 'gF_MT': 'gf_mt',
+                      'dgF_MO': None, 'dgF_MT': None,
                       'theta': 'theta'}
 
 def calc_f_tara(omega2g, WR_tara):
@@ -148,20 +149,56 @@ class Measurements():
         if 'MO' in measurements:
             measurements['MO'] = np.cumsum(measurements['MO'])
 
-        #    c) postprocessing F_MO, F_MT:
+        #    c) Transform F_M{O,T}      -> gF_M{O,T}
+        #       Transform F_M{O,T}_tara -> gF_M{O,T}_tara
+        #       Transform F_M{O,T}_calibration_curve -> gF_M{O,T}_calibration_curve
+        g = cfg.get_value('g')
+        for F_name in ('F_MT', 'F_MO'):
+            if F_name in measurements:
+                print("WARNING: Measurement '" + F_name + "' was found. Will be "
+                      "transformed to 'g"+ F_name + "' together with tara and "
+                      "calibration curve. Please check the transformation.")
+                # process F_M{T,O}
+                cfg_name = MEASUREMENTS_NAMES[F_name]
+                measurements['g' + F_name] = measurements[F_name] / g
+                del measurements[F_name]
+
+                # process F_M{T,O}_tara
+                tara_name = cfg_name + '_tara'
+                F_tara = cfg.get_value(tara_name)
+                if not F_tara is None:
+                    (omega_rpm, force_tara) = F_tara
+                    F_tara = (omega_rpm, force_tara/g)
+                cfg.set_value('g'+tara_name, F_tara)
+                cfg.del_value(tara_name)
+
+                # process F_M{T,O}_calibration_curve
+                calibration_name = cfg_name + '_calibration_curve'
+                calibration_curve = cfg.get_value(calibration_name)
+                if not calibration_curve is None:
+                    if np.isscalar(calibration_curve):
+                        calibration_curve /= g
+                    elif type(calibration_curve) is dict:
+                        for (omega, value) in calibration_curve.items():
+                            calibration_curve[omega] = value / g
+                    else: # type() == list
+                        calibration_curve = [value / g for value in calibration_curve]
+                cfg.set_value('g'+calibration_name, calibration_curve)
+                cfg.del_value(calibration_name)
+
+        #    d) postprocessing F_MO, F_MT:
         #           - filter out values outside the measured times
         #           - if calibration curve present, use directly force as
         #              measurement, otherwise use difference between two
         #              subsequent force measurements
-        filter = np.asarray(scans_meas, dtype=int)
-        for F_name in ('F_MT', 'F_MO'):
+        filter_idxs = np.asarray(scans_meas, dtype=int)
+        for F_name in ('gF_MT', 'gF_MO'):
             if F_name in measurements:
 
                 # Determine the influence of tara
                 F_tara = cfg.get_value(F_name.lower() + '_tara')
                 if not F_tara is None:
                     (omega_rpm, weight_tara) = F_tara
-                    g = cfg.get_value('g')
                     omega_radps = rpm2radps(omega_rpm)
 
                     WR_tara = weight_tara * g / omega_radps / omega_radps
@@ -209,7 +246,7 @@ class Measurements():
                 F  = measurements[F_name]
 
                 # Leave only values at desired point (t_meas)
-                F_filter = F[filter]
+                F_filter = F[filter_idxs]
 
                 calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[F_name]
                                                   + '_calibration_curve')
@@ -237,7 +274,7 @@ class Measurements():
 
                         first_idx = phase_end+1
 
-                    F_filter = F[filter]
+                    F_filter = F[filter_idxs]
                 else:
                     # type(calibration_curve) == list:
                     calibration_curve = np.asarray(calibration_curve,
@@ -615,7 +652,7 @@ class Measurements():
 
         return self.store_calc_measurement('GC', gc)
 
-    def store_calc_f_mo(self, omega2g, mo_1d, MO_calibration_curve, tube_area):
+    def store_calc_gf_mo(self, omega2g, mo_1d, MO_calibration_curve, tube_area):
         """
           Calculate and store the value of the calculated centrifugal force
           caused by the expelled water in water chamber. More preciselly it's
@@ -661,12 +698,12 @@ class Measurements():
         F = omega2g * GC * mo
 
         if not self.WR_mo_tara is None:
-            self.store_calc_measurement('F_MO_tara',
+            self.store_calc_measurement('gF_MO_tara',
                                         calc_f_tara(omega2g, self.WR_mo_tara))
 
-        return self.store_calc_measurement('F_MO', F)
+        return self.store_calc_measurement('gF_MO', F)
 
-    def store_calc_cf_mo(self, omega2g, rS, rE, fluid_density, chamber_area):
+    def store_calc_gcf_mo(self, omega2g, rS, rE, fluid_density, chamber_area):
         """
           Computes the centrifugal force acting on the expelled mass based on
           the assumption of mass being uniformly distributed
@@ -678,11 +715,11 @@ class Measurements():
                                   'expelled water needs to be recalculated'
                                   '- chamber area vs. tube area.')
         F = omega2g * calc_sat_force(rS, rE, fluid_density) * chamber_area
-        return self.store_calc_measurement('CF_MO', F)
+        return self.store_calc_measurement('gCF_MO', F)
 
-    def store_calc_f_mt(self, omega2g, u, y, dy, r0, s1, s2, mass_in,
-                        d_sat_s, d_sat_e, soil_porosity, fl2, fp2, fr2, l0,
-                        fluid_density, tube_area):
+    def store_calc_gf_mt(self, omega2g, u, y, dy, r0, s1, s2, mass_in,
+                         d_sat_s, d_sat_e, soil_porosity, fl2, fp2, fr2, l0,
+                         fluid_density, tube_area):
         """
           Calculate and store the value of the centrifugal force of water in
           the sample. The water on the inflow is taken into account, but not
@@ -710,10 +747,10 @@ class Measurements():
              * omega2g * tube_area)
 
         if not self.WR_mt_tara is None:
-            self.store_calc_measurement('F_MT_tara',
+            self.store_calc_measurement('gF_MT_tara',
                                         calc_f_tara(omega2g, self.WR_mt_tara))
 
-        return self.store_calc_measurement('F_MT', F)
+        return self.store_calc_measurement('gF_MT', F)
 
     def store_calc_rm(t, u, mass_in, mass_out, s1, s2, model):
 

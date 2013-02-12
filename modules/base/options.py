@@ -181,10 +181,10 @@ def adjust_cfg(cfg):
             rE = list(rE)
         cfg.set_value('re', rE)
 
-    cfg.set_value('calc_f_mt', True)
-    cfg.set_value('calc_cf_mo', False)
+    cfg.set_value('calc_gf_mt', True)
+    cfg.set_value('calc_gcf_mo', False)
     if not cfg.get_value('mo_gc_calibration_curve') is None:
-        cfg.set_value('calc_f_mo', True)
+        cfg.set_value('calc_gf_mo', True)
 
     tube_crosssectional_area = \
       np.pi * np.power(cfg.get_value('tube_diam'), 2) / 4.

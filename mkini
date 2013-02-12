@@ -491,7 +491,7 @@ def get_iterables_list(exp_type, modman):
 
     return iterables_list
 
-CSV2INI_NAMES = {'s102': 'f_mt', 's103': 'f_mo'}
+CSV2INI_NAMES = {'s102': 'gf_mt', 's103': 'gf_mo'}
 
 def process_scanned_data(experiment, experiment_info):
     csv_files = experiment.get_value('csv_file')
