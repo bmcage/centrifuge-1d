@@ -818,9 +818,10 @@ class Measurements():
 
             if name in measurements_diff:
                 compare_data('d'+name, computed_value[1:] - computed_value[:-1],
-                             measured_value[1:] - measured_value[:-1])
+                             measured_value[1:] - measured_value[:-1],
+                             stream=stream)
             else:
-                compare_data(name, computed_value, measured_value)
+                compare_data(name, computed_value, measured_value, stream=stream)
 
     def get_penalized(self, penalization, scalar=False):
         """
