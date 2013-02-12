@@ -104,14 +104,13 @@ def nd2strlist(nd):
         result.append(str(value))
     return result
 
-# Default unit is the first one
+DATA_UNITS = {'length': ('mm', 'cm', 'm'),
+              'time': ('s', 'min', 'h'),
+              'pressure': ('Pa', 'kPa'),
+              'weight': ('g', 'kg'),
+              'none': ('', )}
 DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
                  'weight': 'g', 'none': ''}
-DATA_UNITS = {'length': ('cm', 'mm', 'm'),
-              'time': ('min', 's', 'h'),
-              'pressure': ('Pa', 'kPa'),
-              'weight': ('kg', 'g'),
-              'none': ('', )}
 
 dg_label_time = "Time [{}]"
 dg_label_length = "Sample length $L$ [{}]"
