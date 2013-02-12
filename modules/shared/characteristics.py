@@ -164,7 +164,11 @@ class Measurements():
                     g = cfg.get_value('g')
                     omega_radps = rpm2radps(omega_rpm)
 
+                    WR_tara = weight_tara * g / omega_radps / omega_radps
+
                     if F_name == 'F_MT':
+                        # as extra we need to subtract the water inside the tube
+                        # we assume that sample is fully satureted
                         print('INFO: for [d]F_MT tara we assume sample is full '
                               'of water.')
                         extra_values = {}
@@ -174,19 +178,31 @@ class Measurements():
                                 print(name + ' has to be scalar to compute '
                                       'F_MT. Aborting.')
                                 exit(1)
-                        for name in ('wl0', 'l0'):
+                        for name in ('wl0', 'l0', 're'):
                             value = cfg.get_value(name)
-                            if np.isscalar(value):
+                            if value is None:
+                                extra_values[name] = 0.0
+                            elif np.isscalar(value):
                                 extra_values[name] = value
                             else:
                                 extra_values[name] = value[0]
 
-                        F_water = (extra_values['fl1'] * extra_values['fp1']
-                                   + extra_values['fl2'] * extra_values['fp2']
-                                   + extra_values['l0'] * extra_values['porosity'])
-                        weight_tara -= F_water
+                        (rE, l0)   = (extra_values['re'], extra_values['l0'])
+                        (fl1, fl2) = (extra_values['fl1'], extra_values['fl2'])
+                        r0 = rE - fl2 - l0 - fl1
 
-                    WR_tara = weight_tara * g / omega_radps / omega_radps
+                        WR_water = 0.0
+                        if extra_values['wl0'] > 0.0:
+                            WR_water += (r0 - extra_values['wl0'] / 2.0)
+                        if fl1 > 0.0:
+                            WR_water += extra_values['fp1'] * (r0 + fl1/2.)
+                        if l0 > 0.0:
+                            WR_water += extra_values['porosity'] * (r0 + fl1 + l0/2.)
+                        if fl2 > 0.0:
+                            WR_water += extra_values['fp2'] * (rE - fl2/2.)
+
+                        WR_tara -= WR_water
+
                     setattr(self, 'WR' + F_name[1:].lower() + '_tara', WR_tara)
 
                 # Process the force measurements
