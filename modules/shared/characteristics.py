@@ -530,10 +530,10 @@ class Measurements():
 
         for (name, yvalue) in self._measurements.items():
 
-            yield (name, xvalue, yvalue)
-
             if name in measurements_diff:
                 yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
+            else:
+                yield (name, xvalue, yvalue)
 
     def store_calc_u(self, x, h, n, m, gamma):
         """
