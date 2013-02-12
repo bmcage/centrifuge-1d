@@ -821,8 +821,8 @@ def show_results(experiment_info,
         savedir = get_directories('figs', 'mask', experiment_info)
         filename = savedir + '/' + 'results.txt'
 
-        with open(filename) as f:
-            model.measurements.display_error(stream = f)
+        with open(filename, 'w') as f:
+            print_status(data, filename)
 
         save_data = True
 
