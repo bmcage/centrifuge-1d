@@ -829,7 +829,7 @@ def show_results(experiment_info,
     if show_figures:
         dplots = DPlots(data, experiment_info)
 
-        if data.store_references(dplots.get_references()):
+        if data.store_references(dplots.get_references(), model):
             save_data = True
 
     if save_data:
