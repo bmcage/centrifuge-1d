@@ -43,18 +43,12 @@ CONFIG_OPTIONS = ['exp_type',
                     [('deceleration_duration', 0.0)]),
                   # measurements and referencing parameters
                   ('l1', None), ('gc1', None), ('rm1', None ),
-                  ('f_mo', None), ('f_mt', None),
-                  ('f_mo_tara', None), ('f_mt_tara', None),
                   ('gf_mo', None), ('gf_mt', None),
                   ('gf_mo_tara', None), ('gf_mt_tara', None),
                   ('wl1', None), ('wl_out', None), ('ww1', None),
 
                   ('descr', None), ('re', None),
                   ('measurements_scale_coefs', None),
-                  (lambda cfg: not (cfg.get_value('f_mo') is None),
-                    [('f_mo_calibration_curve', None)]),
-                  (lambda cfg: not (cfg.get_value('f_mt') is None),
-                    [('f_mt_calibration_curve', None)]),
                   (lambda cfg: not (cfg.get_value('gf_mo') is None),
                     [('gf_mo_calibration_curve', None)]),
                   (lambda cfg: not (cfg.get_value('gf_mt') is None),
@@ -106,7 +100,7 @@ def check_cfg(cfg):
         print('Tube diameter is not specified.')
         return False
 
-    for F_name in ('f_mo', 'f_mt', 'gf_mo', 'gf_mt'):
+    for F_name in ('gf_mo', 'gf_mt'):
         F = cfg.get_value(F_name)
 
         if (F is None): continue
@@ -140,7 +134,7 @@ def check_cfg(cfg):
                   '\nOnly float/int/array of floats/dict or ints is allowed.')
             return False
 
-        if F_name in ('f_mo', 'gf_mo'):
+        if F_name in ('gf_mo'):
             MO_GC = cfg.get_value('mo_gc_calibration_curve')
 
             if MO_GC is None:

@@ -12,7 +12,6 @@ from modules.shared.functions import rpm2radps, compare_data
 # plotting) and corresponding options that are to be found in
 # configuration inifile(s).
 MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
-                      'F_MO': 'f_mo', 'F_MT': 'f_mt',
                       'gF_MO': 'gf_mo', 'gF_MT': 'gf_mt',
                       'dgF_MO': None, 'dgF_MT': None,
                       'theta': 'theta'}
@@ -148,43 +147,6 @@ class Measurements():
         #    b) postprocessing MO: MO is a cumulative value
         if 'MO' in measurements:
             measurements['MO'] = np.cumsum(measurements['MO'])
-
-        #    c) Transform F_M{O,T}      -> gF_M{O,T}
-        #       Transform F_M{O,T}_tara -> gF_M{O,T}_tara
-        #       Transform F_M{O,T}_calibration_curve -> gF_M{O,T}_calibration_curve
-        g = cfg.get_value('g')
-        for F_name in ('F_MT', 'F_MO'):
-            if F_name in measurements:
-                print("WARNING: Measurement '" + F_name + "' was found. Will be "
-                      "transformed to 'g"+ F_name + "' together with tara and "
-                      "calibration curve. Please check the transformation.")
-                # process F_M{T,O}
-                cfg_name = MEASUREMENTS_NAMES[F_name]
-                measurements['g' + F_name] = measurements[F_name] / g
-                del measurements[F_name]
-
-                # process F_M{T,O}_tara
-                tara_name = cfg_name + '_tara'
-                F_tara = cfg.get_value(tara_name)
-                if not F_tara is None:
-                    (omega_rpm, force_tara) = F_tara
-                    F_tara = (omega_rpm, force_tara/g)
-                cfg.set_value('g'+tara_name, F_tara)
-                cfg.del_value(tara_name)
-
-                # process F_M{T,O}_calibration_curve
-                calibration_name = cfg_name + '_calibration_curve'
-                calibration_curve = cfg.get_value(calibration_name)
-                if not calibration_curve is None:
-                    if np.isscalar(calibration_curve):
-                        calibration_curve /= g
-                    elif type(calibration_curve) is dict:
-                        for (omega, value) in calibration_curve.items():
-                            calibration_curve[omega] = value / g
-                    else: # type() == list
-                        calibration_curve = [value / g for value in calibration_curve]
-                cfg.set_value('g'+calibration_name, calibration_curve)
-                cfg.del_value(calibration_name)
 
         #    c) postprocessing gF_MO, gF_MT:
         #           - filter out values outside the measured times
