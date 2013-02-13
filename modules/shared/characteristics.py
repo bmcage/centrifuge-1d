@@ -109,7 +109,7 @@ class Measurements():
             if not scans[0] == 0.0:
                 scans = np.concatenate(([0.0], scans))
         else:
-            scans = phases_end_times
+            scans = phases_scans
 
         scan_span = float(cfg.get_value('scan_span', not_found=None))
         if scan_span != 1.0:
