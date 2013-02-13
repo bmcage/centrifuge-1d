@@ -46,6 +46,10 @@ CONFIG_OPTIONS = ['exp_type',
                   ('gf_mo', None), ('gf_mt', None),
                   ('gf_mo_tara', None), ('gf_mt_tara', None),
                   ('wl1', None), ('wl_out', None), ('ww1', None),
+                  # measurement weights
+                  ('wl1_weights', 1.0), ('wl_out_weights', 1.0),
+                  ('gc1_weights', 1.0), ('rm1_weights', 1.0),
+                  ('cf_weights', 1.0),
 
                   ('descr', None), ('re', None),
                   ('measurements_scale_coefs', None),

@@ -17,11 +17,7 @@ CONFIG_OPTIONS = ['inv_init_params',
                     [('gtol', 1e-5), ('max_inv_iter', None),
                      ('disp_inv_conv', True)]),
                   (lambda cfg: cfg.get_value('optimfn') == 'raster',
-                    ['raster_grid_size']),
-                  # measurement weights
-                  ('wl1_weights', None), ('wl_out_weights', None),
-                  ('gc1_weights', None), ('rm1_weights', None),
-                  ('cf_weights', None)
+                    ['raster_grid_size'])
                  ]
 
 INTERNAL_OPTIONS = []
