@@ -141,12 +141,12 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                            ('time', 'force_kgp')),
                   'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
                            ('time', 'force_kgp')),
-                  'dF_MO': ((dg_label_time, "Force difference of expelled water [{}]"),
+                  'dgF_MO': ((dg_label_time, "Force difference of expelled water [{}]"),
                            ('time', 'force_kgp')),
-                  'dF_MT': ((dg_label_time, "Force difference of water in tube [{}]"),
+                  'dgF_MT': ((dg_label_time, "Force difference of water in tube [{}]"),
                            ('time', 'force_kgp'))}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
-            ('dF_MT', 'dF_MO'), ('s1', 's2'))
+            ('dgF_MT', 'dgF_MO'), ('s1', 's2'))
 
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
