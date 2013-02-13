@@ -186,7 +186,7 @@ class Measurements():
                 cfg.set_value('g'+calibration_name, calibration_curve)
                 cfg.del_value(calibration_name)
 
-        #    d) postprocessing F_MO, F_MT:
+        #    c) postprocessing gF_MO, gF_MT:
         #           - filter out values outside the measured times
         #           - if calibration curve present, use directly force as
         #              measurement, otherwise use difference between two
@@ -203,7 +203,7 @@ class Measurements():
 
                     WR_tara = weight_tara * g / omega_radps / omega_radps
 
-                    if F_name == 'F_MT':
+                    if F_name == 'gF_MT':
                         # as extra we need to subtract the water inside the tube
                         # we assume that sample is fully satureted
                         print('INFO: for [d]F_MT tara we assume sample is full '
@@ -213,7 +213,7 @@ class Measurements():
                             extra_values[name] = cfg.get_value(name)
                             if not np.isscalar(extra_values[name]):
                                 print(name + ' has to be scalar to compute '
-                                      'F_MT. Aborting.')
+                                      'gF_MT. Aborting.')
                                 exit(1)
                         for name in ('wl0', 'l0', 're'):
                             value = cfg.get_value(name)
@@ -439,7 +439,7 @@ class Measurements():
         if self._measurements_array is None:
             values = []
             for (name, value) in self._measurements.items():
-                if name in ('F_MO', 'F_MT'):
+                if name in ('gF_MO', 'gF_MT'):
                     # For the forces we need to determine the influence of tara
                     # and subtract it from the measured values of force; but as
                     # we don't have the value from measurement, we subtract the
