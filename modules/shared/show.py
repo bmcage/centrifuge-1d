@@ -797,6 +797,7 @@ class DPlots():
             cov = data.get_value('cov')
             if not cov is None:
                 print('\nCov:\n', cov)
+                print ('Variance:\n', np.sqrt(np.diag(cov)))
 
             params = data.get_value('inv_params')
             if not params is None:
