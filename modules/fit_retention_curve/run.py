@@ -26,7 +26,7 @@ def solve(model):
         (theta_s, theta_r) = (model.theta_s, model.theta_r)
         theta = theta_r + (theta_s - theta_r) * u
 
-        return np.power(theta - theta_measured, 2)
+        return theta - theta_measured
 
     #    backup_params = model.get_parameters(model.inv_init_params.keys())
 
@@ -49,8 +49,9 @@ def solve(model):
 
     optim_params = {key: value
                     for (key, value) in zip(params_names, opt_values)}
+    s_sq = np.power(direct_wrapper(opt_values),2).sum() / (len(model.h) - len(params_names))
 
-    return (optim_params, cov)
+    return (optim_params, cov * s_sq)
 
 def extract_data(model):
     (n, gamma, theta_s, theta_r) = (model.n, model.gamma,
