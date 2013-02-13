@@ -495,6 +495,8 @@ CSV2INI_NAMES = {'s102': 'gf_mt', 's103': 'gf_mo'}
 
 def process_scanned_data(experiment, experiment_info):
     csv_files = experiment.get_value('csv_file')
+    if not csv_files or csv_files in ["''", '""']:
+        return
 
     data_dir  = get_directories('ini', 'data', experiment_info)
 
