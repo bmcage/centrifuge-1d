@@ -153,6 +153,7 @@ class Measurements():
         #           - if calibration curve present, use directly force as
         #              measurement, otherwise use difference between two
         #              subsequent force measurements
+        g = cfg.get_value('g')
         filter_idxs = np.asarray(scans_meas, dtype=int)
         for F_name in ('gF_MT', 'gF_MO'):
             if F_name in measurements:
