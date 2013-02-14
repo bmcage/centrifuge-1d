@@ -111,7 +111,7 @@ class Measurements():
         else:
             scans = phases_scans
 
-        scan_span = float(cfg.get_value('scan_span', not_found=None))
+        scan_span = float(cfg.get_value('scan_span', not_found=1.0))
         if scan_span != 1.0:
             for name in ('duration', 'fh_duration', 'deceleration_duration'):
                 duration = scan_span * np.asarray(cfg.get_value(name),
@@ -123,6 +123,7 @@ class Measurements():
         if scans is None:
             t = None
             t_meas = None
+            scans_meas = None
         else:
             t = scans * scan_span
             t_meas = t[1:]
@@ -154,7 +155,8 @@ class Measurements():
         #              measurement, otherwise use difference between two
         #              subsequent force measurements
         g = cfg.get_value('g')
-        filter_idxs = np.asarray(scans_meas, dtype=int)
+        if not scans_meas is None:
+            filter_idxs = np.asarray(scans_meas, dtype=int)
         for F_name in ('gF_MT', 'gF_MO'):
             if F_name in measurements:
 
@@ -323,8 +325,10 @@ class Measurements():
         #    NOTE: we do it here because *_calibration_curve is expressed
         #          in terms of omega(rpm)
         for key in ['omega']:
-            value = cfg.get_value(key)
-            if type(value) == list:
+            value = cfg.get_value(key, not_found=None)
+            if value is None:
+                continue
+            elif type(value) == list:
                 cfg.set_value(key, [rpm2radps(omega) for omega in value])
             else:
                 cfg.set_value(key, rpm2radps(value))
@@ -488,7 +492,12 @@ class Measurements():
                 yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
 
     def iterate_meas_measurements(self):
-        xvalue = self.get_times()[1:]
+        t = self.get_times()
+        if t is None:
+            xvalue = None
+        else:
+            xvalue = t[1:]
+
         measurements_diff = self._measurements_diff
 
         for (name, yvalue) in self._measurements.items():
