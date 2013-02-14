@@ -203,7 +203,7 @@ class Measurements():
 
                         WR_tara -= WR_water
 
-                    setattr(self, 'WR' + F_name[1:].lower() + '_tara', WR_tara)
+                    setattr(self, 'WR' + F_name[2:].lower() + '_tara', WR_tara)
 
                 # Process the force measurements
                 F  = measurements[F_name]
