@@ -307,8 +307,12 @@ class ResultsData():
                 (p, theta) = retention_curve(model.n, model.gamma,
                                              theta_s, model.density, model.g,
                                              theta_r=theta_r)
-                data['theta'] = (p, theta)
-
+                if hasattr(model, 'p'):
+                    (p_user, theta_user) = \
+                      retention_curve(model.n, model.gamma, theta_s,
+                                      model.density, model.g, theta_r=theta_r,
+                                      p=None, h=model.h)
+                data['theta'] = (p, theta, theta_user)
             self._data['lines'][ID] = data
             self.store_value('experiment_info', model.experiment_info)
 
