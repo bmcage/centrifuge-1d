@@ -47,6 +47,8 @@ def solve(model, measurements):
 
     return (optim_params, cov * s_sq)
 
+solve_direct = solve
+
 def run(model):
     (inv_params, cov) = solve(model, model.measurements)
 
