@@ -30,6 +30,7 @@ OPTIONS_ITERABLE_LISTS = []
 
 def check_cfg(cfg):
     from modules.shared.characteristics import MEASUREMENTS_NAMES
+    import numpy as np
 
     measurements_present = False
     for name in MEASUREMENTS_NAMES.values():
@@ -44,13 +45,17 @@ def check_cfg(cfg):
 
         if not weights: continue
 
-        if not type(weights) == list:
-            print('Weights has to be a list: {}'.format(w_name))
+        if np.isscalar(weights):
+            pass
+        elif ((type(weights) == list) and
+              (not (len(weights) == len(meas)))):
+            print("Weights '{}'have to be a scalar or a list of the same "
+                  "length as measurement.".format(w_name))
             return False
-
-        if not (len(weights) == len(meas)):
-            print('Weights have to be of the same length as measurement: '
-                  '{}'.format(name))
+        else:
+            print('Unknow weights: ' + w_name,
+                  'Weights have to be a scalar or a list of the same '
+                  'length as measurement.\nValue: ', weights)
             return False
 
     if not measurements_present:
