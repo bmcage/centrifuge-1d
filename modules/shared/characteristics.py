@@ -493,14 +493,16 @@ class Measurements():
 
     def iterate_meas_measurements(self):
         t = self.get_times()
-        if t is None:
-            xvalue = None
-        else:
-            xvalue = t[1:]
+        if not t is None:
+            t = t[1:]
 
         measurements_diff = self._measurements_diff
 
         for (name, yvalue) in self._measurements.items():
+            if name == 'theta':
+                xvalue = self._measurements_xvalues[name]
+            else:
+                xvalue = t
 
             if name in measurements_diff:
                 yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
