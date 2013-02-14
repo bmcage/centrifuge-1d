@@ -283,6 +283,10 @@ class ResultsData():
 
             # Store all computed data
             for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
+                # make a local copy as array may be overwritten
+                xvalue = xvalue.copy()
+                yvalue = yvalue.copy()
+
                 if name in ('h', 'u'):
                     t = measurements.get_times()
                     data[name] = (xvalue.transpose(), yvalue.transpose(), t)
