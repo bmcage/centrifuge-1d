@@ -821,6 +821,9 @@ def show_results(experiment_info,
         savedir = get_directories('figs', 'mask', experiment_info)
         filename = savedir + '/' + 'results.txt'
 
+        if not path.exists(savedir):
+            makedirs(savedir)
+
         with open(filename, 'w') as f:
             print_status(data, filename)
 
