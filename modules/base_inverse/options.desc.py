@@ -24,7 +24,18 @@ CONFIG_OPTIONS = {
        'disp_inv_conv': ("Type: boolean."
                          "\nUsed by: 'fmin', 'fmin_powell, 'fmin_cg', "
                          "'fmin_bfgs'")
-      }
+      },
+    'additional': \
+      {'transform_params':("Specifies whether to transform optimized "
+                           "parameters as during inverse problem computation "
+                           "unsupported values may appear."
+                           "Type: boolean. Default: True"),
+       'untransformed_cov': ("If optimized parameters are transformed, "
+                             "computed 'cov' is corresponds to these "
+                             "transfomed parameters. If 'untransformd_cov' "
+                             "is set to True, the covariance corresponding "
+                             "to untransformed parameters is computed.")
+    }
 }
 
 INTERNAL_OPTIONS = {}

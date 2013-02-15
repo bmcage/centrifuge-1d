@@ -385,14 +385,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
         print("Available solvers are: ", available_solvers)
         exit(1)
 
-    max_value = 1e150
-
-    transform = {'ks': lambda ks: max(np.log(ks), -max_value),
-                 'n':  lambda n: max(np.log(n - 1.0), -max_value),
-                 'gamma': lambda gamma: max(np.log(-gamma), -max_value)}
-    untransform = {'ks': lambda ks_transf: min(np.exp(ks_transf), max_value),
-                   'n': lambda n_transf: 1+min(np.exp(n_transf), max_value),
-                   'gamma': lambda gamma_transf: -min(np.exp(gamma_transf), max_value)}
+    untransform = model._untransform
 
     global ITERATION # Python 2.7 hack (no support for nonlocal variables)
     ITERATION = 0
@@ -452,7 +445,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
     optim_params = {}
     (optim_names, init_values, lbounds, ubounds) = \
-      parse_init(init_parameters, transform=transform)
+      parse_init(init_parameters, transform=model._transform)
 
     import scipy.optimize
 
@@ -467,37 +460,48 @@ def simulate_inverse(direct_fn, model, init_parameters,
     iters  = ITERATION
 
     # Run optimization
-    if optimfn == 'leastsq':
-        (opt_params, cov, infodic, msg, ier) = \
-          optimize(optimfn_wrapper, init_values,
-                   epsfcn=model.epsfcn, factor=model.factor,
-                   xtol=model.xtol, ftol=model.ftol,
-                   full_output=True)
-        fcalls = infodic['nfev']
-    elif optimfn == 'fmin':
-        (opt_params, fopt, iters, fcalls, warnflag) = \
-          optimize(optimfn_wrapper, init_values,
-                   xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
-                   maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
-                   full_output=True, retall=False)
-    elif optimfn == 'fmin_powell':
-        (opt_params, fopt, direc, iters, fcalls, warnflag) = \
-          optimize(optimfn_wrapper, init_values,
-                   xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
-                   maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
-                   full_output=True, retall=False)
-    elif optimfn == 'fmin_cg':
-        (opt_params, fopt, fcalls, gcalls, warnflag) = \
-          optimize(optimfn_wrapper, init_values,
-                   maxiter=model.max_inv_iter, gtol=model.gtol,
-                   disp=model.disp_inv_conv,
-                   full_output=True, retall=False)
-    elif optimfn == 'fmin_bfgs':
-        (opt_params, fopt, gopt, Bopt, fcalls, gcalls, warnflag) = \
-          optimize(optimfn_wrapper, init_values,
-                   maxiter=model.max_inv_iter, gtol=model.gtol,
-                   disp=model.disp_inv_conv,
-                   full_output=True, retall=False)
+    for run in range(1 + (model.transform_params and model.untransformed_cov)):
+        # if untransformed covariance is desired but we computed with
+        # transformed parameters, we run the computation again, starting
+        # in optimal value of previous optimization
+        if run == 1:
+            print('Running optimization to obtain the covariance of '
+                  'untransformed parameters...')
+            untransform_dict(optim_names, opt_params, optim_params, untransform)
+            untransform = None
+            init_values = [optim_params[name] for name in optim_names]
+
+        if optimfn == 'leastsq':
+            (opt_params, cov, infodic, msg, ier) = \
+              optimize(optimfn_wrapper, init_values,
+                       epsfcn=model.epsfcn, factor=model.factor,
+                       xtol=model.xtol, ftol=model.ftol,
+                       full_output=True)
+            fcalls = infodic['nfev']
+        elif optimfn == 'fmin':
+            (opt_params, fopt, iters, fcalls, warnflag) = \
+              optimize(optimfn_wrapper, init_values,
+                       xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
+                       maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
+                       full_output=True, retall=False)
+        elif optimfn == 'fmin_powell':
+            (opt_params, fopt, direc, iters, fcalls, warnflag) = \
+              optimize(optimfn_wrapper, init_values,
+                       xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
+                       maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
+                       full_output=True, retall=False)
+        elif optimfn == 'fmin_cg':
+            (opt_params, fopt, fcalls, gcalls, warnflag) = \
+              optimize(optimfn_wrapper, init_values,
+                       maxiter=model.max_inv_iter, gtol=model.gtol,
+                       disp=model.disp_inv_conv,
+                       full_output=True, retall=False)
+        elif optimfn == 'fmin_bfgs':
+            (opt_params, fopt, gopt, Bopt, fcalls, gcalls, warnflag) = \
+              optimize(optimfn_wrapper, init_values,
+                       maxiter=model.max_inv_iter, gtol=model.gtol,
+                       disp=model.disp_inv_conv,
+                       full_output=True, retall=False)
 
     # run the direct once more to obtain correct covariance
     opt_error = optimfn_wrapper(opt_params)
