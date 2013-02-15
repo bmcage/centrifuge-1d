@@ -37,11 +37,13 @@ def parse_input():
     optparser.add_option('-l', '--list', dest='list', action="store_true",
                          default=False,
                          help="Lists all available experiments")
-    optparser.add_option('-m', '--mask', dest='mask', default='',
+    optparser.add_option('-m', '--mask', dest='mask', action="append",
                          metavar='MASK_NAME',
                          help=("Run given experiment with a mask MASK_NAME "
                                "file. The file \'MASK_NAME.ini\' in the masks "
-                               "directory should exist."))
+                               "directory should exist. Option can be supplied "
+                               "multiple times. In that case masks will be "
+                               "applied in the order they were specified"))
     optparser.add_option('-c', '--compare', dest='compare_p', default=False,
                          action='store_true',
                          help=("Compare two configuration files."))
@@ -160,10 +162,13 @@ def compare2configs(options):
     print('Add information for the second configuration file:')
     exp_id2  = input('Experiment ID  : ').strip()
     exp_no2  = input('Experiment No. : ').strip()
-    mask2    = input('Mask (optional): ').strip()
+    if len(options.mask) > 1:
+        mask2 = options.mask[1]
+    else:
+        mask2    = input('Mask (optional): ').strip()
 
     exp_info1 ={'exp_id': options.exp_id, 'exp_no': options.first_experiment,
-                'mask': options.mask}
+                'mask': options.mask[0]}
     exp_info2 ={'exp_id': exp_id2, 'exp_no': int(exp_no2), 'mask': mask2}
 
     (cfg1, const_cfg1) = load_configuration(experiment_info1)

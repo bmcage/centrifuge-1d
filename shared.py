@@ -16,7 +16,7 @@ def get_directories(basedir_type, dirs, experiment_info):
 
     dir_struct = ['exp_base', 'exp_no', 'masks', 'mask']
     dir_values = (experiment_info['exp_id'], str(experiment_info['exp_no']),
-                  MASKS_DIRNAME, experiment_info['mask'])
+                  MASKS_DIRNAME, experiment_info['mask'][0])
 
     def get_dir(dir_type, base_dir):
         if dir_type == 'base':

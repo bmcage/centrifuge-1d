@@ -768,20 +768,20 @@ def _load_configuration(experiment_info):
 
     measurements_files = [data_dir + MEASUREMENTS_ININAME]
 
-    mask_filename = ''
-    mask = experiment_info['mask']
-    if mask:
-        mask_filename = masks_dir + mask + '.ini'
+    masks_files = []
+    masks = experiment_info['mask']
+    for mask_name in masks:
+        mask_filename = masks_dir + mask_name + '.ini'
         if not path.exists(mask_filename):
             print('Mask file "{}" does not exist in expected location:'
-                  '\n{}.'.format(mask, masks_dir))
+                  '\n{}.'.format(mask_name, masks_dir))
             if not yn_prompt('Do you wish to continue without applying '
-                         'the mask? [Y/n]: '):
+                             'the mask? [Y/n]: '):
                 exit(0)
 
-            mask_filename = ''
+        masks_files.append(mask_filename)
 
-    cfg_files = defaults_files + measurements_files + [mask_filename]
+    cfg_files = defaults_files + measurements_files + masks_files
 
     cfg = Configuration().read_from_files(*cfg_files)
 
