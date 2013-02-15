@@ -31,11 +31,11 @@
 #		- unit: pressure
 
 # lines set the displaying properties to one particular line (i.e.
-lines = {'computed': {'label': 'Computed', 'GC': 'x', 'MO': 'x', 'theta': 'x'},
-	 'measured': {'label': 'Measured', 'GC': '.', 'MO': '.', 'theta': '.'},
-	 'line-id-1': {'label': 'Label 1', 'GC': '^', 'MO': '^', 'theta': '^'},
-	 'line-id-2': {'label': 'Label 2', 'GC': 'v', 'MO': 'v', 'theta': 'v'},
-	 'line-id-3': {'label': 'Label 3', 'GC': '-', 'MO': '-', 'theta': '-'}}
+#lines = {'computed': {'label': 'Computed', 'GC': 'x', 'MO': 'x', 'theta': 'x'},
+#	 'measured': {'label': 'Measured', 'GC': '.', 'MO': '.', 'theta': '.'},
+#	 'line-id-1': {'label': 'Label 1', 'GC': '^', 'MO': '^', 'theta': '^'},
+#	 'line-id-2': {'label': 'Label 2', 'GC': 'v', 'MO': 'v', 'theta': 'v'},
+#	 'line-id-3': {'label': 'Label 3', 'GC': '-', 'MO': '-', 'theta': '-'}}
 
 # options for displayed measurements. ID corresponds to a particular
 # measurement.
