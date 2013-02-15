@@ -493,6 +493,10 @@ def simulate_inverse(direct_fn, model, init_parameters,
                    disp=model.disp_inv_conv,
                    full_output=True, retall=False)
 
+    # run the direct once more to obtain correct covariance
+    opt_error = optimfn_wrapper(opt_params)
+    s_sq = (np.sum(np.power(opt_error, 2))
+            / (np.alen(opt_error) - np.alen(opt_params)))
 
     # Display inverse solver statistic
     print('\nInverse problem statistics:\n')
@@ -514,7 +518,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
 
     untransform_dict(optim_names, opt_params, optim_params, untransform)
 
-    return (optim_params, cov)
+    return (optim_params, cov * s_sq)
 
 def compute_raster(model):
         lbounds = xdata.inv_lbounds
