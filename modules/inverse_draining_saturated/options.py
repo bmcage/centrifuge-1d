@@ -29,7 +29,7 @@ PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys())]
 OPTIONS_ITERABLE_LISTS = []
 
 def check_cfg(cfg):
-    from modules.shared.characteristics import MEASUREMENTS_NAMES
+    from modules.shared.measurements import MEASUREMENTS_NAMES
     import numpy as np
 
     measurements_present = False

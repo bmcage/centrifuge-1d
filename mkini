@@ -9,7 +9,7 @@ from config import ModulesManager
 from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME, MEASUREMENTS_ININAME
 from shared import get_directories
 from collections import namedtuple, defaultdict
-from modules.shared.characteristics import MEASUREMENTS_NAMES
+from modules.shared.measurements import MEASUREMENTS_NAMES
 
 MODMAN = ModulesManager()
 

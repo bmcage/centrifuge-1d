@@ -19,7 +19,7 @@ from shared import parse_value, get_directories, yn_prompt
 from os import listdir, path, makedirs
 from sys import modules as sysmodules
 from types import MethodType
-from modules.shared.characteristics import Measurements
+from modules.shared.measurements import Measurements
 
 ##################################################################
 #                Internal configuration settings                 #
