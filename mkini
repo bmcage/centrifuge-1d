@@ -1,12 +1,13 @@
 #!/usr/bin/python
 from __future__ import print_function
-import io
+import io, shutil
 import csv
 import numpy as np
 from os import makedirs, path, sep
 from optparse import OptionParser
 from config import ModulesManager
-from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME, MEASUREMENTS_ININAME
+from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME, MEASUREMENTS_ININAME, \
+    PROTO_DIR, PLOTSTYLE_ININAME
 from shared import get_directories
 from collections import namedtuple, defaultdict
 from modules.shared.measurements import MEASUREMENTS_NAMES
@@ -701,6 +702,10 @@ def data2ini(data, experiment_info):
                 default_configuration.save(exp_base_path,
                                            filename=DEFAULTS_ININAME,
                                            section_name='experiment')
+
+            if not path.exists(exp_base_path + PLOTSTYLE_ININAME):
+                shutil.copy(PROTO_DIR + PLOTSTYLE_ININAME + '.proto',
+                            exp_base_path + PLOTSTYLE_ININAME)
 
             experiment_info['exp_type'] = None # reset exp_id for _process_data
 

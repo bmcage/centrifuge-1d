@@ -6,6 +6,7 @@ from pickle import HIGHEST_PROTOCOL
 # Paths
 #-------------------------------------------------------------------------
 PROGRAM_DIR = getcwd() # Program directory
+PROTO_DIR   = PROGRAM_DIR + sep + 'proto' + sep
 DATA_DIR    = PROGRAM_DIR + sep + 'data'
 CSV_DIR     = DATA_DIR    + sep + 'csv'
 INI_DIR     = DATA_DIR    + sep + 'datafiles'
