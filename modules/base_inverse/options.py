@@ -24,7 +24,7 @@ PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys())]
 OPTIONS_ITERABLE_LISTS = []
 
 def prior_adjust_cfg(cfg):
-    if not cfg.get_value('n'): cfg.set_value('n', 1.0)
+    pass
 
 def adjust_cfg(cfg):
     pass
