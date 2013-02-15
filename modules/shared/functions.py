@@ -151,10 +151,11 @@ def compare_data(name, value_computed, value_measured = None,
     if disp_all:
         data_measured = np.asarray(value_measured, dtype=float)
 
-        norm_measured = data_measured[:]
+        measured_filter = (data_measured == 0.0)
+        norm_measured = np.abs(data_measured)
+        norm_measured[measured_filter] = 1e-60
         rel_error = (data_computed - data_measured) / norm_measured * 100.
-        small_filter   = abs(norm_measured) < 1e-50
-        rel_error[small_filter] = np.inf
+        rel_error[abs(rel_error) > 1e50] = np.inf
         abs_error = np.abs(data_computed - data_measured)
 
     i0 = 0
