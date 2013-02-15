@@ -792,6 +792,10 @@ def _load_configuration(experiment_info):
     if constants_files:
         consts_cfg = Configuration().read_from_files(*constants_files)
 
+    csv_datafilename = cfg.get_value('csv_file', not_found=None)
+    if csv_datafilename:
+        cfg.read_from_files(data_dir + csv_datafilename + '.ini')
+
     return (cfg, consts_cfg)
 
 def load_model(experiment_info, display_only=False, validate=True,
