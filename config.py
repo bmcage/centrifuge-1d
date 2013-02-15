@@ -14,7 +14,7 @@ try:
 except:
     import configparser
 from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
-     DEFAULTS_ININAME, CONSTANTS_ININAME
+     DEFAULTS_ININAME, CONSTANTS_ININAME, MEASUREMENTS_ININAME
 from shared import parse_value, get_directories, yn_prompt
 from os import listdir, path, makedirs
 from sys import modules as sysmodules
@@ -766,16 +766,7 @@ def _load_configuration(experiment_info):
     defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
                                                        search_dirs))
 
-    measurements_filenames = listdir(data_dir)
-    measurements_files = []
-    for fname in measurements_filenames:
-        # valid measurement files are *.ini (i.e. >4 chars filename)
-        # except for 'defaults.ini'
-        if ((fname == DEFAULTS_ININAME) or (len(fname) <= 4)
-            or (fname[-4:] != '.ini')):
-            continue
-
-        measurements_files.append(data_dir + fname)
+    measurements_files = [data_dir + MEASUREMENTS_ININAME]
 
     mask_filename = ''
     mask = experiment_info['mask']

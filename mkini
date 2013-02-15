@@ -6,7 +6,7 @@ import numpy as np
 from os import makedirs, path, sep
 from optparse import OptionParser
 from config import ModulesManager
-from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME
+from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME, MEASUREMENTS_ININAME
 from shared import get_directories
 from collections import namedtuple, defaultdict
 from modules.shared.characteristics import MEASUREMENTS_NAMES
@@ -15,7 +15,7 @@ MODMAN = ModulesManager()
 
 BASE_MODULE = MODMAN.find_module('base', submodule='csv_parse')
 
-# dynamicall created options: options added to generated measurements.ini
+# dynamicall created options: options added to generated MEASUREMENTS_ININAME
 # file, that are not specified by the csv file
 # {opt_name: gen_data_function} with 'gen_data_function(exp_type, data, modman)'
 DYNAMIC_OPTIONS = {'measurements_length': None}
@@ -746,7 +746,7 @@ def data2ini(data, experiment_info):
 
         experiment.delete('exp_id', 'exp_no', 'exp_type')
 
-        experiment.save(data_dir, filename='measurements.ini',
+        experiment.save(data_dir, filename=MEASUREMENTS_ININAME,
                         section_name='experiment-data')
 
         print('\t\t\tDone')

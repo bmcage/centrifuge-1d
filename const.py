@@ -16,6 +16,7 @@ FIGS_DIR    = DATA_DIR    + sep + 'datafiles'
 #-------------------------------------------------------------------------
 DEFAULTS_ININAME   = 'defaults.ini'
 CONSTANTS_ININAME  = 'constants.ini'
+MEASUREMENTS_ININAME  = 'measurements.ini'
 PLOTSTYLE_ININAME  = 'plotstyles.ini'
 MASKS_DIRNAME      = 'masks'
 DUMP_DATA_FILENAME = 'data.dat'
