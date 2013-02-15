@@ -406,16 +406,13 @@ def CSV2data(csv_dir, csv_filebasename):
 
         extended_fields = ('scan', 'csv_file', 'omega')
         missing = missing_fields_in_csv(csv_fields, extended_fields)
-        if missing:
-            if len(missing) == len(extended_fields):
-                pass # if all are missing, it's of type 'regular_ini'
-            else:
-                print()
-                print("CSV file: missing identifiers: '%s' "% missing)
-                print('CSV error: cannot process CSV file, aborting...')
-                exit(1)
-        else:
+        if not missing:
             csv_type = 'scan_ini'
+        elif not 'scan' in missing:
+            print("ERROR: 'scan' value is provided in CSV file, but needed "
+                  "identifiers are missing: ",  missing)
+            print('CSV error: cannot process CSV file, aborting...')
+            exit(1)
 
         identifiers = {}
 
