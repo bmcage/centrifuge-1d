@@ -171,8 +171,8 @@ class Measurements():
                     if F_name == 'gF_MT':
                         # as extra we need to subtract the water inside the tube
                         # we assume that sample is fully satureted
-                        print('INFO: for [d]F_MT tara we assume sample is full '
-                              'of water.')
+                        print('INFO: for [d]gF_MT tara we assume sample is '
+                              'full of water.')
                         extra_values = {}
                         for name in ('porosity', 'fl1', 'fl2', 'fp1', 'fp2'):
                             extra_values[name] = cfg.get_value(name)
