@@ -4,7 +4,7 @@ PARENTAL_MODULES = ['base']
 
 CONFIG_OPTIONS = [('porosity', None)]
 
-INTERNAL_OPTIONS = ['mass_in_idx', 'mass_out_idx']
+INTERNAL_OPTIONS = ['mass_in_idx', 'mass_out_idx', 'z_size']
 
 OPTIONS_ITERABLE_LISTS = ['l0', 'wl0']
 

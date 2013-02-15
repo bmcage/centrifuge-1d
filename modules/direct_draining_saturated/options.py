@@ -17,7 +17,7 @@ CONFIG_OPTIONS = [('dynamic_h_init', False),
 
 INTERNAL_OPTIONS = ['first_idx', 'last_idx', 's1_idx', 's2_idx',
                     'mass_in_idx', 'mass_out_idx', 'pq_idx',
-                    'wm0']
+                    'wm0', 'z_size']
 
 EXCLUDE_FROM_MODEL = []
 

@@ -6,13 +6,9 @@ from modules.shared.solver import simulate_inverse
 
 def solve(model, measurements):
 
-    #calc_p = model.get_parameters(('calc_gc', 'calc_rm', 'calc_wm', 'calc_f_mt',
-    #                               'calc_f_mo', 'calc_cf_mo')) # backup
     (inv_params, cov) = \
       simulate_inverse(solve_direct, model, model.inv_init_params,
                        measurements, optimfn=model.optimfn)
-
-    #model.set_parameters(calc_p) # ...and restore values
 
     return (inv_params, cov)
 
