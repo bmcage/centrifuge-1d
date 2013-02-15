@@ -338,13 +338,19 @@ def parse_init(init_parameters, transform=None):
         if transform:
             init_values.append(transform[name](init_value))
         else:
-            init_values.append(transform[name](init_value))
+            init_values.append(init_value)
 
     return (optim_names, init_values, lbounds, ubounds)
 
 def untransform_dict(names, values, result, untransform):
-    for (name, value) in zip(names, values):
-        result[name] = untransform[name](value)
+    if untransform:
+        for (name, value) in zip(names, values):
+            result[name] = untransform[name](value)
+    else:
+        for (name, value) in zip(names, values):
+            result[name] = value
+
+
 
 def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
     max_penalization = 1e50
