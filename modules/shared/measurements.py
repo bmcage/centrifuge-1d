@@ -192,19 +192,24 @@ class Measurements():
                         (rE, l0)   = (extra_values['re'], extra_values['l0'])
                         (fl1, fl2) = (extra_values['fl1'], extra_values['fl2'])
                         r0 = rE - fl2 - l0 - fl1
+                        wl0 = extra_values['wl0']
 
-                        WR_water = 0.0
-                        if extra_values['wl0'] > 0.0:
-                            WR_water += (r0 - extra_values['wl0'] / 2.0)
+                        WR_fluid = 0.0
+                        if wl0 > 0.0:
+                            WR_fluid += wl0 * (r0 - extra_values['wl0'] / 2.0)
                         if fl1 > 0.0:
-                            WR_water += extra_values['fp1'] * (r0 + fl1/2.)
+                            WR_fluid += ((fl1 * extra_values['fp1'])
+                                         * (r0 + fl1/2.))
                         if l0 > 0.0:
-                            WR_water += extra_values['porosity'] * (r0 + fl1 + l0/2.)
+                            WR_fluid += ((l0 * extra_values['porosity'])
+                                         * (r0 + fl1 + l0/2.))
                         if fl2 > 0.0:
-                            WR_water += extra_values['fp2'] * (rE - fl2/2.)
+                            WR_fluid += ((fl2 * extra_values['fp2'])
+                                         * (rE - fl2/2.))
 
-                        WR_tara -= WR_water
+                        WR_fluid *= cfg.get_value('density')
 
+                        WR_tara -= WR_fluid
                     setattr(self, 'WR' + F_name[2:].lower() + '_tara', WR_tara)
 
                 # Process the force measurements
