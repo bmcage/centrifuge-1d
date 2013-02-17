@@ -667,7 +667,7 @@ class ModelParameters:
 
     def set_parameters(self, parameters_dict):
         for (key, value) in parameters_dict.items():
-            setattr(self, key, value)
+            if hasattr(self, key): setattr(self, key, value)
 
             if key == 'n':
                 setattr(self, 'm', 1.-1./value)
