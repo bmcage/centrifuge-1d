@@ -161,12 +161,12 @@ class Measurements():
             if F_name in measurements:
 
                 # Determine the influence of tara
-                F_tara = cfg.get_value(F_name.lower() + '_tara')
-                if not F_tara is None:
-                    (omega_rpm, weight_tara) = F_tara
+                gF_tara_calibration = cfg.get_value(F_name.lower() + '_tara')
+                if not gF_tara_calibration is None:
+                    (omega_rpm, gF_tara) = gF_tara_calibration
                     omega_radps = rpm2radps(omega_rpm)
 
-                    WR_tara = weight_tara * g / omega_radps / omega_radps
+                    WR_tara = gF_tara * g / omega_radps / omega_radps
 
                     if F_name == 'gF_MT':
                         # as extra we need to subtract the water inside the tube
