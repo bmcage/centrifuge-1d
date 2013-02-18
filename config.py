@@ -674,11 +674,11 @@ class ModelParameters:
         setattr(self, key, value)
 
     def set_parameters(self, parameters_dict):
-        for (key, value) in parameters_dict.items():
-            if hasattr(self, key): setattr(self, key, value)
+        if hasattr(self, 'SC'):
+            self.SC.set_parameters(parameters_dict)
 
-            if key == 'n':
-                setattr(self, 'm', 1.-1./value)
+        for (key, value) in parameters_dict.items():
+            setattr(self, key, value)
 
     def get_parameters(self, parameters):
         return {key: getattr(self, key)
