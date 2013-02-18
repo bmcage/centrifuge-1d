@@ -49,15 +49,12 @@ def adjust_cfg(cfg):
     cfg.set_value('_lbounds', lbounds)
     cfg.set_value('_ubounds', ubounds)
 
+    # Process transformation of optimized parameters
     if cfg.get_value('transform_params'):
         max_value = 1e150
 
-        transform = {'ks': lambda ks: max(np.log(ks), -max_value),
-                     'n':  lambda n: max(np.log(n - 1.0), -max_value),
-                     'gamma': lambda gamma: max(np.log(-gamma), -max_value)}
-        untransform = {'ks': lambda ks_transf: min(np.exp(ks_transf), max_value),
-                       'n': lambda n_transf: 1+min(np.exp(n_transf), max_value),
-                       'gamma': lambda gamma_transf: -min(np.exp(gamma_transf), max_value)}
+        transform = {'ks': lambda ks: max(np.log(ks), -max_value)}
+        untransform = {'ks': lambda ks_transf: min(np.exp(ks_transf), max_value)}
     else:
         transform = untransform = None
 

@@ -96,6 +96,19 @@ class SC_vanGenuchten():
     def get_dyn_h_init(self, c_gammah, h_init_max):
         return  min(c_gammah / self._gamma, h_init_max)
 
+    def add_transformations_fns(self, transform, untransform, max_value):
+        transform['n']   = lambda n: max(np.log(n - 1.0), -max_value)
+        untransform['n'] = lambda n_transf: 1+min(np.exp(n_transf), max_value)
+
+        transform['gamma']   = lambda gamma: max(np.log(-gamma), -max_value)
+        untransform['gamma'] = lambda gamma_transf: -min(np.exp(gamma_transf), max_value)
+
+########################################################################
+#                           Free-form  model                           #
+########################################################################
+
+
+
 ########################################################################
 #                           Common utilities                           #
 ########################################################################
