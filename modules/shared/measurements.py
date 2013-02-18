@@ -4,7 +4,6 @@ import numpy as np
 from collections import OrderedDict
 from shared import get_directories, flatten
 from os import makedirs, path
-from modules.shared.vangenuchten import h2u
 from modules.shared.functions import rpm2radps, compare_data
 
 # MEASUREMENTS_NAMES are the mapping between the internal
@@ -514,14 +513,14 @@ class Measurements():
             else:
                 yield (name, xvalue, yvalue)
 
-    def store_calc_u(self, x, h, n, m, gamma):
+    def store_calc_u(self, x, h, SC):
         """
         Calculate and store relative saturation u.
 
         Arguments:
         x - x-coordinates
         h - hydraulic head
-        n, m, gamma - corresponding van Genuchten parameters
+        SC - saturation curve object
         """
         if not 'u' in self._computed:
             # preallocate and initialize index
@@ -541,7 +540,7 @@ class Measurements():
         # store u
         value = self._computed['u'][self._indexes['u'], :] # reference
 
-        h2u(h, n, m, gamma, value)
+        SC.h2u(h, value)
         self._indexes['u'] += 1
 
         return value
