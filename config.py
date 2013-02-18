@@ -636,6 +636,14 @@ class ModelParameters:
             else: phase = 'd'
             self.set_omega2g_fn(phase)
 
+        if hasattr(self, 'SC'):
+            # set transformation fns in case we are unsaturated and use
+            #  parameterstrasformation
+            if hasattr(self, 'transform_params') and self.transform_params:
+                max_value = 1e150 # hack - see base_inverse.options.adjust_cfg()
+                self.SC.add_transformations_fns(self._transform,
+                                                self._untransform, max_value)
+
     def _get_iterable_value(self, key, not_found=None):
         if key in self._iterable_parameters:
             return self._iterable_parameters[key]
@@ -666,11 +674,11 @@ class ModelParameters:
         setattr(self, key, value)
 
     def set_parameters(self, parameters_dict):
+        if hasattr(self, 'SC'):
+            self.SC.set_parameters(parameters_dict)
+
         for (key, value) in parameters_dict.items():
             setattr(self, key, value)
-
-            if key == 'n':
-                setattr(self, 'm', 1.-1./value)
 
     def get_parameters(self, parameters):
         return {key: getattr(self, key)
