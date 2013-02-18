@@ -467,7 +467,6 @@ def simulate_inverse(direct_fn, model, init_parameters,
         if run == 1:
             print('Running optimization to obtain the covariance of '
                   'untransformed parameters...')
-            untransform_dict(optim_names, opt_params, optim_params, untransform)
             untransform = None
             init_values = [optim_params[name] for name in optim_names]
 
@@ -503,6 +502,8 @@ def simulate_inverse(direct_fn, model, init_parameters,
                        disp=model.disp_inv_conv,
                        full_output=True, retall=False)
 
+        untransform_dict(optim_names, opt_params, optim_params, untransform)
+
     # run the direct once more to obtain correct covariance
     opt_error = optimfn_wrapper(opt_params)
     s_sq = (np.sum(np.power(opt_error, 2))
@@ -525,8 +526,6 @@ def simulate_inverse(direct_fn, model, init_parameters,
         if not value is None:
             out += ' |{:8d}'.format(value)
     print(out, '|')
-
-    untransform_dict(optim_names, opt_params, optim_params, untransform)
 
     return (optim_params, cov * s_sq)
 
