@@ -768,6 +768,16 @@ def _load_configuration(experiment_info):
 
     measurements_files = [data_dir + MEASUREMENTS_ININAME]
 
+    # Read experiment default.ini files and measurements.ini
+    # Handle also case when 'csv_file' option is set
+    cfg_files = defaults_files + measurements_files
+    cfg = Configuration().read_from_files(*cfg_files)
+
+    csv_datafilename = cfg.get_value('csv_file', not_found=None)
+    if csv_datafilename:
+        cfg.read_from_files(data_dir + csv_datafilename + '.ini')
+
+    # Read masks files
     masks_files = []
     masks = experiment_info['mask']
     for mask_name in masks:
@@ -781,9 +791,7 @@ def _load_configuration(experiment_info):
 
         masks_files.append(mask_filename)
 
-    cfg_files = defaults_files + measurements_files + masks_files
-
-    cfg = Configuration().read_from_files(*cfg_files)
+    cfg.read_from_files(*masks_files)
 
     # Handle CONSTANTS inifiles
     constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
@@ -791,10 +799,6 @@ def _load_configuration(experiment_info):
     consts_cfg = None
     if constants_files:
         consts_cfg = Configuration().read_from_files(*constants_files)
-
-    csv_datafilename = cfg.get_value('csv_file', not_found=None)
-    if csv_datafilename:
-        cfg.read_from_files(data_dir + csv_datafilename + '.ini')
 
     return (cfg, consts_cfg)
 
