@@ -4,7 +4,6 @@ import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from modules.shared.functions import right_derivative, y2x
-from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.shared.solver import simulate_direct
 from modules.shared.show import show_results
 
@@ -30,6 +29,7 @@ class centrifuge_residual(IDA_RhsFunction):
             return 1
 
         (first_idx, last_idx) = (model.first_idx, model.last_idx)
+        SC = model.SC
 
         h    =  z[first_idx:last_idx+1]
 
@@ -38,9 +38,9 @@ class centrifuge_residual(IDA_RhsFunction):
 
         hdot =  zdot[first_idx:last_idx+1]
 
-        (Ks, n, m, gamma) = (model.ks, model.n, model.m, model.gamma)
+        Ks = model.ks
         h12  = (h[1:] + h[:-1]) / 2
-        Kh12 = h2Kh(h12, n, m, gamma, Ks)
+        Kh12 = SC.h2Kh(h12, Ks)
 
         (y, dy)  = (model.y, model.dy)
 
@@ -59,7 +59,7 @@ class centrifuge_residual(IDA_RhsFunction):
         (ds1dt, ds2dt) = (zdot[model.s1_idx], zdot[model.s2_idx])
 
         porosity = model.porosity
-        du_dh = dudh(h, n, m, gamma)
+        du_dh = SC.dudh(h)
 
         result[first_idx] = \
           (porosity * du_dh[0] * (hdot[0] - dhdy[0]/ds*ds1dt)
@@ -85,7 +85,7 @@ class centrifuge_residual(IDA_RhsFunction):
                 pass
                 #q_sat = 0.0
 
-            u = h2u(h, n, m, gamma)
+            u = SC.h2u(h)
             (WM_total, WM_in_tube) = \
               model.measurements.store_calc_wm(u, model.dy, s1, s2,
                                                z[model.mass_in_idx], L-s2,
@@ -101,13 +101,13 @@ class centrifuge_residual(IDA_RhsFunction):
                 result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
                                      + 2 / dy[-1] / ds * (q_out - q12[-1]))
             elif rb_type == 1:
-                Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+                Kh_last =  SC.h2Kh(h[-1], Ks)
                 q_out  = np.maximum(1e-12,
                                     -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
                 result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
                                      + 2 / dy[-1] / ds * (q_out - q12[-1]))
             elif rb_type == 2:
-                Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+                Kh_last =  SC.h2Kh(h[-1], Ks)
                 q_out  = np.maximum(1e-12,
                                     -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
                 result[last_idx]  = hdot[-1]
@@ -148,7 +148,7 @@ def on_measurement(t, z, model, measurements):
 
     if model.calc_wm:
         u = measurements.store_calc_u(x, z[model.first_idx: model.last_idx+1],
-                                      model.n, model.m, model.gamma)
+                                      model.SC)
 
         (WM, WM_in_tube) = \
           measurements.store_calc_wm(u, model.dy, s1, s2, MI,
@@ -215,8 +215,8 @@ def initialize_z0(z0, model):
     z0[model.mass_out_idx] = mass_out
 
     # assign value to u0, WM0 and wm0 (wm0 is needed for mass balance)
-    u0 = h2u(z0[model.first_idx: model.last_idx+1],
-             model.n, model.m, model.gamma)
+    u0 = model.SC.h2u(z0[model.first_idx: model.last_idx+1])
+
     (wm0, wm_in_tube0) = \
       model.measurements.store_calc_wm(u0, model.dy, s1, s2, mass_in,
                                        model.l0-s2, mass_out, model.porosity,
@@ -225,11 +225,11 @@ def initialize_z0(z0, model):
     model.wm0 = wm0
 
 def initialize_zp0(zp0, z0, model):
-    (Ks, n, m, gamma) = (model.ks, model.n, model.m, model.gamma)
+    Ks = model.ks
     (first_idx, last_idx) = (model.first_idx, model.last_idx)
     h    =  z0[first_idx:last_idx+1]
     h12  = (h[1:] + h[:-1]) / 2
-    Kh12 = h2Kh(h12, n, m, gamma, Ks)
+    Kh12 = model.SC.h2Kh(h12, Ks)
 
     t = 0.0
     omega2g = model.find_omega2g(t)
@@ -254,7 +254,7 @@ def initialize_zp0(zp0, z0, model):
     q12 = -Kh12 * (dhdy12/ds  - omega2g*(r0 + s1 + ds * model.y12))
 
     porosity = model.porosity
-    du_dh = dudh(h, n, m, gamma)
+    du_dh = model.SC.dudh(h)
 
     rb_type = model.rb_type
     if rb_type == 3:
@@ -269,12 +269,12 @@ def initialize_zp0(zp0, z0, model):
     else:
         if rb_type == 2:
             zp0_last = 0.0
-            Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+            Kh_last =  model.SC.h2Kh(h[-1], Ks)
             q_out  = np.maximum(1e-12,
                                 -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
         else:
             if rb_type == 1:
-                Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+                Kh_last =  model.SC.h2Kh(h[-1], Ks)
                 q_out  = np.maximum(1e-12,
                                     -Kh_last*(dhdy[-1]/ds - omega2g*(r0 + L)))
             else:
@@ -301,11 +301,10 @@ def solve(model, measurements):
     measurements.reset_calc_measurements()
 
     if model.dynamic_h_init:
-        model.h_init = min(model.c_gammah / model.gamma, model.h_init_max)
+        model.h_init = model.SC.get_dyn_h_init(model.c_gammah, model.h_init_max)
         if model.verbosity > 1:
             print('\nh_init: ', model.h_init,
-            'u_init', h2u(model.h_init, model.n,
-                          model.m, model.gamma), '\n')
+            'u_init', model.SC.h2u(model.h_init), '\n')
 
     # Initialization
     if model.rb_type == 3:
