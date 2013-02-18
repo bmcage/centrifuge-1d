@@ -296,8 +296,8 @@ class ResultsData():
 
             # Store extra data
             # a) Retention curve
-            if hasattr(model, 'n') and hasattr(model, 'gamma'):
-                from modules.shared.vangenuchten import retention_curve
+            if hasattr(model, 'SC'):
+                from modules.shared.saturation_curve import retention_curve
 
                 if hasattr(model, 'theta_s'): theta_s = model.theta_s
                 else: theta_s = model.porosity
@@ -305,12 +305,12 @@ class ResultsData():
                 if hasattr(model, 'theta_r'): theta_r = model.theta_r
                 else: theta_r = 0.0
 
-                (p, theta) = retention_curve(model.n, model.gamma,
+                (p, theta) = retention_curve(model.SC,
                                              theta_s, model.density, model.g,
                                              theta_r=theta_r)
                 if hasattr(model, 'p'):
                     (p_user, theta_user) = \
-                      retention_curve(model.n, model.gamma, theta_s,
+                      retention_curve(SC, theta_s,
                                       model.density, model.g, theta_r=theta_r,
                                       p=None, h=model.h)
                     data['theta'] = (p, theta, theta_user)
