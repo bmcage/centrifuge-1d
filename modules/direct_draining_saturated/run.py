@@ -340,7 +340,7 @@ def solve(model, measurements):
 
     return flag
 
-direct_solve = solve  # to remove warning about 'direct_solve' not specified
+solve_direct = solve  # to remove warning about 'solve_direct' not specified
 
 def run(model):
     show_results(model.experiment_info, model=model)
