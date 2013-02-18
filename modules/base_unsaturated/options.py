@@ -1,5 +1,6 @@
 from __future__ import division
 
+import modules.shared.saturation_curve as mSC
 from modules.shared.functions import lagrangean_derivative_coefs
 from numpy import linspace, power, empty
 
@@ -25,7 +26,8 @@ CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma',
                  ]
 
 INTERNAL_OPTIONS = ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
-                    'k_dx', 'wm0', 'calc_gc', 'calc_rm', 'calc_wm']
+                    'k_dx', 'wm0', 'calc_gc', 'calc_rm', 'calc_wm',
+                    'SC']
 
 EXCLUDE_FROM_MODEL = ['dtype']
 
@@ -35,8 +37,8 @@ OPTIONS_ITERABLE_LISTS = ['porosity']
 
 def adjust_cfg(cfg):
     # Handle depending variables
-    n = cfg.get_value('n')
-    if n: cfg.set_value('m', 1. - 1./n)
+    SC = mSC.SC_vanGenuchten(cfg.get_value('n'), cfg.get_value('gamma'))
+    cfg.set_value('SC', SC)
 
     # Discretization
     inner_points = cfg.get_value('inner_points')
