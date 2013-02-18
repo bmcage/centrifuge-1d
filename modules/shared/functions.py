@@ -1,6 +1,9 @@
-from __future__ import division
+from __future__ import division, print_function
+
+
 import numpy as np
 from math import sqrt
+from sys import stdout
 
 def rpm2radps(x):
     """
@@ -36,9 +39,6 @@ def right_derivative(dx12, fx13):
                   + (2*dx2 + dx1)/(dx2*(dx1+dx2)) * fx3)
 
     return derivative
-
-def determine_scaling_factor(v):
-    return np.power(10, -np.floor(np.log10(np.max(np.abs(v)))))
 
 def f1(t):
     return 1.7032046506 * np.power(t, 1.233644749)
@@ -98,48 +98,13 @@ def y2x(y, s1, s2):
 
     ds = s2 - s1
 
-    for i in range(s1_len):
-        x[i, :] = s1[i] + y * ds[i]
+    if s1_len > 1:
+        for i in range(s1_len):
+            x[i, :] = s1[i] + y * ds[i]
+    else:
+        x[:] = s1 + y*ds
 
     return x
-
-def show_results(experiment_info,
-                 model=None, inv_params=None, cov=None,
-                 show_figures=True):
-
-    from modules.shared.show import ResultsData, DPlots
-    from config import DataStorage
-
-    storage = DataStorage()
-    data    = ResultsData()
-
-    if storage.load(experiment_info):
-        data.load(storage.get('ResultsData'))
-
-    if not inv_params is None: data.store_value('inv_params', inv_params)
-    if not cov is None: data.store_value('cov', cov)
-
-
-    save_data = False
-
-    if not model is None:
-        data.store_computation(model)
-        data.store_measurements(model.measurements)
-        save_data = True
-
-    if show_figures:
-        dplots = DPlots(data, experiment_info)
-
-        if data.store_references(dplots.get_references()): save_data = True
-
-        dplots.display()
-
-    if save_data:
-        if data.get_value('experiment_info') is None:
-            data.store_value('experiment_info', experiment_info)
-
-        storage.store('ResultsData', data.dump())
-        storage.save(experiment_info)
 
 def has_data(x):
     if x is None:
@@ -173,3 +138,58 @@ def phases_end_times(a_duration, d_duration, g_duration,
     stop_times = np.cumsum(np.concatenate(([0.0], duration_times)))
 
     return stop_times
+
+def compare_data(name, value_computed, value_measured = None,
+                 stream=None):
+
+    if stream is None: stream=stdout
+
+    name_len = len(name)
+    data_computed = np.asarray(value_computed, dtype=float)
+    disp_all = (not value_measured is None)
+
+    if disp_all:
+        data_measured = np.asarray(value_measured, dtype=float)
+
+        measured_filter = (data_measured == 0.0)
+        norm_measured = np.abs(data_measured)
+        norm_measured[measured_filter] = 1e-60
+        rel_error = (data_computed - data_measured) / norm_measured * 100.
+        rel_error[abs(rel_error) > 1e50] = np.inf
+        abs_error = np.abs(data_computed - data_measured)
+
+    i0 = 0
+    in_row = 10
+    remaining = np.alen(data_computed)
+
+    float_disp_size = 12
+    fstr = '% {}.6f'.format(float_disp_size)
+
+    print('\n', file=stream)
+    while remaining > 0:
+        if remaining > in_row:
+            disp_items = in_row
+        else:
+            disp_items = remaining
+
+        print('%s measured: ' % name,
+              disp_items * fstr % tuple(data_measured[i0:i0+disp_items]),
+              file=stream)
+        if disp_all:
+            print('%s computed: ' % name,
+                  disp_items * fstr % tuple(data_computed[i0:i0+disp_items]),
+                  file=stream)
+            print('AbsError: ', name_len * ' ',
+                  disp_items * fstr % tuple(abs_error[i0:i0+disp_items]),
+                  file=stream)
+            print('Error (%):', name_len * ' ',
+                  disp_items * fstr % tuple(rel_error[i0:i0+disp_items]),
+                  file=stream)
+
+        remaining = remaining - disp_items
+        print((16 + float_disp_size*in_row) * '-', file=stream)
+        i0 = i0 + in_row
+
+    print('LSQ error ' + "'" + name + "':",
+          np.sum(np.power(data_computed - data_measured, 2)),
+          file=stream)

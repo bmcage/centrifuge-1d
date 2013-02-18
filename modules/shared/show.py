@@ -1,12 +1,12 @@
 from __future__ import print_function, division
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt, sys
 import numpy as np
 from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
 from os import makedirs, path
 from shared import get_directories, parse_value
-from config import ModelParameters, load_configuration, process_global_constants
-from modules.shared.functions import has_data
+from config import ModulesManager, load_model, DataStorage
+from modules.shared.functions import has_data, compare_data
 try:
     import ConfigParser as configparser
 except:
@@ -103,14 +103,14 @@ def nd2strlist(nd):
         result.append(str(value))
     return result
 
-# Default unit is the first one
-DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
-                 'weight': 'g', 'none': ''}
-DATA_UNITS = {'length': ('cm', 'mm', 'm'),
-              'time': ('min', 's', 'h'),
+DATA_UNITS = {'length': ('mm', 'cm', 'm'),
+              'time': ('s', 'min', 'h'),
               'pressure': ('Pa', 'kPa'),
-              'weight': ('kg', 'g'),
+              'weight': ('g', 'kg'),
+              'force_kgp': ('gf', 'kgf'),
               'none': ('', )}
+DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
+                 'force_kgp': 'gf', 'weight': 'g', 'none': ''}
 
 dg_label_time = "Time [{}]"
 dg_label_length = "Sample length $L$ [{}]"
@@ -137,26 +137,26 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                                  dg_unit_time_length),
                   'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                             ('none', 'pressure')),
-                  'F_MO': ((dg_label_time, "Expelled water weight [{}]"),
-                           ('time', 'weight')),
-                  'F_MT': ((dg_label_time, "Water in tube weight [{}]"),
-                           ('time', 'weight')),
-                  'dF_MO': ((dg_label_time, "Difference in expelled water weight [{}]"),
-                           ('time', 'weight')),
-                  'dF_MT': ((dg_label_time, "Difference in weight of water in tube [{}]"),
-                           ('time', 'weight'))}
-DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('F_MT', 'F_MO'),
-            ('dF_MT', 'dF_MO'), ('s1', 's2'))
+                  'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
+                           ('time', 'force_kgp')),
+                  'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
+                           ('time', 'force_kgp')),
+                  'dgF_MO': ((dg_label_time, "Force difference of expelled water [{}]"),
+                           ('time', 'force_kgp')),
+                  'dgF_MT': ((dg_label_time, "Force difference of water in tube [{}]"),
+                           ('time', 'force_kgp'))}
+DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
+            ('dgF_MT', 'dgF_MO'), ('s1', 's2'))
 
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
-    # units used for computation are: cm, s, pa and "no units"
-    if unit in ['cm', 's', 'pa', 'g', '']: coef = 1.0
+    # units used for computation are: cm, s, pa, gf and "no units"
+    if unit in ['cm', 's', 'pa', 'g', 'gf', '']: coef = 1.0
     elif unit == 'mm': coef = 10.
     elif unit == 'min': coef = 1./60.
     elif unit == 'h': coef = 1./3600.
     elif unit == 'm': coef = 0.01
-    elif unit in ['kpa', 'kg']: coef = 0.001
+    elif unit in ['kpa', 'kg', 'kgp']: coef = 0.001
     else:
         print('Unknown unit:', unit_base, '\nKnown units are only:', DATA_UNITS)
         exit(1)
@@ -165,65 +165,76 @@ def get_unit_coef(unit_base):
 def mk_status_item(data_id, data_computed, data_measured = []):
    return {'id': data_id, 'data': (data_computed, data_measured)}
 
-def display_status(data_plots=None):
+def display_status(data_plots=None, stream=None):
 
-    def compare_data(name, data_computed, data_measured, relerror, abserror):
-        name_len = len(name)
-        disp_all = (not data_measured is None)
+    if not data_plots: return
 
-        i0 = 0
-        in_row = 10
-        remaining = np.alen(data_computed)
+    for plot in data_plots:
+        plot_id = plot['id']
 
-        float_disp_size = 12
-        fstr = '% {}.6f'.format(float_disp_size)
+        data_items_nr = len(plot['data'])
+        if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
+            continue
 
-        print('\n')
-        while remaining > 0:
-            if remaining > in_row:
-                disp_items = in_row
+        value_computed = np.asarray(plot['data'][0])
+
+        if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
+            value_measured =  None
+        else:
+            value_measured = np.asarray(plot['data'][1])
+
+        compare_data(plot_id, value_computed, value_measured, stream)
+
+def print_status(data, filename=None):
+    if filename is None:
+        stream = None
+    else:
+        stream = open(filename, 'w')
+
+    status_items = []
+
+    measurements = data.get_linedata('measured')
+    computed     = data.get_linedata('computed')
+
+    if not measurements: return
+
+    try:
+        # compare measured vs. computed data
+        for (key, m_data) in measurements.items():
+            if m_data[1] is None: continue
+
+            if key in computed:
+                if key == 'theta':
+                    c_value = computed[key][2]
+                else:
+                    c_value = computed[key][1][1:]
+                m_value = m_data[1]
             else:
-                disp_items = remaining
-
-            print('%s measured: ' % name,
-                  disp_items * fstr % tuple(data_measured[i0:i0+disp_items]))
-            if disp_all:
-                print('%s computed: ' % name,
-                      disp_items * fstr % tuple(data_computed[i0:i0+disp_items]))
-                print('AbsError: ', name_len * ' ',
-                      disp_items * fstr % tuple(abs_error[i0:i0+disp_items]))
-                print('Error (%):', name_len * ' ',
-                      disp_items * fstr % tuple(relerror[i0:i0+disp_items]))
-
-            remaining = remaining - disp_items
-            print((16 + float_disp_size*in_row) * '-')
-            i0 = i0 + in_row
-
-        print('LSQ error:', np.sum(np.power(data_computed - data_measured, 2)))
-
-    if data_plots:
-        for plot in data_plots:
-            plot_id = plot['id']
-
-            data_items_nr = len(plot['data'])
-            if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
                 continue
 
-            if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
-                value_computed = plot['data'][0]
-                value_measured = rel_error = abs_error = None
-            else:
-                value_computed = np.asarray(plot['data'][0])
-                value_measured = np.asarray(plot['data'][1])
-                norm_measured = value_measured[:]
-                norm_measured[norm_measured == 0.0] = 1.0e-10
-                rel_error = ((value_computed - value_measured)
-                             / norm_measured * 100.)
+            if c_value is not None:
+                status_items.append(mk_status_item(key, c_value, m_value))
 
-                abs_error = np.abs(value_computed - value_measured)
+        if status_items:
+            display_status(status_items, stream)
 
-            compare_data(plot_id, value_computed, value_measured,
-                         rel_error, abs_error)
+        # display additional data
+        cov = data.get_value('cov')
+        if not cov is None:
+            print('\nCov:\n', cov, file=stream)
+            print ('Deviation:\n', np.sqrt(np.diag(cov)))
+
+        params = data.get_value('inv_params')
+        if not params is None:
+            print('\nOptimal parameters found:', file=stream)
+            for (name, value) in params.items():
+                if name == 'ks':
+                    print('  Ks [cm/s]: {: .8g}'.format(value), file=stream)
+                else:
+                    print('  {:9}: {: .8g}'.format(name, value), file=stream)
+
+    finally:
+        if not filename is None: stream.close()
 
 # ResultData: hold the data of the computation
 # Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
@@ -251,32 +262,65 @@ class ResultsData():
         else:
             return not_found
 
-    def _extract(self, model):
+    def store_computation(self, model, measurements, ID='computed'):
+        """ Store computed values with ID """
         if self._modman is None:
-            from config import ModulesManager
             self._modman = ModulesManager()
 
-        solver_module = self._modman.find_module(model.exp_type,
-                                                 submodule='run')
-        extract_data_fn = solver_module.extract_data
-
-        # add computed data
-        return extract_data_fn(model)
-        if not flag:
-            value = None
-            print('Computation was not successfull. Data will not be saved.')
-
-        return value
-
-    def store_computation(self, model):
-        (flag, value) = self._extract(model)
+        solver_module = self._modman.find_module(model.exp_type, submodule='run')
+        if not hasattr(solver_module, 'solve_direct'):
+            print("WARNING: Module for type '" + model.exp_type + "' does not "
+                  "specify a 'solve_direct' variable. Function 'solve()' will "
+                  "be used instead.")
+            flag = solver_module.solve(model, measurements)
+        else:
+            flag = solver_module.solve_direct(model, measurements)
 
         if not flag:
-            value = None
-            print('Computation was not successfull. Data will not be saved.')
+            print("Computation of reference with ID '" + ID + "' was not "
+                  "successfull. Data will not be saved.")
+        else:
+            data = {}
 
-        self._data['lines']['computed'] = value
-        self.store_value('experiment_info', model.experiment_info)
+            # Store all computed data
+            for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
+                # make a local copy as array may be overwritten
+                xvalue = xvalue.copy()
+                yvalue = yvalue.copy()
+
+                if name in ('h', 'u'):
+                    t = measurements.get_times()
+                    data[name] = (xvalue.transpose(), yvalue.transpose(), t)
+                else:
+                    data[name] = (xvalue, yvalue)
+
+            # Store extra data
+            # a) Retention curve
+            if hasattr(model, 'n') and hasattr(model, 'gamma'):
+                from modules.shared.vangenuchten import retention_curve
+
+                if hasattr(model, 'theta_s'): theta_s = model.theta_s
+                else: theta_s = model.porosity
+
+                if hasattr(model, 'theta_r'): theta_r = model.theta_r
+                else: theta_r = 0.0
+
+                (p, theta) = retention_curve(model.n, model.gamma,
+                                             theta_s, model.density, model.g,
+                                             theta_r=theta_r)
+                if hasattr(model, 'p'):
+                    (p_user, theta_user) = \
+                      retention_curve(model.n, model.gamma, theta_s,
+                                      model.density, model.g, theta_r=theta_r,
+                                      p=None, h=model.h)
+                    data['theta'] = (p, theta, theta_user)
+                else:
+                    data['theta'] = (p, theta)
+
+            self._data['lines'][ID] = data
+            self.store_value('experiment_info', model.experiment_info)
+
+        return flag
 
     def store_references(self, user_references, model=None):
         stored_references = self.get_value('references')
@@ -289,22 +333,8 @@ class ResultsData():
         references = list(map(lambda x: x.copy(), user_references))
 
         if model is None:
-            experiment_info = self.get_value('experiment_info')
-            (cfg, consts_cfg) = load_configuration(experiment_info)
-            if self._modman is None:
-                from config import ModulesManager
-                self._modman = ModulesManager()
-
-            modman = self._modman
-
-            cfg.load_definition(modman)
-            process_global_constants(cfg, consts_cfg)
-
-            cfg.adjust_cfg(modman)
-            solver_module = modman.find_module(cfg.get_value('exp_type'),
-                                               submodule='run')
-            model = ModelParameters(cfg)
-            model.experiment_info = experiment_info
+            from config import load_model
+            model = load_model(self.get_value('experiment_info'), validate=True)
 
         ref_num = 1
         if type(references) == dict: # single reference
@@ -329,27 +359,19 @@ class ResultsData():
             backup_params = model.get_parameters(ref.keys()) # backup
             model.set_parameters(ref)
 
-            (flag, value) = self._extract(model)
-
-            model.set_parameters(backup_params) # restore
+            flag = self.store_computation(model, model.measurements, ID=ref_id)
 
             if not flag:
-                value = None
-                print('Computation of reference with ID: ', ref_id,
-                      '\nwith parameters: ', ref,
-                      '\nwas not successfull. Data will not be saved.')
-                continue
+                print('Reference parameters: ', ref)
 
-            data[ref_id] = value
+            model.set_parameters(backup_params) # restore
 
         return True
 
     def store_measurements(self, measurements):
         m = {}
 
-        for (name, xvalue, yvalue) in zip(measurements.get_names(),
-                                          measurements.get_xvalues(),
-                                          measurements.get_values()):
+        for (name, xvalue, yvalue) in measurements.iterate_meas_measurements():
             m[name] = (xvalue, yvalue)
 
         self._data['lines']['measured'] = m
@@ -762,51 +784,11 @@ class DPlots():
             if save_figures and (img_num < images_per_figure):
                 plt.savefig(save_dir + 'image-' + str(self.fignum), dpi=300)
 
-        def _show_status(data):
-            status_items = []
-
-            measurements = data.get_linedata('measured')
-            computed     = data.get_linedata('computed')
-
-            if not measurements: return
-
-            for (key, m_data) in measurements.items():
-                if m_data[1] is None: continue
-
-                if key in computed:
-                    if key == 'theta':
-                        c_value = computed[key][2]
-                    else:
-                        c_value = computed[key][1][1:]
-                    m_value = m_data[1]
-                else:
-                    continue
-
-                if c_value is not None:
-                    status_items.append(mk_status_item(key, c_value, m_value))
-
-            if status_items:
-                display_status(status_items)
-
         # function body
         data   = self._data
 
         if not self._dplots is None: # all OK, dplots were generated
-            _show_status(data)
-
-            cov = data.get_value('cov')
-            if not cov is None:
-                print('\nCov:\n', cov)
-                print ('Variance:\n', np.sqrt(np.diag(cov)))
-
-            params = data.get_value('inv_params')
-            if not params is None:
-                print('\nOptimal parameters found:')
-                for (name, value) in params.items():
-                    if name == 'ks':
-                        print('  Ks [cm/s]: {: .8g}'.format(value))
-                    else:
-                        print('  {:9}: {: .8g}'.format(name, value))
+            print_status(data)
 
             _show_dplots(self._dplots, self._plotstyles.get_display_options(),
                          self._experiment_info)
@@ -816,8 +798,61 @@ class DPlots():
                 plt.ion()
                 plt.show()
 
-        try:
+        if sys.version_info[0] == 2:
             #python 2.7
             raw_input('Press ENTER to continue...')
-        except:
+        else:
             input('Press ENTER to continue...')
+
+def show_results(experiment_info,
+                 model=None, inv_params=None, cov=None,
+                 show_figures=True):
+
+    storage = DataStorage()
+    data    = ResultsData()
+
+    if model is None:
+        if storage.load(experiment_info):
+            data.load(storage.get('ResultsData'))
+        else:
+            print('      (Was computation already run?)'
+                  '\nINFO: Nothing to display. Exiting.')
+            exit(0)
+
+    if not inv_params is None: data.store_value('inv_params', inv_params)
+    if not cov is None: data.store_value('cov', cov)
+
+
+    save_data = False
+
+    if not model is None:
+        data.store_computation(model, model.measurements)
+        data.store_measurements(model.measurements)
+
+        from shared import get_directories
+        savedir = get_directories('figs', 'mask', experiment_info)
+        filename = savedir + '/' + 'results.txt'
+
+        if not path.exists(savedir):
+            makedirs(savedir)
+
+        with open(filename, 'w') as f:
+            print_status(data, filename)
+
+        save_data = True
+
+    if show_figures:
+        dplots = DPlots(data, experiment_info)
+
+        if data.store_references(dplots.get_references(), model):
+            save_data = True
+
+    if save_data:
+        if data.get_value('experiment_info') is None:
+            data.store_value('experiment_info', experiment_info)
+
+        storage.store('ResultsData', data.dump())
+        storage.save(experiment_info)
+
+    if show_figures:
+        dplots.display()

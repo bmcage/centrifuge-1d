@@ -12,8 +12,9 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None,
                     on_phase_change = None, continue_on_root_found=None,
-                    on_measurement=None):
+                    on_measurement=None, truncate_results_on_stop=True):
     """
+    Input:
       initialize_z0 - function with signature f(z0, model), where:
                         z0 - vector to be filled with initial values
                         model - argument supplied to simulate_direct() function.
@@ -94,6 +95,26 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                         measurements - the measurements object (see also the
                             'measurements' argument).
                     Returns nothing.
+      truncate_results_on_stop - Type: boolean
+                    If true, on root found or error returns only computed
+                    data and values at times not reached will be truncated
+                    (by default an array of size for all results is
+                    preallocated). Otherwise an full array containing also
+                    not-reached times data is returned.
+    Return values:
+      flag - Type: boolean
+           if True, computation was sucessfully finished; otherwise
+           a root was found/an error occured and value is set to False
+      t  - returned times at which solver sucessfully computed results;
+           if an error was encountered, the time at which it happened is
+           stored in t[i] (for index i see below);
+           if truncate_results_on_stop=False, remaining values are 0.0
+      z  - returned sucessfully computed values; if an error occured,
+           then z[i, :] (see index i below) contains the value at the
+           time the error occurred
+           if truncate_results_on_stop=False, remaining values are 0.0
+      i  - index of last sucessful measurement (returned only if
+           truncate_results_on_stop = False)
     """
 
     # Check supplied arguments
@@ -111,8 +132,12 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
 
     measurements_nr = np.alen(measurements_times)
 
-    t   = np.empty([measurements_nr, ], dtype=float)
-    z   = np.empty([measurements_nr, model.z_size], dtype=float)
+    if truncate_results_on_stop:
+        t   = np.empty([measurements_nr, ], dtype=float)
+        z   = np.empty([measurements_nr, model.z_size], dtype=float)
+    else:
+        t   = np.zeros([measurements_nr, ], dtype=float)
+        z   = np.zeros([measurements_nr, model.z_size], dtype=float)
 
     t0 = 0.0
 
@@ -203,7 +228,11 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
             if not solver_initialized:
                 (flag, t_init) = solver.init_step(t0, z0, zp0)
                 if not flag:
-                    return (False, t, z)
+                    if truncate_results_on_stop:
+                        return (False, t[:i+1], z[:i+1, :], i-1)
+                    else:
+                        return (False, t, z, i-1)
+
                 solver_initialized = True
 
             if not on_phase_change is None:
@@ -212,6 +241,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
 
             while True:
                 (flag, t_out) = solver.step(t_meas, z[i, :])
+                t[i] = t_out
 
                 if flag < 0:     # error occured
                     if verbosity > 1:
@@ -221,7 +251,10 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     if verbosity > 2:
                         print('Values at this time:\nz_err=', z[i, :])
 
-                    return (False, t[:i], z[:i, :])
+                    if truncate_results_on_stop:
+                        return (False, t[:i+1], z[:i+1, :], i)
+                    else:
+                        return (False, t, z, i)
                 elif flag == 2: # root found
                     if ((not continue_on_root_found is None)
                          and (continue_on_root_found(model, t_out, z[i, :]))):
@@ -230,21 +263,24 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     else:
                         if verbosity > 1:
                              print('Root found: aborted further computation.')
-                        return (False, t[:i], z[:i, :])
+
+                    if truncate_results_on_stop:
+                        return (False, t[:i+1], z[:i+1, :], i)
+                    else:
+                        return (False, t, z, i)
                 else: # success or t_stop reached
                     if (flag == 0) or (t_out == t_meas):
                         if not on_measurement is None:
                             on_measurement(t_out, z[i, :], model,
                                            measurements)
 
-                        t[i] = t_out
                         i += 1
                         if i < measurements_nr:
                             t_meas = measurements_times[i]
                         else:
                             # previous measurement was the last measurement we
                             # have taken so we can abort further computation
-                            return (True, t, z)
+                            return (True, t, z, i-1)
 
                     # Assuming t_out is t_end+numerical_error
                     if (flag == 1) or (t_end == t_out):
@@ -274,34 +310,73 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
         if model.always_restart_solver:
             solver_initialized = False
 
-    return (True, t, z)
+    return (True, t, z, i-1)
 
+def print_params(params):
+    print()
+    for (name, value) in params.items():
+        if name == 'ks':
+            print('{:5}: {: .8g}'.format('Ks', value))
+        else:
+            print('{:5}: {: .8g}'.format(name, value))
 
-def set_optimized_variables(optim_params, model, untransform=None):
-    """ optim_params: dict of pairs param_name: param_value """
+def parse_init(init_parameters, transform=None):
+    init_values = []
+    optim_names = []
+    lbounds     = {}
+    ubounds     = {}
+
+    for (name, value) in init_parameters.items():
+        if value is None: continue
+
+        optim_names. append(name)
+
+        (init_value, (lbound, ubound)) = value
+        lbounds[name] = lbound
+        ubounds[name] = ubound
+
+        if transform:
+            init_values.append(transform[name](init_value))
+        else:
+            init_values.append(init_value)
+
+    return (optim_names, init_values, lbounds, ubounds)
+
+def untransform_dict(names, values, result, untransform):
     if untransform:
-        for (name, value) in optim_params.items():
-            setattr(model, name, untransform[name](value))
+        for (name, value) in zip(names, values):
+            result[name] = untransform[name](value)
     else:
-        for (name, value) in optim_params.items():
-            setattr(model, name, value)
+        for (name, value) in zip(names, values):
+            result[name] = value
 
-    if 'n' in optim_params:
-        model.m = 1 - 1/model.n
 
-    if model.verbosity > 0:
-        print()
-        for name in optim_params.keys():
-            if name == 'ks':
-                print('{:5}: {: .8g}'.format('Ks', getattr(model, name)))
-            else:
-                print('{:5}: {: .8g}'.format(name, getattr(model, name)))
+
+def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
+    max_penalization = 1e50
+
+    penalization = 0.0
+
+    if when == 'out_of_bounds':
+        for (name, value) in parameters.items():
+            if lbounds[name] > value:
+                a = min(np.exp(value - lbounds[name]), max_penalization)
+                penalization += min(10 * (a + 1/a), max_penalization)
+            elif ubounds[name] < value:
+                a = min(np.exp(value - ubounds[name]), max_penalization)
+                penalization += min(10 * (a + 1/a), max_penalization)
+    else:
+        for (name, value) in parameters.items():
+            a = min(np.exp(value - lbounds[name]), max_penalization)
+            b = min(np.exp(value - ubounds[name]), max_penalization)
+
+            penalization += min(10 * (a + 1/a) + 10 * (b + 1/b),
+                                max_penalization)
+
+    return penalization
 
 def simulate_inverse(direct_fn, model, init_parameters,
                      measurements, optimfn='leastsq'):
-
-    from modules.shared.show import display_status, mk_status_item
-    from numpy import log, exp, alen
 
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
                          'fmin_bfgs', 'raster']
@@ -310,65 +385,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
         print("Available solvers are: ", available_solvers)
         exit(1)
 
-    max_value = 1e150
-
-    transform = {'ks': lambda ks: max(log(ks), -max_value),
-                 'n':  lambda n: max(log(n - 1.0), -max_value),
-                 'gamma': lambda gamma: max(log(-gamma), -max_value)}
-    untransform = {'ks': lambda ks_transf: min(exp(ks_transf), max_value),
-                   'n': lambda n_transf: 1+min(exp(n_transf), max_value),
-                   'gamma': lambda gamma_transf: -min(exp(gamma_transf), max_value)}
-
-    optimized_parameters = []
-
-    lbounds = {}
-    ubounds = {}
-
-    def penalize(model, when='out_of_bounds'):
-        max_penalization = 1e50
-
-        penalization = 0.0
-
-        if when == 'out_of_bounds':
-            for param in optimized_parameters:
-                value = getattr(model, param)
-                if lbounds[param] > value:
-                    a = min(exp(value - lbounds[param]), max_penalization)
-                    penalization = (penalization
-                                    + min(10 * (a + 1/a), max_penalization))
-                elif ubounds[param] < value:
-                    a = min(exp(value - ubounds[param]), max_penalization)
-                    penalization = (penalization
-                                    + min(10 * (a + 1/a), max_penalization))
-        else:
-            for param in optimized_parameters:
-                value = getattr(model, param)
-                a = min(exp(value - lbounds[param]), max_penalization)
-                b = min(exp(value - ubounds[param]), max_penalization)
-
-                penalization = \
-                  (penalization + min(10 * (a + 1/a) + 10 * (b + 1/b),
-                                      max_penalization))
-
-        return penalization
-
-    measurements_names = measurements.get_names()
-    data_M = measurements.get_values()
-
-    user_scales = model.measurements_scale_coefs
-    if user_scales is None: user_scales = {}
-    measurements_scales = \
-       measurements.get_scales(scaling_coefs=user_scales)
-    weights = measurements.get_weights()
-
-    data_scale_coef = np.concatenate(measurements_scales)
-    measurements_sc = np.concatenate(data_M) * data_scale_coef
-
-    if weights:
-        add_weights = True
-        weights = np.concatenate(weights)
-    else:
-        add_weights = False
+    untransform = model._untransform
 
     global ITERATION # Python 2.7 hack (no support for nonlocal variables)
     ITERATION = 0
@@ -379,70 +396,56 @@ def simulate_inverse(direct_fn, model, init_parameters,
         print(15 * '*', ' Iteration: {:4d}'.format(ITERATION), ' ', 15 * '*')
         ITERATION += 1
 
-        set_optimized_variables(dict(zip(optimized_parameters, optimargs)),
-                                model, untransform=untransform)
+        untransform_dict(optim_names, optimargs, optim_params, untransform)
 
-        penalization = penalize(model, when='out_of_bounds')
+        if model.verbosity > 0: print_params(optim_params)
+
+        penalization = penalize(optim_params, lbounds, ubounds,
+                                when='out_of_bounds')
 
         if penalization > 0.0:
             if model.verbosity > 1:
                 print('Optimized arguments are out of bounds... Penalizing by ',
                       penalization)
 
-            if optimfn == 'leastsq':
-                return penalization + measurements_sc
-            else:
-                return penalization * alen(measurements_sc)
+            return measurements.get_penalized(penalization,
+                                              scalar=(optimfn != 'leastsq'))
 
-        direct_data = direct_fn(model, measurements_names)
-        (flag, t, data_C) = (direct_data[0], direct_data[1], direct_data[2:])
+        model.set_parameters(optim_params)
+
+        flag = direct_fn(model, measurements)
 
         if flag:
             # direct computation went O.K.
             if model.verbosity > 0:
-                status_items = []
+                measurements.display_error()
 
-                for (name, value_C, value_M) in zip(measurements_names,
-                                                    data_C, data_M):
-                    status_items.append(mk_status_item(name, value_C, value_M))
+            error = measurements.get_error() # computed - measured
 
-                display_status(data_plots=status_items)
-
-            computation_sc = data_scale_coef * np.concatenate(data_C)
-            error = computation_sc - measurements_sc
-
-            if add_weights:
-                error[:] = error * weights
+            total_LSQ_error = np.sum(np.power(error, 2))
+            print('\nTotal LSQ error:', total_LSQ_error)
 
             if optimfn == 'leastsq':
-                return error
+                result = error
             else:
-                return np.sum(np.power(error, 2))
+                result = total_LSQ_error
 
         else:
             # something is wrong, so penalize
-            penalization = min(penalize(model, when='always'), 1e10)
+            penalization = \
+              min(penalize(optim_params, lbounds, ubounds, when='always'),
+                  1e10)
             if model.verbosity > 1:
                 print('Direct problem did not converge for given optimization '
                       'parameters... Penalizing by ', penalization)
 
-            if optimfn == 'leastsq':
-                return penalization + measurements_sc
-            else:
-                return penalization * alen(measurements_sc)
+            result = measurements.get_penalized(penalization,
+                                                scalar=(optimfn != 'leastsq'))
+        return result
 
-            return penalization
-
-    init_values = []
-
-    for (param, value) in init_parameters.items():
-        if not value is None:
-            optimized_parameters.append(param)
-            (init_value, (lbound, ubound)) = value
-
-            init_values.append(transform[param](init_value))
-            lbounds[param] = lbound
-            ubounds[param] = ubound
+    optim_params = {}
+    (optim_names, init_values, lbounds, ubounds) = \
+      parse_init(init_parameters, transform=model._transform)
 
     import scipy.optimize
 
@@ -457,38 +460,54 @@ def simulate_inverse(direct_fn, model, init_parameters,
     iters  = ITERATION
 
     # Run optimization
-    if optimfn == 'leastsq':
-        (opt_params, cov, infodic, msg, ier) = \
-          optimize(optimfn_wrapper, init_values,
-                   epsfcn=model.epsfcn, factor=model.factor,
-                   xtol=model.xtol, ftol=model.ftol,
-                   full_output=True)
-        fcalls = infodic['nfev']
-    elif optimfn == 'fmin':
-        (opt_params, fopt, iters, fcalls, warnflag) = \
-          optimize(optimfn_wrapper, init_values,
-                   xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
-                   maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
-                   full_output=True, retall=False)
-    elif optimfn == 'fmin_powell':
-        (opt_params, fopt, direc, iters, fcalls, warnflag) = \
-          optimize(optimfn_wrapper, init_values,
-                   xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
-                   maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
-                   full_output=True, retall=False)
-    elif optimfn == 'fmin_cg':
-        (opt_params, fopt, fcalls, gcalls, warnflag) = \
-          optimize(optimfn_wrapper, init_values,
-                   maxiter=model.max_inv_iter, gtol=model.gtol,
-                   disp=model.disp_inv_conv,
-                   full_output=True, retall=False)
-    elif optimfn == 'fmin_bfgs':
-        (opt_params, fopt, gopt, Bopt, fcalls, gcalls, warnflag) = \
-          optimize(optimfn_wrapper, init_values,
-                   maxiter=model.max_inv_iter, gtol=model.gtol,
-                   disp=model.disp_inv_conv,
-                   full_output=True, retall=False)
+    for run in range(1 + (model.transform_params and model.untransformed_cov)):
+        # if untransformed covariance is desired but we computed with
+        # transformed parameters, we run the computation again, starting
+        # in optimal value of previous optimization
+        if run == 1:
+            print('Running optimization to obtain the covariance of '
+                  'untransformed parameters...')
+            untransform = None
+            init_values = [optim_params[name] for name in optim_names]
 
+        if optimfn == 'leastsq':
+            (opt_params, cov, infodic, msg, ier) = \
+              optimize(optimfn_wrapper, init_values,
+                       epsfcn=model.epsfcn, factor=model.factor,
+                       xtol=model.xtol, ftol=model.ftol,
+                       full_output=True)
+            fcalls = infodic['nfev']
+        elif optimfn == 'fmin':
+            (opt_params, fopt, iters, fcalls, warnflag) = \
+              optimize(optimfn_wrapper, init_values,
+                       xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
+                       maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
+                       full_output=True, retall=False)
+        elif optimfn == 'fmin_powell':
+            (opt_params, fopt, direc, iters, fcalls, warnflag) = \
+              optimize(optimfn_wrapper, init_values,
+                       xtol=model.xtol, ftol=model.ftol, maxfun=model.max_fev,
+                       maxiter=model.max_inv_iter, disp=model.disp_inv_conv,
+                       full_output=True, retall=False)
+        elif optimfn == 'fmin_cg':
+            (opt_params, fopt, fcalls, gcalls, warnflag) = \
+              optimize(optimfn_wrapper, init_values,
+                       maxiter=model.max_inv_iter, gtol=model.gtol,
+                       disp=model.disp_inv_conv,
+                       full_output=True, retall=False)
+        elif optimfn == 'fmin_bfgs':
+            (opt_params, fopt, gopt, Bopt, fcalls, gcalls, warnflag) = \
+              optimize(optimfn_wrapper, init_values,
+                       maxiter=model.max_inv_iter, gtol=model.gtol,
+                       disp=model.disp_inv_conv,
+                       full_output=True, retall=False)
+
+        untransform_dict(optim_names, opt_params, optim_params, untransform)
+
+    # run the direct once more to obtain correct covariance
+    opt_error = optimfn_wrapper(opt_params)
+    s_sq = (np.sum(np.power(opt_error, 2))
+            / (np.alen(opt_error) - np.alen(opt_params)))
 
     # Display inverse solver statistic
     print('\nInverse problem statistics:\n')
@@ -508,12 +527,7 @@ def simulate_inverse(direct_fn, model, init_parameters,
             out += ' |{:8d}'.format(value)
     print(out, '|')
 
-    # Run experiment once more with optimal values to display results at optimum
-    set_optimized_variables(dict(zip(optimized_parameters, opt_params)),
-                            model, untransform)
-    optim_params = {name: getattr(model, name) for name in optimized_parameters}
-
-    return (optim_params, cov)
+    return (optim_params, cov * s_sq)
 
 def compute_raster(model):
         lbounds = xdata.inv_lbounds

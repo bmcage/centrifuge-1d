@@ -9,6 +9,7 @@ CONFIG_OPTIONS = {
                      "an entry in the 'constants.ini' file, where starting "
                      "and ending filter proberties should be specified".
                      "Type: integer"),
+         'tube_diam': "Diameter of the tube."
          're': ("Distance (radius) from the centrifuge axis to the end of the "
                 "ending filter; on the other hand, value r0 is the distance "
                 "the centrifuge axis to the beginning of soil sample, i.e. "
@@ -29,6 +30,9 @@ CONFIG_OPTIONS = {
                     "If force is not computed, it can be any value (as it is) "
                     "ignored. Type: float"),
          'wl0': ("Length of water on the inflow (above the soil) in cm. "
+                 "Type: float")
+         'ww0': ("Weight of water on the inflow (above the soil) in gramms. "
+                 "Only one of 'wl0' and 'ww0' can be specified".
                  "Type: float")
          'descr': "(optional) Description of the experiment. Type: string"
         },
@@ -84,26 +88,63 @@ CONFIG_OPTIONS = {
          'l1': ("Soil sample length at measured time. "
                 "Type: array of floats or None"),
          'wl1': ("Measured length of water above the soil at given (measured) "
-                 "time. Units: array of floats or None"),
+                 "time in cm. Type: array of floats or None"),
+         'ww1': ("Measured weight of water above the soil at given (measured) "
+                 "time, in gramms. Type: array of floats or None"),
          'wl_out': ("Measured length of water in the outflow chamber at given "
                     "(measured) time. Units: array of floats or None"),
          'gc1': "Measured gravitational center. Units: array of floats or None",
          'rm1': "Measured rotational momentum. Units: array of floats or None",
-         'measurements_scale_coefs': ("When running inverse problem, multiple "
-                                      "meaurements can be given, potentially "
-                                      "with different scales (e.g. MO ~ 0.5 "
-                                      "whereas GC ~ 2.5, which can cause that "
-                                      "solver \"prefers\" the optimization of "
-                                      "GC in favour of MO, because it introduces "
-                                      "adds more error in least-squares. "
-                                      "Therefore a scaling is important to make "
-                                      "the data of roughly the same order.) By "
-                                      "default the data is scaled so that the "
-                                      "biggest number in measurements of given "
-                                      "type is in "
-                                      "<1, 10) interval. See also *_weights, "
-                                      "options, which specify a weight - i.e. "
-                                      "importance of given measurement.")
+         'measurements_scale_coefs': \
+             ("When running inverse problem, multiple meaurements can be "
+              "given, potentially with different scales (e.g. MO ~ 0.5 whereas "
+              "GC ~ 2.5, which can cause that solver \"prefers\" the "
+              "optimization of GC in favour of MO, because it introduces adds "
+              "more error in least-squares. Therefore a scaling is important "
+              "to make the data of roughly the same order.) By default the "
+              "data is scaled so that the biggest number in measurements of "
+              "given type is in <1, 10) interval. See also *_weights, options, "
+              "which specify a weight - i.e. importance of given measurement."
+              "Value: dict of type: {measurement_name1: scale_coef1, ...}."),
+         'f_mo': ("Measured centrifugal force of the expelled water. More "
+                  "precisely it is the force divided by g (= gravitational "
+                  "constant)."),
+         'f_mt': ("Measured centrifugal force of the water inside the tube. "
+                  "More precisely it is the force divided by g "
+                  "(= gravitational constant)."),
+         'f_mo_tara': ("Force implied on the sensor of expelled water by the "
+                       "holding aparatus. Two possible values are supported: "
+                       "a) list of two items: (omega, gF_tara) where omega is "
+                       "the speed (in rpm) at which the force gF_tara was "
+                       "measured - force [gF_tara] = 1e-3 kgf (i.e as if "
+                       "measured under 1g: gF_tara = F_tara/g with F the "
+                       "centrifugal force. When this values is supplied, "
+                       "the gF_tara for other speeds is calculated dynamically "
+                       "at runtime."
+                       "\nb) a dictiory of form: {omega1: gF_tara1, omega2: "
+                       "gF_tara2, ...}. In this case forces are taken as "
+                       "static, so no dynamic adaptation is supported (which "
+                       "implicitly means that gF_tara in the acceleration/"
+                       "deceleration phase is wrong)"),
+         'f_mt_tara': ("Force implied on the sensor measuring the water inside "
+                       "of the tube. See also 'f_mo_tara'."),
+         'f_mo_calibration_curve':\
+             ("Calibration curve for measured f_mo. Useful when there is some "
+              "shift in measured data (e.g. in case of calibration with base "
+              "not equal to zero). So f_mo:= f_mo - f_mo_calibration_curve. "
+              "Calibration curve can be either constant, list (of the same "
+              "length as 'f_mo') or a dict of format: "
+              "{omega1: base1, omega2: base2, ...}. In the last case the "
+              "measurements will be shifted accordin to the rotational speed."),
+         'f_mt_calibration_curve': "See 'f_mo_calibration_curve'.",
+         'mo_gc_calibration_curve': \
+             ("Calibration curve for the expelled water. Allows to determine "
+              "the gravitational centre of the expelled water. Value is a list "
+              "of pairs of the format: [(mo1, R1), (mo2, R2), ...], where "
+              "mo1 < mo2 < ... and moX (X=1,2,...) is the amount of expelled "
+              "water (in cm3) and RX is the radius of GC corresponding to the "
+              "moX units of expelled water. The value of R for mo: "
+              "moX < mo < moY is linearly interpolated.")
          },
     'solver' : \
       {'atol': ("Set absolute tolerances for the solver. "

@@ -1,44 +1,22 @@
 from __future__ import division
 
-PARENTAL_MODULES = ['direct_draining_saturated']
+PARENTAL_MODULES = ['direct_draining_saturated', 'base_inverse']
 
-CONFIG_OPTIONS = ['inv_init_params',
-                  # solver parameters
-                  ('optimfn', 'leastsq'),
-                  (lambda cfg: cfg.get_value('optimfn') == 'leastsq',
-                    ['epsfcn', 'factor',
-                     ('xtol', 1.49012e-8), ('ftol', 1.49012e-8)]),
-                  (lambda cfg: (cfg.get_value('optimfn')
-                                in ['fmin', 'fmin_powell']),
-                    [('xtol', 1e-4), ('ftol', 1e-4), ('max_fev', None),
-                     ('max_inv_iter', None), ('disp_inv_conv', True)]),
-                  (lambda cfg:
-                       cfg.get_value('optimfn') in ['fmin_cg', 'fmin_bfgs'],
-                    [('gtol', 1e-5), ('max_inv_iter', None),
-                     ('disp_inv_conv', True)]),
-                  (lambda cfg: cfg.get_value('optimfn') == 'raster',
-                    ['raster_grid_size']),
-                  # experiment
-                  'dynamic_h_init',
-                  (lambda cfg: cfg.get_value('dynamic_h_init'),
-                   ['h_init_max', ('c_gammah', 1e-3)]),
-                  # measurement weights
-                  ('wl1_weights', None), ('wl_out_weights', None),
-                  ('gc1_weights', None), ('rm1_weights', None),
-                  ('cf_weights', None)
+CONFIG_OPTIONS = [(lambda cfg: cfg.get_value('optimfn') == 'raster',
+                    ['raster_grid_size'])
                  ]
 
 INTERNAL_OPTIONS = []
 
-#EXCLUDE_FROM_MODEL = ['inv_ubounds', 'inv_lbounds']
+EXCLUDE_FROM_MODEL = []
 
-PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys()),
-                   (lambda cfg: cfg.get_value('dynamic_h_init'), ['h_init'])]
+PROVIDE_OPTIONS = []
 
 OPTIONS_ITERABLE_LISTS = []
 
 def check_cfg(cfg):
-    from modules.shared.characteristics import MEASUREMENTS_NAMES
+    from modules.shared.measurements import MEASUREMENTS_NAMES
+    import numpy as np
 
     measurements_present = False
     for name in MEASUREMENTS_NAMES.values():
@@ -53,13 +31,17 @@ def check_cfg(cfg):
 
         if not weights: continue
 
-        if not type(weights) == list:
-            print('Weights has to be a list: {}'.format(w_name))
+        if np.isscalar(weights):
+            pass
+        elif ((type(weights) == list) and
+              (not (len(weights) == len(meas)))):
+            print("Weights '{}'have to be a scalar or a list of the same "
+                  "length as measurement.".format(w_name))
             return False
-
-        if not (len(weights) == len(meas)):
-            print('Weights have to be of the same length as measurement: '
-                  '{}'.format(name))
+        else:
+            print('Unknow weights: ' + w_name,
+                  'Weights have to be a scalar or a list of the same '
+                  'length as measurement.\nValue: ', weights)
             return False
 
     if not measurements_present:
@@ -68,9 +50,6 @@ def check_cfg(cfg):
         return False
 
     return True
-
-def prior_adjust_cfg(cfg):
-    cfg.set_value('n', 1.0)
 
 def adjust_cfg(cfg):
     pass

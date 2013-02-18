@@ -1,11 +1,12 @@
-from __future__ import division
+from __future__ import division, print_function
 
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
-from modules.shared.functions import right_derivative, y2x, show_results
-from modules.shared.vangenuchten import h2Kh, dudh, h2u, retention_curve
+from modules.shared.functions import right_derivative, y2x
+from modules.shared.vangenuchten import h2Kh, dudh, h2u
 from modules.shared.solver import simulate_direct
+from modules.shared.show import show_results
 
 #TODO: will the new characteristics work also for the previous
 #      rb_types?
@@ -102,13 +103,13 @@ class centrifuge_residual(IDA_RhsFunction):
             elif rb_type == 1:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                    -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
                 result[last_idx]  = (porosity * du_dh[-1] * hdot[-1]
                                      + 2 / dy[-1] / ds * (q_out - q12[-1]))
             elif rb_type == 2:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                    -Kh_last * (dhdr_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
                 result[last_idx]  = hdot[-1]
             else:
                 raise NotImplementedError('rb_type has to be 0 - 6')
@@ -143,8 +144,10 @@ def on_measurement(t, z, model, measurements):
     s2 = measurements.store_calc_measurement('s2', z[model.s2_idx])
     MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
     MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
+    x  = y2x(model.y, s1, s2)
+
     if model.calc_wm:
-        u = measurements.store_calc_u(z[model.first_idx: model.last_idx+1],
+        u = measurements.store_calc_u(x, z[model.first_idx: model.last_idx+1],
                                       model.n, model.m, model.gamma)
 
         (WM, WM_in_tube) = \
@@ -160,24 +163,24 @@ def on_measurement(t, z, model, measurements):
     if model.calc_rm:
         measurements.store_calc_rm(t, u, MI, s1, s2, model)
 
-    if model.calc_cf_mo or model.calc_f_mo or model.calc_f_mt:
+    if model.calc_gcf_mo or model.calc_gf_mo or model.calc_f_mt:
         omega2g = model.find_omega2g(t)
 
-    if model.calc_f_mt:
+    if model.calc_gf_mt:
         l0 = model.l0
-        rL = model.rE - model.fl2
+        rL = model.re - model.fl2
         r0 = model.re - model.fl2 - l0
 
-        measurements.store_calc_f_mt(omega2g, u, model.y, model.dy, r0,
-                                     s1, s2, MI, s2, l0, model.porosity,
-                                     model.fl2, model.fp2, l0,
-                                     model.density,
-                                     model.tube_crosssectional_area)
+        measurements.store_calc_gf_mt(omega2g, u, model.y, model.dy, r0,
+                                      s1, s2, MI, s2, l0, model.porosity,
+                                      model.fl2, model.fp2, l0, l0,
+                                      model.density,
+                                      model.tube_crosssectional_area)
 
-    if model.calc_f_mo:
-        measurements.store_calc_f_mo(omega2g, MO,
-                                     model.mo_gc_calibration_curve,
-                                     model.tube_crosssectional_area)
+    if model.calc_gf_mo:
+        measurements.store_calc_gf_mo(omega2g, MO,
+                                      model.mo_gc_calibration_curve,
+                                      model.tube_crosssectional_area)
 
 def initialize_z0(z0, model):
     z0[model.first_idx:model.last_idx+1] = model.h_init
@@ -266,15 +269,21 @@ def initialize_zp0(zp0, z0, model):
     else:
         if rb_type == 2:
             zp0_last = 0.0
+            Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
+            q_out  = np.maximum(1e-12,
+                                -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
         else:
             if rb_type == 1:
                 Kh_last =  h2Kh(h[-1], n, m, gamma, Ks)
                 q_out  = np.maximum(1e-12,
-                                    -Kh_last*(dhdy_last/ds - omega2g*(r0 + L)))
+                                    -Kh_last*(dhdy[-1]/ds - omega2g*(r0 + L)))
             else:
                 q_out = 0.0
+
             zp0_last = \
               (-2./(porosity * du_dh[-1] * dy[-1]*ds) * (q_out - q12[-1]))
+
+        dmodt = q_out
         ds2dt = 0.0
 
     zp0[last_idx] = zp0_last
@@ -288,7 +297,16 @@ def initialize_zp0(zp0, z0, model):
       (dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt + y[1:-1]*ds2dt)
        - 2./(porosity*du_dh[1:-1]*(dy[:-1] + dy[1:])*ds) * (q12[1:] - q12[:-1]))
 
-def solve(model):
+def solve(model, measurements):
+    measurements.reset_calc_measurements()
+
+    if model.dynamic_h_init:
+        model.h_init = min(model.c_gammah / model.gamma, model.h_init_max)
+        if model.verbosity > 1:
+            print('\nh_init: ', model.h_init,
+            'u_init', h2u(model.h_init, model.n,
+                          model.m, model.gamma), '\n')
+
     # Initialization
     if model.rb_type == 3:
         atol_backup        = model.atol # backup value
@@ -309,50 +327,20 @@ def solve(model):
         zp0_init = None
 
     # Computation
-    (flag, t, z) = simulate_direct(initialize_z0, model, model.measurements,
-                                   RESIDUAL_FN,
-                                   root_fn = None, nr_rootfns=None,
-                                   initialize_zp0=zp0_init,
-                                   algvars_idx=algvars_idx,
-                                   on_measurement=on_measurement)
+    (flag, t, z, i) = simulate_direct(initialize_z0, model, model.measurements,
+                                      RESIDUAL_FN,
+                                      root_fn = None, nr_rootfns=None,
+                                      initialize_zp0=zp0_init,
+                                      algvars_idx=algvars_idx,
+                                      on_measurement=on_measurement)
 
     # Restore modified values
-    model.atol = atol_backup
+    if model.rb_type == 3:
+        model.atol = atol_backup
 
-    return (flag, t, z, model.measurements)
+    return flag
 
-def extract_data(model):
-    (flag, t, z, measurements) = solve(model)
-
-    if not flag:
-        print('For given model the solver did not find results. Skipping.')
-
-    s1 = z[:, model.s1_idx]
-    s2 = z[:, model.s2_idx]
-    x = y2x(model.y, s1, s2).transpose()
-    h = z[:, model.first_idx:model.last_idx+1].transpose()
-
-    if hasattr(model, 'theta_s'): theta_s = model.theta_s
-    else: theta_s = model.porosity
-
-    if hasattr(model, 'theta_r'): theta_r = model.theta_r
-    else: theta_r = 0.0
-
-    (p, theta) = retention_curve(model.n, model.gamma,
-                                 theta_s, model.density, model.g,
-                                 theta_r=theta_r)
-
-    extracted_data = {'h': (x, h, t),
-                      's1': (t, s1), 's2': (t, s2),
-                      'theta': (p, theta)}
-
-    for (name, time, value) in measurements.iterate_calc_measurements():
-        if name == 'u':
-            extracted_data[name] = (x, value.transpose(), time)
-        else:
-            extracted_data[name] = (time, value)
-
-    return (flag, extracted_data)
+solve_direct = solve  # to remove warning about 'solve_direct' not specified
 
 def run(model):
     show_results(model.experiment_info, model=model)

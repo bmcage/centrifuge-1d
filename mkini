@@ -1,21 +1,22 @@
 #!/usr/bin/python
 from __future__ import print_function
-import io
+import io, shutil
 import csv
 import numpy as np
 from os import makedirs, path, sep
 from optparse import OptionParser
 from config import ModulesManager
-from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME
+from const import CSV_DIR, INI_DIR, DEFAULTS_ININAME, MEASUREMENTS_ININAME, \
+    PROTO_DIR, PLOTSTYLE_ININAME
 from shared import get_directories
 from collections import namedtuple, defaultdict
-from modules.shared.characteristics import MEASUREMENTS_NAMES
+from modules.shared.measurements import MEASUREMENTS_NAMES
 
 MODMAN = ModulesManager()
 
 BASE_MODULE = MODMAN.find_module('base', submodule='csv_parse')
 
-# dynamicall created options: options added to generated measurements.ini
+# dynamicall created options: options added to generated MEASUREMENTS_ININAME
 # file, that are not specified by the csv file
 # {opt_name: gen_data_function} with 'gen_data_function(exp_type, data, modman)'
 DYNAMIC_OPTIONS = {'measurements_length': None}
@@ -168,8 +169,11 @@ class ExperimentData():
              section_name='experiment'):
 
         def _princ(key, value, stream):
-            if type(value) in (list, tuple):
-                value_str = '[' + (', '.join(value)) +  ']'
+            if value and type(value) in (list, tuple):
+                value_str = '[' + str(value[0])
+                for item in value[1:]:
+                    value_str += ', ' + str(item)
+                value_str += ']'
             else:
                 value_str = value
 
@@ -343,7 +347,7 @@ def quote_csv_file_string(key, value):
         return value
 
 def CSV2data(csv_dir, csv_filebasename):
-    print('\t\t\tReading CSV file... ', end="")
+    print('\t\t\tReading CSV file', csv_filebasename, '... ', end="")
 
 
     csv_filename = csv_dir + csv_filebasename + '.csv'
@@ -371,16 +375,23 @@ def CSV2data(csv_dir, csv_filebasename):
         and (len(csv_fields[1]) >= 10) and (csv_fields[1][:10] == 'Data Instr')):
 
         try:
-            for i in range(13): next(csv_data) # skip useless header
-        except:
+            #csv_fields = next(csv_data)
+            while csv_fields[0] != 'Scan':
+                csv_fields = next(csv_data) # skip useless header
+        except Exception as msg:
             f_csv.close()
 
-            print('Error during file reading occured. Exiting...')
+            print('Error during file reading occured. Message', msg, 'Exiting...')
             exit(1)
 
-        # replace original column names with something more readable
-        csv_fields = ('scan', 'time', 'elapsed', 's101', 's102', 's103',
-                      's119', 's120')
+        # replace original column names with something more readable:
+        # csv_fields = ('scan', 'time', 'elapsed', 's101', 's102', 's103', ...)
+        for i in range(0, 3):
+            csv_fields[i] = csv_fields[i].lower()
+        for i in range(3, len(csv_fields)):
+            fields = csv_fields[i].split(' ')
+            csv_fields[i] = 's' + fields[0]
+
         csv_type = 'scanned_data'
         data = ExperimentData(csv_type)
     else:
@@ -388,21 +399,20 @@ def CSV2data(csv_dir, csv_filebasename):
         required_fields = ('exp_type', 'exp_id', 'exp_no')
         missing = missing_fields_in_csv(csv_fields, required_fields)
         if not missing == []:
+            print()
             print("CSV file: missing identifiers: '%s' "% missing)
             print('CSV error: cannot process CSV file, aborting...')
             exit(1)
 
         extended_fields = ('scan', 'csv_file', 'omega')
         missing = missing_fields_in_csv(csv_fields, extended_fields)
-        if missing:
-            if len(missing) == len(extended_fields):
-                pass # if all are missing, it's of type 'regular_ini'
-            else:
-                print("CSV file: missing identifiers: '%s' "% missing)
-                print('CSV error: cannot process CSV file, aborting...')
-                exit(1)
-        else:
+        if not missing:
             csv_type = 'scan_ini'
+        elif not 'scan' in missing:
+            print("ERROR: 'scan' value is provided in CSV file, but needed "
+                  "identifiers are missing: ",  missing)
+            print('CSV error: cannot process CSV file, aborting...')
+            exit(1)
 
         identifiers = {}
 
@@ -427,23 +437,24 @@ def CSV2data(csv_dir, csv_filebasename):
                 data.append_row(row, exp_id, exp_no)
             else:
                 data.append_row(row)
-    except:
+    except Exception as msg:
         f_csv.close()
 
-        print('Error during file reading occured. Exiting...')
+        print('Error during file reading occured, msg=\n', msg, ' Exiting...')
         exit(1)
 
     if csv_type == 'scanned_data':
-        # remove useless columns from data structure
-        data.delete('scan', 'time', 'elapsed', 's101', 's119', 's120')
+        for name in csv_fields:
+            if name in ('s102', 's103'):
+                # force to use '.' as a delimiter for floats (and not ',')
+                dval = []
+                for value in data.get_value(name):
+                    dval.append(value.replace(',', '.'))
 
-        # force to use '.' as a delimiter for floats (and not ',')
-        for name in ('s102', 's103'):
-            dval = []
-            for value in data.get_value(name):
-                dval.append(value.replace(',', '.'))
-
-            data.set_value(name, dval)
+                data.set_value(name, dval)
+            else:
+                # remove useless columns from data structure
+                data.delete(name)
 
     if csv_type == 'scan_ini':
         # if needed, add quotes to values in csv_file field
@@ -478,10 +489,12 @@ def get_iterables_list(exp_type, modman):
 
     return iterables_list
 
-CSV2INI_NAMES = {'s102': 'f_mt', 's103': 'f_mo'}
+CSV2INI_NAMES = {'s102': 'gf_mt', 's103': 'gf_mo'}
 
 def process_scanned_data(experiment, experiment_info):
     csv_files = experiment.get_value('csv_file')
+    if not csv_files or csv_files in ["''", '""']:
+        return
 
     data_dir  = get_directories('ini', 'data', experiment_info)
 
@@ -524,17 +537,25 @@ def process_scanned_data(experiment, experiment_info):
         scan  = scans[0]
 
         if omega == 0.0:
-            a_duration.append()
+            a_duration.append(0.0)
 
-        for (omega_next, scan_next) in zip(omegas[1:], scans[1:]):
-            if omega == omega_next: continue
+        append_g_duration = False
+
+        scans_nr = len(scans)
+
+        for i in range(1, scans_nr):
+            omega_next = omegas[i]
+            scan_next  = scans[i]
+
+            # handle case last two omegas are same - the last value is needed
+            if (omega == omega_next) and (i+1 < scans_nr): continue
 
             if omega > 0.0: # centrifugation
-                omega_cen.append(str(omega))
+                omega_cen.append(omega)
 
                 if omega < omega_next:
                     a_duration.append(scan_next - scan)
-                    d_duration.apped(0.0)
+                    d_duration.append(0.0)
                     g_duration.append(0.0)
                 elif omega_next == 0.0:
                     d_scan = scan_next - 15 # "guess" that dec takes at most 10s
@@ -550,6 +571,17 @@ def process_scanned_data(experiment, experiment_info):
                     a_duration.append(d_scan - scan)
                     d_duration.append(scan_next - d_scan)
                     append_g_duration = True # activate
+                elif omega == omega_next:
+                    if not i+1 == scans_nr:
+                        raise ValueError('Something went wrong. omega can''t '
+                                         'be equal to omega_next unless they '
+                                         'are last values.')
+                    print('\nWARNING: Last provided omega ' + str(omega) + 'is the '
+                          'same as the previous one, hence no deceleration at '
+                          'the end is performed !')
+                    a_duration.append(scan_next - scan)
+                    d_duration.append(0.0)
+                    g_duration.append(0.0)
                 else: # 0 < omega_next < omega
                     raise NotImplementedError('Decelerating to omega>0 is not '
                                               'supported.')
@@ -564,6 +596,15 @@ def process_scanned_data(experiment, experiment_info):
 
             omega = omega_next
             scan  = scan_next
+
+        a_duration_compressed = compress_seq(a_duration)
+        d_duration_compressed = compress_seq(d_duration)
+        g_duration_compressed = compress_seq(g_duration)
+
+
+        if a_duration_compressed == 0.0: a_duration = 0.0
+        if d_duration_compressed == 0.0: d_duration = 0.0
+        if g_duration_compressed == 0.0: g_duration = 0.0
 
     else: # constant omega
         omega = c_omega
@@ -580,9 +621,9 @@ def process_scanned_data(experiment, experiment_info):
 
     experiment.set_value('omega', omega_cen)
     experiment.set_value('include_acceleration', include_acceleration)
-    experiment.set_value('duration', compress_seq(a_duration))
-    experiment.set_value('deceleration_duration', compress_seq(d_duration))
-    experiment.set_value('fh_duration', compress_seq(g_duration))
+    experiment.set_value('duration', a_duration)
+    experiment.set_value('deceleration_duration', d_duration)
+    experiment.set_value('fh_duration', g_duration)
 
     # Truncate unused values
     for (csv_name, ini_name) in CSV2INI_NAMES.items():
@@ -659,6 +700,10 @@ def data2ini(data, experiment_info):
                                            filename=DEFAULTS_ININAME,
                                            section_name='experiment')
 
+            if not path.exists(exp_base_path + PLOTSTYLE_ININAME):
+                shutil.copy(PROTO_DIR + PLOTSTYLE_ININAME + '.proto',
+                            exp_base_path + PLOTSTYLE_ININAME)
+
             experiment_info['exp_type'] = None # reset exp_id for _process_data
 
             print()
@@ -703,7 +748,7 @@ def data2ini(data, experiment_info):
 
         experiment.delete('exp_id', 'exp_no', 'exp_type')
 
-        experiment.save(data_dir, filename='measurements.ini',
+        experiment.save(data_dir, filename=MEASUREMENTS_ININAME,
                         section_name='experiment-data')
 
         print('\t\t\tDone')

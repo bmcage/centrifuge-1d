@@ -21,7 +21,13 @@ OPTIONS_ITERABLE_LISTS = []
 
 EXCLUDE_FROM_MODEL = ['measurements_length', 'measurements_filter']
 
-PROVIDE_OPTIONS = [lambda cfg: list(cfg.get_value('inv_init_params').keys())]
+def provide_inv_params(cfg):
+    if cfg.get_value('inv_init_params'):
+        return list(cfg.get_value('inv_init_params').keys())
+    else:
+        return []
+
+PROVIDE_OPTIONS = [provide_inv_params]
 
 INTERNAL_OPTIONS = ['h', 'separate_figures']
 

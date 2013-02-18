@@ -14,12 +14,12 @@ try:
 except:
     import configparser
 from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
-     DEFAULTS_ININAME, CONSTANTS_ININAME
+     DEFAULTS_ININAME, CONSTANTS_ININAME, MEASUREMENTS_ININAME
 from shared import parse_value, get_directories, yn_prompt
-from os import listdir, path
+from os import listdir, path, makedirs
 from sys import modules as sysmodules
 from types import MethodType
-from modules.shared.characteristics import Measurements
+from modules.shared.measurements import Measurements
 
 ##################################################################
 #                Internal configuration settings                 #
@@ -54,7 +54,8 @@ class DataStorage():
         pathdir = get_directories('figs', 'mask', experiment_info)
         filename = pathdir + DUMP_DATA_FILENAME
         if not path.exists(filename):
-            print('File with computation results does not exist:', filename)
+            print('INFO: File with computation results does not exist:',
+                  filename)
             return False
 
         with open(filename, 'rb') as f:
@@ -94,8 +95,8 @@ class ModulesManager():
 
                 modules_names[module_name] = module_name
             except:
-                print('Module loading error:Submodule ''info'' of module "%s" '
-                      'could not be loaded. Skipping.'  % module_name)
+                print('INFO: Information about module "%s" could not be '
+                      'loaded. Module loading is skipped.'  % module_name)
 
         self._available_modules = available_modules
         self._loaded_modules = loaded_modules
@@ -578,61 +579,6 @@ class Configuration:
 
         ###alien_options.difference_update([opt[0] for opt in default_options])
 
-def process_global_constants(cfg, consts_cfg):
-    if not consts_cfg: return
-
-    tube_no = cfg.get_value('tube_no')
-    cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
-
-def load_configuration(experiment_info):
-    (search_dirs, data_dir, masks_dir) = \
-      get_directories('ini', ['search', 'data', 'masks'], experiment_info)
-
-    filter_existing = \
-      lambda fnames: list(filter(lambda fname: path.exists(fname), fnames))
-    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
-                                                dirs)
-
-    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
-                                                       search_dirs))
-
-    measurements_filenames = listdir(data_dir)
-    measurements_files = []
-    for fname in measurements_filenames:
-        # valid measurement files are *.ini (i.e. >4 chars filename)
-        # except for 'defaults.ini'
-        if ((fname == DEFAULTS_ININAME) or (len(fname) <= 4)
-            or (fname[-4:] != '.ini')):
-            continue
-
-        measurements_files.append(data_dir + fname)
-
-    mask_filename = ''
-    mask = experiment_info['mask']
-    if mask:
-        mask_filename = masks_dir + mask + '.ini'
-        if not path.exists(mask_filename):
-            print('Mask file "{}" does not exist in expected location:'
-                  '\n{}.'.format(mask, masks_dir))
-            if not yn_prompt('Do you wish to continue without applying '
-                         'the mask? [Y/n]: '):
-                exit(0)
-
-            mask_filename = ''
-
-    cfg_files = defaults_files + measurements_files + [mask_filename]
-
-    cfg = Configuration().read_from_files(*cfg_files)
-
-    # Handle CONSTANTS inifiles
-    constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
-                                                        search_dirs))
-    consts_cfg = None
-    if constants_files:
-        consts_cfg = Configuration().read_from_files(*constants_files)
-
-    return (cfg, consts_cfg)
-
 ##################################################################
 #                 ModelParameters class                          #
 ##################################################################
@@ -709,7 +655,7 @@ class ModelParameters:
 
         # Keep self._itarable_parameters up-to-date
         if key in self._iterable_options_names:
-            if type(value) in [list, tuple]:
+            if type(value) in [list, tuple, np.ndarray]:
                 self._iterable_parameters[key] = value
                 value = value[0] # initialize with first value
             else:
@@ -797,3 +743,91 @@ class ModelParameters:
                 for meas in value: meas_nr += len(meas)
 
         return meas_nr
+
+##################################################################
+#                   Load model function                          #
+##################################################################
+
+def _process_global_constants(cfg, consts_cfg):
+    if not consts_cfg: return
+
+    tube_no = cfg.get_value('tube_no')
+    cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
+
+def _load_configuration(experiment_info):
+    (search_dirs, data_dir, masks_dir) = \
+      get_directories('ini', ['search', 'data', 'masks'], experiment_info)
+
+    filter_existing = \
+      lambda fnames: list(filter(lambda fname: path.exists(fname), fnames))
+    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
+                                                dirs)
+
+    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
+                                                       search_dirs))
+
+    measurements_files = [data_dir + MEASUREMENTS_ININAME]
+
+    # Read experiment default.ini files and measurements.ini
+    # Handle also case when 'csv_file' option is set
+    cfg_files = defaults_files + measurements_files
+    cfg = Configuration().read_from_files(*cfg_files)
+
+    csv_datafilename = cfg.get_value('csv_file', not_found=None)
+    if csv_datafilename:
+        cfg.read_from_files(data_dir + csv_datafilename + '.ini')
+
+    # Read masks files
+    masks_files = []
+    masks = experiment_info['mask']
+    for mask_name in masks:
+        mask_filename = masks_dir + mask_name + '.ini'
+        if not path.exists(mask_filename):
+            print('Mask file "{}" does not exist in expected location:'
+                  '\n{}.'.format(mask_name, masks_dir))
+            if not yn_prompt('Do you wish to continue without applying '
+                             'the mask? [Y/n]: '):
+                exit(0)
+
+        masks_files.append(mask_filename)
+
+    cfg.read_from_files(*masks_files)
+
+    # Handle CONSTANTS inifiles
+    constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
+                                                        search_dirs))
+    consts_cfg = None
+    if constants_files:
+        consts_cfg = Configuration().read_from_files(*constants_files)
+
+    return (cfg, consts_cfg)
+
+def load_model(experiment_info, display_only=False, validate=True,
+               modman = None):
+
+    (cfg, consts_cfg) = _load_configuration(experiment_info)
+
+    # Assign global values not present in (or based on) configuration
+    _process_global_constants(cfg, consts_cfg)
+
+    if display_only:
+        header = ("Configuration file of experiment '{}' number {:d}"
+                  .format(experiment_info['exp_id'],
+                          experiment_info['exp_no']))
+        print("\n", header, '\n', len(header) * '-')
+        cfg.echo()
+
+        return None
+
+    if modman is None:
+        modman = ModulesManager()
+
+    if validate and (not cfg.is_valid(modman, verbose=True)): exit(1)
+
+    cfg.adjust_cfg(modman)
+
+    model = ModelParameters(cfg)
+
+    model.experiment_info = experiment_info
+
+    return model

@@ -4,7 +4,7 @@ PARENTAL_MODULES = ['base']
 
 CONFIG_OPTIONS = [('porosity', None)]
 
-INTERNAL_OPTIONS = ['mass_in_idx', 'mass_out_idx']
+INTERNAL_OPTIONS = ['mass_in_idx', 'mass_out_idx', 'z_size']
 
 OPTIONS_ITERABLE_LISTS = ['l0', 'wl0']
 
@@ -14,8 +14,8 @@ def adjust_cfg(cfg):
     cfg.set_value('z_size', 2)
 
 def check_cfg(cfg):
-    if not cfg.get_value('wl0'):
-        print('Parameter \'wl0\' is not specified.')
+    if not (cfg.get_value('wl0') or cfg.get_value('ww0')):
+        print("One of 'wl0' or 'ww0' parameters must be specified.")
         return False
 
     return True

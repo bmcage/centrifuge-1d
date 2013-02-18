@@ -1,32 +1,20 @@
 from __future__ import division
 
-from modules.direct_saturated.run import solve as direct_solve, extract_data
+from modules.direct_saturated.run import solve as solve_direct
 from modules.shared.solver import simulate_inverse
 
-def solve(model):
+def solve(model, measurements):
 
-    def ip_direct_saturated_heights(model, measurements_names):
+    inv_params = simulate_inverse(solve_direct, model, model.inv_init_params,
+                                  measurements, optimfn=model.optimfn)
 
-        (flag, t, z, measurements) = direct_solve(model)
-
-        result = [flag, t]
-
-        for name in measurements_names:
-            (time, value) = measurements.get_calc_measurement(name)
-            result.append(value[1:])
-
-        return result
-
-    inv_params = simulate_inverse(ip_direct_saturated_heights, model,
-                                  model.inv_init_params, model.measurements,
-                                  optimfn=model.optimfn)
     return inv_params
 
 def run(model):
-    (inv_params, cov) = solve(model)
+    (inv_params, cov) = solve(model, model.measurements)
 
     if inv_params:
-        from modules.shared.functions import show_results
+        from modules.shared.show import show_results
 
         model.set_parameters(inv_params)
         # run once again the direct problem with optimal parameters

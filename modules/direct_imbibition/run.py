@@ -227,7 +227,7 @@ def solve(model):
         else:
             z0 = z[i-1, :]
 
-        (flag, t_out, z[i, :]) = simulate_direct(model, residual_fn, z0)
+        (flag, t, z, i) = simulate_direct(model, residual_fn, z0)
 
         t[i] = t[i-1] + model.duration
 

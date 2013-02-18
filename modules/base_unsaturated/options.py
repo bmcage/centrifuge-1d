@@ -35,12 +35,8 @@ OPTIONS_ITERABLE_LISTS = ['porosity']
 
 def adjust_cfg(cfg):
     # Handle depending variables
-    value = cfg.get_value('n')
-    if type(value) == list:
-        m = [1.-1./n for n in value]
-    else:
-        m = 1. - 1./value
-    cfg.set_value('m', m)
+    n = cfg.get_value('n')
+    if n: cfg.set_value('m', 1. - 1./n)
 
     # Discretization
     inner_points = cfg.get_value('inner_points')

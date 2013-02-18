@@ -2,8 +2,7 @@
 from __future__ import print_function
 from os import listdir
 from shared import get_directories, yn_prompt
-from config import ModulesManager, ModelParameters, process_global_constants, \
-     load_configuration
+from config import ModulesManager, load_model
 from optparse import OptionParser
 from const import DEFAULTS_ININAME, CONSTANTS_ININAME
 
@@ -38,11 +37,13 @@ def parse_input():
     optparser.add_option('-l', '--list', dest='list', action="store_true",
                          default=False,
                          help="Lists all available experiments")
-    optparser.add_option('-m', '--mask', dest='mask', default='',
+    optparser.add_option('-m', '--mask', dest='mask', action="append",
                          metavar='MASK_NAME',
                          help=("Run given experiment with a mask MASK_NAME "
                                "file. The file \'MASK_NAME.ini\' in the masks "
-                               "directory should exist."))
+                               "directory should exist. Option can be supplied "
+                               "multiple times. In that case masks will be "
+                               "applied in the order they were specified"))
     optparser.add_option('-c', '--compare', dest='compare_p', default=False,
                          action='store_true',
                          help=("Compare two configuration files."))
@@ -114,43 +115,29 @@ def run_experiments(exp_id, first_experiment, last_experiment, mask,
               '\n---------------------------------------------------------'
               % (exp_id, first_experiment, last_experiment))
 
-    if not print_cfg_only:
+    if print_cfg_only:
+        modman = None
+    else:
         modman = ModulesManager()
 
     for exp_no in range(first_experiment, last_experiment+1):
-            if verbose:
-                header = ("Executing experiment {} number {:d}."
-                          "".format(exp_id, exp_no))
-                print('\n', len(header) * '=', '\n', header,
-                      '\n', len(header) * '=')
+        if verbose:
+            header = ("Executing experiment {} number {:d}."
+                      "".format(exp_id, exp_no))
+            print('\n', len(header) * '=', '\n', header,
+                  '\n', len(header) * '=')
 
-            experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no,
-                                'mask': mask}
+        experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no,
+                            'mask': mask}
 
-            (cfg, consts_cfg) = load_configuration(experiment_info)
+        model = load_model(experiment_info, display_only=print_cfg_only,
+                           modman = modman)
 
-            # Assign global values not present in (or based on) configuration
-            process_global_constants(cfg, consts_cfg)
+        if print_cfg_only: continue
 
-            if print_cfg_only:
-                header = ("Configuration file of experiment '{}' number {:d}"
-                          .format(exp_id, exp_no))
-                print("\n", header, '\n', len(header) * '-')
-                cfg.echo()
-                continue
+        solver_module = modman.find_module(model.exp_type, submodule='run')
 
-            if not cfg.is_valid(modman, verbose=True): exit(1)
-
-            cfg.adjust_cfg(modman)
-
-            solver_module = modman.find_module(cfg.get_value('exp_type'),
-                                               submodule='run')
-
-            model = ModelParameters(cfg)
-
-            model.experiment_info = experiment_info
-
-            results = solver_module.run(model)
+        solver_module.run(model)
 
 def iterate_value(arg):
 
@@ -175,10 +162,13 @@ def compare2configs(options):
     print('Add information for the second configuration file:')
     exp_id2  = input('Experiment ID  : ').strip()
     exp_no2  = input('Experiment No. : ').strip()
-    mask2    = input('Mask (optional): ').strip()
+    if len(options.mask) > 1:
+        mask2 = options.mask[1]
+    else:
+        mask2    = input('Mask (optional): ').strip()
 
     exp_info1 ={'exp_id': options.exp_id, 'exp_no': options.first_experiment,
-                'mask': options.mask}
+                'mask': options.mask[0]}
     exp_info2 ={'exp_id': exp_id2, 'exp_no': int(exp_no2), 'mask': mask2}
 
     (cfg1, const_cfg1) = load_configuration(experiment_info1)
@@ -220,7 +210,7 @@ if __name__ == "__main__":
     options = parse_input()
 
     if options.show_p:
-        from modules.shared.functions import show_results
+        from modules.shared.show import show_results
 
         experiment_info =  \
           {'exp_id': options.exp_id, 'exp_no': options.first_experiment,

@@ -32,12 +32,15 @@ def on_measurement(t, z, model, measurements):
     MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
     MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
 
-    if model.calc_f_mo:
+    if model.calc_gf_mo:
         omega2g = model.find_omega2g(t)
 
-        measurements.store_calc_f_mo(omega2g, MO,
-                                     model.mo_gc_calibration_curve,
-                                     model.tube_crosssectional_area)
+        measurements.store_calc_gf_mo(omega2g, MO,
+                                      model.mo_gc_calibration_curve,
+                                      model.tube_crosssectional_area)
+
+    if model.calc_gf_mt:
+        raise NotImplementedError
 
 def initialize_z0(z0, model):
     z0[model.mass_in_idx]  = model.wl0
@@ -48,26 +51,14 @@ def initialize_z0(z0, model):
 def update_init(i, z0, model):
     z0[model.mass_in_idx] = model.wl0
 
-def solve(model):
-    (flag, t, z) = simulate_direct(initialize_z0, model, model.measurements,
-                                   residual_fn,
-                                   update_initial_condition=update_init,
-                                   on_measurement=on_measurement)
+def solve(model, measurements):
+    (flag, t, z, i) = \
+      simulate_direct(initialize_z0, model, measurements, residual_fn,
+                      update_initial_condition=update_init,
+                      on_measurement=on_measurement)
 
-    return (flag, t, z, model.measurements)
-
-def extract_data(model):
-    (flag, t, z, measurements) = solve(model)
-
-    if not flag:
-        print('For given model the solver did not find results. Skipping.')
-
-    extracted_data = \
-      {name: (time, value)
-       for (name, time, value) in measurements.iterate_calc_measurements()}
-
-    return (flag, extracted_data)
+    return flag
 
 def run(model):
-    from modules.shared.functions import show_results
+    from modules.shared.show import show_results
     show_results(model.experiment_info, model=model)
