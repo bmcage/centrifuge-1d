@@ -96,16 +96,19 @@ class SC_vanGenuchten():
     def get_dyn_h_init(self, c_gammah, h_init_max):
         return  min(c_gammah / self._gamma, h_init_max)
 
+########################################################################
+#                           Common utilities                           #
+########################################################################
 
 P_DEFAULT = np.arange(0, 10000000, 100)
 
-def retention_curve(n, gamma, theta_s, rho, g,
-                        theta_r=0.0, p=None, h=None, find_p=True):
+def retention_curve(SC, theta_s, rho, g, theta_r=0.0, p=None, h=None,
+                    find_p=True):
     """
       Determine the retention curve.
 
       Parameters:
-        n, gamma - van Genuchten soil parameters
+        SC       - saturation curve object
         theta_s  - maximal saturation; equals to porosity
         theta_r  - residual saturation
         rho      - fluid density
@@ -127,7 +130,6 @@ def retention_curve(n, gamma, theta_s, rho, g,
     else:
         p = None
 
-    theta = theta_r + ((theta_s - theta_r)
-                       * h2u(h, n, 1.-1./n, gamma))
+    theta = theta_r + (theta_s - theta_r) * SC.h2u(h)
 
     return (p, theta)
