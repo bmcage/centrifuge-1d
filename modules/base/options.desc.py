@@ -113,11 +113,19 @@ CONFIG_OPTIONS = {
                   "More precisely it is the force divided by g "
                   "(= gravitational constant)."),
          'f_mo_tara': ("Force implied on the sensor of expelled water by the "
-                       "holding aparatus. Value is a list of two items: "
-                       "(omega, W) where omega is the speed (in rpm) at which "
-                       "the force W was measured - force again is taken as if "
-                       "measured under 1g, i.e. W=F/g with F the centrifugal "
-                       "force."),
+                       "holding aparatus. Two possible values are supported: "
+                       "a) list of two items: (omega, gF_tara) where omega is "
+                       "the speed (in rpm) at which the force gF_tara was "
+                       "measured - force [gF_tara] = 1e-3 kgf (i.e as if "
+                       "measured under 1g: gF_tara = F_tara/g with F the "
+                       "centrifugal force. When this values is supplied, "
+                       "the gF_tara for other speeds is calculated dynamically "
+                       "at runtime."
+                       "\nb) a dictiory of form: {omega1: gF_tara1, omega2: "
+                       "gF_tara2, ...}. In this case forces are taken as "
+                       "static, so no dynamic adaptation is supported (which "
+                       "implicitly means that gF_tara in the acceleration/"
+                       "deceleration phase is wrong)"),
          'f_mt_tara': ("Force implied on the sensor measuring the water inside "
                        "of the tube. See also 'f_mo_tara'."),
          'f_mo_calibration_curve':\
