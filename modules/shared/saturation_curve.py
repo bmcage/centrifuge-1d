@@ -1,24 +1,100 @@
 from __future__ import division
 
 """
-  This modules contains function based on Van Genuchten formulas
-  and formulas derived from them.
+  This modules contains saturation curve object(s)
 """
 import numpy as np
 
+########################################################################
+#                       van Genuchten model                            #
+########################################################################
 
+class SC_vanGenuchten():
+    def __init__(self, n=None, gamma=None):
+        self._n = n
+        if n is None:
+            self._m = None
+        else:
+            self._m = 1. - 1./n
+        self._gamma = gamma
 
+    def set_parameters(self, params):
+        if 'n' in params:
+            n = params['n']
+            self._n = n
+            self._m = 1. - 1./n
 
+        if 'gamma' in params:
+            self._gamma = params['gamma']
 
+    def h2Kh(self, h, Ks, Kh = None):
+        tmp1 = np.power(self._gamma * h, self._n-1.)
+        tmp2 = np.power(1 + self._gamma * h * tmp1, self._m/2.)
 
+        if not Kh is None:
+            Kh[:] = Ks/tmp2 * np.power(1-tmp1/np.power(tmp2, 2), 2)
+        else:
+            Kh    = Ks/tmp2 * np.power(1-tmp1/np.power(tmp2, 2), 2)
 
+        return Kh
 
+    def u2Ku(self, u, Ks, Ku = None):
+        m = self._m
 
+        if not Ku is None:
+            Ku[:] = (Ks * np.power(u, 0.5)
+                     * np.power(1 - np.power(1 - np.power(u, 1./m), m), 2))
+        else:
+            Ku    = (Ks * np.power(u, 0.5)
+                     * np.power(1 - np.power(1 - np.power(u, 1./m), m), 2))
 
+        return Ku
 
+    def dudh(self, h, dudh = None):
+        n     = self._n
+        gamma = self._gamma
 
+        tmp1 = np.power(gamma*h, n-1)
+        tmp2 = np.power(1 + gamma*h * tmp1, self._m+1)
 
+        if not dudh is None:
+            dudh[:] = - gamma*(n-1) * tmp1 / tmp2
+        else:
+            dudh    = - gamma*(n-1) * tmp1 / tmp2
 
+        return dudh
+
+    def dhdu(self, u, n, m, gamma, dhdu = None):
+        tmp1 = np.power(u, 1./m)
+        tmp2 = np.power(1 - tmp1, m)
+
+        if not dhdu is None:
+            dhdu[:] = - 1/gamma/(n-1) / tmp1 / tmp2
+        else:
+            dhdu    = - 1./gamma/(n-1) / tmp1 / tmp2
+
+        return dudh
+
+    def h2u(self, h, u = None):
+        if not u is None:
+            u[:] = 1/np.power(1+ np.power(self._gamma * h, self._n), self._m)
+        else:
+            u    = 1/np.power(1+ np.power(self._gamma * h, self._n), self._m)
+
+        return u
+
+    def u2h(self, u, n, m, gamma, h = None):
+        if not h is None:
+            h[:] =  (np.power(np.power(u, -1./self._m) - 1., 1./self._n)
+                     / self._gamma)
+        else:
+            h    =  (np.power(np.power(u, -1./self._m) - 1, 1/self._n)
+                     / self._gamma)
+
+        return h
+
+    def get_dyn_h_init(self, c_gammah, h_init_max):
+        return  min(c_gammah / self._gamma, h_init_max)
 
 
 P_DEFAULT = np.arange(0, 10000000, 100)
