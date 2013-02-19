@@ -391,6 +391,11 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 
         model.set_parameters(optim_params)
 
+        # reset if previously stored values of measurements (it's re-set also
+        # inside the simulate_direct() but user may supply his own direct
+        # function, so we need to be sure measurements were re-setted
+        measurements.reset_calc_measurements()
+
         flag = direct_fn(model, measurements)
 
         if flag:
