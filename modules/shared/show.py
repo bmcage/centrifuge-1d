@@ -798,11 +798,11 @@ class DPlots():
                 plt.ion()
                 plt.show()
 
-        if sys.version_info[0] == 2:
-            #python 2.7
-            raw_input('Press ENTER to continue...')
-        else:
-            input('Press ENTER to continue...')
+            if sys.version_info[0] == 2:
+                #python 2.7
+                raw_input('Press ENTER to continue...')
+            else:
+                input('Press ENTER to continue...')
 
 def show_results(experiment_info,
                  model=None, inv_params=None, cov=None,
@@ -819,15 +819,15 @@ def show_results(experiment_info,
                   '\nINFO: Nothing to display. Exiting.')
             exit(0)
 
-    if not inv_params is None: data.store_value('inv_params', inv_params)
-    if not cov is None: data.store_value('cov', cov)
-
 
     save_data = False
 
     if not model is None:
         data.store_computation(model, model.measurements)
         data.store_measurements(model.measurements)
+
+        if not inv_params is None: data.store_value('inv_params', inv_params)
+        if not cov is None: data.store_value('cov', cov)
 
         from shared import get_directories
         savedir = get_directories('figs', 'mask', experiment_info)
