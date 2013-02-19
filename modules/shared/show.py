@@ -567,16 +567,10 @@ class PlotStyles():
         return line_styles
 
 class DPlots():
-    def __init__(self, data, experiment_info):
-        self._data = data
+    def __init__(self, experiment_info):
         self._experiment_info = experiment_info
 
         self._plotstyles = PlotStyles(experiment_info)
-
-        if not data.has_data('lines'):
-            print('No data is provided. Nothing to display.')
-        else: # generate dplots
-            self._dplots = self._mk_dplots(data, experiment_info)
 
         self.fignum = 1
 
@@ -590,7 +584,7 @@ class DPlots():
     def get_references(self):
         return self._plotstyles.get_value('params_ref')
 
-    def _mk_dplots(self, data, experiment_info):
+    def _mk_dplots(self, data):
         def _mk_dplots_bucket(data_types, plot_styles):
             dplots_bucket = \
               {dtype: {'id': dtype, 'data': [],
@@ -684,7 +678,7 @@ class DPlots():
 
         return ordered_dplots
 
-    def display(self, fignum = None):
+    def display(self, data, fignum = None):
         if fignum is not None:
             self.fignum = fignum
 
@@ -785,9 +779,11 @@ class DPlots():
                 plt.savefig(save_dir + 'image-' + str(self.fignum), dpi=300)
 
         # function body
-        data   = self._data
+        if not data.has_data('lines'):
+            print('No data is provided. Nothing to display.')
+        else: # generate dplots
+            self._dplots = self._mk_dplots(data)
 
-        if not self._dplots is None: # all OK, dplots were generated
             print_status(data)
 
             _show_dplots(self._dplots, self._plotstyles.get_display_options(),
@@ -841,8 +837,7 @@ def show_results(experiment_info,
 
         save_data = True
 
-    if show_figures:
-        dplots = DPlots(data, experiment_info)
+    dplots = DPlots(experiment_info)
 
         if data.store_references(dplots.get_references(), model):
             save_data = True
@@ -855,4 +850,4 @@ def show_results(experiment_info,
         storage.save(experiment_info)
 
     if show_figures:
-        dplots.display()
+        dplots.display(data)
