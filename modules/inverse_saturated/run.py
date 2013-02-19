@@ -5,10 +5,10 @@ from modules.shared.solver import simulate_inverse
 
 def solve(model, measurements):
 
-    inv_params = simulate_inverse(solve_direct, model, model.inv_init_params,
-                                  measurements, optimfn=model.optimfn)
+    (inv_params, cov) = \
+      simulate_inverse(solve_direct, model, measurements, optimfn=model.optimfn)
 
-    return inv_params
+    return (inv_params, cov)
 
 def run(model):
     (inv_params, cov) = solve(model, model.measurements)
