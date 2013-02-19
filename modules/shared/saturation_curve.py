@@ -128,6 +128,8 @@ def retention_curve(SC, theta_s, rho, g, theta_r=0.0, p=None, h=None,
         g        - gravitation constant
         p        - fluid pressure
         h        - pressure head
+        find_p   - if True and h is supplied, the p is determined
+                   (otherwise p=None is returned)
 
       Return values:
         p        - fluid pressure
