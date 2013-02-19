@@ -561,10 +561,10 @@ class Configuration:
                 alien_options.difference_update(found_aliens)
 
             if alien_options:
-                print('\n Options found in configuration, but not specified '
+                print('\n  Options found in configuration, but not specified '
                       'by a module:')
                 for option in alien_options:
-                    print('  ', option)
+                    print('   ', option)
 
             if not yn_prompt('\nAlien options found. Do you wish to '
                              'continue? [Y/n]: ', default='y'):
