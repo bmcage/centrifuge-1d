@@ -504,6 +504,10 @@ class Configuration:
 
         self._config_definition = parsed_options
 
+        # Set provided options by default to None
+        for provided_option in parsed_options['provided']:
+            cfg_dict[provided_option] = None
+
     def is_valid(self, modman, verbose=True):
 
         def custom_cfg_check(options_module):
@@ -678,7 +682,7 @@ class ModelParameters:
             self.SC.set_parameters(parameters_dict)
 
         for (key, value) in parameters_dict.items():
-            setattr(self, key, value)
+            if hasattr(self, key): setattr(self, key, value)
 
     def get_parameters(self, parameters):
         return {key: getattr(self, key)
