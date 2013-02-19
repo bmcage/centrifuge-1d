@@ -5,6 +5,7 @@ from collections import OrderedDict
 from shared import get_directories, flatten
 from os import makedirs, path
 from modules.shared.functions import rpm2radps, compare_data
+from modules.shared.saturation_curve import retention_curve
 
 # MEASUREMENTS_NAMES are the mapping between the internal
 # denotation of measured data (used during computation and for
@@ -442,7 +443,11 @@ class Measurements():
 
         iS = 0
         for name in self._measurements.keys():
-            value = data[name][1:]
+            if name == 'theta':
+                # theta is in x and not t
+                value = data[name]
+            else:
+                value = data[name][1:]
 
             if name in self._measurements_diff:
                 iE = iS + np.alen(value) - 1
@@ -487,6 +492,8 @@ class Measurements():
 
             if name in ('h', 'u'):
                 xvalue = self._computed['x']
+            elif name == 'theta':
+                xvalue = self._measurements_xvalues[name]
             else:
                 xvalue = t
 
@@ -512,6 +519,21 @@ class Measurements():
                 yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
             else:
                 yield (name, xvalue, yvalue)
+
+    def store_calc_theta(self, h, SC, theta_s, theta_r, rho, g):
+        if not 'theta' in self._computed:
+            self._computed['theta'] = np.empty(h.shape, dtype=float)
+            self._indexes['theta'] = 0
+
+        idx = self._indexes['theta']
+        size = np.alen(h)
+        value = retention_curve(SC, theta_s, rho, g, theta_r, p=None, h=h,
+                                find_p=False)[1]
+
+        self._computed['theta'][idx:idx+size] = value
+        self._indexes['theta'] += size
+
+        return value
 
     def store_calc_u(self, x, h, SC):
         """
@@ -792,7 +814,11 @@ class Measurements():
         measured = self._measurements
 
         for (name, measured_value) in self._measurements.items():
-            computed_value = computed[name][1:]
+            if name == 'theta':
+                # theta is based on pressures in x, not t
+                computed_value = computed[name]
+            else:
+                computed_value = computed[name][1:]
 
             if name in measurements_diff:
                 compare_data('d'+name, computed_value[1:] - computed_value[:-1],
