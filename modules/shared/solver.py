@@ -432,7 +432,7 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
         init_values  = [transform[name](value)
                         for (name, value) in model.init_values.items()]
     else:
-        init_values  = model.init_values.values()
+        init_values  = list(model.init_values.values())
 
     import scipy.optimize
 
