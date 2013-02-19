@@ -815,10 +815,8 @@ def show_results(experiment_info,
                   '\nINFO: Nothing to display. Exiting.')
             exit(0)
 
-
-    save_data = False
-
-    if not model is None:
+        save_data = False
+    else:
         data.store_computation(model, model.measurements)
         data.store_measurements(model.measurements)
 
@@ -839,10 +837,7 @@ def show_results(experiment_info,
 
     dplots = DPlots(experiment_info)
 
-        if data.store_references(dplots.get_references(), model):
-            save_data = True
-
-    if save_data:
+    if data.store_references(dplots.get_references(), model) or save_data:
         if data.get_value('experiment_info') is None:
             data.store_value('experiment_info', experiment_info)
 
