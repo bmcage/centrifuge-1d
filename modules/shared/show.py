@@ -310,7 +310,7 @@ class ResultsData():
                                              theta_r=theta_r)
                 if hasattr(model, 'p'):
                     (p_user, theta_user) = \
-                      retention_curve(SC, theta_s,
+                      retention_curve(model.SC, theta_s,
                                       model.density, model.g, theta_r=theta_r,
                                       p=None, h=model.h)
                     data['theta'] = (p, theta, theta_user)
