@@ -122,16 +122,16 @@ def check_cfg(cfg):
 
         if type(F_calibration_curve) in (list, tuple):
             if not (len(F_calibration_curve) == len(F)):
-                print("Force calibration curve '" + F_calibration_curve
-                      +"' supplied as array has to be of the same length "
+                print("Force calibration curve '" + F_name + "_calibration_curve"
+                      "' supplied as array has to be of the same length "
                     "as the measured force '"+ F + "'")
                 return False
         elif type(F_calibration_curve) in (float, int, dict):
             pass
         elif F_calibration_curve is None:
-            print('Info: Calibration curve: ' +  F_name + ' was not '
-                  'specified, difference between two subsequent forces will be '
-                  'used instead.')
+            print('Info: Calibration curve: ' +  F_name + '_calibration_curve'
+                  + ' was not specified, difference between two subsequent '
+                  'forces will be used instead.')
             pass
         else:
             print('Unsuppported type for calibration_curve of ' + F_name + '.'
