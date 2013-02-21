@@ -419,9 +419,8 @@ class Measurements():
                     # information is only available at runtime
                     if (name + '_tara' in self._computed):
                         F_tara = self._computed[name + '_tara']
-                        print('tara', F_tara)
+
                         self._measurements[name][:] -= F_tara[1:]
-                    print('FM', self._measurements[name])
 
                 if name in self._measurements_diff:
                     values.append(value[1:] - value[:-1])
