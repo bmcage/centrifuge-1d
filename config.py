@@ -299,6 +299,12 @@ class Configuration:
                 module.adjust_cfg(self)
             return True
 
+        # Before processing custom adjustment set provided options
+        # (by default to None)
+        cfg_dict = self._cfg_dict
+        for provided_option in self._config_definition['provided']:
+            cfg_dict[provided_option] = None
+
         exp_type = self.get_value('exp_type')
 
         modman.traverse_ancestors(exp_type, module_adjust_cfg,
@@ -503,10 +509,6 @@ class Configuration:
             exit(1)
 
         self._config_definition = parsed_options
-
-        # Set provided options by default to None
-        for provided_option in parsed_options['provided']:
-            cfg_dict[provided_option] = None
 
     def is_valid(self, modman, verbose=True):
 
