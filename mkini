@@ -349,7 +349,6 @@ def quote_csv_file_string(key, value):
 def CSV2data(csv_dir, csv_filebasename):
     print('\t\t\tReading CSV file', csv_filebasename, '... ', end="")
 
-
     csv_filename = csv_dir + csv_filebasename + '.csv'
     # open CSV file
     try:
@@ -635,7 +634,7 @@ def process_scanned_data(experiment, experiment_info):
         scanned_data.delete(csv_name)
 
     # Remove unused data
-    experiment.del_value('scan')
+    experiment.delete('scan')
 
     filename = csv_scanned + '.ini'
     scanned_data.save(data_dir, filename)
