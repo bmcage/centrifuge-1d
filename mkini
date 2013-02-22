@@ -634,6 +634,9 @@ def process_scanned_data(experiment, experiment_info):
                                scanned_force_weights[scan_first: (scan_last+1)])
         scanned_data.delete(csv_name)
 
+    # Remove unused data
+    experiment.del_value('scan')
+
     filename = csv_scanned + '.ini'
     scanned_data.save(data_dir, filename)
 
