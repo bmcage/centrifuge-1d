@@ -146,27 +146,27 @@ def on_measurement(t, z, model, measurements):
     MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
     x  = y2x(model.y, s1, s2)
 
-    if model.calc_wm:
-        u = measurements.store_calc_u(x, z[model.first_idx: model.last_idx+1],
-                                      model.SC)
+    u = measurements.store_calc_u(x, z[model.first_idx: model.last_idx+1],
+                                  model.SC)
 
-        (WM, WM_in_tube) = \
-          measurements.store_calc_wm(u, model.dy, s1, s2, MI,
-                                     model.l0-s2, MO, model.porosity,
-                                     model.fl2, model.fp2)
-    if model.calc_gc:
+    (WM, WM_in_tube) = \
+      measurements.store_calc_wm(u, model.dy, s1, s2, MI,
+                                 model.l0-s2, MO, model.porosity,
+                                 model.fl2, model.fp2)
+
+    if measurements.calc_measurement_p('GC'):
         measurements.store_calc_gc(u, model.y, model.dy, s1, s2,
                                    MI, s2, model.l0, model.porosity,
                                    model.fl2, model.fp2, model.l0,
                                    WM_in_tube, model.density,
                                    from_end=model.l0 + model.fl2)
-    if model.calc_rm:
+
+    if measurements.calc_measurement_p('RM'):
         measurements.store_calc_rm(t, u, MI, s1, s2, model)
 
-    if model.calc_gcf_mo or model.calc_gf_mo or model.calc_f_mt:
-        omega2g = model.find_omega2g(t)
+    omega2g = model.find_omega2g(t)
 
-    if model.calc_gf_mt:
+    if measurements.calc_measurement_p('gF_MT'):
         l0 = model.l0
         rL = model.re - model.fl2
         r0 = model.re - model.fl2 - l0
@@ -177,7 +177,7 @@ def on_measurement(t, z, model, measurements):
                                       model.density,
                                       model.tube_crosssectional_area)
 
-    if model.calc_gf_mo:
+    if measurements.calc_measurement_p('gF_MO'):
         measurements.store_calc_gf_mo(omega2g, MO,
                                       model.mo_gc_calibration_curve,
                                       model.tube_crosssectional_area)

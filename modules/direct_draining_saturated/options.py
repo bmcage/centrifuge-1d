@@ -39,7 +39,4 @@ def adjust_cfg(cfg):
     # total length of 'z' array (discretization points + s1,s2,mass_in,...)
     cfg.set_value('z_size',       inner_points+7)
 
-    # by default compute all measurements but rotational momentum
-    cfg.set_value('calc_rm', False)
-
     # if 'dynamic_h_init' then 'h_init' is set at runtime

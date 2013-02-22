@@ -82,6 +82,9 @@ class Measurements():
         self._computations_array = None
         self._error_array        = None
 
+        # Do we run a direct or inverse problem?
+        self._run_inverse_p = None
+
     def read(self, cfg):
         """
         Read and transform data from configuration object.
@@ -95,6 +98,9 @@ class Measurements():
         measurements_xvalues = self._measurements_xvalues
         measurements_weights = self._measurements_weights
         measurements_diff    = self._measurements_diff
+
+        # 0. Determine whether we run direct or inverse problem
+        self.run_inverse_problem_p(cfg.get_value('inv_init_params'))
 
         # 1. determine measurements times
         phases_scans = \
@@ -518,6 +524,16 @@ class Measurements():
                 yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
             else:
                 yield (name, xvalue, yvalue)
+
+    def calc_measurement_p(self, measurement_name):
+        if measurement_name == 'RM':
+            return False
+
+        return ((not self._run_inverse_p)
+                or (measurement_name in self._measurements))
+
+    def run_inverse_problem_p(self, flag):
+        self._run_inverse_p = bool(flag)
 
     def store_calc_theta(self, h, SC, theta_s, theta_r, rho, g):
         if not 'theta' in self._computed:

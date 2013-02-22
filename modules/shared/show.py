@@ -817,6 +817,9 @@ def show_results(experiment_info,
 
         save_data = False
     else:
+        # Disable determining of only needed calc (for inverse)
+        model.measurements.run_inverse_problem_p(False)
+
         data.store_computation(model, model.measurements)
         data.store_measurements(model.measurements)
 
