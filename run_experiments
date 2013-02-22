@@ -6,6 +6,46 @@ from config import ModulesManager, load_model
 from optparse import OptionParser
 from const import DEFAULTS_ININAME, CONSTANTS_ININAME
 
+def compare_experiment_csv(exp_id):
+    import os, subprocess
+    from const import DIFFPROG, CSV_DIR
+
+    if not DIFFPROG:
+        print('No DIFFPROG was selected. Cannot compare. Exiting.')
+        exit(1)
+
+    exp_info = {key: '' for key in ['exp_no', 'mask']}
+    exp_info['exp_id'] = exp_id
+
+    csv_filename = ''
+    exp_basedir = get_directories('ini', 'exp_base', exp_info)
+    filenames = listdir(exp_basedir)
+    for filename in filenames:
+        if ((len(filename) > 10) and (filename[:5] == 'orig.')
+            and (filename[-4:] == '.csv')):
+
+            csv_filename = filename[5:]
+            break
+
+    if not csv_filename:
+        print('Original csv file not found. Cannot compare. Exiting.')
+        exit(0)
+
+    csv_original = exp_basedir + '/' + 'orig.' + csv_filename
+    csv_current = CSV_DIR + '/' + csv_filename
+
+    if not os.path.exists(csv_current):
+        csv_current = csv_current[:-4] + '/' + csv_filename
+
+    if not os.path.exists(csv_current):
+        print('Current CSV file: ', csv_current, 'does not exist. Cannot '
+              'compare. Exiting.')
+        exit(0)
+
+    subprocess.call([DIFFPROG, csv_original, csv_current])
+
+    exit(0)
+
 def list_experiments(verbose=True):
     from os import listdir
 
@@ -63,6 +103,9 @@ def parse_input():
     optparser.add_option('-v', '--verbose', dest='verbose',
                          action="store_true", default=False,
                          help="If possible, provide more detailed informations")
+    optparser.add_option('-w', '--csv-diff', dest='csv_diff', default=False,
+                         action='store_true',
+                         help=("Compare the original with actual csv file."))
 
     (options, args) = optparser.parse_args()
     arg_len = len(args)
@@ -75,8 +118,11 @@ def parse_input():
             optparser.print_help()
         exit(0)
     elif arg_len == 1:
-        optparser.print_help()
-        exit(0)
+        if options.csv_diff:
+            compare_experiment_csv(args[0])
+        else:
+            optparser.print_help()
+            exit(0)
     elif options.list:
         print('Error: Flag ''-l'' cannot be used with an argument.')
         exit(1)
