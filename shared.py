@@ -14,9 +14,12 @@ def yn_prompt(question_str, default='y'):
 
 def get_directories(basedir_type, dirs, experiment_info):
 
+    if experiment_info['mask']: mask = experiment_info['mask'][0]
+    else: mask = ''
+
     dir_struct = ['exp_base', 'exp_no', 'masks', 'mask']
     dir_values = (experiment_info['exp_id'], str(experiment_info['exp_no']),
-                  MASKS_DIRNAME, experiment_info['mask'][0])
+                  MASKS_DIRNAME, mask)
 
     def get_dir(dir_type, base_dir):
         if dir_type == 'base':
