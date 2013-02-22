@@ -706,6 +706,13 @@ def data2ini(data, experiment_info):
                 shutil.copy(PROTO_DIR + PLOTSTYLE_ININAME + '.proto',
                             exp_base_path + PLOTSTYLE_ININAME)
 
+            # copy the original csv files (in case they are overwritten in the
+            # future so that we know what the data was generated from)
+            print('\nSaving the original csv file(s)...')
+            csv_filename = experiment_info['csv_filebasename'] + '.csv'
+            shutil.copy(experiment_info['csv_path'] + csv_filename,
+                        exp_base_path + 'orig.' + csv_filename)
+
             experiment_info['exp_type'] = None # reset exp_id for _process_data
 
             print()
