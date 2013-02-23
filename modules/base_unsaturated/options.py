@@ -26,8 +26,7 @@ CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma',
                  ]
 
 INTERNAL_OPTIONS = ['m', 'y', 'y12', 'dy', 'ldc1', 'ldc2', 'ldc3',
-                    'k_dx', 'wm0', 'calc_gc', 'calc_rm', 'calc_wm',
-                    'SC']
+                    'k_dx', 'wm0', 'SC']
 
 EXCLUDE_FROM_MODEL = ['dtype']
 
@@ -70,7 +69,3 @@ def adjust_cfg(cfg):
     cfg.set_value('ldc1', ldc1)
     cfg.set_value('ldc2', ldc2)
     cfg.set_value('ldc3', ldc3)
-
-    cfg.set_value('calc_wm', True)
-    cfg.set_value('calc_gc', True)
-    cfg.set_value('calc_rm', True)
