@@ -62,7 +62,8 @@ def list_experiments(args, verbose=True):
 
     if list_type == 'base':
         print('Available exp_IDs:\n')
-        out_filenames = filenames
+        out_filenames = filter(lambda fname: not fname[-4:] in ('.ini', '.csv'),
+                               filenames)
     elif list_type == 'exp_base':
         print("Available exp_NOs for experiment '" + args.exp_id)
         out_filenames = filter(lambda fname: not fname[-4:] in ('.ini', '.csv'),
