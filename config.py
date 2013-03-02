@@ -238,7 +238,7 @@ class Configuration:
             print('cfg:iterate_values: preserving sections is not implemented.')
             exit(1)
 
-        return map(lambda value: value, self._cfg_dict.items())
+        return self._cfg_dict.items()
 
     def missing_options(self, options, section = None):
 
@@ -362,7 +362,7 @@ class Configuration:
             # read config files
             parser   = configparser.ConfigParser()
             try:
-                read_files = parser.read(fname)
+                parser.read(fname)
             except configparser.DuplicateOptionError as E:
                 print(E)
                 exit(0)
