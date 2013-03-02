@@ -47,8 +47,8 @@ class DataStorage():
         if not path.exists(savedir):
             makedirs(savedir)
 
-        with open(savedir + DUMP_DATA_FILENAME, 'wb') as f:
-            pickle.dump(self._data, f, DUMP_DATA_VERSION)
+        with open(savedir + DUMP_DATA_FILENAME, 'wb') as fout:
+            pickle.dump(self._data, fout, DUMP_DATA_VERSION)
 
     def load(self, experiment_info):
         pathdir = get_directories('figs', 'mask', experiment_info)
@@ -58,8 +58,8 @@ class DataStorage():
                   filename)
             return False
 
-        with open(filename, 'rb') as f:
-            self._data = pickle.load(f)
+        with open(filename, 'rb') as fout:
+            self._data = pickle.load(fout)
 
         return True
 
