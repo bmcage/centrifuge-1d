@@ -62,12 +62,14 @@ def list_experiments(args, verbose=True):
 
     if list_type == 'base':
         print('Available exp_IDs:\n')
-        out_filenames = filter(lambda fname: not fname[-4:] in ('.ini', '.csv'),
-                               filenames)
+        out_filenames = \
+          [fname for fname in filenames if not fname[-4:] in ('.ini', '.csv')]
+
     elif list_type == 'exp_base':
         print("Available exp_NOs for experiment '" + args.exp_id)
-        out_filenames = filter(lambda fname: not fname[-4:] in ('.ini', '.csv'),
-                               filenames)
+        out_filenames = \
+          [fname for fname in filenames if not fname[-4:] in ('.ini', '.csv')]
+
     # elif list_type == 'exp_no':
     #     print('Inifiles listed for experiment: ', args.exp_id,
     #           '\nwith exp_NO: ', args.exp_no)
@@ -76,7 +78,8 @@ def list_experiments(args, verbose=True):
     else:
         print("Available masks for experiment: '" + args.exp_id +
               "' of number '" + repr(args.exp_no) +"':\n")
-        out_filenames = [fname[:-4] for fname in filenames if fname[-4:]=='.ini']
+        out_filenames = \
+          [fname[:-4] for fname in filenames if fname[-4:] == '.ini']
 
     print('\n'.join(sorted(out_filenames)))
 
