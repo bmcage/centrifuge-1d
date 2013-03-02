@@ -160,8 +160,6 @@ def parse_input():
         argparser.print_help()
         exit(0)
 
-    exit(0)
-
     return args
 
 def run_experiments(exp_id, first_experiment, last_experiment, mask,
@@ -272,11 +270,14 @@ def compare2configs(options):
 if __name__ == "__main__":
     options = parse_input()
 
+    if options.last_exp_no is None:
+        options.last_exp_no = options.exp_no
+
     if options.show_p:
         from modules.shared.show import show_results
 
         experiment_info =  \
-          {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
+          {'exp_id': options.exp_id, 'exp_no': options.exp_no,
            'mask': options.mask}
 
         show_results(experiment_info)
@@ -285,7 +286,7 @@ if __name__ == "__main__":
         compare2configs(options)
     else:
         print_cfg_only = options.print_config_p
-        run_experiments(options.exp_id, options.first_experiment,
-                        options.last_experiment, options.mask,
+        run_experiments(options.exp_id, options.exp_no,
+                        options.last_exp_no, options.mask,
                         verbose=(not print_cfg_only),
                         print_cfg_only=print_cfg_only)
