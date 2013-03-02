@@ -231,6 +231,8 @@ def iterate_value(arg):
         yield ''
 
 def compare2configs(options):
+    from config import load_configuration
+
     print('Add information for the second configuration file:')
     exp_id2  = input('Experiment ID  : ').strip()
     exp_no2  = input('Experiment No. : ').strip()
@@ -239,12 +241,12 @@ def compare2configs(options):
     else:
         mask2    = input('Mask (optional): ').strip()
 
-    exp_info1 ={'exp_id': options.exp_id, 'exp_no': options.first_experiment,
-                'mask': options.mask[0]}
-    exp_info2 ={'exp_id': exp_id2, 'exp_no': int(exp_no2), 'mask': mask2}
+    exp_info1 = {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
+                 'mask': options.mask[0]}
+    exp_info2 = {'exp_id': exp_id2, 'exp_no': int(exp_no2), 'mask': mask2}
 
-    (cfg1, const_cfg1) = load_configuration(experiment_info1)
-    (cfg2, const_cfg2) = load_configuration(experiment_info2)
+    cfg1 = load_configuration(exp_info1)
+    cfg2 = load_configuration(exp_info2)
 
     all_parameters = sorted(set(cfg1.list_options() + cfg2.list_options()))
 
