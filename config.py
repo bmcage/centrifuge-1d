@@ -766,13 +766,9 @@ def load_configuration(experiment_info, include_global_constants=True):
     (search_dirs, data_dir, masks_dir) = \
       get_directories('ini', ['search', 'data', 'masks'], experiment_info)
 
-    filter_existing = \
-      lambda fnames: list(filter(lambda fname: path.exists(fname), fnames))
-    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
-                                                dirs)
-
-    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
-                                                       search_dirs))
+    defaults_files = \
+      [fname for fname in [dir + DEFAULTS_ININAME for dir in search_dirs]
+       if path.exists(fname)]
 
     measurements_files = [data_dir + MEASUREMENTS_ININAME]
 
@@ -803,8 +799,10 @@ def load_configuration(experiment_info, include_global_constants=True):
 
     # Handle CONSTANTS inifiles
     if include_global_constants:
-        constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
-                                                        search_dirs))
+        constants_files = \
+          [fname for fname in [dir + CONSTANTS_ININAME for dir in search_dirs]
+           if path.exists(fname)]
+
         if constants_files:
             consts_cfg = Configuration().read_from_files(*constants_files)
 
