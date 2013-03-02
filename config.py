@@ -762,13 +762,7 @@ class ModelParameters:
 #                   Load model function                          #
 ##################################################################
 
-def _process_global_constants(cfg, consts_cfg):
-    if not consts_cfg: return
-
-    tube_no = cfg.get_value('tube_no')
-    cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
-
-def _load_configuration(experiment_info):
+def _load_configuration(experiment_info, include_global_constants=True):
     (search_dirs, data_dir, masks_dir) = \
       get_directories('ini', ['search', 'data', 'masks'], experiment_info)
 
@@ -808,21 +802,22 @@ def _load_configuration(experiment_info):
     cfg.read_from_files(*masks_files)
 
     # Handle CONSTANTS inifiles
-    constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
+    if include_global_constants:
+        constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
                                                         search_dirs))
-    consts_cfg = None
-    if constants_files:
-        consts_cfg = Configuration().read_from_files(*constants_files)
+        if constants_files:
+            consts_cfg = Configuration().read_from_files(*constants_files)
 
-    return (cfg, consts_cfg)
+        tube_no = cfg.get_value('tube_no')
+        cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
+
+    return cfg
 
 def load_model(experiment_info, display_only=False, validate=True,
                modman = None):
 
-    (cfg, consts_cfg) = _load_configuration(experiment_info)
-
-    # Assign global values not present in (or based on) configuration
-    _process_global_constants(cfg, consts_cfg)
+    # Process also global constants
+    cfg = _load_configuration(experiment_info, include_global_constants=True)
 
     if display_only:
         header = ("Configuration file of experiment '{}' number {:d}"
