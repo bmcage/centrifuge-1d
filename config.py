@@ -762,7 +762,7 @@ class ModelParameters:
 #                   Load model function                          #
 ##################################################################
 
-def _load_configuration(experiment_info, include_global_constants=True):
+def load_configuration(experiment_info, include_global_constants=True):
     (search_dirs, data_dir, masks_dir) = \
       get_directories('ini', ['search', 'data', 'masks'], experiment_info)
 
@@ -817,7 +817,7 @@ def load_model(experiment_info, display_only=False, validate=True,
                modman = None):
 
     # Process also global constants
-    cfg = _load_configuration(experiment_info, include_global_constants=True)
+    cfg = load_configuration(experiment_info, include_global_constants=True)
 
     if display_only:
         header = ("Configuration file of experiment '{}' number {:d}"
