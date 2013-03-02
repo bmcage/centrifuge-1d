@@ -165,7 +165,7 @@ class ModulesManager():
             module_name = (self._modules_names[modname_or_exptype]
                            + '.' + submodule)
         else:
-             module_name = self._modules_names[modname_or_exptype]
+            module_name = self._modules_names[modname_or_exptype]
 
         if not module_name in self._loaded_modules:
             module_full_name = 'modules.' + module_name
@@ -767,7 +767,7 @@ def load_configuration(experiment_info, include_global_constants=True):
       get_directories('ini', ['search', 'data', 'masks'], experiment_info)
 
     defaults_files = \
-      [fname for fname in [dir + DEFAULTS_ININAME for dir in search_dirs]
+      [fname for fname in [sdir + DEFAULTS_ININAME for sdir in search_dirs]
        if path.exists(fname)]
 
     measurements_files = [data_dir + MEASUREMENTS_ININAME]
@@ -800,7 +800,7 @@ def load_configuration(experiment_info, include_global_constants=True):
     # Handle CONSTANTS inifiles
     if include_global_constants:
         constants_files = \
-          [fname for fname in [dir + CONSTANTS_ININAME for dir in search_dirs]
+          [fname for fname in [sdir + CONSTANTS_ININAME for sdir in search_dirs]
            if path.exists(fname)]
 
         if constants_files:
