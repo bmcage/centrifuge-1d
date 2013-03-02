@@ -101,11 +101,11 @@ def compress_seq(seq):
     ref = seq[0]
 
     # all(seq[:] == ref)
-    if not list(filter(lambda value: not (value == ref), seq)):
+    if not [value for value in seq if not (value == ref)]:
         return ref
 
     # all are == '' except one
-    nonempty = list(filter(lambda value: not (value == ''), seq))
+    nonempty = [value for value in seq if not (value == '')]
     items_count = len(nonempty)
     if items_count == 1:
         return nonempty[0]
@@ -317,8 +317,8 @@ class MultipleExperimentData():
 ############################################################
 def missing_fields_in_csv(csv_fields, fields):
 
-    missing = list(filter(lambda field: not (field in csv_fields),
-                          fields))
+    missing = [field for field in fields if not field in csv_fields]
+
     return missing
 
 def quote_string(string):
@@ -430,7 +430,7 @@ def CSV2data(csv_dir, csv_filebasename):
                 for id_name in ('exp_type', 'exp_id', 'exp_no'):
                     value = getattr(row, id_name)
                     if value:
-                         identifiers[id_name] = value # update if value present
+                        identifiers[id_name] = value # update if value present
 
                 (exp_id, exp_no) = (identifiers['exp_id'], identifiers['exp_no'])
                 data.append_row(row, exp_id, exp_no)
@@ -729,7 +729,7 @@ def data2ini(data, experiment_info):
             exit(1)
 
         if experiment_info['exp_type'] is None:
-             experiment_info['exp_type'] = exp_type
+            experiment_info['exp_type'] = exp_type
         elif experiment_info['exp_type'] != exp_type:
             print("Experiment type 'exp_type' must be the same "
                       "for all experiments with given 'exp_id'.")
