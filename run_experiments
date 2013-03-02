@@ -3,9 +3,8 @@ from __future__ import print_function
 
 import argparse
 from os import listdir
-from shared import get_directories, yn_prompt
+from shared import get_directories
 from config import ModulesManager, load_model
-from const import DEFAULTS_ININAME, CONSTANTS_ININAME
 
 def compare_experiment_csv(exp_id):
     import os, subprocess
