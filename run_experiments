@@ -88,17 +88,9 @@ def list_modules(verbose=True):
     modman.echo(verbose)
 
 def parse_input():
-    usage_str = \
-      ('\n  %prog [options] exp_ID first_experiment [last_experiment]'
-       '\n\nArguments:'
-       '\n  exp_ID:'
-       '\n      '
-       '\n  first_experiment:'
-       '\n      '
-       '\n  last_experiment:'
-       '\n      ')
+    usage_str = '\n\t%(prog)s [options] [exp_ID] [exp_NO] [last_exp_NO]'
 
-    argparser = argparse.ArgumentParser()
+    argparser = argparse.ArgumentParser(usage=usage_str)
     argparser.add_argument('exp_id', type=str, nargs="?",
                            metavar='exp_ID',
                            help=('ID identifying an experiment (see -l for all '
@@ -170,8 +162,6 @@ def parse_input():
         exit(0)
 
     exit(0)
-
-    argparser.destroy()
 
     return args
 
