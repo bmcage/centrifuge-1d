@@ -808,8 +808,8 @@ def load_configuration(experiment_info, include_global_constants=True):
         if constants_files:
             consts_cfg = Configuration().read_from_files(*constants_files)
 
-        tube_no = cfg.get_value('tube_no')
-        cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
+            tube_no = cfg.get_value('tube_no')
+            cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
 
     return cfg
 
