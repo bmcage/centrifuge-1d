@@ -784,18 +784,20 @@ def load_configuration(experiment_info, include_global_constants=True):
     # Read masks files
     masks_files = []
     masks = experiment_info['mask']
-    for mask_name in masks:
-        mask_filename = masks_dir + mask_name + '.ini'
-        if not path.exists(mask_filename):
-            print('Mask file "{}" does not exist in expected location:'
-                  '\n{}.'.format(mask_name, masks_dir))
-            if not yn_prompt('Do you wish to continue without applying '
-                             'the mask? [Y/n]: '):
-                exit(0)
 
-        masks_files.append(mask_filename)
+    if masks:
+        for mask_name in masks:
+            mask_filename = masks_dir + mask_name + '.ini'
+            if not path.exists(mask_filename):
+                print('Mask file "{}" does not exist in expected location:'
+                      '\n{}.'.format(mask_name, masks_dir))
+                if not yn_prompt('Do you wish to continue without applying '
+                                 'the mask? [Y/n]: '):
+                    exit(0)
 
-    cfg.read_from_files(*masks_files)
+            masks_files.append(mask_filename)
+
+        cfg.read_from_files(*masks_files)
 
     # Handle CONSTANTS inifiles
     if include_global_constants:
