@@ -113,7 +113,10 @@ class SC_vanGenuchten():
 #                           Common utilities                           #
 ########################################################################
 
-P_DEFAULT = np.arange(0, 10000000, 100)
+P_DEFAULT = np.linspace(-9, 9, 1000)
+P_DEFAULT = np.power(10* np.ones(1000), P_DEFAULT)
+P_DEFAULT[0] = 0
+#P_DEFAULT = np.arange(0, 10000000, 100)
 
 def retention_curve(SC, theta_s, rho, g, theta_r=0.0, p=None, h=None,
                     find_p=True):
@@ -137,7 +140,6 @@ def retention_curve(SC, theta_s, rho, g, theta_r=0.0, p=None, h=None,
     """
     if (p is None) and (h is None):
         p = P_DEFAULT
-
     if h is None:
         h = -10.0* p /rho / g
     elif find_p:
