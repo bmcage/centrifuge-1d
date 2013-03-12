@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
-import matplotlib.pyplot as plt, sys
+import matplotlib
+import sys
 import numpy as np
 from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
 from os import makedirs, path
@@ -19,7 +20,7 @@ def display_table(t_measured=None, t_computed=None,
                   rm1_measured=None, rm1_computed=None,
                   l0_measured=None, l1_measured=None, l1_computed=None,
                   fignum=10):
-
+    import matplotlib.pyplot as plt
     min_value = 1.0e-10
     assure = lambda v: max(v, min_value)
     format_row = (lambda format_str, data_row:
@@ -679,6 +680,7 @@ class DPlots():
         return ordered_dplots
 
     def display(self, data, fignum = None):
+        import matplotlib.pyplot as plt
         if fignum is not None:
             self.fignum = fignum
 
