@@ -1,5 +1,12 @@
 [plotting-styles]
-# Reference parameters:
+# params_ref - reference parameters - together with computed parameters (mean especially for inverse problem)
+#              one may want to compare the results with another (direct problem) solution which differs
+#              from our computed problem in following values:
+#                               parameterN1: valueN1, ..., parameterNk: valueNk
+#              where parameterNi is any valid option in the configuration file of our problem
+#              and valueNi is the (new) corresponding value;
+#            - multiple referencing curves (parameters) can be specified, but each with different value of 'id'
+#
 #params_ref =  ({'id': 'line-id-1', parameter1-1: value1-1, parameter1-2: value1-2, parameter1-3: value1-3},
 #		{'id': 'line-id-2', parameter2-1: value2-1, parameter2-2: value2-2, parameter2-3: value2-3}
 #		)
@@ -30,21 +37,18 @@
 #		- x-axis on this measurement is 'theta', y-axis is the hydraulic head 'h'
 #		- unit: pressure
 
-# lines set the displaying properties to one particular line (i.e.
+# lines - displaying options for lines; allows customization how individual lines are displayed
+#         (for each line can be specified how it is drawn under each ID):
+#
 #lines = {'computed': {'label': 'Computed', 'GC': 'x', 'MO': 'x', 'theta': 'x'},
 #	 'measured': {'label': 'Measured', 'GC': '.', 'MO': '.', 'theta': '.'},
 #	 'line-id-1': {'label': 'Label 1', 'GC': '^', 'MO': '^', 'theta': '^'},
 #	 'line-id-2': {'label': 'Label 2', 'GC': 'v', 'MO': 'v', 'theta': 'v'},
 #	 'line-id-3': {'label': 'Label 3', 'GC': '-', 'MO': '-', 'theta': '-'}}
 
-# options for displayed measurements. ID corresponds to a particular
-# measurement.
-# IDs:
 #
-# Description:
-# IDs:
-#
-# options - settable for every ID:
+# dataset - displaying options; allows customization how individual ID is displayed
+#           (these are general options independent on plotted lines):
 #	'show'		   - display values of given measurement; value: True/FalseTrue; Default: True
 #	'xlabel', 'ylabel' - axes labels; value: string; Default: ''
 #	'xscale', 'yscale' - scaling of axes; values: None (linear scaling) or 'log' (logaritmic)
@@ -103,7 +107,8 @@
 #		   'legend_bbox': None}
 #	    }
 
-# Displaying options
+# Displaying options - these are general options applied to all plotted images
+#
 # 'separate_figures' 	- Include all figures in one image or each figure should be
 # 			  drawn separately; value: True/False; Default: False
 # 'show_figures'	- Determines the displaying of figures (useful e.g. when we
