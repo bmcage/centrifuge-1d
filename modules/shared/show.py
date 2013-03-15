@@ -48,7 +48,7 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                   'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                             ('none', 'pressure')),
                   'relsat': (("Relative saturation $u${}", "Hydraulic head $h$ [{}]"),
-                             ('none', 'length'))
+                             ('none', 'length')),
                   'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
                            ('time', 'force_kgp')),
                   'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
