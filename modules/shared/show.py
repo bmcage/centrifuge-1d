@@ -734,8 +734,8 @@ def show_results(experiment_info,
         # Disable determining of only needed calc (for inverse)
         model.measurements.run_inverse_problem_p(False)
 
-        data.store_computation(model, model.measurements)
         data.store_measurements(model.measurements)
+        data.store_computation(model, model.measurements)
 
         if not inv_params is None: data.store_value('inv_params', inv_params)
         if not cov is None: data.store_value('cov', cov)
