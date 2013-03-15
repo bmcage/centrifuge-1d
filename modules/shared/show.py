@@ -158,7 +158,7 @@ def print_status(data, filename=None):
 #          xdata (ydata)is the x-axis (y-axis) coordinate
 class ResultsData():
     def __init__(self):
-        self._data = {'lines': {}}
+        self._data = DefaultDict({'lines': {}})
         self._modman = None
 
     def has_data(self, data_type):
