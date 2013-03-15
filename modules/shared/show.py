@@ -13,97 +13,6 @@ try:
 except:
     import configparser
 
-
-def display_table(t_measured=None, t_computed=None,
-                  wl_out1_measured=None, wl_out1_computed=None,
-                  gc1_measured=None, gc1_computed=None,
-                  rm1_measured=None, rm1_computed=None,
-                  l0_measured=None, l1_measured=None, l1_computed=None,
-                  fignum=10):
-    import matplotlib.pyplot as plt
-    min_value = 1.0e-10
-    assure = lambda v: max(v, min_value)
-    format_row = (lambda format_str, data_row:
-                  [format_str % assure(value) for value in data_row])
-
-    disp_t      = (not t_measured is None) and (not t_computed is None)
-    disp_wl_out = ((not wl_out1_measured is None)
-                   and (not wl_out1_computed is None))
-    disp_gc     = (not gc1_measured is None) and (not gc1_computed is None)
-    disp_rm     = (not rm1_measured is None) and (not rm1_computed is None)
-    disp_l      = (not l1_measured is None) and (not l1_computed is None)
-
-    disp_p = (disp_t, disp_wl_out, disp_gc, disp_rm, disp_l)
-    disp_labels = ('t', 'wl_out', 'gc', 'rm', 'l')
-
-    subplots = sum([int(value) for value in disp_p])
-    print('sb', subplots)
-
-    colLabels = ['#%i' % (i+1) for i in range(len(t_measured))]
-    print(wl_out1_measured, wl_out1_computed, colLabels)
-
-    plt.figure(fignum, figsize=(16, 8.5))
-
-    subplt_num = 1
-
-    for (disp, label) in zip (disp_p, disp_labels):
-        if not disp: continue
-
-        data = []
-
-        if label == 't':
-            rowLabels = ['Duration measured', 'Duration computed', 'Error (%)']
-            data_measured = t_measured
-            data_computed = t_computed
-        elif label == 'wl_out':
-            rowLabels = ['Outflow measured', 'Outflow computed', 'Error (%)']
-            data_measured = wl_out1_measured
-            data_computed = wl_out1_computed
-        elif label == 'gc':
-            rowLabels = ['GC measured', 'GC computed', 'Error (%)']
-            data_measured = gc1_measured
-            data_computed = gc1_computed
-        elif label == 'rm':
-            rowLabels = ['RM measured', 'RM computed', 'Error (%)']
-            data_measured = rm1_measured
-            data_computed = rm1_computed
-        elif label == 'l':
-            rowLabels = ['L1 measured', 'L1 computed', 'Error (%)']
-            if not l0_measured is None:
-                rowLabels.insert(0, 'L0 initial')
-            data_measured = l1_measured
-            data_computed = l1_computed
-
-        plt.subplot(subplots, 1, subplt_num)
-        #plt.axes(frameon=False)
-        plt.axis('off')
-
-        data.append(format_row('% 9.6f', data_measured))
-        data.append(format_row('% 9.6f', data_computed))
-        data.append(format_row('% 5.2f',
-                               [((wo_m - wo_c) / wo_m * 100) for (wo_m, wo_c)
-                                in zip(data_measured, data_computed)]))
-
-        subplt_num = subplt_num + 1
-        print(data)
-
-        plt.table(cellText=data,
-                  rowLabels=rowLabels,
-                  colLabels=colLabels,
-                  loc='top')
-    try:
-        plt.show(block=False)
-    except:
-        plt.ion()
-        plt.show()
-    input('Press ENTER to continue...')
-
-def nd2strlist(nd):
-    result = []
-    for value in nd:
-        result.append(str(value))
-    return result
-
 DATA_UNITS = {'length': ('mm', 'cm', 'm'),
               'time': ('s', 'min', 'h'),
               'pressure': ('Pa', 'kPa'),
@@ -138,6 +47,8 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                                  dg_unit_time_length),
                   'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                             ('none', 'pressure')),
+                  'relsat': (("Relative saturation $u${}", "Hydraulic head $h$ [{}]"),
+                             ('none', 'length')),
                   'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
                            ('time', 'force_kgp')),
                   'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
@@ -147,7 +58,7 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                   'dgF_MT': ((dg_label_time, "Force difference of water in tube [{}]"),
                            ('time', 'force_kgp'))}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
-            ('dgF_MT', 'dgF_MO'), ('s1', 's2'))
+            ('dgF_MT', 'dgF_MO'), ('s1', 's2'), ('theta', 'relsat'))
 
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
@@ -247,7 +158,7 @@ def print_status(data, filename=None):
 #          xdata (ydata)is the x-axis (y-axis) coordinate
 class ResultsData():
     def __init__(self):
-        self._data = {'lines': {}}
+        self._data = DefaultDict({'lines': {}})
         self._modman = None
 
     def has_data(self, data_type):
@@ -296,7 +207,7 @@ class ResultsData():
                     data[name] = (xvalue, yvalue)
 
             # Store extra data
-            # a) Retention curve
+            # a) Retention curve based on theta
             if hasattr(model, 'SC'):
                 from modules.shared.saturation_curve import retention_curve
 
@@ -851,3 +762,97 @@ def show_results(experiment_info,
 
     if show_figures:
         dplots.display(data)
+
+################################################################################
+#                              Unused functions                                #
+################################################################################
+
+def nd2strlist(nd):
+    result = []
+    for value in nd:
+        result.append(str(value))
+    return result
+
+def display_table(t_measured=None, t_computed=None,
+                  wl_out1_measured=None, wl_out1_computed=None,
+                  gc1_measured=None, gc1_computed=None,
+                  rm1_measured=None, rm1_computed=None,
+                  l0_measured=None, l1_measured=None, l1_computed=None,
+                  fignum=10):
+    import matplotlib.pyplot as plt
+    min_value = 1.0e-10
+    assure = lambda v: max(v, min_value)
+    format_row = (lambda format_str, data_row:
+                  [format_str % assure(value) for value in data_row])
+
+    disp_t      = (not t_measured is None) and (not t_computed is None)
+    disp_wl_out = ((not wl_out1_measured is None)
+                   and (not wl_out1_computed is None))
+    disp_gc     = (not gc1_measured is None) and (not gc1_computed is None)
+    disp_rm     = (not rm1_measured is None) and (not rm1_computed is None)
+    disp_l      = (not l1_measured is None) and (not l1_computed is None)
+
+    disp_p = (disp_t, disp_wl_out, disp_gc, disp_rm, disp_l)
+    disp_labels = ('t', 'wl_out', 'gc', 'rm', 'l')
+
+    subplots = sum([int(value) for value in disp_p])
+    print('sb', subplots)
+
+    colLabels = ['#%i' % (i+1) for i in range(len(t_measured))]
+    print(wl_out1_measured, wl_out1_computed, colLabels)
+
+    plt.figure(fignum, figsize=(16, 8.5))
+
+    subplt_num = 1
+
+    for (disp, label) in zip (disp_p, disp_labels):
+        if not disp: continue
+
+        data = []
+
+        if label == 't':
+            rowLabels = ['Duration measured', 'Duration computed', 'Error (%)']
+            data_measured = t_measured
+            data_computed = t_computed
+        elif label == 'wl_out':
+            rowLabels = ['Outflow measured', 'Outflow computed', 'Error (%)']
+            data_measured = wl_out1_measured
+            data_computed = wl_out1_computed
+        elif label == 'gc':
+            rowLabels = ['GC measured', 'GC computed', 'Error (%)']
+            data_measured = gc1_measured
+            data_computed = gc1_computed
+        elif label == 'rm':
+            rowLabels = ['RM measured', 'RM computed', 'Error (%)']
+            data_measured = rm1_measured
+            data_computed = rm1_computed
+        elif label == 'l':
+            rowLabels = ['L1 measured', 'L1 computed', 'Error (%)']
+            if not l0_measured is None:
+                rowLabels.insert(0, 'L0 initial')
+            data_measured = l1_measured
+            data_computed = l1_computed
+
+        plt.subplot(subplots, 1, subplt_num)
+        #plt.axes(frameon=False)
+        plt.axis('off')
+
+        data.append(format_row('% 9.6f', data_measured))
+        data.append(format_row('% 9.6f', data_computed))
+        data.append(format_row('% 5.2f',
+                               [((wo_m - wo_c) / wo_m * 100) for (wo_m, wo_c)
+                                in zip(data_measured, data_computed)]))
+
+        subplt_num = subplt_num + 1
+        print(data)
+
+        plt.table(cellText=data,
+                  rowLabels=rowLabels,
+                  colLabels=colLabels,
+                  loc='top')
+    try:
+        plt.show(block=False)
+    except:
+        plt.ion()
+        plt.show()
+    input('Press ENTER to continue...')

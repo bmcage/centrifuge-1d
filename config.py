@@ -27,7 +27,7 @@ from modules.shared.measurements import Measurements
 
 class DataStorage():
     def __init__(self):
-        self._data = {}
+        self._data = DefaultDict()
 
     def store(self, key, value):
         self._data[key] = value
