@@ -13,6 +13,7 @@ try:
     import ConfigParser as configparser
 except:
     import configparser
+from collections import OrderedDict
 from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
      DEFAULTS_ININAME, CONSTANTS_ININAME, MEASUREMENTS_ININAME
 from shared import parse_value, get_directories, yn_prompt
@@ -27,7 +28,7 @@ from modules.shared.measurements import Measurements
 
 class DataStorage():
     def __init__(self):
-        self._data = DefaultDict()
+        self._data = OrderedDict()
 
     def store(self, key, value):
         self._data[key] = value
