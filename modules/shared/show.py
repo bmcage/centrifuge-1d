@@ -138,6 +138,8 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                                  dg_unit_time_length),
                   'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                             ('none', 'pressure')),
+                  'relsat': (("Relative saturation $u${}", "Hydraulic head $h$ [{}]"),
+                             ('none', 'length'))
                   'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
                            ('time', 'force_kgp')),
                   'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
@@ -147,7 +149,7 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                   'dgF_MT': ((dg_label_time, "Force difference of water in tube [{}]"),
                            ('time', 'force_kgp'))}
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
-            ('dgF_MT', 'dgF_MO'), ('s1', 's2'))
+            ('dgF_MT', 'dgF_MO'), ('s1', 's2'), ('theta', 'relsat'))
 
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
@@ -296,7 +298,7 @@ class ResultsData():
                     data[name] = (xvalue, yvalue)
 
             # Store extra data
-            # a) Retention curve
+            # a) Retention curve based on theta
             if hasattr(model, 'SC'):
                 from modules.shared.saturation_curve import retention_curve
 
