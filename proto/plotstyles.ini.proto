@@ -12,7 +12,7 @@
 #	      }
 
 # IDs represent some type of measured value
-# Recognized IDs are: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2', 'theta'
+# Recognized IDs are: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2', 'theta', 'K'
 # Description of IDs:
 #       Following measurements use as x-axis value time (unit: time):
 #
@@ -36,6 +36,7 @@
 #	'theta' - saturation theta; used by the retention curve fitting
 #		- x-axis on this measurement is 'theta', y-axis is the hydraulic head 'h'
 #		- unit: pressure
+#       'K'    - soil conductivity (function of theta); unit: velocity
 
 # lines - displaying options for lines; allows customization how individual lines are displayed
 #         (for each line can be specified how it is drawn under each ID)

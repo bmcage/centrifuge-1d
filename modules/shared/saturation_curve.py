@@ -154,3 +154,43 @@ def retention_curve(SC, theta_s, rho, g, theta_r=0.0, p=None, h=None,
     theta = theta_r + (theta_s - theta_r) * SC.h2u(h)
 
     return (p, theta)
+
+def conductivity_curve(SC, Ks, theta_s, theta_r=0.0, u=None, p=None, h=None,
+                       rho=None, g=None):
+    """
+      Determine the conductivity curve.
+
+      Parameters:
+        SC       - saturation curve object
+        Ks       - saturated hydraulic conductivity
+        theta_s  - maximal saturation; equals to porosity
+        theta_r  - residual saturation
+        rho      - fluid density
+        g        - gravitation constant
+        p        - fluid pressure
+        h        - pressure head
+        u        - relative saturation
+
+      Return values:
+        theta    - saturation corresponding to pressure p/relative saturation u/
+                   hydraulic head h
+        K        - conductivity
+    """
+
+    if (u is None) and (p is None) and (h is None):
+        p = P_DEFAULT
+
+    if not h is None:
+        u = SC.h2u(h)
+    elif not p is None:
+        if (rho is None) or (g is None):
+            print("Conductivity curve: neither 'rho' nor 'g' can be 'None' !"
+                  "No conductivity curve is computed...")
+            return ([], [])
+        u = SC.h2u(-10.0* p /rho / g)
+
+    theta = theta_r + (theta_s - theta_r) * u
+    K     = SC.u2Ku(u, Ks)
+    print('KKKKK', Ks, K)
+
+    return (theta, K)

@@ -18,9 +18,11 @@ DATA_UNITS = {'length': ('mm', 'cm', 'm'),
               'pressure': ('Pa', 'kPa'),
               'weight': ('g', 'kg'),
               'force_kgp': ('gf', 'kgf'),
+              'velocity': ('cm/s', 'm/s'),
               'none': ('', )}
 DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
-                 'force_kgp': 'gf', 'weight': 'g', 'none': ''}
+                 'force_kgp': 'gf', 'weight': 'g', 'velocity': 'cm/s',
+                 'none': ''}
 
 dg_label_time = "Time [{}]"
 dg_label_length = "Sample length $L$ [{}]"
@@ -49,6 +51,9 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                             ('none', 'pressure')),
                   'relsat': (("Relative saturation $u${}", "Hydraulic head $h$ [{}]"),
                              ('none', 'length')),
+                  'K': (("Water content $\\theta${}",
+                         "Hydraulic conductivity $K(\\theta)$ [{}]"),
+                         ('none', 'velocity')),
                   'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
                            ('time', 'force_kgp')),
                   'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
@@ -63,11 +68,11 @@ DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
     # units used for computation are: cm, s, pa, gf and "no units"
-    if unit in ['cm', 's', 'pa', 'g', 'gf', '']: coef = 1.0
+    if unit in ['cm', 's', 'pa', 'g', 'gf', 'cm/s', '']: coef = 1.0
     elif unit == 'mm': coef = 10.
     elif unit == 'min': coef = 1./60.
     elif unit == 'h': coef = 1./3600.
-    elif unit == 'm': coef = 0.01
+    elif unit in ('m', 'm/s'): coef = 0.01
     elif unit in ['kpa', 'kg', 'kgp']: coef = 0.001
     else:
         print('Unknown unit:', unit_base, '\nKnown units are only:', DATA_UNITS)
@@ -209,7 +214,8 @@ class ResultsData():
             # Store extra data
             # a) Retention curve based on theta
             if hasattr(model, 'SC'):
-                from modules.shared.saturation_curve import retention_curve
+                from modules.shared.saturation_curve import (retention_curve,
+                                                             conductivity_curve)
 
                 if hasattr(model, 'theta_s'): theta_s = model.theta_s
                 else: theta_s = model.porosity
@@ -229,13 +235,17 @@ class ResultsData():
                 else:
                     data['theta'] = (p, theta)
 
+                data['K'] = conductivity_curve(model.SC, model.ks, theta_s,
+                                               theta_r=theta_r, g=model.g,
+                                               rho=model.density)
+
             self._data['lines'][ID] = data
             self.store_value('experiment_info', model.experiment_info)
 
         return flag
 
     def store_references(self, user_references, model=None):
-        stored_references = self.get_value('references')
+        stored_references = self.get_value('references', not_found={})
         data = self._data['lines']
 
         if type(user_references) in (list, tuple):
