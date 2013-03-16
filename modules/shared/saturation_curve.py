@@ -22,7 +22,10 @@ class SC_vanGenuchten():
         if 'n' in params:
             n = params['n']
             self._n = n
-            self._m = 1. - 1./n
+            if n is None:
+                self._m = None
+            else:
+                self._m = 1. - 1./n
 
         if 'gamma' in params:
             self._gamma = params['gamma']
