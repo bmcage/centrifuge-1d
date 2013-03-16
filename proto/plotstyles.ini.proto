@@ -1,5 +1,5 @@
 [plotting-styles]
-# params_ref - reference parameters - together with computed parameters (mean especially for inverse problem)
+# params_ref - reference parameters - together with computed parameters (meant especially for inverse problem)
 #              one may want to compare the results with another (direct problem) solution which differs
 #              from our computed problem in following values:
 #                               parameterN1: valueN1, ..., parameterNk: valueNk
@@ -7,16 +7,16 @@
 #              and valueNi is the (new) corresponding value;
 #            - multiple referencing curves (parameters) can be specified, but each with different value of 'id'
 #
-#params_ref =  ({'id': 'line-id-1', parameter1-1: value1-1, parameter1-2: value1-2, parameter1-3: value1-3},
-#		{'id': 'line-id-2', parameter2-1: value2-1, parameter2-2: value2-2, parameter2-3: value2-3}
-#		)
+#params_ref = {'line-id-1': {parameter1-1: value1-1, parameter1-2: value1-2, parameter1-3: value1-3},
+#	       'line-id-2': {parameter2-1: value2-1, parameter2-2: value2-2, parameter2-3: value2-3}
+#	      }
 
 # IDs represent some type of measured value
 # Recognized IDs are: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2', 'theta'
 # Description of IDs:
-# 	Following measurements use as x-axis value time (unit: time):
+#       Following measurements use as x-axis value time (unit: time):
 #
-# 	'GC' - gravitational center; unit: length
+#       'GC' - gravitational center; unit: length
 #	'RM' - rotational momentum
 #	'MI' - mass in - water in inflow cup; unit: length
 #	'MO' - mass out - expelled water; unit: length
@@ -38,13 +38,18 @@
 #		- unit: pressure
 
 # lines - displaying options for lines; allows customization how individual lines are displayed
-#         (for each line can be specified how it is drawn under each ID):
+#         (for each line can be specified how it is drawn under each ID)
+#       - 'label' is the line label as displayed in figure legend
+#       - 'order' is the label order in the legend; first in legend are displayed lines with
+#         'order' value set increasingly (i.e. sequence of 'order's 1,5,200 is valid; further,
+#         if multiple lines have the same 'order' value, their actual position is not specified
+#       - next follows a sequence of ID: plot_style, see example below
 #
-#lines = {'computed': {'label': 'Computed', 'GC': 'x', 'MO': 'x', 'theta': 'x'},
-#	 'measured': {'label': 'Measured', 'GC': '.', 'MO': '.', 'theta': '.'},
-#	 'line-id-1': {'label': 'Label 1', 'GC': '^', 'MO': '^', 'theta': '^'},
-#	 'line-id-2': {'label': 'Label 2', 'GC': 'v', 'MO': 'v', 'theta': 'v'},
-#	 'line-id-3': {'label': 'Label 3', 'GC': '-', 'MO': '-', 'theta': '-'}}
+#lines = {'computed': {'label': 'Computed', 'order': 2, 'GC': 'x', 'MO': 'x', 'theta': 'x'},
+#	  'measured': {'label': 'Measured', 'order': 1, 'GC': '.', 'MO': '.', 'theta': '.'},
+#	  'line-id-1': {'label': 'Label 1', 'order': 9, 'GC': '^', 'MO': '^', 'theta': '^'},
+#	  'line-id-2': {'label': 'Label 2', 'order': 4, 'GC': 'v', 'MO': 'v', 'theta': 'v'},
+#	  'line-id-3': {'label': 'Label 3', 'order': 6, 'GC': '-', 'MO': '-', 'theta': '-'}}
 
 #
 # dataset - displaying options; allows customization how individual ID is displayed
