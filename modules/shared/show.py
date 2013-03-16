@@ -5,8 +5,6 @@ import sys
 import numpy as np
 from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
 from os import makedirs, path
-from collections import OrderedDict
-
 from shared import get_directories, parse_value
 from config import ModulesManager, load_model, DataStorage
 from modules.shared.functions import has_data, compare_data
@@ -160,7 +158,7 @@ def print_status(data, filename=None):
 #          xdata (ydata)is the x-axis (y-axis) coordinate
 class ResultsData():
     def __init__(self):
-        self._data = {'lines': OrderedDict()}
+        self._data = {'lines': {}}
         self._modman = None
 
     def has_data(self, data_type):
@@ -287,6 +285,7 @@ class ResultsData():
 
         for (name, xvalue, yvalue) in measurements.iterate_meas_measurements():
             m[name] = (xvalue, yvalue)
+
         self._data['lines']['measured'] = m
 
     def get_linedatatypes(self):
