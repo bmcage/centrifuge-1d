@@ -368,39 +368,35 @@ def read_plotstyles_file(filename):
 
 class PlotStyles():
     def __init__(self, experiment_info):
-        self._userstyles = self.load_userstyles(experiment_info)
-        self._display_options = self._mk_display_options()
-        self._figuresstyles = {}
-
-    def load_userstyles(self, experiment_info):
-        """ Load the plotstyles files of given experiment. """
-
+        # Load user styles (from plotstyles inifiles)
         plotstyles_filenames = get_filenames(experiment_info)
 
-        if not plotstyles_filenames: return {}
+        if plotstyles_filenames:
+            userstyles = read_plotstyles_file(plotstyles_filenames[0])
 
-        plotstyles = read_plotstyles_file(plotstyles_filenames[0])
+            for fname in plotstyles_filenames[1:]:
+                deep_dictupdate(userstyles, read_plotstyles_file(fname))
 
-        for fname in plotstyles_filenames[1:]:
-            deep_dictupdate(plotstyles, read_plotstyles_file(fname))
+        else:
+            userstyles = {}
 
-        self._userstyles = plotstyles
+        self._userstyles = userstyles
 
-        return plotstyles
+        # Process global displaying options
+        options = {'separate_figures': False, 'show_figures': True,
+                   'save_figures': True, 'matplotlib_backend': None}
+        user_opts = self.get_userstyles('options')
+        if user_opts: options.update(user_opts)
 
-    def get_value(self, key):
+        self._display_options = options
+        self._figuresstyles = {}
+        print('SSS', self._userstyles)
+
+    def get_userstyles(self, key):
         if key in self._userstyles:
             return self._userstyles[key]
         else:
             return None
-
-    def _mk_display_options(self):
-        opts = {'separate_figures': False, 'show_figures': True,
-                'save_figures': True, 'matplotlib_backend': None}
-        user_opts = self.get_value('options')
-        if user_opts: opts.update(user_opts)
-
-        return opts
 
     def get_display_options(self):
         return self._display_options
@@ -413,7 +409,7 @@ class PlotStyles():
                                               'legend_bbox', 'legend_loc',
                                               'show']}
 
-        user_styles = self.get_value('datasets')
+        user_styles = self.get_userstyles('datasets')
         if user_styles and (dplot_id in user_styles):
             dplot_styles.update(user_styles[dplot_id])
 
@@ -462,6 +458,7 @@ class PlotStyles():
         return self._figuresstyles[dtype]
 
     def get_linestyle(self, line_id, data_types):
+        # set default values
         if line_id == 'measured':
             lineopt = 'x'
         else:
@@ -474,7 +471,8 @@ class PlotStyles():
         if ('theta' in data_types) and (not line_id == 'measured'):
              line_styles['theta'] = '-'
 
-        user_styles = self.get_value('lines')
+        # merge with user-specified values
+        user_styles = self.get_userstyles('lines')
         if user_styles and (line_id in user_styles):
             line_styles.update(user_styles[line_id])
 
@@ -496,7 +494,7 @@ class DPlots():
             matplotlib.use(matplotlib_backend)
 
     def get_references(self):
-        return self._plotstyles.get_value('params_ref')
+        return self._plotstyles.get_userstyles('params_ref')
 
     def _mk_dplots(self, data):
         def _mk_dplots_bucket(data_types, plot_styles):
