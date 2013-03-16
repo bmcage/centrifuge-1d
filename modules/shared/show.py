@@ -314,6 +314,25 @@ class ResultsData():
         if not value is None:
             self._data = value
 
+################################################################################
+#                         Process plotstyles.ini                               #
+################################################################################
+def get_filenames(experiment_info):
+    """ Given experiment information find a list of all plotstyle inifiles. """
+
+    (search_dirs, masks_dir, mask_dir) = \
+        get_directories('figs', ['search', 'masks', 'mask'], experiment_info)
+
+    search_dirs.append(masks_dir) # search also in masks_dir...
+    if experiment_info['mask']:   # and if exists the mask directory, there too
+        search_dirs.append(mask_dir)
+
+    plotstyles_files = \
+      [fname for fname in [cfgdir + PLOTSTYLE_ININAME for cfgdir in search_dirs]
+       if path.exists(fname)]
+
+    return plotstyles_files
+
 class PlotStyles():
     def __init__(self, experiment_info):
         self._userstyles = self.load_userstyles(experiment_info)
@@ -321,25 +340,6 @@ class PlotStyles():
         self._dplotstyles = {}
 
     def load_userstyles(self, experiment_info):
-        def get_filenames(experiment_info):
-            (search_dirs, masks_dir, mask_dir) = \
-              get_directories('figs', ['search', 'masks', 'mask'],
-                              experiment_info)
-            # include masks dir into searchable directories...
-            search_dirs.append(masks_dir)
-            # ...just as the single mask directory
-            if experiment_info['mask']:
-                search_dirs.append(mask_dir)
-
-            filter_existing = \
-              lambda fnames: list(filter(lambda fname: path.exists(fname), fnames))
-            prefix_with_paths = \
-              lambda fname, dirs: map(lambda cfgdir: cfgdir + fname, dirs)
-
-            plotstyles_files = \
-              filter_existing(prefix_with_paths(PLOTSTYLE_ININAME, search_dirs))
-
-            return plotstyles_files
 
         def read_plotstyles_cfg(filename):
             result = {}
