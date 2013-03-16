@@ -360,6 +360,12 @@ def read_plotstyles_file(filename):
 
     return result
 
+def get_line_order(line_options, not_found=999):
+    if 'order' in line_options:
+        return line_options['order']
+    else:
+        return not_found
+
 class PlotStyles():
     def __init__(self, experiment_info):
         # Load user styles (from plotstyles inifiles)
@@ -490,6 +496,26 @@ class DPlots():
     def get_references(self):
         return self._plotstyles.get_userstyles('params_ref')
 
+    def get_lines_order(self):
+        lines = self._plotstyles.get_userstyles('lines')
+        refs  = self._plotstyles.get_userstyles('params_ref')
+
+        valid_line_ids = ['measured', 'computed'] + list(refs.keys())
+
+        # determine all IDs specified in 'lines' option and sort them by
+        # their 'order' value
+        lines_orders = [(line_id, get_line_order(line_data))
+                        for (line_id, line_data) in lines.items()
+                        if line_id in valid_line_ids]
+        ordered_lines = sorted(lines_orders, key=lambda x: x[1])
+        # ...and keep IDs only
+        ordered_line_ids = [line_order[0] for line_order in ordered_lines]
+        # also include IDs not specified in 'lines' options
+        missing_line_ids = [line_id for line_id in valid_line_ids
+                            if not line_id in ordered_line_ids]
+
+        return ordered_line_ids + missing_line_ids
+
     def _mk_dplots(self, data):
         def _mk_dplots_bucket(data_types, plot_styles):
             dplots_bucket = \
@@ -576,9 +602,12 @@ class DPlots():
         data_types    = data.get_linedatatypes()
         dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
 
-        for (line_id, line_data) in data.iterate_lines():
-            _add_plotline(line_id, line_data, data_types, plot_styles,
-                          dplots_bucket)
+        ordered_line_ids = self.get_lines_order()
+
+        for line_id in ordered_line_ids:
+            print('L_ID', line_id)
+            _add_plotline(line_id, data.get_linedata(line_id), data_types,
+                          plot_styles, dplots_bucket)
 
         ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
 
