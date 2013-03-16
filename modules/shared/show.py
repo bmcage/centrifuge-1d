@@ -409,7 +409,6 @@ class PlotStyles():
 
         self._display_options = options
         self._figuresstyles = {}
-        print('SSS', self._userstyles)
 
     def get_userstyles(self, key):
         if key in self._userstyles:
@@ -624,7 +623,6 @@ class DPlots():
         ordered_line_ids = self.get_lines_order()
 
         for line_id in ordered_line_ids:
-            print('L_ID', line_id)
             _add_plotline(line_id, data.get_linedata(line_id), data_types,
                           plot_styles, dplots_bucket)
 
