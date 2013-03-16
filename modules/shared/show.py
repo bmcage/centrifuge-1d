@@ -243,18 +243,26 @@ class ResultsData():
                   "Please update to new format.")
             return False
 
-        if user_references == stored_references: return False
-
-        self.store_value('references', user_references)
-
-        references = user_references.copy()
+        if user_references == stored_references:
+            return False   # nothing needs to be re-computed
 
         if model is None:
             from config import load_model
             model = load_model(self.get_value('experiment_info'), validate=True)
 
+        for ref_id in list(stored_references.keys()): # remove nonexisting refs
+            if not ref_id in user_references:
+                del stored_references[ref_id]
+
         iterable_params =  model._iterable_parameters
-        for (ref_id, ref_params) in references.items():
+        for (ref_id, ref_params) in user_references.items():
+            if ((ref_id in stored_references) # stored value is the same
+                and (stored_references[ref_id] == ref_params)):
+                continue
+
+            ref_params = ref_params.copy() # work with backup
+            stored_references[ref_id] = ref_params
+
             iters = [val for val in ref_params if val in iterable_params]
             if iters:
                 print('Referencing model cannot set iterable '
@@ -271,6 +279,8 @@ class ResultsData():
                 print('Reference parameters: ', ref)
 
             model.set_parameters(backup_params) # restore
+
+        self.store_value('references', stored_references)
 
         return True
 
