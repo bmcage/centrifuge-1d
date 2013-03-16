@@ -333,6 +333,39 @@ def get_filenames(experiment_info):
 
     return plotstyles_files
 
+def deep_dictupdate(d1, d2):
+    """ Recursively update dictionary d1 with dictionary d2. """
+
+    for (vkey, vvalue) in d2.items():
+        if ((vkey in d1) and (type(d1[vkey]) == dict)
+            and (type(vvalue) == dict)):
+            deep_dictupdate(d1[vkey], vvalue)
+        else:
+            d1[vkey] = vvalue
+
+    return d1
+
+def read_plotstyles_file(filename):
+    result = {}
+
+    # read config files
+    parser   = configparser.ConfigParser()
+    try:
+        read_files = parser.read(filename)
+    except configparser.ParsingError as E:
+        print(E)
+        exit(0)
+    # Write data from parser to configuration
+    for psection in parser.sections():
+        section = psection.lower() # we ignore sections
+
+    for option in parser.options(psection):
+        raw_value = parser.get(psection, option).strip()
+
+        result[option] = parse_value(raw_value)
+
+    return result
+
 class PlotStyles():
     def __init__(self, experiment_info):
         self._userstyles = self.load_userstyles(experiment_info)
@@ -340,51 +373,20 @@ class PlotStyles():
         self._dplotstyles = {}
 
     def load_userstyles(self, experiment_info):
+        """ Load the plotstyles files of given experiment. """
 
-        def read_plotstyles_cfg(filename):
-            result = {}
-
-            # read config files
-            parser   = configparser.ConfigParser()
-            try:
-                read_files = parser.read(filename)
-            except configparser.ParsingError as E:
-                print(E)
-                exit(0)
-            # Write data from parser to configuration
-            for psection in parser.sections():
-                section = psection.lower() # we ignore sections
-
-                for option in parser.options(psection):
-                    raw_value = parser.get(psection, option).strip()
-
-                    result[option] = parse_value(raw_value)
-
-            return result
-
-        def deep_dictupdate(d1, d2):
-            for (vkey, vvalue) in d2.items():
-                if ((vkey in d1) and (type(d1[vkey]) == dict)
-                    and (type(vvalue) == dict)):
-                    deep_dictupdate(d1[vkey], vvalue)
-                else:
-                    d1[vkey] = vvalue
-
-            return d1
-
-        # Function body
         plotstyles_filenames = get_filenames(experiment_info)
 
         if not plotstyles_filenames: return {}
 
-        plot_cfg = read_plotstyles_cfg(plotstyles_filenames[0])
+        plotstyles = read_plotstyles_file(plotstyles_filenames[0])
 
         for fname in plotstyles_filenames[1:]:
-            deep_dictupdate(plot_cfg, read_plotstyles_cfg(fname))
+            deep_dictupdate(plotstyles, read_plotstyles_file(fname))
 
-        self._userstyles = plot_cfg
+        self._userstyles = plotstyles
 
-        return plot_cfg
+        return plotstyles
 
     def get_value(self, key):
         if key in self._userstyles:
