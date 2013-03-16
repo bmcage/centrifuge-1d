@@ -238,38 +238,32 @@ class ResultsData():
         stored_references = self.get_value('references')
         data = self._data['lines']
 
+        if type(user_references) in (list, tuple):
+            print("DEPRECATION ERROR: format of 'params_ref' has been changed."
+                  "Please update to new format.")
+            return False
+
         if user_references == stored_references: return False
 
         self.store_value('references', user_references)
 
-        references = list(map(lambda x: x.copy(), user_references))
+        references = user_references.copy()
 
         if model is None:
             from config import load_model
             model = load_model(self.get_value('experiment_info'), validate=True)
 
-        ref_num = 1
-        if type(references) == dict: # single reference
-            references = (references, )
-
         iterable_params =  model._iterable_parameters
-        for ref in references:
-            if 'id' in ref:
-                ref_id = ref['id']
-                del ref['id']
-            else:
-                ref_id = 'ref-' + str(ref_num)
-                ref_num +=1
-
-            iters = [val for val in ref.keys() if val in iterable_params]
+        for (ref_id, ref_params) in references.items():
+            iters = [val for val in ref_params if val in iterable_params]
             if iters:
                 print('Referencing model cannot set iterable '
                       'parameters of original model:', iters,
                       '\nSkipping...')
                 continue
 
-            backup_params = model.get_parameters(ref.keys()) # backup
-            model.set_parameters(ref)
+            backup_params = model.get_parameters(ref_params) # backup
+            model.set_parameters(ref_params)
 
             flag = self.store_computation(model, model.measurements, ID=ref_id)
 
