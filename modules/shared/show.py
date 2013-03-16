@@ -370,7 +370,7 @@ class PlotStyles():
     def __init__(self, experiment_info):
         self._userstyles = self.load_userstyles(experiment_info)
         self._display_options = self._mk_display_options()
-        self._dplotstyles = {}
+        self._figuresstyles = {}
 
     def load_userstyles(self, experiment_info):
         """ Load the plotstyles files of given experiment. """
@@ -405,7 +405,7 @@ class PlotStyles():
     def get_display_options(self):
         return self._display_options
 
-    def _mk_dplotstyles(self, dplot_id):
+    def _mk_figuresstyles(self, dplot_id):
         dplot_styles = {tag: None for tag in ['xlabel', 'ylabel',
                                               'xscale', 'yscale',
                                               'xunit', 'yunit',
@@ -455,11 +455,11 @@ class PlotStyles():
 
         return dplot_styles
 
-    def get_dplotstyles(self, dtype):
-        if not dtype in self._dplotstyles:
-            self._dplotstyles[dtype] = self._mk_dplotstyles(dtype)
+    def get_figuresstyles(self, dtype):
+        if not dtype in self._figuresstyles:
+            self._figuresstyles[dtype] = self._mk_figuresstyles(dtype)
 
-        return self._dplotstyles[dtype]
+        return self._figuresstyles[dtype]
 
     def get_linestyle(self, line_id, data_types):
         if line_id == 'measured':
@@ -502,7 +502,7 @@ class DPlots():
         def _mk_dplots_bucket(data_types, plot_styles):
             dplots_bucket = \
               {dtype: {'id': dtype, 'data': [],
-                       'styles': plot_styles.get_dplotstyles(dtype)}
+                       'styles': plot_styles.get_figuresstyles(dtype)}
                 for dtype in data_types}
 
             return dplots_bucket
