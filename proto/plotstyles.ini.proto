@@ -1,16 +1,19 @@
 [plotting-styles]
-# params_ref - reference parameters - together with computed parameters (meant especially for inverse problem)
-#              one may want to compare the results with another (direct problem) solution which differs
-#              from our computed problem in following values:
+# ADDITIONAL DATA
+#
+# params_ref - reference parameters - used when we want to compare the computed results with another
+#              (direct problem) solution which differs in following values:
 #                               parameterN1: valueN1, ..., parameterNk: valueNk
-#              where parameterNi is any valid option in the configuration file of our problem
+#              where parameterNi is any valid option in the configuration file of our computed problem
 #              and valueNi is the (new) corresponding value;
-#            - multiple referencing curves (parameters) can be specified, but each with different value of 'id'
+#            - multiple referencing curves (parameters) can be specified, each with different value of 'id'
 #
 #params_ref = {'line-id-1': {parameter1-1: value1-1, parameter1-2: value1-2, parameter1-3: value1-3},
 #	       'line-id-2': {parameter2-1: value2-1, parameter2-2: value2-2, parameter2-3: value2-3}
 #	      }
 
+# DISPLAYING STYLES
+#
 # IDs represent some type of measured value
 # Recognized IDs are: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2', 'theta', 'K'
 # Description of IDs:
@@ -40,6 +43,7 @@
 
 # lines - displaying options for lines; allows customization how individual lines are displayed
 #         (for each line can be specified how it is drawn under each ID)
+#       - the line IDs should correspond to those in 'params_ref'
 #       - 'label' is the line label as displayed in figure legend
 #       - 'order' is the label order in the legend; first in legend are displayed lines with
 #         'order' value set increasingly (i.e. sequence of 'order's 1,5,200 is valid; further,
@@ -83,8 +87,8 @@
 
 #datasets = {'GC': {'show': True,
 #		   'xlabel': 'X-axis label',
-#		   'ylabel', 'Y-axis label',
-#		   'xscale', 'yscale',
+#		   'ylabel': 'Y-axis label',
+#		   'xscale': 'yscale',
 #		   'xunit': 's',
 #		   'yunit': 'cm',
 #		   'show_legend': True,
@@ -93,8 +97,8 @@
 #		   'legend_bbox': None},
 #	    'h':  {'show': True,
 #		   'xlabel': 'X-axis label',
-#		   'ylabel', 'Y-axis label',
-#		   'xscale', 'yscale',
+#		   'ylabel': 'Y-axis label',
+#		   'xscale': 'yscale',
 #		   'xunit': 's',
 #		   'yunit': 'cm',
 #		   'show_legend': True,
@@ -103,8 +107,8 @@
 #		   'legend_bbox': None},
 #	    'theta': {'show': True,
 #		   'xlabel': 'X-axis label',
-#		   'ylabel', 'Y-axis label',
-#		   'xscale', 'yscale',
+#		   'ylabel': 'Y-axis label',
+#		   'xscale': 'yscale',
 #		   'xunit': 's',
 #		   'yunit': 'cm',
 #		   'show_legend': True,
