@@ -191,6 +191,5 @@ def conductivity_curve(SC, Ks, theta_s, theta_r=0.0, u=None, p=None, h=None,
 
     theta = theta_r + (theta_s - theta_r) * u
     K     = SC.u2Ku(u, Ks)
-    print('KKKKK', Ks, K)
 
     return (theta, K)
