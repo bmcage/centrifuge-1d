@@ -94,14 +94,15 @@ def parse_dict(raw_value):
     if raw_value == '': return {}
 
     result = {}
-    brackets = ('(', ')', '[', ']', '{', '}')
+    brackets = ('(', ')', '[', ']', '{', '}', '"', "'")
     counts = {br: 0 for br in brackets}
 
     i0 = 0
     for (i, char) in enumerate(raw_value):
         if char == ',':
             if ((counts['('] == counts[')']) and (counts['{'] == counts['}'])
-                and (counts['['] == counts[']'])): # balanced brackets
+                and (counts['['] == counts[']']) and (counts['"'] % 2 == 0)
+                and (counts["'"] % 2 == 0)): # balanced brackets
 
                 k = i0 + raw_value[i0:].index(':')
                 if k>i:
