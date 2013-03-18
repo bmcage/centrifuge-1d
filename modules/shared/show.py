@@ -389,6 +389,49 @@ def read_plotstyles_file(filename):
 
     return result
 
+
+def mk_figurestyles(fig_id, user_styles, display_options):
+    figure_styles = dict.fromkeys(('xlabel', 'ylabel',
+                                   'xscale', 'yscale', 'xunit', 'yunit',
+                                   'show', 'show_legend',
+                                   'legend_title', 'legend_bbox', 'legend_loc'))
+
+    # Default values
+    if fig_id in DG_AXES_LABELS:
+        figure_styles['xlabel'] = DG_AXES_LABELS[fig_id][0][0]
+        figure_styles['ylabel'] = DG_AXES_LABELS[fig_id][0][1]
+
+        unit_type = DG_AXES_LABELS[fig_id][1][0]
+        figure_styles['xunit'] = DEFAULT_UNITS[unit_type]
+
+        unit_type = DG_AXES_LABELS[fig_id][1][1]
+        figure_styles['yunit'] = DEFAULT_UNITS[unit_type]
+
+        figure_styles['legend_loc'] = 4
+
+
+    if fig_id in ['h', 'u']:
+        figure_styles['legend_bbox'] = (1.01, 1.)
+        figure_styles['legend_loc'] = 2
+        figure_styles['legend_title'] = 'Time [min]'
+
+    elif fig_id == 'theta':
+        figure_styles['yscale'] = 'log'
+        figure_styles['legend_loc'] = 1
+
+    elif fig_id == 'K':
+        figure_styles['yscale'] = 'log'
+
+    if user_styles and (fig_id in user_styles):
+        figure_styles.update(user_styles[fig_id])
+
+    # Post-update
+    if ((fig_id == 'h') and (figure_styles['show_legend'] is None)
+        and (not display_options['separate_figures'])):
+        figure_styles['show_legend'] = False
+
+    return figure_styles
+
 def get_line_order(line_options, not_found=999):
     if 'order' in line_options:
         return line_options['order']
@@ -434,50 +477,6 @@ class PlotStyles():
             self._figuresstyles[fig_id] = \
               mk_figurestyles(fig_id, self.get_userstyles('datasets'),
                               self.get_display_options())
-    def _mk_figuresstyles(self, dplot_id):
-        dplot_styles = \
-          dict.fromkeys(('xlabel', 'ylabel',
-                         'xscale', 'yscale', 'xunit', 'yunit',
-                         'show', 'show_legend',
-                         'legend_title', 'legend_bbox', 'legend_loc'))
-
-        # Default values
-        if dplot_id in DG_AXES_LABELS:
-            dplot_styles['xlabel'] = DG_AXES_LABELS[dplot_id][0][0]
-            dplot_styles['ylabel'] = DG_AXES_LABELS[dplot_id][0][1]
-
-            unit_type = DG_AXES_LABELS[dplot_id][1][0]
-            dplot_styles['xunit'] = DEFAULT_UNITS[unit_type]
-
-            unit_type = DG_AXES_LABELS[dplot_id][1][1]
-            dplot_styles['yunit'] = DEFAULT_UNITS[unit_type]
-
-            dplot_styles['legend_loc'] = 4
-
-
-        if dplot_id in ['h', 'u']:
-            dplot_styles['legend_bbox'] = (1.01, 1.)
-            dplot_styles['legend_loc'] = 2
-            dplot_styles['legend_title'] = 'Time [min]'
-
-        elif dplot_id == 'theta':
-            dplot_styles['yscale'] = 'log'
-            dplot_styles['legend_loc'] = 1
-
-        elif dplot_id == 'K':
-            dplot_styles['yscale'] = 'log'
-
-        # User values specified in plotstyles file
-        user_styles = self.get_userstyles('datasets')
-        if user_styles and (dplot_id in user_styles):
-            dplot_styles.update(user_styles[dplot_id])
-
-        # Post-update
-        if (dplot_id == 'h') and (dplot_styles['show_legend'] is None)
-            and (not self.get_display_options()['separate_figures'])):
-            dplot_styles['show_legend'] = False
-
-        return dplot_styles
 
         return self._figuresstyles[fig_id]
 
