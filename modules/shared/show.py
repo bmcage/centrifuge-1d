@@ -506,6 +506,9 @@ class PlotStyles():
 
         return line_styles
 
+################################################################################
+#                             Data displaying                                  #
+################################################################################
 class DPlots():
     def __init__(self, experiment_info):
         self._experiment_info = experiment_info
@@ -764,8 +767,7 @@ class DPlots():
                 input('Press ENTER to continue...')
 
 def show_results(experiment_info,
-                 model=None, inv_params=None, cov=None,
-                 show_figures=True):
+                 model=None, inv_params=None, cov=None):
 
     storage = DataStorage()
     data    = ResultsData()
@@ -810,8 +812,7 @@ def show_results(experiment_info,
         storage.store('ResultsData', data.dump())
         storage.save(experiment_info)
 
-    if show_figures:
-        dplots.display(data)
+    dplots.display(data)
 
 ################################################################################
 #                              Unused functions                                #
