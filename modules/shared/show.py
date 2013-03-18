@@ -518,7 +518,6 @@ class DPlots():
         if 'matplotlib_backend' in display_options:
             matplotlib_backend = display_options['matplotlib_backend']
         if matplotlib_backend: # chosen other backend than the default one
-            import matplotlib
             matplotlib.use(matplotlib_backend)
 
     def get_references(self):
