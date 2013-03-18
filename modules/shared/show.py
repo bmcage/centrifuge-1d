@@ -429,6 +429,11 @@ class PlotStyles():
     def get_display_options(self):
         return self._display_options
 
+    def get_figurestyles(self, fig_id):
+        if not fig_id in self._figuresstyles:
+            self._figuresstyles[fig_id] = \
+              mk_figurestyles(fig_id, self.get_userstyles('datasets'),
+                              self.get_display_options())
     def _mk_figuresstyles(self, dplot_id):
         dplot_styles = \
           dict.fromkeys(('xlabel', 'ylabel',
@@ -474,11 +479,7 @@ class PlotStyles():
 
         return dplot_styles
 
-    def get_figuresstyles(self, dtype):
-        if not dtype in self._figuresstyles:
-            self._figuresstyles[dtype] = self._mk_figuresstyles(dtype)
-
-        return self._figuresstyles[dtype]
+        return self._figuresstyles[fig_id]
 
     def get_linestyle(self, line_id, data_types):
         # set default values
@@ -544,9 +545,9 @@ class DPlots():
     def _mk_dplots(self, data):
         def _mk_dplots_bucket(data_types, plot_styles):
             dplots_bucket = \
-              {dtype: {'id': dtype, 'data': [],
-                       'styles': plot_styles.get_figuresstyles(dtype)}
-                for dtype in data_types}
+              {fig_id: {'id': fig_id, 'data': [],
+                       'styles': plot_styles.get_figurestyles(fig_id)}
+                for fig_id in data_types}
 
             return dplots_bucket
 
@@ -681,9 +682,9 @@ class DPlots():
         fignum -= 1
         img_num = 2^20 # high initialization, so that first fig is created
 
-        for dplot in dplots:
-            if not dplot['data']: continue
-            dplot_id = dplot['id']
+        for figure in dplots:
+            if not figure['data']: continue
+            fig_id = figure['id']
 
             # resolve figure and subplot
             if img_num > images_per_figure:
@@ -700,12 +701,12 @@ class DPlots():
                 plt.subplot(3,2,img_num)
 
             # plot the supplied data
-            dplot_styles = dplot['styles']
-            (xunit, yunit) = (dplot_styles['xunit'], dplot_styles['yunit'])
+            figure_styles = figure['styles']
+            (xunit, yunit) = (figure_styles['xunit'], figure_styles['yunit'])
 
             plot_labels = []
-            for dplot_data in dplot['data']:
-                (xdata, ydata, line_label, plot_style) = dplot_data
+            for figure_data in figure['data']:
+                (xdata, ydata, line_label, plot_style) = figure_data
                 xcoef = get_unit_coef(xunit)
                 ycoef = get_unit_coef(yunit)
                 if not xcoef == 1.0:
@@ -718,27 +719,29 @@ class DPlots():
                 else:
                     plot_labels.extend(line_label)
 
-            (xlabel, ylabel) = (dplot_styles['xlabel'], dplot_styles['ylabel'])
+            xlabel = figure_styles['xlabel']
+            ylabel = figure_styles['ylabel']
+
             plt.xlabel(xlabel.format(xunit))
             plt.ylabel(ylabel.format(yunit))
-            if dplot_styles['xscale']:
-                plt.xscale(dplot_styles['xscale'])
-            if dplot_styles['yscale']:
-                plt.yscale(dplot_styles['yscale'])
+            if figure_styles['xscale']:
+                plt.xscale(figure_styles['xscale'])
+            if figure_styles['yscale']:
+                plt.yscale(figure_styles['yscale'])
 
-            show_legend = dplot_styles['show_legend']
+            show_legend = figure_styles['show_legend']
             if show_legend is None:
-                if (len(dplot['data']) > 1) or (np.ndim(ydata) > 1):
+                if (len(figure['data']) > 1) or (np.ndim(ydata) > 1):
                     show_legend = True
             if show_legend:
                 plt.legend(plot_labels, borderaxespad=0.0,
                            prop={'family': 'monospace'},
-                           loc=dplot_styles['legend_loc'],
-                           title=dplot_styles['legend_title'],
-                           bbox_to_anchor=dplot_styles['legend_bbox'])
+                           loc=figure_styles['legend_loc'],
+                           title=figure_styles['legend_title'],
+                           bbox_to_anchor=figure_styles['legend_bbox'])
 
             if save_figures and (img_num == images_per_figure):
-                if separate_figures: img_suffix = dplot_id
+                if separate_figures: img_suffix = fig_id
                 else: img_suffix = str(self.fignum)
 
                 plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
