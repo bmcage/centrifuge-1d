@@ -66,6 +66,8 @@
 #									  - length - 'mm', 'cm', 'm'
 #									  - pressure - 'Pa', 'kPa'
 #			   - By default time unit is 's', length unit is 'cm' and pressure unit is 'Pa'
+#       'xmin', 'xmax'     - set the minimal/maximal value on the x-axis; if not set all values are displayed
+#       'ymin', 'ymax'     - set the minimal/maximal value on the y-axis; if not set all values are displayed
 # 	'show_legend'	   - legend should be displayed; value: True/False; default: True
 # 	'legend_title'	   - title of legend; value: string or None; default: None
 # 	'legend_loc'	   - legend location:	1 - upper right corner

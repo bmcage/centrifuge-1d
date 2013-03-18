@@ -393,6 +393,7 @@ def read_plotstyles_file(filename):
 def mk_figurestyles(fig_id, user_styles, display_options):
     figure_styles = dict.fromkeys(('xlabel', 'ylabel',
                                    'xscale', 'yscale', 'xunit', 'yunit',
+                                   'xmin', 'ymin', 'xmax', 'ymax',
                                    'show', 'show_legend',
                                    'legend_title', 'legend_bbox', 'legend_loc'))
 
@@ -727,6 +728,15 @@ class DPlots():
                 plt.xscale(figure_styles['xscale'])
             if figure_styles['yscale']:
                 plt.yscale(figure_styles['yscale'])
+
+            if figure_styles['xmin']:
+                plt.xlim(xmin=figure_styles['xmin'])
+            if figure_styles['xmax']:
+                plt.xlim(xmax=figure_styles['xmax'])
+            if figure_styles['ymin']:
+                plt.ylim(ymin=figure_styles['ymin'])
+            if figure_styles['ymax']:
+                plt.ylim(ymax=figure_styles['ymax'])
 
             show_legend = figure_styles['show_legend']
             if show_legend is None:
