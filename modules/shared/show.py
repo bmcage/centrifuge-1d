@@ -430,12 +430,11 @@ class PlotStyles():
         return self._display_options
 
     def _mk_figuresstyles(self, dplot_id):
-        dplot_styles = {tag: None for tag in ['xlabel', 'ylabel',
-                                              'xscale', 'yscale',
-                                              'xunit', 'yunit',
-                                              'show_legend', 'legend_title',
-                                              'legend_bbox', 'legend_loc',
-                                              'show']}
+        dplot_styles = \
+          dict.fromkeys(('xlabel', 'ylabel',
+                         'xscale', 'yscale', 'xunit', 'yunit',
+                         'show', 'show_legend',
+                         'legend_title', 'legend_bbox', 'legend_loc'))
 
         # Default values
         if dplot_id in DG_AXES_LABELS:
