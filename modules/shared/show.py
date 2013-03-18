@@ -460,6 +460,9 @@ class PlotStyles():
             dplot_styles['yscale'] = 'log'
             dplot_styles['legend_loc'] = 1
 
+        elif dplot_id == 'K':
+            dplot_styles['yscale'] = 'log'
+
         # User values specified in plotstyles file
         user_styles = self.get_userstyles('datasets')
         if user_styles and (dplot_id in user_styles):
