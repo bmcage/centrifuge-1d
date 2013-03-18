@@ -437,45 +437,38 @@ class PlotStyles():
                                               'legend_bbox', 'legend_loc',
                                               'show']}
 
+        # Default values
+        if dplot_id in DG_AXES_LABELS:
+            dplot_styles['xlabel'] = DG_AXES_LABELS[dplot_id][0][0]
+            dplot_styles['ylabel'] = DG_AXES_LABELS[dplot_id][0][1]
+
+            unit_type = DG_AXES_LABELS[dplot_id][1][0]
+            dplot_styles['xunit'] = DEFAULT_UNITS[unit_type]
+
+            unit_type = DG_AXES_LABELS[dplot_id][1][1]
+            dplot_styles['yunit'] = DEFAULT_UNITS[unit_type]
+
+            dplot_styles['legend_loc'] = 4
+
+
+        if dplot_id in ['h', 'u']:
+            dplot_styles['legend_bbox'] = (1.01, 1.)
+            dplot_styles['legend_loc'] = 2
+            dplot_styles['legend_title'] = 'Time [min]'
+
+        elif dplot_id == 'theta':
+            dplot_styles['yscale'] = 'log'
+            dplot_styles['legend_loc'] = 1
+
+        # User values specified in plotstyles file
         user_styles = self.get_userstyles('datasets')
         if user_styles and (dplot_id in user_styles):
             dplot_styles.update(user_styles[dplot_id])
 
-        # try to set default value
-        if dplot_id in DG_AXES_LABELS:
-            if dplot_styles['xlabel'] is None:
-                dplot_styles['xlabel'] = DG_AXES_LABELS[dplot_id][0][0]
-            if dplot_styles['ylabel'] is None:
-                dplot_styles['ylabel'] = DG_AXES_LABELS[dplot_id][0][1]
-            if dplot_styles['xunit'] is None:
-                unit_type = DG_AXES_LABELS[dplot_id][1][0]
-                dplot_styles['xunit'] = DEFAULT_UNITS[unit_type]
-            if dplot_styles['yunit'] is None:
-                unit_type = DG_AXES_LABELS[dplot_id][1][1]
-                dplot_styles['yunit'] = DEFAULT_UNITS[unit_type]
-
-
-        if dplot_id in ['h', 'u']:
-            if ((dplot_styles['legend_bbox'] is None)
-                and (dplot_styles['legend_loc'] is None)):
-                dplot_styles['legend_bbox'] = (1.01, 1.)
-                dplot_styles['legend_loc'] = 2
-
-            if dplot_styles['legend_title'] is None:
-                dplot_styles['legend_title'] = 'Time [min]'
-
-        if ((dplot_id == 'h') and (dplot_styles['show_legend'] is None)
+        # Post-update
+        if (dplot_id == 'h') and (dplot_styles['show_legend'] is None)
             and (not self.get_display_options()['separate_figures'])):
             dplot_styles['show_legend'] = False
-
-        if dplot_id == 'theta':
-            if dplot_styles['yscale'] is None:
-                dplot_styles['yscale'] = 'log'
-            if dplot_styles['legend_loc'] is None:
-                dplot_styles['legend_loc'] = 1
-
-        if dplot_styles['legend_loc'] is None:
-            dplot_styles['legend_loc'] = 4
 
         return dplot_styles
 
