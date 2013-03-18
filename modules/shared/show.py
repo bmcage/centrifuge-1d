@@ -543,13 +543,6 @@ class DPlots():
         return ordered_line_ids + missing_line_ids
 
     def _mk_dplots(self, data):
-        def _mk_dplots_bucket(data_types, plot_styles):
-            dplots_bucket = \
-              {fig_id: {'id': fig_id, 'data': [],
-                       'styles': plot_styles.get_figurestyles(fig_id)}
-                for fig_id in data_types}
-
-            return dplots_bucket
 
         def _add_plotline(line_id, line_data, data_types, plot_styles,
                           dplots_bucket):
@@ -630,15 +623,17 @@ class DPlots():
 
         plot_styles   = self._plotstyles
         data_types    = data.get_linedatatypes()
-        dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
 
+        figures = {fig_id: {'id': fig_id, 'data': [],
+                            'styles': plot_styles.get_figurestyles(fig_id)}
+                   for fig_id in fig_ids}
         ordered_line_ids = self.get_lines_order()
 
         for line_id in ordered_line_ids:
             _add_plotline(line_id, data.get_linedata(line_id), data_types,
-                          plot_styles, dplots_bucket)
+                          plot_styles, figures)
 
-        ordered_figures = order_figures(dplots_bucket)
+        ordered_figures = order_figures(figures)
 
         return ordered_figures
 
