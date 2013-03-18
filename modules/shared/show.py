@@ -587,38 +587,38 @@ class DPlots():
                     item = (xdata, ydata, ilabel, line_styles[data_type])
                 dplots_bucket[data_type]['data'].append(item)
 
-        def _filter_dplots(dplots_bucket):
-            for name in list(dplots_bucket.keys()):
-                if ((not has_data(dplots_bucket[name]['data']))
-                    or (dplots_bucket[name]['styles']['show'] == False)):
-                    del dplots_bucket[name]
+        def order_figures(figures):
 
-            return dplots_bucket
+            # Remove figures with no data and not displayed
+            for fig_id in list(figures.keys()):
+                if ((not has_data(figures[fig_id]['data']))
+                    or (figures[fig_id]['styles']['show'] == False)):
+                    del figures[fig_id]
 
-        def _order_dplots(dplots_bucket):
+            # Order remaining figures
             ordered_dplots = []
             single_dplots  = []
 
             # first order pairs (and queue singles from pairs)
             for (i1_id, i2_id) in DG_PAIRS:
-                i1p = (i1_id in dplots_bucket)
-                i2p = (i2_id in dplots_bucket)
+                i1p = (i1_id in figures)
+                i2p = (i2_id in figures)
 
                 if i1p and i2p:
-                    ordered_dplots.append(dplots_bucket[i1_id])
-                    ordered_dplots.append(dplots_bucket[i2_id])
+                    ordered_dplots.append(figures[i1_id])
+                    ordered_dplots.append(figures[i2_id])
                 elif i1p:
-                    single_dplots.append(dplots_bucket[i1_id])
+                    single_dplots.append(figures[i1_id])
                 elif i2p:
-                    single_dplots.append(dplots_bucket[i2_id])
+                    single_dplots.append(figures[i2_id])
 
-                if i1p: del dplots_bucket[i1_id]
-                if i2p: del dplots_bucket[i2_id]
+                if i1p: del figures[i1_id]
+                if i2p: del figures[i2_id]
 
             # append singles
             ordered_dplots.extend(single_dplots)
             # append remaning singles that are not part of any pair
-            for remaining_dplots in dplots_bucket.values():
+            for remaining_dplots in figures.values():
                 ordered_dplots.append(remaining_dplots)
 
             return ordered_dplots
@@ -638,9 +638,9 @@ class DPlots():
             _add_plotline(line_id, data.get_linedata(line_id), data_types,
                           plot_styles, dplots_bucket)
 
-        ordered_dplots = _order_dplots(_filter_dplots(dplots_bucket))
+        ordered_figures = order_figures(dplots_bucket)
 
-        return ordered_dplots
+        return ordered_figures
 
     def display(self, data, fignum=1):
 
