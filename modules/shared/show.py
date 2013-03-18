@@ -625,6 +625,10 @@ class DPlots():
             return ordered_dplots
 
         # function body
+        if not data.has_data('lines'):
+            print('No data is provided. Nothing to display.')
+            return None
+
         plot_styles   = self._plotstyles
         data_types    = data.get_linedatatypes()
         dplots_bucket = _mk_dplots_bucket(data_types, plot_styles)
@@ -639,117 +643,114 @@ class DPlots():
 
         return ordered_dplots
 
-    def display(self, data, fignum = None):
+    def display(self, data, fignum=1):
+
+        display_options = self._plotstyles.get_display_options()
+
+        show_figures     = display_options['show_figures']
+        save_figures     = display_options['save_figures']
+        separate_figures = display_options['separate_figures']
+
+        if not (save_figures or show_figures):
+            return
+
+        dplots = self._mk_dplots(data)
+
+        if not dplots:
+            return
+
+        print_status(data)
+
         import matplotlib.pyplot as plt
-        if fignum is not None:
-            self.fignum = fignum
 
-        def _show_dplots(ordered_dplots, display_options, experiment_info):
-
-            separate_figures = display_options['separate_figures']
-            save_figures     = display_options['save_figures']
-
-            if save_figures:
-                experiment_info = experiment_info
-                if experiment_info['mask']:
-                    figs_dir_type = 'mask'
-                else:
-                    figs_dir_type = 'data'
-
-                save_dir = get_directories('figs', figs_dir_type,
-                                           experiment_info)
-
-                if not path.exists(save_dir):
-                    makedirs(save_dir)
-
-
-            if separate_figures:
-                images_per_figure = 1
+        if save_figures:
+            experiment_info = self._experiment_info
+            if experiment_info['mask']:
+                figs_dir_type = 'mask'
             else:
-                images_per_figure = 6
+                figs_dir_type = 'data'
 
-            self.fignum -= 1
-            img_num = 2^20 # high initialization, so that first fig is created
+            save_dir = get_directories('figs', figs_dir_type, experiment_info)
 
-            for dplot in ordered_dplots:
-                if not dplot['data']: continue
-                dplot_id = dplot['id']
+            if not path.exists(save_dir):
+                makedirs(save_dir)
 
-                # resolve figure and subplot
-                if img_num > images_per_figure:
-                    img_num = 1
-                    self.fignum += 1
+        if separate_figures:
+            images_per_figure = 1
+        else:
+            images_per_figure = 6
 
-                    if separate_figures:
-                        plt.figure(self.fignum)
-                    else:
-                        plt.figure(self.fignum, figsize=(16, 8.5))
-                        plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
+        fignum -= 1
+        img_num = 2^20 # high initialization, so that first fig is created
 
-                if not separate_figures:
-                    plt.subplot(3,2,img_num)
+        for dplot in dplots:
+            if not dplot['data']: continue
+            dplot_id = dplot['id']
 
-                # plot the supplied data
-                dplot_styles = dplot['styles']
-                (xunit, yunit) = (dplot_styles['xunit'],
-                                  dplot_styles['yunit'])
+            # resolve figure and subplot
+            if img_num > images_per_figure:
+                img_num = 1
+                self.fignum += 1
 
-                plot_labels = []
-                for dplot_data in dplot['data']:
-                    (xdata, ydata, line_label, plot_style) = dplot_data
-                    xcoef = get_unit_coef(xunit)
-                    ycoef = get_unit_coef(yunit)
-                    if not xcoef == 1.0:
-                        xdata = xcoef * np.asarray(xdata, dtype=float)
-                    if not ycoef == 1.0:
-                        xdata = ycoef * np.asarray(ydata, dtype=float)
-                    plt.plot(xdata, ydata, plot_style)
-                    if type(line_label) == str:
-                        plot_labels.append(line_label)
-                    else:
-                        plot_labels.extend(line_label)
+                if separate_figures:
+                    plt.figure(self.fignum)
+                else:
+                    plt.figure(self.fignum, figsize=(16, 8.5))
+                    plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
 
-                (xlabel, ylabel) = (dplot_styles['xlabel'],
-                                    dplot_styles['ylabel'])
-                plt.xlabel(xlabel.format(xunit))
-                plt.ylabel(ylabel.format(yunit))
-                if dplot_styles['xscale']:
-                    plt.xscale(dplot_styles['xscale'])
-                if dplot_styles['yscale']:
-                    plt.yscale(dplot_styles['yscale'])
+            if not separate_figures:
+                plt.subplot(3,2,img_num)
 
-                show_legend = dplot_styles['show_legend']
-                if show_legend is None:
-                    if (len(dplot['data']) > 1) or (np.ndim(ydata) > 1):
-                     show_legend = True
-                if show_legend:
-                    plt.legend(plot_labels, borderaxespad=0.0,
-                               prop={'family': 'monospace'},
-                               loc=dplot_styles['legend_loc'],
-                               title=dplot_styles['legend_title'],
-                               bbox_to_anchor=dplot_styles['legend_bbox'])
+            # plot the supplied data
+            dplot_styles = dplot['styles']
+            (xunit, yunit) = (dplot_styles['xunit'], dplot_styles['yunit'])
 
-                if save_figures and (img_num == images_per_figure):
-                    if separate_figures: img_suffix = dplot_id
-                    else: img_suffix = str(self.fignum)
+            plot_labels = []
+            for dplot_data in dplot['data']:
+                (xdata, ydata, line_label, plot_style) = dplot_data
+                xcoef = get_unit_coef(xunit)
+                ycoef = get_unit_coef(yunit)
+                if not xcoef == 1.0:
+                    xdata = xcoef * np.asarray(xdata, dtype=float)
+                if not ycoef == 1.0:
+                    xdata = ycoef * np.asarray(ydata, dtype=float)
+                plt.plot(xdata, ydata, plot_style)
+                if type(line_label) == str:
+                    plot_labels.append(line_label)
+                else:
+                    plot_labels.extend(line_label)
 
-                    plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
+            (xlabel, ylabel) = (dplot_styles['xlabel'], dplot_styles['ylabel'])
+            plt.xlabel(xlabel.format(xunit))
+            plt.ylabel(ylabel.format(yunit))
+            if dplot_styles['xscale']:
+                plt.xscale(dplot_styles['xscale'])
+            if dplot_styles['yscale']:
+                plt.yscale(dplot_styles['yscale'])
 
-                img_num += 1
+            show_legend = dplot_styles['show_legend']
+            if show_legend is None:
+                if (len(dplot['data']) > 1) or (np.ndim(ydata) > 1):
+                    show_legend = True
+            if show_legend:
+                plt.legend(plot_labels, borderaxespad=0.0,
+                           prop={'family': 'monospace'},
+                           loc=dplot_styles['legend_loc'],
+                           title=dplot_styles['legend_title'],
+                           bbox_to_anchor=dplot_styles['legend_bbox'])
 
-            if save_figures and (img_num < images_per_figure):
-                plt.savefig(save_dir + 'image-' + str(self.fignum), dpi=300)
+            if save_figures and (img_num == images_per_figure):
+                if separate_figures: img_suffix = dplot_id
+                else: img_suffix = str(self.fignum)
 
-        # function body
-        if not data.has_data('lines'):
-            print('No data is provided. Nothing to display.')
-        else: # generate dplots
-            self._dplots = self._mk_dplots(data)
+                plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
 
-            print_status(data)
+            img_num += 1
 
-            _show_dplots(self._dplots, self._plotstyles.get_display_options(),
-                         self._experiment_info)
+        if save_figures and (img_num < images_per_figure):
+            plt.savefig(save_dir + 'image-' + str(self.fignum), dpi=300)
+
+        if show_figures:
             try:
                 plt.show(block=False)
             except: # Older matplotlib compatibility
