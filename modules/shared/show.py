@@ -302,7 +302,7 @@ class ResultsData():
 
         self._data['lines']['measured'] = m
 
-    def get_linedatatypes(self):
+    def get_figures_ids(self):
         return DG_AXES_LABELS.keys()
 
     def get_linedata(self, line_id, not_found=None):
@@ -522,7 +522,7 @@ class DPlots():
     def get_references(self):
         return self._plotstyles.get_userstyles('params_ref')
 
-    def get_lines_order(self):
+    def get_lines_ids(self):
         lines = self._plotstyles.get_userstyles('lines')
         refs  = self._plotstyles.get_userstyles('params_ref')
 
@@ -622,15 +622,15 @@ class DPlots():
             return None
 
         plot_styles   = self._plotstyles
-        data_types    = data.get_linedatatypes()
+        fig_ids     = data.get_figures_ids()
+        lines_ids   = self.get_lines_ids()
 
         figures = {fig_id: {'id': fig_id, 'data': [],
                             'styles': plot_styles.get_figurestyles(fig_id)}
                    for fig_id in fig_ids}
-        ordered_line_ids = self.get_lines_order()
 
-        for line_id in ordered_line_ids:
-            _add_plotline(line_id, data.get_linedata(line_id), data_types,
+        for line_id in lines_ids:
+            _add_plotline(line_id, data.get_linedata(line_id), fig_ids,
                           plot_styles, figures)
 
         ordered_figures = order_figures(figures)
