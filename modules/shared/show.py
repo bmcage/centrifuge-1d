@@ -65,6 +65,8 @@ DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
             ('dgF_MT', 'dgF_MO'), ('s1', 's2'), ('theta', 'relsat'))
 
+FIGURES_IDS = list(DG_AXES_LABELS.keys())
+
 def get_unit_coef(unit_base):
     unit = unit_base.lower()
     # units used for computation are: cm, s, pa, gf and "no units"
@@ -303,7 +305,7 @@ class ResultsData():
         self._data['lines']['measured'] = m
 
     def get_figures_ids(self):
-        return DG_AXES_LABELS.keys()
+        return FIGURES_IDS
 
     def get_linedata(self, line_id, not_found=None):
         data = self._data['lines']
