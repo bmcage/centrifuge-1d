@@ -465,6 +465,7 @@ class PlotStyles():
 
         self._display_options = options
         self._figuresstyles = {}
+        self._linesstyles    = {}
 
     def get_userstyles(self, key):
         if key in self._userstyles:
@@ -483,26 +484,29 @@ class PlotStyles():
 
         return self._figuresstyles[fig_id]
 
-    def get_linestyle(self, line_id, data_types):
-        # set default values
-        if line_id == 'measured':
-            lineopt = 'x'
-        else:
-            lineopt = '.'
+    def get_linestyles(self, line_id, fig_id):
+        lines_styles = self._linesstyles
 
-        line_styles = {dtype: lineopt for dtype in data_types}
+        if not line_id in lines_styles:
+            # set default values
+            if line_id == 'measured':
+                lineopt = 'x'
+            else:
+                lineopt = '.'
 
-        if 'h' in data_types: line_styles['h'] = '-'
-        if 'u' in data_types: line_styles['u'] = '-'
-        if ('theta' in data_types) and (not line_id == 'measured'):
-             line_styles['theta'] = '-'
+            line_styles = {fig_id: lineopt for fig_id in FIGURES_IDS}
 
-        # merge with user-specified values
-        user_styles = self.get_userstyles('lines')
-        if user_styles and (line_id in user_styles):
-            line_styles.update(user_styles[line_id])
+            if 'h' in data_types: line_styles['h'] = '-'
+            if 'u' in data_types: line_styles['u'] = '-'
+            if ('theta' in data_types) and (not line_id == 'measured'):
+                 line_styles['theta'] = '-'
 
-        return line_styles
+            # merge with user-specified values
+            user_styles = self.get_userstyles('lines')
+            if user_styles and (line_id in user_styles):
+                line_styles.update(user_styles[line_id])
+
+        return line_styles[line_id][fig_id]
 
 ################################################################################
 #                             Data displaying                                  #
