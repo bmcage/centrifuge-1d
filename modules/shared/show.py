@@ -530,28 +530,23 @@ class DPlots():
         self._experiment_info = experiment_info
 
         # User styles (read from plotstyles inifiles)
-        userstyles = {'options': {}, 'datasets': {}, 'lines': {},
-                      'params_ref': {}}
+        display_options = {'separate_figures': False, 'show_figures': True,
+                           'save_figures': True, 'matplotlib_backend': None}
+
+        styles = {'options': display_options, 'datasets': {}, 'lines': {},
+                  'params_ref': {}}
 
         plotstyles_filenames = get_filenames(experiment_info)
 
         if plotstyles_filenames:
-            userstyles = read_plotstyles_file(plotstyles_filenames[0])
+            for fname in plotstyles_filenames:
+                deep_dictupdate(styles, read_plotstyles_file(fname))
 
-            for fname in plotstyles_filenames[1:]:
-                deep_dictupdate(userstyles, read_plotstyles_file(fname))
-
-        self._userstyles    = userstyles
+        self._userstyles    = styles
         self._figuresstyles = {}
         self._linesstyles   = {}
 
         # Global displaying options
-        display_options = {'separate_figures': False, 'show_figures': True,
-                           'save_figures': True, 'matplotlib_backend': None}
-
-        user_disp_opts = userstyles['options']
-        if user_disp_opts: display_options.update(user_disp_opts)
-
         self._display_options = display_options
 
         if 'matplotlib_backend' in display_options:
