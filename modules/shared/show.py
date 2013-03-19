@@ -527,12 +527,12 @@ def mk_figures(data, fig_ids, lines_ids, plot_styles):
     figures = {fig_id: {'id': fig_id, 'data': [],
                         'styles': plot_styles.get_figurestyles(fig_id)}
                 for fig_id in fig_ids}
+    lines_ids = styles['lines_order']
 
     for line_id in lines_ids:
         line_data = data.get_linedata(line_id)
 
         for (fig_id, line_value) in line_data.items():
-
             # Filter out supplied data not recognized as valid
             if (not fig_id in FIGURES_IDS) or (not has_data(line_data)):
                 continue
@@ -583,11 +583,9 @@ class DPlots():
             for fname in plotstyles_filenames:
                 deep_dictupdate(styles, read_plotstyles_file(fname))
 
-        self._userstyles    = styles
-        self._figuresstyles = {}
-        self._linesstyles   = {}
         linestyles_post_update(styles)
 
+        self._styles    = styles
 
         # Global displaying options
         self._display_options = display_options
@@ -598,8 +596,7 @@ class DPlots():
             matplotlib.use(matplotlib_backend)
 
     def get_references(self):
-        return self._userstyles['params_ref']
-
+        return self._styles['params_ref']
     def get_figurestyles(self, fig_id):
         if not fig_id in self._figuresstyles:
             self._figuresstyles[fig_id] = \
