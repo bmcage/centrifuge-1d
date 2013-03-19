@@ -7,6 +7,7 @@ from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
 from os import makedirs, path
 from shared import get_directories, parse_value
 from config import ModulesManager, load_model, DataStorage
+from collections import OrderedDict
 from modules.shared.functions import has_data, compare_data
 try:
     import ConfigParser as configparser
@@ -27,41 +28,43 @@ DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
 dg_label_time = "Time [{}]"
 dg_label_length = "Sample length $L$ [{}]"
 dg_unit_time_length = ('time', 'length')
-DG_AXES_LABELS = {'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
-                        ('length', 'length')),
-                  'u': ((dg_label_length, "Relative saturation $u${}"),
-                        ('length', 'none')),
-                  'MO': ((dg_label_time, "Expelled water [{}]"),
-                         dg_unit_time_length),
-                  'MI': ((dg_label_time, "Inflow water [{}]"),
-                         dg_unit_time_length),
-                  'GC': ((dg_label_time, "Gravitational center [{}]"),
-                         dg_unit_time_length),
-                  'RM': ((dg_label_time, "Rotational momentum [kg.m.s$^{-1}$]{}"),
-                         ('time', 'none')),
-                  's1': ((dg_label_time, "Interface s1 [{}]"),
-                         dg_unit_time_length),
-                  's2': ((dg_label_time, "Interface s2 [{}]"),
-                         dg_unit_time_length),
-                  'WM': ((dg_label_time, "Water mass balance [{}]"),
-                         dg_unit_time_length),
-                  'WM_in_tube': ((dg_label_time, "Water mass in tube [{}]"),
-                                 dg_unit_time_length),
-                  'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
-                            ('none', 'pressure')),
-                  'relsat': (("Relative saturation $u${}", "Hydraulic head $h$ [{}]"),
-                             ('none', 'length')),
-                  'K':  (("Water content $\\theta${}",
-                          "Hydraulic conductivity $K(\\theta)$ [{}]"),
-                          ('none', 'velocity')),
-                  'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
+DG_AXES_LABELS = \
+  OrderedDict({'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
+                     ('length', 'length')),
+               'u': ((dg_label_length, "Relative saturation $u${}"),
+                     ('length', 'none')),
+               'MO': ((dg_label_time, "Expelled water [{}]"),
+                      dg_unit_time_length),
+               'MI': ((dg_label_time, "Inflow water [{}]"),
+                      dg_unit_time_length),
+               'GC': ((dg_label_time, "Gravitational center [{}]"),
+                      dg_unit_time_length),
+               'RM': ((dg_label_time, "Rotational momentum [kg.m.s$^{-1}$]{}"),
+                      ('time', 'none')),
+               's1': ((dg_label_time, "Interface s1 [{}]"),
+                      dg_unit_time_length),
+               's2': ((dg_label_time, "Interface s2 [{}]"),
+                      dg_unit_time_length),
+               'WM': ((dg_label_time, "Water mass balance [{}]"),
+                      dg_unit_time_length),
+               'WM_in_tube': ((dg_label_time, "Water mass in tube [{}]"),
+                              dg_unit_time_length),
+               'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
+                         ('none', 'pressure')),
+               'relsat': (("Relative saturation $u${}", "Hydraulic head $h$ [{}]"),
+                          ('none', 'length')),
+               'K':  (("Water content $\\theta${}",
+                       "Hydraulic conductivity $K(\\theta)$ [{}]"),
+                      ('none', 'velocity')),
+               'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
                            ('time', 'force_kgp')),
-                  'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
+               'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
                            ('time', 'force_kgp')),
-                  'dgF_MO': ((dg_label_time, "Force difference of expelled water [{}]"),
-                           ('time', 'force_kgp')),
-                  'dgF_MT': ((dg_label_time, "Force difference of water in tube [{}]"),
-                           ('time', 'force_kgp'))}
+               'dgF_MO': ((dg_label_time, "Force difference of expelled water [{}]"),
+                          ('time', 'force_kgp')),
+               'dgF_MT': ((dg_label_time, "Force difference of water in tube [{}]"),
+                          ('time', 'force_kgp'))})
+
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
             ('dgF_MT', 'dgF_MO'), ('s1', 's2'), ('theta', 'relsat'))
 
