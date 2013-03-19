@@ -545,7 +545,7 @@ class PlotStyles():
         if user_opts: options.update(user_opts)
 
         self._display_options = options
-        self._figuresstyles = {}
+        self._figuresstyles  = {}
         self._linesstyles    = {}
 
     def get_userstyles(self, key):
