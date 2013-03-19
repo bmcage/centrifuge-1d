@@ -506,32 +506,22 @@ def order_figures(figures):
             del figures[fig_id]
 
     # Order remaining figures
-    ordered_dplots = []
-    single_dplots  = []
+    ordered_figures = []
 
     # first order pairs (and queue singles from pairs)
     for (i1_id, i2_id) in DG_PAIRS:
-        i1p = (i1_id in figures)
-        i2p = (i2_id in figures)
+        if (i1_id in figures) and (i2_id in figures):
+            ordered_figures.append(figures[i1_id])
+            ordered_figures.append(figures[i2_id])
 
-        if i1p and i2p:
-            ordered_dplots.append(figures[i1_id])
-            ordered_dplots.append(figures[i2_id])
-        elif i1p:
-            single_dplots.append(figures[i1_id])
-        elif i2p:
-            single_dplots.append(figures[i2_id])
+            del figures[i1_id]
+            del figures[i2_id]
 
-        if i1p: del figures[i1_id]
-        if i2p: del figures[i2_id]
+    for fig_id in FIGURES_IDS:
+        if fig_id in figures:
+            ordered_figures.append(figures[fig_id])
 
-    # append singles
-    ordered_dplots.extend(single_dplots)
-    # append remaning singles that are not part of any pair
-    for remaining_dplots in figures.values():
-        ordered_dplots.append(remaining_dplots)
-
-    return ordered_dplots
+    return ordered_figures
 
 def mk_figures(data, styles):
     """ Create figures based on the supplied data and styles information. """
