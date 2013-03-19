@@ -1,12 +1,12 @@
 from __future__ import print_function, division
 
-import matplotlib
+import numpy as np, matplotlib, pickle
 import sys
-import numpy as np
-from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION
+from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION, \
+     DUMP_DATA_FILENAME
 from os import makedirs, path
 from shared import get_directories, parse_value
-from config import ModulesManager, load_model, DataStorage
+from config import ModulesManager, load_model
 from collections import OrderedDict
 from modules.shared.functions import has_data, compare_data
 try:
@@ -92,30 +92,26 @@ def get_unit_coef(unit_base):
 #                                Data storage                                  #
 ################################################################################
 
-class ResultsData():
+class DataStorage():
     """
-      Object for holding computed and measured data.
-      Structure: 'lines'     - dict of pairs: "line_id: line_data"
-                 'line_id'   - ID of the line
-                 'line_data' - dict of pairs: "fig_id: (xdata, ydata)"
-                 'fig_id'    - ID of the figure
-                 'xdata', 'ydata' - data for given axis
+      Object for holding computed, measured data and additional data.
     """
 
-    def __init__(self):
-        self._data = {'lines': {}}
+    def __init__(self, experiment_info):
+        self._data = {'lines': {},
+                      'experiment_info': experiment_info}
         self._modman = None
 
     def has_data(self, data_type):
         return ((data_type in self._data)
                 and (not self._data[data_type] is None))
 
-    def store_value(self, name, value):
+    def store(self, name, value):
         self._data[name] = value
 
-    def get_value(self, name, not_found=None):
-        if name in self._data:
-            return self._data[name]
+    def get(self, key, not_found=None):
+        if key in self._data:
+            return self._data[key]
         else:
             return not_found
 
@@ -180,12 +176,12 @@ class ResultsData():
                                                rho=model.density)
 
             self._data['lines'][ID] = data
-            self.store_value('experiment_info', model.experiment_info)
+            self.store('experiment_info', model.experiment_info)
 
         return flag
 
     def store_references(self, user_references, model=None):
-        stored_references = self.get_value('references', not_found={})
+        stored_references = self.get('references', not_found={})
         data = self._data['lines']
 
         if type(user_references) in (list, tuple):
@@ -198,7 +194,7 @@ class ResultsData():
 
         if model is None:
             from config import load_model
-            model = load_model(self.get_value('experiment_info'), validate=True)
+            model = load_model(self.get('experiment_info'), validate=True)
 
         for ref_id in list(stored_references.keys()): # remove nonexisting refs
             if not ref_id in user_references:
@@ -230,7 +226,7 @@ class ResultsData():
 
             model.set_parameters(backup_params) # restore
 
-        self.store_value('references', stored_references)
+        self.store('references', stored_references)
 
         return True
 
@@ -249,12 +245,34 @@ class ResultsData():
         else:
             return not_found
 
-    def dump(self):
-        return self._data
+    def save(self):
+        if not self._data:
+            print('No data was stored. Nothing to be saved. Skipping saving...')
+            return
 
-    def load(self, value):
-        if not value is None:
-            self._data = value
+        savedir = get_directories('figs', 'mask', self.get('experiment_info'))
+        if not path.exists(savedir):
+            makedirs(savedir)
+
+        with open(savedir + DUMP_DATA_FILENAME, 'wb') as fout:
+            pickle.dump(self._data, fout, DUMP_DATA_VERSION)
+
+    def load(self):
+        pathdir = get_directories('figs', 'mask', self.get('experiment_info'))
+        filename = pathdir + DUMP_DATA_FILENAME
+        if not path.exists(filename):
+            print('INFO: File with computation results does not exist:',
+                  filename)
+            return False
+
+        with open(filename, 'rb') as fout:
+            self._data = pickle.load(fout)
+            # Old compatibility
+            if 'ResultsData' in self._data:
+                self._data = self._data['ResultsData']
+
+
+        return True
 
 ################################################################################
 #          Reading display configuration files and data displaying             #
@@ -317,12 +335,12 @@ def print_status(data, filename=None):
             display_status(status_items, stream)
 
         # display additional data
-        cov = data.get_value('cov')
+        cov = data.get('cov')
         if not cov is None:
             print('\nCov:\n', cov, file=stream)
             print('Deviation:\n', np.sqrt(np.diag(cov)), file=stream)
 
-        params = data.get_value('inv_params')
+        params = data.get('inv_params')
         if not params is None:
             print('\nOptimal parameters found:', file=stream)
             for (name, value) in params.items():
@@ -755,13 +773,10 @@ class DPlots():
 def show_results(experiment_info,
                  model=None, inv_params=None, cov=None):
 
-    storage = DataStorage()
-    data    = ResultsData()
+    data = DataStorage(experiment_info)
 
     if model is None:
-        if storage.load(experiment_info):
-            data.load(storage.get('ResultsData'))
-        else:
+        if not data.load():
             print('      (Was computation already run?)'
                   '\nINFO: Nothing to display. Exiting.')
             exit(0)
@@ -775,8 +790,8 @@ def show_results(experiment_info,
         data.store_measurements(model.measurements)
         data.store_computation(model, model.measurements)
 
-        if not inv_params is None: data.store_value('inv_params', inv_params)
-        if not cov is None: data.store_value('cov', cov)
+        if not inv_params is None: data.store('inv_params', inv_params)
+        if not cov is None: data.store('cov', cov)
 
         from shared import get_directories
         savedir = get_directories('figs', 'mask', experiment_info)
@@ -793,11 +808,7 @@ def show_results(experiment_info,
     dplots = DPlots(experiment_info)
 
     if data.store_references(dplots.get_references(), model) or save_data:
-        if data.get_value('experiment_info') is None:
-            data.store_value('experiment_info', experiment_info)
-
-        storage.store('ResultsData', data.dump())
-        storage.save(experiment_info)
+        data.save()
 
     dplots.display(data)
 

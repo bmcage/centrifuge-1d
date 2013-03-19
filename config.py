@@ -7,61 +7,17 @@ from the configuration files.
 from __future__ import print_function, division
 
 import numpy as np
-import pickle
 
 try:
     import ConfigParser as configparser
 except:
     import configparser
-from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
-     DEFAULTS_ININAME, CONSTANTS_ININAME, MEASUREMENTS_ININAME
+from const import DEFAULTS_ININAME, CONSTANTS_ININAME, MEASUREMENTS_ININAME
 from shared import parse_value, get_directories, yn_prompt
 from os import listdir, path, makedirs
 from sys import modules as sysmodules
 from types import MethodType
 from modules.shared.measurements import Measurements
-
-##################################################################
-#                Internal configuration settings                 #
-##################################################################
-
-class DataStorage():
-    def __init__(self):
-        self._data = {}
-
-    def store(self, key, value):
-        self._data[key] = value
-
-    def get(self, key, not_found=None):
-        if key in self._data:
-            return self._data[key]
-        else:
-            return not_found
-
-    def save(self, experiment_info):
-        if not self._data:
-            print('No data was stored. Nothing to be saved. Skipping saving...')
-            return
-
-        savedir = get_directories('figs', 'mask', experiment_info)
-        if not path.exists(savedir):
-            makedirs(savedir)
-
-        with open(savedir + DUMP_DATA_FILENAME, 'wb') as fout:
-            pickle.dump(self._data, fout, DUMP_DATA_VERSION)
-
-    def load(self, experiment_info):
-        pathdir = get_directories('figs', 'mask', experiment_info)
-        filename = pathdir + DUMP_DATA_FILENAME
-        if not path.exists(filename):
-            print('INFO: File with computation results does not exist:',
-                  filename)
-            return False
-
-        with open(filename, 'rb') as fout:
-            self._data = pickle.load(fout)
-
-        return True
 
 ##################################################################
 #                   ModulesManager class                         #
