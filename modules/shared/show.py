@@ -14,6 +14,10 @@ try:
 except:
     import configparser
 
+################################################################################
+#                   Define graphs, axes labels and units                       #
+################################################################################
+
 DATA_UNITS = {'length': ('mm', 'cm', 'm'),
               'time': ('s', 'min', 'h'),
               'pressure': ('Pa', 'kPa'),
@@ -84,15 +88,20 @@ def get_unit_coef(unit_base):
         exit(1)
     return coef
 
-# ResultData: hold the data of the computation
-# Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
-# where:
-# lines_structure: dictionary of types: {line_id: line_data} where:
-#     line_id the ID of the line
-#     line_data a dict of types {data_type: (xdata, ydata)}, where:
-#          data_type is (by default) one of ['h', 'u', 'GC', 'RM', 'WM', 's1','s2'],
-#          xdata (ydata)is the x-axis (y-axis) coordinate
+################################################################################
+#                                Data storage                                  #
+################################################################################
+
 class ResultsData():
+    """
+      Object for holding computed and measured data.
+      Structure: 'lines'     - dict of pairs: "line_id: line_data"
+                 'line_id'   - ID of the line
+                 'line_data' - dict of pairs: "fig_id: (xdata, ydata)"
+                 'fig_id'    - ID of the figure
+                 'xdata', 'ydata' - data for given axis
+    """
+
     def __init__(self):
         self._data = {'lines': {}}
         self._modman = None
@@ -342,7 +351,7 @@ def get_filenames(experiment_info):
     return plotstyles_files
 
 def deep_dictupdate(d1, d2):
-    """ Recursively update dictionary d1 with dictionary d2. """
+    """ Recursively update dictionary d1 with values of dictionary d2. """
 
     for (vkey, vvalue) in d2.items():
         if ((vkey in d1) and (type(d1[vkey]) == dict)
