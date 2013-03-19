@@ -518,19 +518,21 @@ def order_figures(figures):
 
     return ordered_dplots
 
-def mk_figures(data, fig_ids, lines_ids, plot_styles):
+def mk_figures(data, styles):
 
     if not data.has_data('lines'):
         print('No data is provided. Nothing to display.')
         return None
 
     figures = {fig_id: {'id': fig_id, 'data': [],
-                        'styles': plot_styles.get_figurestyles(fig_id)}
-                for fig_id in fig_ids}
+                        'styles': styles['datasets'][fig_id]}
+                for fig_id in FIGURES_IDS}
+
     lines_ids = styles['lines_order']
 
     for line_id in lines_ids:
         line_data = data.get_linedata(line_id)
+        lines_styles = styles['lines'][line_id]
 
         for (fig_id, line_value) in line_data.items():
             # Filter out supplied data not recognized as valid
@@ -597,13 +599,6 @@ class DPlots():
 
     def get_references(self):
         return self._styles['params_ref']
-    def get_figurestyles(self, fig_id):
-        if not fig_id in self._figuresstyles:
-            self._figuresstyles[fig_id] = \
-              mk_figurestyles(fig_id, self._userstyles['datasets'],
-                              self._display_options)
-
-        return self._figuresstyles[fig_id]
 
     def display(self, data, fignum=1):
 
@@ -616,8 +611,7 @@ class DPlots():
         if not (save_figures or show_figures):
             return
 
-        dplots = mk_figures(data, FIGURES_IDS, self.get_lines_ids(),
-                            self)
+        dplots = mk_figures(data, self._styles)
 
         if not dplots:
             return
