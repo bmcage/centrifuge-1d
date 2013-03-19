@@ -530,19 +530,27 @@ class PlotStyles():
             else:
                 lineopt = '.'
 
-            line_styles = {fig_id: lineopt for fig_id in FIGURES_IDS}
+            styles = {fig_id: lineopt for fig_id in FIGURES_IDS}
 
-            if 'h' in data_types: line_styles['h'] = '-'
-            if 'u' in data_types: line_styles['u'] = '-'
-            if ('theta' in data_types) and (not line_id == 'measured'):
-                 line_styles['theta'] = '-'
+            styles['h'] = '-'
+            styles['u'] = '-'
+            if not line_id == 'measured':
+                 styles['theta'] = '-'
 
             # merge with user-specified values
             user_styles = self.get_userstyles('lines')
             if user_styles and (line_id in user_styles):
-                line_styles.update(user_styles[line_id])
+                styles.update(user_styles[line_id])
 
-        return line_styles[line_id][fig_id]
+            # Copy label to each figure style of line
+            if not 'label' in styles:
+                styles['label'] = line_id
+
+            lines_styles[line_id] = styles
+
+        line_styles = {'lineopt': lines_styles[line_id][fig_id],
+                       'label': lines_styles[line_id]['label']}
+        return line_styles
 
 ################################################################################
 #                             Data displaying                                  #
@@ -707,7 +715,11 @@ class DPlots():
 
             plot_labels = []
             for figure_data in figure['data']:
-                (xdata, ydata, line_label, plot_style) = figure_data
+                xdata = figure_data['xdata']
+                ydata = figure_data['ydata']
+                line_label = figure_data['label']
+                plot_style = figure_data['lineopt']
+
                 xcoef = get_unit_coef(xunit)
                 ycoef = get_unit_coef(yunit)
                 if not xcoef == 1.0:
