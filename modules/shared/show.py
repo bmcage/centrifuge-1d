@@ -304,24 +304,12 @@ class ResultsData():
 
         self._data['lines']['measured'] = m
 
-    def get_figures_ids(self):
-        return FIGURES_IDS
-
     def get_linedata(self, line_id, not_found=None):
         data = self._data['lines']
         if line_id in data:
             return data[line_id]
         else:
             return not_found
-
-    def iterate_lines(self):
-        lines = self.get_value('lines')
-
-        if lines is None:
-            yield None
-        else:
-            for (line_id, line_data) in lines.items():
-                yield (line_id, line_data)
 
     def dump(self):
         return self._data
