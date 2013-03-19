@@ -554,8 +554,6 @@ class DPlots():
 
         self._display_options = display_options
 
-        self.fignum = 1
-
         if 'matplotlib_backend' in display_options:
             matplotlib_backend = display_options['matplotlib_backend']
         if matplotlib_backend: # chosen other backend than the default one
@@ -672,12 +670,12 @@ class DPlots():
             # resolve figure and subplot
             if img_num > images_per_figure:
                 img_num = 1
-                self.fignum += 1
+                fignum += 1
 
                 if separate_figures:
-                    plt.figure(self.fignum)
+                    plt.figure(fignum)
                 else:
-                    plt.figure(self.fignum, figsize=(16, 8.5))
+                    plt.figure(fignum, figsize=(16, 8.5))
                     plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
 
             if not separate_figures:
@@ -738,14 +736,14 @@ class DPlots():
 
             if save_figures and (img_num == images_per_figure):
                 if separate_figures: img_suffix = fig_id
-                else: img_suffix = str(self.fignum)
+                else: img_suffix = str(fignum)
 
                 plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
 
             img_num += 1
 
         if save_figures and (img_num < images_per_figure):
-            plt.savefig(save_dir + 'image-' + str(self.fignum), dpi=300)
+            plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
 
         if show_figures:
             try:
