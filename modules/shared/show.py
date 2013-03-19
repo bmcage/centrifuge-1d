@@ -576,8 +576,8 @@ class DPlots():
         figures_styles = {fig_id: mk_figurestyles(fig_id)
                           for fig_id in FIGURES_IDS}
 
-        styles = {'options': display_options, 'datasets': {}, 'lines': {},
-                  'params_ref': {}}
+        styles = {'options': display_options, 'datasets': figures_styles,
+                  'lines': {}, 'params_ref': {}, 'lines_order': ()}
 
         plotstyles_filenames = get_filenames(experiment_info)
 
