@@ -81,80 +81,6 @@ def get_unit_coef(unit_base):
         exit(1)
     return coef
 
-def mk_status_item(data_id, data_computed, data_measured = []):
-   return {'id': data_id, 'data': (data_computed, data_measured)}
-
-def display_status(data_plots=None, stream=None):
-
-    if not data_plots: return
-
-    for plot in data_plots:
-        plot_id = plot['id']
-
-        data_items_nr = len(plot['data'])
-        if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
-            continue
-
-        value_computed = np.asarray(plot['data'][0])
-
-        if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
-            value_measured =  None
-        else:
-            value_measured = np.asarray(plot['data'][1])
-
-        compare_data(plot_id, value_computed, value_measured, stream)
-
-def print_status(data, filename=None):
-    if filename is None:
-        stream = None
-    else:
-        stream = open(filename, 'w')
-
-    status_items = []
-
-    measurements = data.get_linedata('measured')
-    computed     = data.get_linedata('computed')
-
-    if not measurements: return
-
-    try:
-        # compare measured vs. computed data
-        for (key, m_data) in measurements.items():
-            if m_data[1] is None: continue
-
-            if key in computed:
-                if key == 'theta':
-                    c_value = computed[key][2]
-                else:
-                    c_value = computed[key][1][1:]
-                m_value = m_data[1]
-            else:
-                continue
-
-            if c_value is not None:
-                status_items.append(mk_status_item(key, c_value, m_value))
-
-        if status_items:
-            display_status(status_items, stream)
-
-        # display additional data
-        cov = data.get_value('cov')
-        if not cov is None:
-            print('\nCov:\n', cov, file=stream)
-            print('Deviation:\n', np.sqrt(np.diag(cov)), file=stream)
-
-        params = data.get_value('inv_params')
-        if not params is None:
-            print('\nOptimal parameters found:', file=stream)
-            for (name, value) in params.items():
-                if name == 'ks':
-                    print('  Ks [cm/s]: {: .8g}'.format(value), file=stream)
-                else:
-                    print('  {:9}: {: .8g}'.format(name, value), file=stream)
-
-    finally:
-        if not filename is None: stream.close()
-
 # ResultData: hold the data of the computation
 # Structure: {'lines': lines_structure, 'inv_params': inv_params, 'cov': cov}
 # where:
@@ -321,6 +247,81 @@ class ResultsData():
 ################################################################################
 #          Reading display configuration files and data displaying             #
 ################################################################################
+
+def mk_status_item(data_id, data_computed, data_measured = []):
+   return {'id': data_id, 'data': (data_computed, data_measured)}
+
+def display_status(data_plots=None, stream=None):
+
+    if not data_plots: return
+
+    for plot in data_plots:
+        plot_id = plot['id']
+
+        data_items_nr = len(plot['data'])
+        if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
+            continue
+
+        value_computed = np.asarray(plot['data'][0])
+
+        if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
+            value_measured =  None
+        else:
+            value_measured = np.asarray(plot['data'][1])
+
+        compare_data(plot_id, value_computed, value_measured, stream)
+
+def print_status(data, filename=None):
+    if filename is None:
+        stream = None
+    else:
+        stream = open(filename, 'w')
+
+    status_items = []
+
+    measurements = data.get_linedata('measured')
+    computed     = data.get_linedata('computed')
+
+    if not measurements: return
+
+    try:
+        # compare measured vs. computed data
+        for (key, m_data) in measurements.items():
+            if m_data[1] is None: continue
+
+            if key in computed:
+                if key == 'theta':
+                    c_value = computed[key][2]
+                else:
+                    c_value = computed[key][1][1:]
+                m_value = m_data[1]
+            else:
+                continue
+
+            if c_value is not None:
+                status_items.append(mk_status_item(key, c_value, m_value))
+
+        if status_items:
+            display_status(status_items, stream)
+
+        # display additional data
+        cov = data.get_value('cov')
+        if not cov is None:
+            print('\nCov:\n', cov, file=stream)
+            print('Deviation:\n', np.sqrt(np.diag(cov)), file=stream)
+
+        params = data.get_value('inv_params')
+        if not params is None:
+            print('\nOptimal parameters found:', file=stream)
+            for (name, value) in params.items():
+                if name == 'ks':
+                    print('  Ks [cm/s]: {: .8g}'.format(value), file=stream)
+                else:
+                    print('  {:9}: {: .8g}'.format(name, value), file=stream)
+
+    finally:
+        if not filename is None: stream.close()
+
 def get_filenames(experiment_info):
     """ Given experiment information find a list of all plotstyle inifiles. """
 
