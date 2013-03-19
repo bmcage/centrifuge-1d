@@ -549,7 +549,7 @@ def mk_figures(data, styles):
 
             if ((fig_id in ['h', 'u']) and (len(line_value) > 2)
                 and has_data(line_value[2])):
-                line_styles['label'] = \
+                line_style['label'] = \
                   ['% 6d' % (ti/60.) for ti in line_value[2]]
 
             if fig_id == 'theta':
@@ -557,7 +557,7 @@ def mk_figures(data, styles):
             else:
                 item = {'xdata': xdata, 'ydata': ydata}
 
-            item.update(line_styles)
+            item.update(line_style)
 
             figures[fig_id]['data'].append(item)
 
