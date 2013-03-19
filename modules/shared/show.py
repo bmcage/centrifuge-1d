@@ -434,6 +434,53 @@ def mk_figurestyles(fig_id, user_styles, display_options):
         figure_styles['show_legend'] = False
 
     return figure_styles
+def linestyles_post_update(styles):
+    lines_ids = ['measured', 'computed'] + list(styles['params_ref'].keys())
+    lines_styles = styles['lines']
+    lines_order  = {}
+
+    for line_id in lines_ids:
+        # Determine user supplied line styles
+        if line_id in lines_styles:
+            line_styles = lines_styles[line_id]
+        else:
+            line_styles = {}
+
+        # Process line label
+        if 'label' in line_styles:
+            label = line_styles['label']
+            del line_styles['label']
+        else:
+            label = line_id
+
+        # Process line order
+        if 'order' in line_styles:
+            lines_order[line_id] = line_styles['order']
+            del line_styles['order']
+        else:
+            lines_order[line_id] = 999
+
+        # Default lineopt
+        if line_id == 'measured':
+            default_lineopt = 'x'
+        else:
+            default_lineopt = '.'
+
+        # Set correct format for line_styles and supply (default) missing values
+        for fig_id in FIGURES_IDS:
+            if fig_id in line_styles:
+                lineopt = line_styles[fig_id]
+            elif fig_id in ('h', 'u'):
+                lineopt = '-'
+            elif (fig_id == 'theta') and (not line_id == 'measured'):
+                lineopt = '-'
+            else:
+                lineopt = default_lineopt
+
+            line_styles[fig_id] = {'lineopt': lineopt, 'label': label}
+
+    ordered_lines = list(sorted(lines_order, key=lines_order.__getitem__))
+    styles['lines_order'] = ordered_lines
 
 def order_figures(figures):
 
@@ -498,7 +545,7 @@ def mk_figures(data, fig_ids, lines_ids, plot_styles):
 
             if not (has_data(xdata) and has_data(ydata)): continue
 
-            line_styles = plot_styles.get_linestyles(line_id, fig_id)
+            line_style = lines_styles[fig_id]
 
             if ((fig_id in ['h', 'u']) and (len(line_value) > 2)
                 and has_data(line_value[2])):
@@ -515,12 +562,6 @@ def mk_figures(data, fig_ids, lines_ids, plot_styles):
             figures[fig_id]['data'].append(item)
 
     return order_figures(figures)
-
-def get_line_order(line_options, not_found=999):
-    if 'order' in line_options:
-        return line_options['order']
-    else:
-        return not_found
 
 ################################################################################
 #                             Data displaying                                  #
@@ -545,6 +586,8 @@ class DPlots():
         self._userstyles    = styles
         self._figuresstyles = {}
         self._linesstyles   = {}
+        linestyles_post_update(styles)
+
 
         # Global displaying options
         self._display_options = display_options
@@ -556,58 +599,6 @@ class DPlots():
 
     def get_references(self):
         return self._userstyles['params_ref']
-
-    def get_lines_ids(self):
-        lines = self._userstyles['lines']
-        refs  = self._userstyles['params_ref']
-
-        valid_line_ids = ['measured', 'computed'] + list(refs.keys())
-
-        # determine all IDs specified in 'lines' option and sort them by
-        # their 'order' value
-        lines_orders = [(line_id, get_line_order(line_data))
-                        for (line_id, line_data) in lines.items()
-                        if line_id in valid_line_ids]
-        ordered_lines = sorted(lines_orders, key=lambda x: x[1])
-        # ...and keep IDs only
-        ordered_line_ids = [line_order[0] for line_order in ordered_lines]
-        # also include IDs not specified in 'lines' options
-        missing_line_ids = [line_id for line_id in valid_line_ids
-                            if not line_id in ordered_line_ids]
-
-        return ordered_line_ids + missing_line_ids
-
-    def get_linestyles(self, line_id, fig_id):
-        lines_styles = self._linesstyles
-
-        if not line_id in lines_styles:
-            # set default values
-            if line_id == 'measured':
-                lineopt = 'x'
-            else:
-                lineopt = '.'
-
-            styles = {fig_id: lineopt for fig_id in FIGURES_IDS}
-
-            styles['h'] = '-'
-            styles['u'] = '-'
-            if not line_id == 'measured':
-                 styles['theta'] = '-'
-
-            # merge with user-specified values
-            user_styles = self._userstyles['lines']
-            if user_styles and (line_id in user_styles):
-                styles.update(user_styles[line_id])
-
-            # Copy label to each figure style of line
-            if not 'label' in styles:
-                styles['label'] = line_id
-
-            lines_styles[line_id] = styles
-
-        line_styles = {'lineopt': lines_styles[line_id][fig_id],
-                       'label': lines_styles[line_id]['label']}
-        return line_styles
 
     def get_figurestyles(self, fig_id):
         if not fig_id in self._figuresstyles:
