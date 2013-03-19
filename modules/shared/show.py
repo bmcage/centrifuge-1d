@@ -435,6 +435,42 @@ def mk_figurestyles(fig_id, user_styles, display_options):
 
     return figure_styles
 
+def order_figures(figures):
+
+    # Remove figures with no data and not displayed
+    for fig_id in list(figures.keys()):
+        if ((not has_data(figures[fig_id]['data']))
+            or (figures[fig_id]['styles']['show'] == False)):
+            del figures[fig_id]
+
+    # Order remaining figures
+    ordered_dplots = []
+    single_dplots  = []
+
+    # first order pairs (and queue singles from pairs)
+    for (i1_id, i2_id) in DG_PAIRS:
+        i1p = (i1_id in figures)
+        i2p = (i2_id in figures)
+
+        if i1p and i2p:
+            ordered_dplots.append(figures[i1_id])
+            ordered_dplots.append(figures[i2_id])
+        elif i1p:
+            single_dplots.append(figures[i1_id])
+        elif i2p:
+            single_dplots.append(figures[i2_id])
+
+        if i1p: del figures[i1_id]
+        if i2p: del figures[i2_id]
+
+    # append singles
+    ordered_dplots.extend(single_dplots)
+    # append remaning singles that are not part of any pair
+    for remaining_dplots in figures.values():
+        ordered_dplots.append(remaining_dplots)
+
+    return ordered_dplots
+
 def get_line_order(line_options, not_found=999):
     if 'order' in line_options:
         return line_options['order']
@@ -585,42 +621,6 @@ class DPlots():
                 else:
                     item = (xdata, ydata, ilabel, line_styles[data_type])
                 dplots_bucket[data_type]['data'].append(item)
-
-        def order_figures(figures):
-
-            # Remove figures with no data and not displayed
-            for fig_id in list(figures.keys()):
-                if ((not has_data(figures[fig_id]['data']))
-                    or (figures[fig_id]['styles']['show'] == False)):
-                    del figures[fig_id]
-
-            # Order remaining figures
-            ordered_dplots = []
-            single_dplots  = []
-
-            # first order pairs (and queue singles from pairs)
-            for (i1_id, i2_id) in DG_PAIRS:
-                i1p = (i1_id in figures)
-                i2p = (i2_id in figures)
-
-                if i1p and i2p:
-                    ordered_dplots.append(figures[i1_id])
-                    ordered_dplots.append(figures[i2_id])
-                elif i1p:
-                    single_dplots.append(figures[i1_id])
-                elif i2p:
-                    single_dplots.append(figures[i2_id])
-
-                if i1p: del figures[i1_id]
-                if i2p: del figures[i2_id]
-
-            # append singles
-            ordered_dplots.extend(single_dplots)
-            # append remaning singles that are not part of any pair
-            for remaining_dplots in figures.values():
-                ordered_dplots.append(remaining_dplots)
-
-            return ordered_dplots
 
         # function body
         if not data.has_data('lines'):
