@@ -391,8 +391,7 @@ def read_plotstyles_file(filename):
 
     return result
 
-
-def mk_figurestyles(fig_id, user_styles, display_options):
+def mk_figurestyles(fig_id):
     figure_styles = dict.fromkeys(('xlabel', 'ylabel',
                                    'xscale', 'yscale', 'xunit', 'yunit',
                                    'xmin', 'ymin', 'xmax', 'ymax',
@@ -425,15 +424,14 @@ def mk_figurestyles(fig_id, user_styles, display_options):
     elif fig_id == 'K':
         figure_styles['yscale'] = 'log'
 
-    if user_styles and (fig_id in user_styles):
-        figure_styles.update(user_styles[fig_id])
-
-    # Post-update
-    if ((fig_id == 'h') and (figure_styles['show_legend'] is None)
-        and (not display_options['separate_figures'])):
-        figure_styles['show_legend'] = False
-
     return figure_styles
+
+def figures_styles_post_update(figures_styles, display_options):
+    if ((figures_styles['h']['show_legend'] is None)
+        and (not display_options['separate_figures'])):
+        figure_styles['h']['show_legend'] = False
+
+
 def linestyles_post_update(styles):
     lines_ids = ['measured', 'computed'] + list(styles['params_ref'].keys())
     lines_styles = styles['lines']
@@ -575,6 +573,8 @@ class DPlots():
         # User styles (read from plotstyles inifiles)
         display_options = {'separate_figures': False, 'show_figures': True,
                            'save_figures': True, 'matplotlib_backend': None}
+        figures_styles = {fig_id: mk_figurestyles(fig_id)
+                          for fig_id in FIGURES_IDS}
 
         styles = {'options': display_options, 'datasets': {}, 'lines': {},
                   'params_ref': {}}
@@ -585,6 +585,7 @@ class DPlots():
             for fname in plotstyles_filenames:
                 deep_dictupdate(styles, read_plotstyles_file(fname))
 
+        figures_styles_post_update(figures_styles, display_options)
         linestyles_post_update(styles)
 
         self._styles    = styles
