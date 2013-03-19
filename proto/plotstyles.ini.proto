@@ -6,7 +6,7 @@
 #                               parameterN1: valueN1, ..., parameterNk: valueNk
 #              where parameterNi is any valid option in the configuration file of our computed problem
 #              and valueNi is the (new) corresponding value;
-#            - multiple referencing curves (parameters) can be specified, each with different value of 'id'
+#            - multiple referencing curves (parameters) can be specified, each with an unique line ID
 #
 #params_ref = {'line-id-1': {parameter1-1: value1-1, parameter1-2: value1-2, parameter1-3: value1-3},
 #	       'line-id-2': {parameter2-1: value2-1, parameter2-2: value2-2, parameter2-3: value2-3}
@@ -14,9 +14,9 @@
 
 # DISPLAYING STYLES
 #
-# IDs represent some type of measured value
-# Recognized IDs are: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2', 'theta', 'K'
-# Description of IDs:
+# Figures IDs - an ID represents a particular figure and the type of value displayed on that figure
+# Recognized figures IDs are: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2', 'theta', 'K'
+# Description of figures IDs:
 #       Following measurements use as x-axis value time (unit: time):
 #
 #       'GC' - gravitational center; unit: length
@@ -26,8 +26,8 @@
 #	'WM' - water mass - mass balance of water; unit: length (or volume)
 #
 #       Interfaces s1, s2:
-#	- arise between 2 zones: saturated/unsaturated or unsaturated/dry
-#	- which interface appear (or even both) depends on experiment type
+#		- arise between 2 zones: saturated/unsaturated or unsaturated/dry
+#		- which interface appear (or even both) depends on experiment type
 #	's1' - first interface; unit: length
 #	's2' - second interface (between 2 zones); unit: length
 #
@@ -57,8 +57,9 @@
 #	  'line-id-3': {'label': 'Label 3', 'order': 6, 'GC': '-', 'MO': '-', 'theta': '-'}}
 
 #
-# dataset - displaying options; allows customization how individual ID is displayed
-#           (these are general options independent on plotted lines):
+# figures - displaying options for figures, allows customization of individual figures are displayed;
+#           options corresponding to a particular figure are distinguished by the figure ID 
+#	Figure options:
 #	'show'		   - display values of given measurement; value: True/FalseTrue; Default: True
 #	'xlabel', 'ylabel' - axes labels; value: string; Default: ''
 #	'xscale', 'yscale' - scaling of axes; values: None (linear scaling) or 'log' (logaritmic)
@@ -87,7 +88,7 @@
 #			     If value is None, the default legend location is used (see 'legend_loc')
 #			   - default: None
 
-#datasets = {'GC': {'show': True,
+#figures = {'GC': {'show': True,
 #		   'xlabel': 'X-axis label',
 #		   'ylabel': 'Y-axis label',
 #		   'xscale': 'yscale',
