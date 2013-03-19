@@ -522,9 +522,17 @@ def get_line_order(line_options, not_found=999):
     else:
         return not_found
 
-class PlotStyles():
+################################################################################
+#                             Data displaying                                  #
+################################################################################
+class DPlots():
     def __init__(self, experiment_info):
-        # Load user styles (from plotstyles inifiles)
+        self._experiment_info = experiment_info
+
+        # User styles (read from plotstyles inifiles)
+        userstyles = {'options': {}, 'datasets': {}, 'lines': {},
+                      'params_ref': {}}
+
         plotstyles_filenames = get_filenames(experiment_info)
 
         if plotstyles_filenames:
@@ -533,37 +541,48 @@ class PlotStyles():
             for fname in plotstyles_filenames[1:]:
                 deep_dictupdate(userstyles, read_plotstyles_file(fname))
 
-        else:
-            userstyles = {}
+        self._userstyles    = userstyles
+        self._figuresstyles = {}
+        self._linesstyles   = {}
 
-        self._userstyles = userstyles
+        # Global displaying options
+        display_options = {'separate_figures': False, 'show_figures': True,
+                           'save_figures': True, 'matplotlib_backend': None}
 
-        # Process global displaying options
-        options = {'separate_figures': False, 'show_figures': True,
-                   'save_figures': True, 'matplotlib_backend': None}
-        user_opts = self.get_userstyles('options')
-        if user_opts: options.update(user_opts)
+        user_disp_opts = userstyles['options']
+        if user_disp_opts: display_options.update(user_disp_opts)
 
-        self._display_options = options
-        self._figuresstyles  = {}
-        self._linesstyles    = {}
+        self._display_options = display_options
 
-    def get_userstyles(self, key):
-        if key in self._userstyles:
-            return self._userstyles[key]
-        else:
-            return None
+        self.fignum = 1
 
-    def get_display_options(self):
-        return self._display_options
+        if 'matplotlib_backend' in display_options:
+            matplotlib_backend = display_options['matplotlib_backend']
+        if matplotlib_backend: # chosen other backend than the default one
+            matplotlib.use(matplotlib_backend)
 
-    def get_figurestyles(self, fig_id):
-        if not fig_id in self._figuresstyles:
-            self._figuresstyles[fig_id] = \
-              mk_figurestyles(fig_id, self.get_userstyles('datasets'),
-                              self.get_display_options())
+    def get_references(self):
+        return self._userstyles['params_ref']
 
-        return self._figuresstyles[fig_id]
+    def get_lines_ids(self):
+        lines = self._userstyles['lines']
+        refs  = self._userstyles['params_ref']
+
+        valid_line_ids = ['measured', 'computed'] + list(refs.keys())
+
+        # determine all IDs specified in 'lines' option and sort them by
+        # their 'order' value
+        lines_orders = [(line_id, get_line_order(line_data))
+                        for (line_id, line_data) in lines.items()
+                        if line_id in valid_line_ids]
+        ordered_lines = sorted(lines_orders, key=lambda x: x[1])
+        # ...and keep IDs only
+        ordered_line_ids = [line_order[0] for line_order in ordered_lines]
+        # also include IDs not specified in 'lines' options
+        missing_line_ids = [line_id for line_id in valid_line_ids
+                            if not line_id in ordered_line_ids]
+
+        return ordered_line_ids + missing_line_ids
 
     def get_linestyles(self, line_id, fig_id):
         lines_styles = self._linesstyles
@@ -583,7 +602,7 @@ class PlotStyles():
                  styles['theta'] = '-'
 
             # merge with user-specified values
-            user_styles = self.get_userstyles('lines')
+            user_styles = self._userstyles['lines']
             if user_styles and (line_id in user_styles):
                 styles.update(user_styles[line_id])
 
@@ -597,49 +616,17 @@ class PlotStyles():
                        'label': lines_styles[line_id]['label']}
         return line_styles
 
-################################################################################
-#                             Data displaying                                  #
-################################################################################
-class DPlots():
-    def __init__(self, experiment_info):
-        self._experiment_info = experiment_info
+    def get_figurestyles(self, fig_id):
+        if not fig_id in self._figuresstyles:
+            self._figuresstyles[fig_id] = \
+              mk_figurestyles(fig_id, self._userstyles['datasets'],
+                              self._display_options)
 
-        self._plotstyles = PlotStyles(experiment_info)
-
-        self.fignum = 1
-
-        display_options = self._plotstyles.get_display_options()
-        if 'matplotlib_backend' in display_options:
-            matplotlib_backend = display_options['matplotlib_backend']
-        if matplotlib_backend: # chosen other backend than the default one
-            matplotlib.use(matplotlib_backend)
-
-    def get_references(self):
-        return self._plotstyles.get_userstyles('params_ref')
-
-    def get_lines_ids(self):
-        lines = self._plotstyles.get_userstyles('lines')
-        refs  = self._plotstyles.get_userstyles('params_ref')
-
-        valid_line_ids = ['measured', 'computed'] + list(refs.keys())
-
-        # determine all IDs specified in 'lines' option and sort them by
-        # their 'order' value
-        lines_orders = [(line_id, get_line_order(line_data))
-                        for (line_id, line_data) in lines.items()
-                        if line_id in valid_line_ids]
-        ordered_lines = sorted(lines_orders, key=lambda x: x[1])
-        # ...and keep IDs only
-        ordered_line_ids = [line_order[0] for line_order in ordered_lines]
-        # also include IDs not specified in 'lines' options
-        missing_line_ids = [line_id for line_id in valid_line_ids
-                            if not line_id in ordered_line_ids]
-
-        return ordered_line_ids + missing_line_ids
+        return self._figuresstyles[fig_id]
 
     def display(self, data, fignum=1):
 
-        display_options = self._plotstyles.get_display_options()
+        display_options = self._display_options
 
         show_figures     = display_options['show_figures']
         save_figures     = display_options['save_figures']
@@ -649,7 +636,7 @@ class DPlots():
             return
 
         dplots = mk_figures(data, FIGURES_IDS, self.get_lines_ids(),
-                            self._plotstyles)
+                            self)
 
         if not dplots:
             return
