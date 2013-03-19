@@ -523,7 +523,7 @@ def mk_figures(data, styles):
         return None
 
     figures = {fig_id: {'id': fig_id, 'data': [],
-                        'styles': styles['datasets'][fig_id]}
+                        'styles': styles['figures'][fig_id]}
                 for fig_id in FIGURES_IDS}
 
     lines_ids = styles['lines_order']
@@ -576,7 +576,7 @@ class DPlots():
         figures_styles = {fig_id: mk_figurestyles(fig_id)
                           for fig_id in FIGURES_IDS}
 
-        styles = {'options': display_options, 'datasets': figures_styles,
+        styles = {'options': display_options, 'figures': figures_styles,
                   'lines': {}, 'params_ref': {}, 'lines_order': ()}
 
         plotstyles_filenames = get_filenames(experiment_info)
