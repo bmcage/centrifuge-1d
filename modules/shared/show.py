@@ -319,7 +319,7 @@ class ResultsData():
             self._data = value
 
 ################################################################################
-#                         Process plotstyles.ini                               #
+#          Reading display configuration files and data displaying             #
 ################################################################################
 def get_filenames(experiment_info):
     """ Given experiment information find a list of all plotstyle inifiles. """
@@ -350,6 +350,8 @@ def deep_dictupdate(d1, d2):
     return d1
 
 def read_plotstyles_file(filename):
+    """ Reads the plotstyles configuration from files. """
+
     result = {}
 
     # read config files
@@ -380,6 +382,8 @@ def read_plotstyles_file(filename):
     return result
 
 def mk_figurestyles(fig_id):
+    """ Add default styles for figure with given 'fig_id' """
+
     figure_styles = dict.fromkeys(('xlabel', 'ylabel',
                                    'xscale', 'yscale', 'xunit', 'yunit',
                                    'xmin', 'ymin', 'xmax', 'ymax',
@@ -415,12 +419,29 @@ def mk_figurestyles(fig_id):
     return figure_styles
 
 def figures_styles_post_update(figures_styles, display_options):
+    """
+      This function is called after merging the default plotting styles
+      with styles from plotstyles inifiles. Styles can be adopted based
+      on the information in the inifiles.
+    """
+
     if ((figures_styles['h']['show_legend'] is None)
         and (not display_options['separate_figures'])):
         figure_styles['h']['show_legend'] = False
 
 
 def linestyles_post_update(styles):
+    """
+      linestyles do not have a default configuration as we don't know
+      (except 'measured' and 'computed') supplied lines as they are part
+      of the 'params_ref' variable specified by the plotstyles inifiles.
+      All the default values for all lines are therefore specified here,
+      just as the final correct format of the linestyles (which may differ)
+      from the values read from the inifiles.
+      Correct lines order based on the 'order' option for the line is
+      determined here too.
+    """
+
     lines_ids = ['measured', 'computed'] + list(styles['params_ref'].keys())
     lines_styles = styles['lines']
     lines_order  = {}
@@ -469,6 +490,10 @@ def linestyles_post_update(styles):
     styles['lines_order'] = ordered_lines
 
 def order_figures(figures):
+    """
+      Sort figures according to prefered order. Some figures are prefered
+      to be next to each other (see DG_PAIRS variable).
+    """
 
     # Remove figures with no data and not displayed
     for fig_id in list(figures.keys()):
@@ -505,6 +530,7 @@ def order_figures(figures):
     return ordered_dplots
 
 def mk_figures(data, styles):
+    """ Create figures based on the supplied data and styles information. """
 
     if not data.has_data('lines'):
         print('No data is provided. Nothing to display.')
@@ -551,10 +577,9 @@ def mk_figures(data, styles):
 
     return order_figures(figures)
 
-################################################################################
-#                             Data displaying                                  #
-################################################################################
 class DPlots():
+    """ Class for displaying data. User styles are applied. """
+
     def __init__(self, experiment_info):
         self._experiment_info = experiment_info
 
@@ -740,7 +765,8 @@ def show_results(experiment_info,
 
         save_data = False
     else:
-        # Disable determining of only needed calc (for inverse)
+        # Inverse problems set to compute data needed for running inverse;
+        # Disable this to determine all data in the direct run
         model.measurements.run_inverse_problem_p(False)
 
         data.store_measurements(model.measurements)
