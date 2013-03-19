@@ -471,6 +471,51 @@ def order_figures(figures):
 
     return ordered_dplots
 
+def mk_figures(data, fig_ids, lines_ids, plot_styles):
+
+    if not data.has_data('lines'):
+        print('No data is provided. Nothing to display.')
+        return None
+
+    figures = {fig_id: {'id': fig_id, 'data': [],
+                        'styles': plot_styles.get_figurestyles(fig_id)}
+                for fig_id in fig_ids}
+
+    for line_id in lines_ids:
+        line_data = data.get_linedata(line_id)
+
+        for (fig_id, line_value) in line_data.items():
+
+            # Filter out supplied data not recognized as valid
+            if (not fig_id in FIGURES_IDS) or (not has_data(line_data)):
+                continue
+
+            # we skip other 'h' and 'u' data, as it would be mess
+            if (fig_id in ['h', 'u']) and (not line_id == 'computed'):
+                continue
+
+            (xdata, ydata) = (line_value[0], line_value[1])
+
+            if not (has_data(xdata) and has_data(ydata)): continue
+
+            line_styles = plot_styles.get_linestyles(line_id, fig_id)
+
+            if ((fig_id in ['h', 'u']) and (len(line_value) > 2)
+                and has_data(line_value[2])):
+                line_styles['label'] = \
+                  ['% 6d' % (ti/60.) for ti in line_value[2]]
+
+            if fig_id == 'theta':
+                item = {'xdata': ydata, 'ydata': xdata}
+            else:
+                item = {'xdata': xdata, 'ydata': ydata}
+
+            item.update(line_styles)
+
+            figures[fig_id]['data'].append(item)
+
+    return order_figures(figures)
+
 def get_line_order(line_options, not_found=999):
     if 'order' in line_options:
         return line_options['order']
@@ -592,65 +637,6 @@ class DPlots():
 
         return ordered_line_ids + missing_line_ids
 
-    def _mk_dplots(self, data):
-
-        def _add_plotline(line_id, line_data, data_types, plot_styles,
-                          dplots_bucket):
-
-            line_styles = plot_styles.get_linestyle(line_id, data_types)
-            if 'label' in line_styles:
-                label = line_styles['label']
-            else:
-                label = line_id
-
-            for (data_type, data_value) in line_data.items():
-
-                # Filter out supplied data not recognized as valid
-                if not data_type in data_types: continue
-
-                if not has_data(data_value): continue
-
-                # we skip other 'h' and 'u' data, as it would be mess
-                if (data_type in ['h', 'u']) and (not line_id == 'computed'):
-                    continue
-
-                (xdata, ydata) = (data_value[0], data_value[1])
-
-                if not (has_data(xdata) and has_data(ydata)): continue
-
-                if ((data_type in ['h', 'u']) and (len(data_value) > 2)
-                    and has_data(data_value[2])):
-                    ilabel = ['% 6d' % (ti/60.) for ti in data_value[2]]
-                else:
-                    ilabel = label
-
-                if data_type == 'theta':
-                    item = (ydata, xdata, ilabel, line_styles[data_type])
-                else:
-                    item = (xdata, ydata, ilabel, line_styles[data_type])
-                dplots_bucket[data_type]['data'].append(item)
-
-        # function body
-        if not data.has_data('lines'):
-            print('No data is provided. Nothing to display.')
-            return None
-
-        plot_styles   = self._plotstyles
-        fig_ids     = data.get_figures_ids()
-        lines_ids   = self.get_lines_ids()
-
-        figures = {fig_id: {'id': fig_id, 'data': [],
-                            'styles': plot_styles.get_figurestyles(fig_id)}
-                   for fig_id in fig_ids}
-
-        for line_id in lines_ids:
-            _add_plotline(line_id, data.get_linedata(line_id), fig_ids,
-                          plot_styles, figures)
-
-        ordered_figures = order_figures(figures)
-
-        return ordered_figures
-
     def display(self, data, fignum=1):
 
         display_options = self._plotstyles.get_display_options()
@@ -662,7 +648,8 @@ class DPlots():
         if not (save_figures or show_figures):
             return
 
-        dplots = self._mk_dplots(data)
+        dplots = mk_figures(data, FIGURES_IDS, self.get_lines_ids(),
+                            self._plotstyles)
 
         if not dplots:
             return
