@@ -2,8 +2,7 @@ from __future__ import print_function, division
 
 import numpy as np, matplotlib, pickle
 import sys
-from const import FIGS_DIR, PLOTSTYLE_ININAME, DUMP_DATA_VERSION, \
-     DUMP_DATA_FILENAME
+from const import PLOTSTYLE_ININAME, DUMP_DATA_VERSION, DUMP_DATA_FILENAME
 from os import makedirs, path
 from shared import get_directories, parse_value
 from config import ModulesManager, load_model
@@ -182,7 +181,6 @@ class DataStorage():
 
     def store_references(self, user_references, model=None):
         stored_references = self.get('references', not_found={})
-        data = self._data['lines']
 
         if type(user_references) in (list, tuple):
             print("DEPRECATION ERROR: format of 'params_ref' has been changed."
@@ -193,7 +191,6 @@ class DataStorage():
             return False   # nothing needs to be re-computed
 
         if model is None:
-            from config import load_model
             model = load_model(self.get('experiment_info'), validate=True)
 
         for ref_id in list(stored_references.keys()): # remove nonexisting refs
@@ -279,7 +276,7 @@ class DataStorage():
 ################################################################################
 
 def mk_status_item(data_id, data_computed, data_measured = []):
-   return {'id': data_id, 'data': (data_computed, data_measured)}
+    return {'id': data_id, 'data': (data_computed, data_measured)}
 
 def display_status(data_plots=None, stream=None):
 
@@ -388,7 +385,7 @@ def read_plotstyles_file(filename):
     # read config files
     parser   = configparser.ConfigParser()
     try:
-        read_files = parser.read(filename)
+        parser.read(filename)
     except configparser.ParsingError as E:
         print('Plotstyles file ', filename,
               '\n could not be read because of the following error: ', E,
@@ -691,7 +688,7 @@ class DPlots():
                     plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
 
             if not separate_figures:
-                plt.subplot(3,2,img_num)
+                plt.subplot(3, 2, img_num)
 
             # plot the supplied data
             figure_styles = figure['styles']
@@ -793,15 +790,13 @@ def show_results(experiment_info,
         if not inv_params is None: data.store('inv_params', inv_params)
         if not cov is None: data.store('cov', cov)
 
-        from shared import get_directories
         savedir = get_directories('figs', 'mask', experiment_info)
         filename = savedir + '/' + 'results.txt'
 
         if not path.exists(savedir):
             makedirs(savedir)
 
-        with open(filename, 'w') as f:
-            print_status(data, filename)
+        print_status(data, filename)
 
         save_data = True
 
