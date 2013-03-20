@@ -398,17 +398,17 @@ def read_plotstyles_file(filename):
 
     # Write data from parser to configuration
     for psection in parser.sections():
-        section = psection.lower() # we ignore sections
+        # we ignore sections
+        try:
+            for option in parser.options(psection):
+                raw_value = parser.get(psection, option).strip()
 
-    try:
-        for option in parser.options(psection):
-            raw_value = parser.get(psection, option).strip()
-
-            result[option] = parse_value(raw_value, raise_error=True)
-    except:
-        print('WARNING: Errors during parsing occured, only default values '
-              'will be used.')
-        results = {}
+                result[option] = parse_value(raw_value, raise_error=True)
+        except:
+            print('WARNING: Errors during parsing occured, only default values '
+                  'will be used.')
+            result = {} # whatever was read so far is discared
+            break
 
     return result
 
