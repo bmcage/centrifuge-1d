@@ -222,7 +222,7 @@ class DataStorage():
             flag = self.store_computation(model, model.measurements, ID=ref_id)
 
             if not flag:
-                print('Reference parameters: ', ref)
+                print('Reference parameters: ', ref_params)
 
             model.set_parameters(backup_params) # restore
 
@@ -458,7 +458,7 @@ def figures_styles_post_update(figures_styles, display_options):
 
     if ((figures_styles['h']['show_legend'] is None)
         and (not display_options['separate_figures'])):
-        figure_styles['h']['show_legend'] = False
+        figures_styles['h']['show_legend'] = False
 
 
 def linestyles_post_update(styles):
