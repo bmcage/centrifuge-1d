@@ -668,7 +668,8 @@ class Measurements():
 
         return self.store_calc_measurement('GC', gc)
 
-    def store_calc_gf_mo(self, omega2g, mo_1d, MO_calibration_curve, tube_area):
+    def store_calc_gf_mo(self, omega2g, mo_1d, MO_calibration_curve,
+                         fluid_density, tube_area):
         """
           Calculate and store the value of the calculated centrifugal force
           caused by the expelled water in water chamber. More preciselly it's
@@ -690,7 +691,7 @@ class Measurements():
         """
         calibration = MO_calibration_curve
 
-        mo = mo_1d * tube_area
+        mo = mo_1d * tube_area * fluid_density
         (mo0, gc0) = calibration[0]
 
         if mo < mo0:
