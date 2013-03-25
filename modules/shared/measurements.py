@@ -550,7 +550,7 @@ class Measurements():
 
         return value
 
-    def store_calc_u(self, x, h, SC):
+    def store_calc_u(self, x, h, SC, method_name='h2u'):
         """
         Calculate and store relative saturation u.
 
@@ -577,7 +577,8 @@ class Measurements():
         # store u
         value = self._computed['u'][self._indexes['u'], :] # reference
 
-        SC.h2u(h, value)
+        h2u = getattr(SC, method_name)
+        h2u(h, value)
         self._indexes['u'] += 1
 
         return value
