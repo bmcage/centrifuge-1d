@@ -555,9 +555,10 @@ class Measurements():
         Calculate and store relative saturation u.
 
         Arguments:
-        x - x-coordinates
-        h - hydraulic head
+        x  - x-coordinates
+        h  - pressure head
         SC - saturation curve object
+        method_name - accessor function for the computation of the saturation
         """
         if not 'u' in self._computed:
             # preallocate and initialize index
@@ -607,7 +608,6 @@ class Measurements():
           soil_porosity - porosity of the soil sample
           fl2, fp2 - ending filter length, porosity and distance from
                      sample beginning (to filter's beginning)
-          fluid_density - density of used fluid (in g/cm3)
           tube_area - the cross-section area of the tube containing the sample
           from_end - (optional) if specified, computed GC will be returned as
                      distance from the "from_end" point
@@ -686,6 +686,7 @@ class Measurements():
                     expelled water.
           tube_area - the cross-sectional area of the tube containing the sample
                     (should not be contained in the mo?)
+          fluid_density - density of used fluid (in g/cm3)
 
           Returns the weight W.
         """
@@ -695,8 +696,9 @@ class Measurements():
         (mo0, gc0) = calibration[0]
 
         if mo < mo0:
-            print('Amount of water: ', mo, ' is less than the amount at the '
-                  'first point on the calibration curve: ', calibration[0][0],
+            print('Amount of expelled fluid (in gramms): ', mo,
+                  ' is less than the amount specified as the first point '
+                  'of the MO_calibration curve: ', calibration[0][0],
                   '. Cannot proceed, exiting...')
             exit(1)
 
@@ -726,6 +728,7 @@ class Measurements():
           the assumption of mass being uniformly distributed
 
           Arguments:
+          fluid_density - density of used fluid (in g/cm3)
           chamber_area - the cross-section area of the outflow chamber
         """
         raise NotImplementedError('Broken. For calculation the amount of'
@@ -742,7 +745,7 @@ class Measurements():
           the sample. The water on the inflow is taken into account, but not
           the water on the outflow. Computed centrifugal force is measured
           from the BEGINNING of the soil sample (in the direction from
-           centrifuge axis)
+          centrifuge axis)
 
           Arguments:
           omega2g - value of (omega^2/g) at given time
@@ -757,6 +760,8 @@ class Measurements():
           soil_porosity - porosity of the soil sample
           fl2, fp2, fr2 - ending filter length, porosity and distance from
                           sample beginning (to filter's beginning)
+          l0 - length of soil sample
+          fluid_density - density of used fluid (in g/cm3)
           tube_area - the cross-sectional area of the tube
         """
         F = (calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
