@@ -476,10 +476,10 @@ def linestyles_post_update(styles):
 
     for line_id in lines_ids:
         # Determine user supplied line styles
-        if line_id in lines_styles:
-            line_styles = lines_styles[line_id]
-        else:
-            line_styles = {}
+        if not line_id in lines_styles:
+            lines_styles[line_id] = {}
+
+        line_styles = lines_styles[line_id]
 
         # Process line label
         if 'label' in line_styles:
