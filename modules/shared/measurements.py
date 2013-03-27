@@ -5,7 +5,6 @@ from collections import OrderedDict
 from shared import get_directories, flatten
 from os import makedirs, path
 from modules.shared.functions import rpm2radps, compare_data
-from modules.shared.saturation_curve import retention_curve
 
 # MEASUREMENTS_NAMES are the mapping between the internal
 # denotation of measured data (used during computation and for
@@ -542,8 +541,8 @@ class Measurements():
 
         idx = self._indexes['theta']
         size = np.alen(h)
-        value = retention_curve(SC, theta_s, rho, g, theta_r, p=None, h=h,
-                                find_p=False)[1]
+        value = SC.retention_curve(theta_s, rho, g, theta_r, p=None, h=h,
+                                   find_p=False)[1]
 
         self._computed['theta'][idx:idx+size] = value
         self._indexes['theta'] += size

@@ -149,8 +149,8 @@ class DataStorage():
             # Store extra data
             # a) Retention curve based on theta
             if hasattr(model, 'SC'):
-                from modules.shared.saturation_curve import (retention_curve,
-                                                             conductivity_curve)
+
+                SC = model.SC
 
                 if hasattr(model, 'theta_s'): theta_s = model.theta_s
                 else: theta_s = model.porosity
@@ -158,21 +158,27 @@ class DataStorage():
                 if hasattr(model, 'theta_r'): theta_r = model.theta_r
                 else: theta_r = 0.0
 
-                (p, theta) = retention_curve(model.SC,
-                                             theta_s, model.density, model.g,
-                                             theta_r=theta_r)
-                if hasattr(model, 'p'):
+                (p, theta) = SC.retention_curve(theta_s, model.density, model.g,
+                                                theta_r=theta_r)
+
+                if hasattr(model, 'p') or hasattr(model, 'pc'):
+                    if hasattr(model, 'p'):
+                        p_meas = model.p
+                    else:
+                        p_meas = model.pc
+
                     (p_user, theta_user) = \
-                      retention_curve(model.SC, theta_s,
-                                      model.density, model.g, theta_r=theta_r,
-                                      p=None, h=model.h)
+                      SC.retention_curve(theta_s, model.density, model.g,
+                                         theta_r=theta_r, p=p_meas)
+
                     data['theta'] = (p, theta, theta_user)
                 else:
                     data['theta'] = (p, theta)
 
-                data['K'] = conductivity_curve(model.SC, model.ks, theta_s,
-                                               theta_r=theta_r, g=model.g,
-                                               rho=model.density)
+                K = SC.conductivity_curve(model.ks, theta_s,
+                                          theta_r=theta_r, g=model.g,
+                                          rho=model.density)
+                data['K'] = K
 
             self._data['lines'][ID] = data
             self.store('experiment_info', model.experiment_info)

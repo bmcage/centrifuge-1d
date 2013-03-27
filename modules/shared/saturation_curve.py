@@ -1,15 +1,98 @@
 from __future__ import division
 
 """
-  This modules contains saturation curve object(s)
+  This modules contains saturation curve object(s) for single flow
 """
 import numpy as np
+
+__NR = 400
+P_DEFAULT = np.linspace(-1, 9, __NR)
+P_DEFAULT = np.power(10* np.ones(__NR), P_DEFAULT)
+P_DEFAULT[0] = 0
+#P_DEFAULT = np.arange(0, 10000000, 100)
+
+########################################################################
+#                             Common class                             #
+########################################################################
+
+class SC_base():
+    def retention_curve(self, theta_s, rho, g, theta_r=0.0, p=None, h=None,
+                        find_p=True):
+        """
+          Determine the retention curve.
+
+          Parameters:
+            theta_s  - maximal saturation; equals to porosity
+            theta_r  - residual saturation
+            rho      - fluid density
+            g        - gravitation constant
+            p        - fluid pressure
+            h        - pressure head
+            find_p   - if True and h is supplied, the p is determined
+                       (otherwise p=None is returned)
+
+          Return values:
+            p        - fluid pressure
+            theta    - saturation corresponding to pressure p
+        """
+        if (p is None) and (h is None):
+            p = P_DEFAULT
+        if h is None:
+            h = -10.0* p /rho / g
+        elif find_p:
+            p = - h * g * rho / 10.0
+        else:
+            p = None
+
+        theta = theta_r + (theta_s - theta_r) * self.h2u(h)
+
+        return (p, theta)
+
+    def conductivity_curve(self, Ks, theta_s, theta_r=0.0, u=None, p=None,
+                           h=None, rho=None, g=None):
+        """
+          Determine the conductivity curve.
+
+          Parameters:
+            SC       - saturation curve object
+            Ks       - saturated hydraulic conductivity
+            theta_s  - maximal saturation; equals to porosity
+            theta_r  - residual saturation
+            rho      - fluid density
+            g        - gravitation constant
+            p        - fluid pressure
+            h        - pressure head
+            u        - relative saturation
+
+          Return values:
+            theta    - saturation corresponding to pressure p/relative saturation u/
+                       hydraulic head h
+            K        - conductivity
+        """
+
+        if (u is None) and (p is None) and (h is None):
+            p = P_DEFAULT
+
+        if not h is None:
+            u = self.h2u(h)
+        elif not p is None:
+            if (rho is None) or (g is None):
+                print("Conductivity curve: neither 'rho' nor 'g' can be 'None' !"
+                      "No conductivity curve is computed...")
+                return ([], [])
+            u = self.h2u(-10.0* p /rho / g)
+
+        theta = theta_r + (theta_s - theta_r) * u
+        K     = self.u2Ku(u, Ks)
+
+        return (theta, K)
+
 
 ########################################################################
 #                       van Genuchten model                            #
 ########################################################################
 
-class SC_vanGenuchten():
+class SC_vanGenuchten(SC_base):
     def __init__(self, n=None, gamma=None):
         self._n = n
         if n is None:
@@ -112,84 +195,3 @@ class SC_vanGenuchten():
 
 
 
-########################################################################
-#                           Common utilities                           #
-########################################################################
-
-__NR = 400
-P_DEFAULT = np.linspace(-1, 9, __NR)
-P_DEFAULT = np.power(10* np.ones(__NR), P_DEFAULT)
-P_DEFAULT[0] = 0
-#P_DEFAULT = np.arange(0, 10000000, 100)
-
-def retention_curve(SC, theta_s, rho, g, theta_r=0.0, p=None, h=None,
-                    find_p=True):
-    """
-      Determine the retention curve.
-
-      Parameters:
-        SC       - saturation curve object
-        theta_s  - maximal saturation; equals to porosity
-        theta_r  - residual saturation
-        rho      - fluid density
-        g        - gravitation constant
-        p        - fluid pressure
-        h        - pressure head
-        find_p   - if True and h is supplied, the p is determined
-                   (otherwise p=None is returned)
-
-      Return values:
-        p        - fluid pressure
-        theta    - saturation corresponding to pressure p
-    """
-    if (p is None) and (h is None):
-        p = P_DEFAULT
-    if h is None:
-        h = -10.0* p /rho / g
-    elif find_p:
-        p = - h * g * rho / 10.0
-    else:
-        p = None
-
-    theta = theta_r + (theta_s - theta_r) * SC.h2u(h)
-
-    return (p, theta)
-
-def conductivity_curve(SC, Ks, theta_s, theta_r=0.0, u=None, p=None, h=None,
-                       rho=None, g=None):
-    """
-      Determine the conductivity curve.
-
-      Parameters:
-        SC       - saturation curve object
-        Ks       - saturated hydraulic conductivity
-        theta_s  - maximal saturation; equals to porosity
-        theta_r  - residual saturation
-        rho      - fluid density
-        g        - gravitation constant
-        p        - fluid pressure
-        h        - pressure head
-        u        - relative saturation
-
-      Return values:
-        theta    - saturation corresponding to pressure p/relative saturation u/
-                   hydraulic head h
-        K        - conductivity
-    """
-
-    if (u is None) and (p is None) and (h is None):
-        p = P_DEFAULT
-
-    if not h is None:
-        u = SC.h2u(h)
-    elif not p is None:
-        if (rho is None) or (g is None):
-            print("Conductivity curve: neither 'rho' nor 'g' can be 'None' !"
-                  "No conductivity curve is computed...")
-            return ([], [])
-        u = SC.h2u(-10.0* p /rho / g)
-
-    theta = theta_r + (theta_s - theta_r) * u
-    K     = SC.u2Ku(u, Ks)
-
-    return (theta, K)
