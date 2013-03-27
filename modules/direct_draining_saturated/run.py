@@ -3,7 +3,7 @@ from __future__ import division, print_function
 import numpy as np
 
 from scikits.odes.sundials.ida import IDA_RhsFunction
-from modules.shared.functions import right_derivative, y2x
+from modules.shared.functions import y2x
 from modules.shared.solver import simulate_direct
 from modules.shared.show import show_results
 
