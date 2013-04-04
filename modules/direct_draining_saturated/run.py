@@ -303,7 +303,7 @@ def solve(model, measurements):
 
     if model.dynamic_h_init:
         model.h_init = model.SC.get_dyn_h_init(model.c_gammah, model.h_init_max)
-        if model.verbosity > 1:
+        if model.verbosity > 2:
             print('\nh_init: ', model.h_init,
             'u_init', model.SC.h2u(model.h_init), '\n')
 
