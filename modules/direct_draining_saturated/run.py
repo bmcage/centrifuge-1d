@@ -112,7 +112,7 @@ class centrifuge_residual(IDA_RhsFunction):
                                     -Kh_last * (dhdy[-1]/ds - omega2g*(r0 + L)))
                 result[last_idx]  = hdot[-1]
             else:
-                raise NotImplementedError('rb_type has to be 0 - 6')
+                raise NotImplementedError('rb_type has to be 0 - 3')
 
             result[model.s2_idx]  = zdot[model.s2_idx]
             result[model.mass_out_idx] = zdot[model.mass_out_idx]  - q_out
