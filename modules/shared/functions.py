@@ -21,9 +21,9 @@ def lagrangean_derivative_coefs(dx):
     ldc1 = np.concatenate(([-(2*dx[0]+dx[1])/(dx[0]*(dx[0]+dx[1]))],
                           -dx[1:]/(dx[:-1]*(dx[:-1]+dx[1:])),
                           [dx[-1]/(dx[-2]*(dx[-2]+dx[-1]))]))
-    ldc2 = -np.concatenate(([(dx[0]+dx[1])/(dx[1]*dx[0])],
+    ldc2 = np.concatenate(([(dx[0]+dx[1])/(dx[1]*dx[0])],
                           (dx[1:] - dx[:-1])/dx[:-1]/dx[1:],
-                          [(dx[-1]+dx[-2])/(dx[-2]*dx[-1])]))
+                          [-(dx[-1]+dx[-2])/(dx[-2]*dx[-1])]))
     ldc3 = np.concatenate(([-dx[0]/(dx[1]*(dx[1]+dx[0]))],
                            dx[:-1]/(dx[1:]*(dx[:-1]+dx[1:])),
                            [(2*dx[-1]+dx[-2])/(dx[-1]*(dx[-2]+dx[-1]))]))
