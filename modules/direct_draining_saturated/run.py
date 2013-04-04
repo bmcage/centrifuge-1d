@@ -62,12 +62,12 @@ class centrifuge_residual(IDA_RhsFunction):
         du_dh = SC.dudh(h)
 
         result[first_idx] = \
-          (porosity * du_dh[0] * (hdot[0] - dhdy[0]/ds*ds1dt)
+          (porosity * du_dh[0] * (hdot[0] + dhdy[0]/ds*ds1dt)
            + 2 / dy[0] / ds * (q12[0] - q_first))
 
         result[first_idx+1:last_idx] = \
           (porosity*du_dh[1:-1]*(hdot[1:-1]
-                                 - dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt
+                                 + dhdy[1:-1]/ds*((1-y[1:-1])*ds1dt
                                                   + y[1:-1]*ds2dt))
             + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
 
