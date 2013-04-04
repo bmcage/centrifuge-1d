@@ -1,4 +1,6 @@
 from __future__ import print_function, division
+
+import numpy as np
 from const import INI_DIR, MASKS_DIRNAME, FIGS_DIR
 
 def yn_prompt(question_str, default='y'):
@@ -167,7 +169,7 @@ def parse_string(str_value):
             rstep = parse_string(range_values[2])
         else:
             rstep = 1
-        return list(range(rstart, rstop, rstep))
+        return list(np.arange(rstart, rstop, rstep))
     elif "." in raw_value or "e" in raw_value or "E" in raw_value:
         return float(raw_value)
     else:
