@@ -32,15 +32,17 @@ def on_measurement(t, z, model, measurements):
     MI = measurements.store_calc_measurement('MI', z[model.mass_in_idx])
     MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
 
-    if model.calc_gf_mo:
+    if measurements.calc_measurement_p('gF_MO'):
         omega2g = model.find_omega2g(t)
 
         measurements.store_calc_gf_mo(omega2g, MO,
                                       model.mo_gc_calibration_curve,
                                       model.tube_crosssectional_area)
 
-    if model.calc_gf_mt:
-        raise NotImplementedError
+    if measurements.calc_measurement_p('gF_MT'):
+        print("The 'gf_mt' option is not supported yet for direct saturated "
+              "flow")
+        exit(1)
 
 def initialize_z0(z0, model):
     z0[model.mass_in_idx]  = model.wl0

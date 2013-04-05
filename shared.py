@@ -1,4 +1,6 @@
 from __future__ import print_function, division
+
+import numpy as np
 from const import INI_DIR, MASKS_DIRNAME, FIGS_DIR
 
 def yn_prompt(question_str, default='y'):
@@ -14,9 +16,12 @@ def yn_prompt(question_str, default='y'):
 
 def get_directories(basedir_type, dirs, experiment_info):
 
+    if experiment_info['mask']: mask = experiment_info['mask'][0]
+    else: mask = ''
+
     dir_struct = ['exp_base', 'exp_no', 'masks', 'mask']
     dir_values = (experiment_info['exp_id'], str(experiment_info['exp_no']),
-                  MASKS_DIRNAME, experiment_info['mask'][0])
+                  MASKS_DIRNAME, mask)
 
     def get_dir(dir_type, base_dir):
         if dir_type == 'base':
@@ -76,14 +81,14 @@ def parse_list(raw_value):
             if ((counts['('] == counts[')']) and (counts['{'] == counts['}'])
                 and (counts['['] == counts[']'])): # balanced brackets
 
-                result.append(parse_value(raw_value[i0:i]))
+                result.append(parse_string(raw_value[i0:i]))
                 i0 = i+1
             else:
                 pass
         elif val in brackets:
             counts[val] += 1
 
-    result.append(parse_value(raw_value[i0:])) # append last value
+    result.append(parse_string(raw_value[i0:])) # append last value
 
     return result
 
@@ -91,14 +96,15 @@ def parse_dict(raw_value):
     if raw_value == '': return {}
 
     result = {}
-    brackets = ('(', ')', '[', ']', '{', '}')
+    brackets = ('(', ')', '[', ']', '{', '}', '"', "'")
     counts = {br: 0 for br in brackets}
 
     i0 = 0
     for (i, char) in enumerate(raw_value):
         if char == ',':
             if ((counts['('] == counts[')']) and (counts['{'] == counts['}'])
-                and (counts['['] == counts[']'])): # balanced brackets
+                and (counts['['] == counts[']']) and (counts['"'] % 2 == 0)
+                and (counts["'"] % 2 == 0)): # balanced brackets
 
                 k = i0 + raw_value[i0:].index(':')
                 if k>i:
@@ -106,8 +112,8 @@ def parse_dict(raw_value):
                           'value pair found:\n', raw_value[i0:i],
                           '\nof item:\n', raw_value)
 
-                key   = parse_value(raw_value[i0:k])
-                value = parse_value(raw_value[k+1:i])
+                key   = parse_string(raw_value[i0:k])
+                value = parse_string(raw_value[k+1:i])
                 result[key] = value
 
                 i0 = i+1
@@ -117,61 +123,67 @@ def parse_dict(raw_value):
             counts[char] += 1
 
     k     = i0 + raw_value[i0:].index(':')
-    key   = parse_value(raw_value[i0:k])
-    value = parse_value(raw_value[k+1:])
+    key   = parse_string(raw_value[i0:k])
+    value = parse_string(raw_value[k+1:])
     result[key] = value
 
     return result
 
-def parse_value(str_value):
+def parse_string(str_value):
     """
       Given a value as string, tries to convert to it's correspending type.
       May be called recursively in the case of nested structures.
     """
-    try:
-        raw_value = str_value.strip()
 
-        if raw_value[0] == "[" and raw_value[-1] == "]":
-            return parse_list(raw_value[1:-1])
-        elif raw_value[0] == "(" and raw_value[-1] == ")":
-            return tuple(parse_list(raw_value[1:-1]))
-        elif raw_value[0] == "{" and raw_value[-1] == "}":
-            return parse_dict(raw_value[1:-1])
-        elif ((raw_value[0] == "'" and raw_value[-1] == "'")
-              or (raw_value[0] == '"' and raw_value[-1] == '"')):
-            return raw_value[1:-1]
-        elif raw_value == 'True':
-            return True
-        elif raw_value == 'False':
-            return False
-        elif raw_value == 'None':
-            return None
-        elif raw_value == 'inf':
-            return inf
-        elif raw_value == '-inf':
-            return -inf
-        elif '*' in raw_value:
-            [raw_mul, raw_val] = raw_value.split("*")
-            mul = parse_value(raw_mul)
-            val = parse_value(raw_val)
-            return [val for i in range(mul)]
-        elif ':' in raw_value:
-            range_values = raw_value.split(':')
-            rstart = parse_value(range_values[0])
-            rstop  = parse_value(range_values[1]) + 1
-            if len(range_values) > 2:
-                rstep = parse_value(range_values[2])
-            else:
-                rstep = 1
-            return list(range(rstart, rstop, rstep))
-        elif "." in raw_value or "e" in raw_value or "E" in raw_value:
-            return float(raw_value)
+    raw_value = str_value.strip()
+
+    if raw_value[0] == "[" and raw_value[-1] == "]":
+        return parse_list(raw_value[1:-1])
+    elif raw_value[0] == "(" and raw_value[-1] == ")":
+        return tuple(parse_list(raw_value[1:-1]))
+    elif raw_value[0] == "{" and raw_value[-1] == "}":
+        return parse_dict(raw_value[1:-1])
+    elif ((raw_value[0] == "'" and raw_value[-1] == "'")
+          or (raw_value[0] == '"' and raw_value[-1] == '"')):
+        return raw_value[1:-1]
+    elif raw_value == 'True':
+        return True
+    elif raw_value == 'False':
+        return False
+    elif raw_value == 'None':
+        return None
+    elif raw_value == 'inf':
+        return inf
+    elif raw_value == '-inf':
+        return -inf
+    elif '*' in raw_value:
+        [raw_mul, raw_val] = raw_value.split("*")
+        mul = parse_string(raw_mul)
+        val = parse_string(raw_val)
+        return [val for i in range(mul)]
+    elif ':' in raw_value:
+        range_values = raw_value.split(':')
+        rstart = parse_string(range_values[0])
+        rstop  = parse_string(range_values[1]) + 1
+        if len(range_values) > 2:
+            rstep = parse_string(range_values[2])
         else:
-            return int(raw_value)
+            rstep = 1
+        return list(np.arange(rstart, rstop, rstep))
+    elif "." in raw_value or "e" in raw_value or "E" in raw_value:
+        return float(raw_value)
+    else:
+        return int(raw_value)
 
+def parse_value(str_value, raise_error=False):
+    try:
+        return parse_string(str_value)
     except:
-        print('Error:Could not parse value: ', str_value, '\nExiting...')
-        exit(1)
+        print('Error:Could not parse value: ', str_value)
+        if raise_error:
+            raise ValueError()
+        else:
+            exit(0)
 
 def flatten(seq):
     result = []

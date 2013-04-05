@@ -1,107 +1,166 @@
 #!/usr/bin/python
 from __future__ import print_function
+
+import argparse
 from os import listdir
-from shared import get_directories, yn_prompt
+from shared import get_directories
 from config import ModulesManager, load_model
-from optparse import OptionParser
-from const import DEFAULTS_ININAME, CONSTANTS_ININAME
 
-def list_experiments(verbose=True):
-    from os import listdir
+def compare_experiment_csv(exp_id):
+    import os, subprocess
+    from const import DIFFPROG, CSV_DIR
 
-    print('\n'.join(sorted(listdir(
-        get_directories('ini', 'base',
-                        {key: '' for key in ['exp_id', 'exp_no',
-                                             'mask']})))))
+    if not DIFFPROG:
+        print('No DIFFPROG was selected. Cannot compare. Exiting.')
+        exit(1)
+
+    exp_info = {key: '' for key in ['exp_no', 'mask']}
+    exp_info['exp_id'] = exp_id
+
+    csv_filename = ''
+    exp_basedir = get_directories('ini', 'exp_base', exp_info)
+    filenames = listdir(exp_basedir)
+    for filename in filenames:
+        if ((len(filename) > 10) and (filename[:5] == 'orig.')
+            and (filename[-4:] == '.csv')):
+
+            csv_filename = filename[5:]
+            break
+
+    if not csv_filename:
+        print('Original csv file not found. Cannot compare. Exiting.')
+        exit(0)
+
+    csv_original = exp_basedir + '/' + 'orig.' + csv_filename
+    csv_current = CSV_DIR + '/' + csv_filename
+
+    if not os.path.exists(csv_current):
+        csv_current = csv_current[:-4] + '/' + csv_filename
+
+    if not os.path.exists(csv_current):
+        print('Current CSV file: ', csv_current, 'does not exist. Cannot '
+              'compare. Exiting.')
+        exit(0)
+
+    subprocess.call([DIFFPROG, csv_original, csv_current])
+
+    exit(0)
+
+def list_experiments(args, verbose=True):
+    if not args.exp_id:
+        list_type = 'base'
+    elif not args.exp_no:
+        list_type = 'exp_base'
+    elif not args.mask:
+    #     list_type = 'exp_no'
+    # else:
+        list_type = 'masks'
+
+    exp_info = {key: getattr(args, key) for key in ['exp_id', 'exp_no', 'mask']}
+    filenames = listdir(get_directories('ini', list_type, exp_info))
+
+    if list_type == 'base':
+        print('Available exp_IDs:\n')
+        out_filenames = \
+          [fname for fname in filenames if not fname[-4:] in ('.ini', '.csv')]
+
+    elif list_type == 'exp_base':
+        print("Available exp_NOs for experiment '" + args.exp_id)
+        out_filenames = \
+          [fname for fname in filenames if not fname[-4:] in ('.ini', '.csv')]
+
+    # elif list_type == 'exp_no':
+    #     print('Inifiles listed for experiment: ', args.exp_id,
+    #           '\nwith exp_NO: ', args.exp_no)
+    #     out_filenames = filter(lambda fname: not fname[:-4] == '.ini',
+    #                            filenames)
+    else:
+        print("Available masks for experiment: '" + args.exp_id +
+              "' of number '" + repr(args.exp_no) +"':\n")
+        out_filenames = \
+          [fname[:-4] for fname in filenames if fname[-4:] == '.ini']
+
+    print('\n'.join(sorted(out_filenames)))
 
 def list_modules(verbose=True):
     modman = ModulesManager()
     modman.echo(verbose)
 
 def parse_input():
+    usage_str = '\n\t%(prog)s [options] [exp_ID] [exp_NO] [last_exp_NO]'
 
-    usage_str = \
-      ('\n  %prog [options] exp_ID first_experiment [last_experiment]'
-       '\n\nArguments:'
-       '\n  exp_ID:'
-       '\n      ID identifying an experiment (see -l for all available '
-       'experiments)'
-       '\n  first_experiment:'
-       '\n      the number of the first experiment in the \'exp_ID\' '
-       'experiments serie'
-       '\n  last_experiment:'
-       '\n      all experiments between the \'first_experiment\' and '
-       'the \'last_experiment\' (included) will be computed.'
-       '\n      if it is not specified, computes only the \'first_experiment\'')
-    optparser = OptionParser(usage=usage_str)
-    optparser.add_option('-l', '--list', dest='list', action="store_true",
-                         default=False,
-                         help="Lists all available experiments")
-    optparser.add_option('-m', '--mask', dest='mask', action="append",
-                         metavar='MASK_NAME',
-                         help=("Run given experiment with a mask MASK_NAME "
-                               "file. The file \'MASK_NAME.ini\' in the masks "
-                               "directory should exist. Option can be supplied "
-                               "multiple times. In that case masks will be "
-                               "applied in the order they were specified"))
-    optparser.add_option('-c', '--compare', dest='compare_p', default=False,
-                         action='store_true',
-                         help=("Compare two configuration files."))
-    optparser.add_option('-d', '--modules-list', dest='modules_list',
-                         action="store_true", default=False,
-                         help=("Get the list of all available centrifuge "
-                               "modules. Using the -v option gives also "
-                               "more detailed description of modules."))
-    optparser.add_option('-p', '--print-config', dest='print_config_p',
-                         action='store_true', default=False,
-                         help=('Print the used configuration file for given '
-                               'experiment and exit.'))
-    optparser.add_option('-s', '--show', dest='show_p', default=False,
-                         action='store_true',
-                         help=("Show results if present. No computation is "
-                               "peformed."))
-    optparser.add_option('-v', '--verbose', dest='verbose',
-                         action="store_true", default=False,
-                         help="If possible, provide more detailed informations")
+    argparser = argparse.ArgumentParser(usage=usage_str)
+    argparser.add_argument('exp_id', type=str, nargs="?",
+                           metavar='exp_ID',
+                           help=('ID identifying an experiment (see -l for all '
+                                 'available experiments'))
+    argparser.add_argument('exp_no', type=int, nargs="?", metavar='exp_NO',
+                           help=("the number of the first experiment in the "
+                                 "experiments serie identified by 'exp_ID' "))
+    argparser.add_argument('last_exp_no', type=int, nargs='?', metavar='last_exp_NO',
+                           help=("the number of the last experiment. All "
+                                 "experiments between the 'exp_NO' "
+                                 "and 'last_exp_NO' (included) will be "
+                                 "performed. If not specified, only the "
+                                 "experiment with 'exp_NO' is computed"))
+    argparser.add_argument('-c', '--compare', dest='compare_p', default=False,
+                           action='store_true',
+                           help=("Compare two configuration files."))
+    argparser.add_argument('-d', '--modules-list', dest='modules_list',
+                           action="store_true", default=False,
+                           help=("Get the list of all available centrifuge "
+                                 "modules. Using the -v option gives also "
+                                 "more detailed description of modules."))
+    argparser.add_argument('-l', '--list', dest='list', action="store_true",
+                           default=False,
+                           help="List. If 'exp_ID' is not provided, list all "
+                           "available experiments. If 'exp_NO' is not "
+                           "provided, list all exp_NO under given 'exp_ID'. "
+                           "If both provided, list all available mask files.")
+    argparser.add_argument('-m', '--mask', dest='mask', action="append",
+                           metavar='MASK_NAME', type=str,
+                           help=("Run given experiment with a mask MASK_NAME "
+                                 "file. The file \'MASK_NAME.ini\' in the masks "
+                                 "directory should exist. Option can be supplied "
+                                 "multiple times. In that case masks will be "
+                                 "applied in the order they were specified"))
+    argparser.add_argument('-p', '--print-config', dest='print_config_p',
+                           action='store_true', default=False,
+                           help=('Print the used configuration file for given '
+                                 'experiment and exit.'))
+    argparser.add_argument('-s', '--show', dest='show_p', default=False,
+                           action='store_true',
+                           help=("Show results if present. No computation is "
+                                 "peformed."))
+    argparser.add_argument('-v', '--verbose', dest='verbose',
+                           action="store_true", default=False,
+                           help=("Provide more detailed informations about "
+                                 "what is being done."))
+    argparser.add_argument('-w', '--csv-diff', dest='csv_diff', default=False,
+                           action='store_true',
+                           help=("Compare the original with actual csv file."))
 
-    (options, args) = optparser.parse_args()
-    arg_len = len(args)
-    if arg_len == 0:
-        if options.list:
-            list_experiments(options.verbose)
-        elif options.modules_list:
-            list_modules(options.verbose)
-        else:
-            optparser.print_help()
+    args = argparser.parse_args()
+
+    if args.list:
+        list_experiments(args, args.verbose)
         exit(0)
-    elif arg_len == 1:
-        optparser.print_help()
+    elif args.modules_list:
+        list_modules(args.verbose)
         exit(0)
-    elif options.list:
-        print('Error: Flag ''-l'' cannot be used with an argument.')
-        exit(1)
+    elif not args.exp_id:
+        argparser.print_help()
+        exit(0)
+    elif args.csv_diff:
+        compare_experiment_csv(args.exp_id)
+        exit(0)
+    elif args.exp_id and args.exp_no:
+        pass # all needed data is passed
+    else:
+        argparser.print_help()
+        exit(0)
 
-    optparser.destroy()
-
-    try:
-        exp_id = args[0]
-        first_experiment = int(args[1])
-        if len(args) == 3:
-            last_experiment = int(args[2])
-        else:
-            last_experiment = first_experiment
-
-        options.exp_id           = exp_id
-        options.first_experiment = first_experiment
-        options.last_experiment  = last_experiment
-
-    except:
-
-        raise ValueError('Input error: first and last experiment have to be'
-                         ' integers. Wrong input: %s '
-                         % args[1:])
-
-    return options
+    return args
 
 def run_experiments(exp_id, first_experiment, last_experiment, mask,
                     verbose=True, print_cfg_only=False):
@@ -159,6 +218,8 @@ def iterate_value(arg):
         yield ''
 
 def compare2configs(options):
+    from config import load_configuration
+
     print('Add information for the second configuration file:')
     exp_id2  = input('Experiment ID  : ').strip()
     exp_no2  = input('Experiment No. : ').strip()
@@ -167,12 +228,12 @@ def compare2configs(options):
     else:
         mask2    = input('Mask (optional): ').strip()
 
-    exp_info1 ={'exp_id': options.exp_id, 'exp_no': options.first_experiment,
-                'mask': options.mask[0]}
-    exp_info2 ={'exp_id': exp_id2, 'exp_no': int(exp_no2), 'mask': mask2}
+    exp_info1 = {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
+                 'mask': options.mask[0]}
+    exp_info2 = {'exp_id': exp_id2, 'exp_no': int(exp_no2), 'mask': mask2}
 
-    (cfg1, const_cfg1) = load_configuration(experiment_info1)
-    (cfg2, const_cfg2) = load_configuration(experiment_info2)
+    cfg1 = load_configuration(exp_info1)
+    cfg2 = load_configuration(exp_info2)
 
     all_parameters = sorted(set(cfg1.list_options() + cfg2.list_options()))
 
@@ -209,11 +270,14 @@ def compare2configs(options):
 if __name__ == "__main__":
     options = parse_input()
 
+    if options.last_exp_no is None:
+        options.last_exp_no = options.exp_no
+
     if options.show_p:
         from modules.shared.show import show_results
 
         experiment_info =  \
-          {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
+          {'exp_id': options.exp_id, 'exp_no': options.exp_no,
            'mask': options.mask}
 
         show_results(experiment_info)
@@ -222,7 +286,7 @@ if __name__ == "__main__":
         compare2configs(options)
     else:
         print_cfg_only = options.print_config_p
-        run_experiments(options.exp_id, options.first_experiment,
-                        options.last_experiment, options.mask,
+        run_experiments(options.exp_id, options.exp_no,
+                        options.last_exp_no, options.mask,
                         verbose=(not print_cfg_only),
                         print_cfg_only=print_cfg_only)

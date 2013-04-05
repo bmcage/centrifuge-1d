@@ -29,3 +29,4 @@ DUMP_DATA_FILENAME = 'data.dat'
 # For compatibility with python 2.x the value of '2' is used. In general,
 # if compatibility is not needed, the HIGHEST_PROTOCOL value could be used
 DUMP_DATA_VERSION=2
+DIFFPROG = "diff"

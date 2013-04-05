@@ -7,8 +7,7 @@ from modules.shared.solver import simulate_inverse
 def solve(model, measurements):
 
     (inv_params, cov) = \
-      simulate_inverse(solve_direct, model, model.inv_init_params,
-                       measurements, optimfn=model.optimfn)
+      simulate_inverse(solve_direct, model, measurements, optimfn=model.optimfn)
 
     return (inv_params, cov)
 
@@ -19,7 +18,6 @@ def run(model):
     if inv_params:
         model.set_parameters(inv_params)
         # run once again the direct problem with optimal parameters
-        model.calc_wm = True
         model_verbosity = model.verbosity # backup verbosity
         model.verbosity = 0
 

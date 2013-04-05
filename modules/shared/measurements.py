@@ -4,7 +4,6 @@ import numpy as np
 from collections import OrderedDict
 from shared import get_directories, flatten
 from os import makedirs, path
-from modules.shared.vangenuchten import h2u
 from modules.shared.functions import rpm2radps, compare_data
 
 # MEASUREMENTS_NAMES are the mapping between the internal
@@ -82,6 +81,9 @@ class Measurements():
         self._computations_array = None
         self._error_array        = None
 
+        # Do we run a direct or inverse problem?
+        self._run_inverse_p = None
+
     def read(self, cfg):
         """
         Read and transform data from configuration object.
@@ -95,6 +97,9 @@ class Measurements():
         measurements_xvalues = self._measurements_xvalues
         measurements_weights = self._measurements_weights
         measurements_diff    = self._measurements_diff
+
+        # 0. Determine whether we run direct or inverse problem
+        self.run_inverse_problem_p(cfg.get_value('inv_init_params'))
 
         # 1. determine measurements times
         phases_scans = \
@@ -419,9 +424,8 @@ class Measurements():
                     # information is only available at runtime
                     if (name + '_tara' in self._computed):
                         F_tara = self._computed[name + '_tara']
-                        print('tara', F_tara)
+
                         self._measurements[name][:] -= F_tara[1:]
-                    print('FM', self._measurements[name])
 
                 if name in self._measurements_diff:
                     values.append(value[1:] - value[:-1])
@@ -443,7 +447,11 @@ class Measurements():
 
         iS = 0
         for name in self._measurements.keys():
-            value = data[name][1:]
+            if name == 'theta':
+                # theta is in x and not t
+                value = data[name]
+            else:
+                value = data[name][1:]
 
             if name in self._measurements_diff:
                 iE = iS + np.alen(value) - 1
@@ -488,6 +496,8 @@ class Measurements():
 
             if name in ('h', 'u'):
                 xvalue = self._computed['x']
+            elif name == 'theta':
+                xvalue = self._measurements_xvalues[name]
             else:
                 xvalue = t
 
@@ -514,14 +524,40 @@ class Measurements():
             else:
                 yield (name, xvalue, yvalue)
 
-    def store_calc_u(self, x, h, n, m, gamma):
+    def calc_measurement_p(self, measurement_name):
+        if measurement_name == 'RM':
+            return False
+
+        return ((not self._run_inverse_p)
+                or (measurement_name in self._measurements))
+
+    def run_inverse_problem_p(self, flag):
+        self._run_inverse_p = bool(flag)
+
+    def store_calc_theta(self, h, SC, theta_s, theta_r, rho, g):
+        if not 'theta' in self._computed:
+            self._computed['theta'] = np.empty(h.shape, dtype=float)
+            self._indexes['theta'] = 0
+
+        idx = self._indexes['theta']
+        size = np.alen(h)
+        value = SC.retention_curve(theta_s, rho, g, theta_r, p=None, h=h,
+                                   find_p=False)[1]
+
+        self._computed['theta'][idx:idx+size] = value
+        self._indexes['theta'] += size
+
+        return value
+
+    def store_calc_u(self, x, h, SC, method_name='h2u'):
         """
         Calculate and store relative saturation u.
 
         Arguments:
-        x - x-coordinates
-        h - hydraulic head
-        n, m, gamma - corresponding van Genuchten parameters
+        x  - x-coordinates
+        h  - pressure head
+        SC - saturation curve object
+        method_name - accessor function for the computation of the saturation
         """
         if not 'u' in self._computed:
             # preallocate and initialize index
@@ -541,7 +577,8 @@ class Measurements():
         # store u
         value = self._computed['u'][self._indexes['u'], :] # reference
 
-        h2u(h, n, m, gamma, value)
+        h2u = getattr(SC, method_name)
+        h2u(h, value)
         self._indexes['u'] += 1
 
         return value
@@ -570,7 +607,6 @@ class Measurements():
           soil_porosity - porosity of the soil sample
           fl2, fp2 - ending filter length, porosity and distance from
                      sample beginning (to filter's beginning)
-          fluid_density - density of used fluid (in g/cm3)
           tube_area - the cross-section area of the tube containing the sample
           from_end - (optional) if specified, computed GC will be returned as
                      distance from the "from_end" point
@@ -631,7 +667,8 @@ class Measurements():
 
         return self.store_calc_measurement('GC', gc)
 
-    def store_calc_gf_mo(self, omega2g, mo_1d, MO_calibration_curve, tube_area):
+    def store_calc_gf_mo(self, omega2g, mo_1d, MO_calibration_curve,
+                         fluid_density, tube_area):
         """
           Calculate and store the value of the calculated centrifugal force
           caused by the expelled water in water chamber. More preciselly it's
@@ -648,17 +685,19 @@ class Measurements():
                     expelled water.
           tube_area - the cross-sectional area of the tube containing the sample
                     (should not be contained in the mo?)
+          fluid_density - density of used fluid (in g/cm3)
 
           Returns the weight W.
         """
         calibration = MO_calibration_curve
 
-        mo = mo_1d * tube_area
+        mo = mo_1d * tube_area * fluid_density
         (mo0, gc0) = calibration[0]
 
         if mo < mo0:
-            print('Amount of water: ', mo, ' is less than the amount at the '
-                  'first point on the calibration curve: ', calibration[0][0],
+            print('Amount of expelled fluid (in gramms): ', mo,
+                  ' is less than the amount specified as the first point '
+                  'of the MO_calibration curve: ', calibration[0][0],
                   '. Cannot proceed, exiting...')
             exit(1)
 
@@ -688,6 +727,7 @@ class Measurements():
           the assumption of mass being uniformly distributed
 
           Arguments:
+          fluid_density - density of used fluid (in g/cm3)
           chamber_area - the cross-section area of the outflow chamber
         """
         raise NotImplementedError('Broken. For calculation the amount of'
@@ -704,7 +744,7 @@ class Measurements():
           the sample. The water on the inflow is taken into account, but not
           the water on the outflow. Computed centrifugal force is measured
           from the BEGINNING of the soil sample (in the direction from
-           centrifuge axis)
+          centrifuge axis)
 
           Arguments:
           omega2g - value of (omega^2/g) at given time
@@ -719,6 +759,8 @@ class Measurements():
           soil_porosity - porosity of the soil sample
           fl2, fp2, fr2 - ending filter length, porosity and distance from
                           sample beginning (to filter's beginning)
+          l0 - length of soil sample
+          fluid_density - density of used fluid (in g/cm3)
           tube_area - the cross-sectional area of the tube
         """
         F = (calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
@@ -793,7 +835,11 @@ class Measurements():
         measured = self._measurements
 
         for (name, measured_value) in self._measurements.items():
-            computed_value = computed[name][1:]
+            if name == 'theta':
+                # theta is based on pressures in x, not t
+                computed_value = computed[name]
+            else:
+                computed_value = computed[name][1:]
 
             if name in measurements_diff:
                 compare_data('d'+name, computed_value[1:] - computed_value[:-1],

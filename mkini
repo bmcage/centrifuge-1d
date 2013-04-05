@@ -101,11 +101,11 @@ def compress_seq(seq):
     ref = seq[0]
 
     # all(seq[:] == ref)
-    if not list(filter(lambda value: not (value == ref), seq)):
+    if not [value for value in seq if not (value == ref)]:
         return ref
 
     # all are == '' except one
-    nonempty = list(filter(lambda value: not (value == ''), seq))
+    nonempty = [value for value in seq if not (value == '')]
     items_count = len(nonempty)
     if items_count == 1:
         return nonempty[0]
@@ -317,8 +317,8 @@ class MultipleExperimentData():
 ############################################################
 def missing_fields_in_csv(csv_fields, fields):
 
-    missing = list(filter(lambda field: not (field in csv_fields),
-                          fields))
+    missing = [field for field in fields if not field in csv_fields]
+
     return missing
 
 def quote_string(string):
@@ -348,7 +348,6 @@ def quote_csv_file_string(key, value):
 
 def CSV2data(csv_dir, csv_filebasename):
     print('\t\t\tReading CSV file', csv_filebasename, '... ', end="")
-
 
     csv_filename = csv_dir + csv_filebasename + '.csv'
     # open CSV file
@@ -431,7 +430,7 @@ def CSV2data(csv_dir, csv_filebasename):
                 for id_name in ('exp_type', 'exp_id', 'exp_no'):
                     value = getattr(row, id_name)
                     if value:
-                         identifiers[id_name] = value # update if value present
+                        identifiers[id_name] = value # update if value present
 
                 (exp_id, exp_no) = (identifiers['exp_id'], identifiers['exp_no'])
                 data.append_row(row, exp_id, exp_no)
@@ -634,6 +633,9 @@ def process_scanned_data(experiment, experiment_info):
                                scanned_force_weights[scan_first: (scan_last+1)])
         scanned_data.delete(csv_name)
 
+    # Remove unused data
+    experiment.delete('scan')
+
     filename = csv_scanned + '.ini'
     scanned_data.save(data_dir, filename)
 
@@ -704,6 +706,13 @@ def data2ini(data, experiment_info):
                 shutil.copy(PROTO_DIR + PLOTSTYLE_ININAME + '.proto',
                             exp_base_path + PLOTSTYLE_ININAME)
 
+            # copy the original csv files (in case they are overwritten in the
+            # future so that we know what the data was generated from)
+            print('\nSaving the original csv file(s)...')
+            csv_filename = experiment_info['csv_filebasename'] + '.csv'
+            shutil.copy(experiment_info['csv_path'] + csv_filename,
+                        exp_base_path + 'orig.' + csv_filename)
+
             experiment_info['exp_type'] = None # reset exp_id for _process_data
 
             print()
@@ -720,7 +729,7 @@ def data2ini(data, experiment_info):
             exit(1)
 
         if experiment_info['exp_type'] is None:
-             experiment_info['exp_type'] = exp_type
+            experiment_info['exp_type'] = exp_type
         elif experiment_info['exp_type'] != exp_type:
             print("Experiment type 'exp_type' must be the same "
                       "for all experiments with given 'exp_id'.")

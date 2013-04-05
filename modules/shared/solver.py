@@ -320,28 +320,6 @@ def print_params(params):
         else:
             print('{:5}: {: .8g}'.format(name, value))
 
-def parse_init(init_parameters, transform=None):
-    init_values = []
-    optim_names = []
-    lbounds     = {}
-    ubounds     = {}
-
-    for (name, value) in init_parameters.items():
-        if value is None: continue
-
-        optim_names. append(name)
-
-        (init_value, (lbound, ubound)) = value
-        lbounds[name] = lbound
-        ubounds[name] = ubound
-
-        if transform:
-            init_values.append(transform[name](init_value))
-        else:
-            init_values.append(init_value)
-
-    return (optim_names, init_values, lbounds, ubounds)
-
 def untransform_dict(names, values, result, untransform):
     if untransform:
         for (name, value) in zip(names, values):
@@ -349,8 +327,6 @@ def untransform_dict(names, values, result, untransform):
     else:
         for (name, value) in zip(names, values):
             result[name] = value
-
-
 
 def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
     max_penalization = 1e50
@@ -375,8 +351,7 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
 
     return penalization
 
-def simulate_inverse(direct_fn, model, init_parameters,
-                     measurements, optimfn='leastsq'):
+def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
                          'fmin_bfgs', 'raster']
@@ -385,7 +360,10 @@ def simulate_inverse(direct_fn, model, init_parameters,
         print("Available solvers are: ", available_solvers)
         exit(1)
 
-    untransform = model._untransform
+    untransform  = model._untransform
+    lbounds      = model._lbounds
+    ubounds      = model._ubounds
+    optim_params = {}
 
     global ITERATION # Python 2.7 hack (no support for nonlocal variables)
     ITERATION = 0
@@ -412,6 +390,11 @@ def simulate_inverse(direct_fn, model, init_parameters,
                                               scalar=(optimfn != 'leastsq'))
 
         model.set_parameters(optim_params)
+
+        # reset if previously stored values of measurements (it's re-set also
+        # inside the simulate_direct() but user may supply his own direct
+        # function, so we need to be sure measurements were re-setted
+        measurements.reset_calc_measurements()
 
         flag = direct_fn(model, measurements)
 
@@ -443,9 +426,13 @@ def simulate_inverse(direct_fn, model, init_parameters,
                                                 scalar=(optimfn != 'leastsq'))
         return result
 
-    optim_params = {}
-    (optim_names, init_values, lbounds, ubounds) = \
-      parse_init(init_parameters, transform=model._transform)
+    optim_names  = model.init_values.keys()   # it's an ordered dict
+    transform = model._transform
+    if transform:
+        init_values  = [transform[name](value)
+                        for (name, value) in model.init_values.items()]
+    else:
+        init_values  = list(model.init_values.values())
 
     import scipy.optimize
 

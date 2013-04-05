@@ -21,9 +21,9 @@ def lagrangean_derivative_coefs(dx):
     ldc1 = np.concatenate(([-(2*dx[0]+dx[1])/(dx[0]*(dx[0]+dx[1]))],
                           -dx[1:]/(dx[:-1]*(dx[:-1]+dx[1:])),
                           [dx[-1]/(dx[-2]*(dx[-2]+dx[-1]))]))
-    ldc2 = -np.concatenate(([(dx[0]+dx[1])/(dx[1]*dx[0])],
+    ldc2 = np.concatenate(([(dx[0]+dx[1])/(dx[1]*dx[0])],
                           (dx[1:] - dx[:-1])/dx[:-1]/dx[1:],
-                          [(dx[-1]+dx[-2])/(dx[-2]*dx[-1])]))
+                          [-(dx[-1]+dx[-2])/(dx[-2]*dx[-1])]))
     ldc3 = np.concatenate(([-dx[0]/(dx[1]*(dx[1]+dx[0]))],
                            dx[:-1]/(dx[1:]*(dx[:-1]+dx[1:])),
                            [(2*dx[-1]+dx[-2])/(dx[-1]*(dx[-2]+dx[-1]))]))
@@ -53,6 +53,9 @@ def find_omega2g_fh(model, t):
 def find_omega2g(model, t_total):
     if model.include_acceleration:
         t = t_total - model.t0
+
+        # Transform t so that acc is in <0, model.acceleration_duration>
+        t = t * 21/model.acceleration_duration
 
         if (model.omega == model.omega_start) or (t > 21.0):
             omega = model.omega

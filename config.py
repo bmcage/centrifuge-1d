@@ -7,61 +7,17 @@ from the configuration files.
 from __future__ import print_function, division
 
 import numpy as np
-import pickle
 
 try:
     import ConfigParser as configparser
 except:
     import configparser
-from const import DUMP_DATA_FILENAME, DUMP_DATA_VERSION, \
-     DEFAULTS_ININAME, CONSTANTS_ININAME, MEASUREMENTS_ININAME
+from const import DEFAULTS_ININAME, CONSTANTS_ININAME, MEASUREMENTS_ININAME
 from shared import parse_value, get_directories, yn_prompt
 from os import listdir, path, makedirs
 from sys import modules as sysmodules
 from types import MethodType
 from modules.shared.measurements import Measurements
-
-##################################################################
-#                Internal configuration settings                 #
-##################################################################
-
-class DataStorage():
-    def __init__(self):
-        self._data = {}
-
-    def store(self, key, value):
-        self._data[key] = value
-
-    def get(self, key, not_found=None):
-        if key in self._data:
-            return self._data[key]
-        else:
-            return not_found
-
-    def save(self, experiment_info):
-        if not self._data:
-            print('No data was stored. Nothing to be saved. Skipping saving...')
-            return
-
-        savedir = get_directories('figs', 'mask', experiment_info)
-        if not path.exists(savedir):
-            makedirs(savedir)
-
-        with open(savedir + DUMP_DATA_FILENAME, 'wb') as f:
-            pickle.dump(self._data, f, DUMP_DATA_VERSION)
-
-    def load(self, experiment_info):
-        pathdir = get_directories('figs', 'mask', experiment_info)
-        filename = pathdir + DUMP_DATA_FILENAME
-        if not path.exists(filename):
-            print('INFO: File with computation results does not exist:',
-                  filename)
-            return False
-
-        with open(filename, 'rb') as f:
-            self._data = pickle.load(f)
-
-        return True
 
 ##################################################################
 #                   ModulesManager class                         #
@@ -165,7 +121,7 @@ class ModulesManager():
             module_name = (self._modules_names[modname_or_exptype]
                            + '.' + submodule)
         else:
-             module_name = self._modules_names[modname_or_exptype]
+            module_name = self._modules_names[modname_or_exptype]
 
         if not module_name in self._loaded_modules:
             module_full_name = 'modules.' + module_name
@@ -238,7 +194,7 @@ class Configuration:
             print('cfg:iterate_values: preserving sections is not implemented.')
             exit(1)
 
-        return map(lambda value: value, self._cfg_dict.items())
+        return self._cfg_dict.items()
 
     def missing_options(self, options, section = None):
 
@@ -299,6 +255,12 @@ class Configuration:
                 module.adjust_cfg(self)
             return True
 
+        # Before processing custom adjustment set provided options
+        # (by default to None)
+        cfg_dict = self._cfg_dict
+        for provided_option in self._config_definition['provided']:
+            cfg_dict[provided_option] = None
+
         exp_type = self.get_value('exp_type')
 
         modman.traverse_ancestors(exp_type, module_adjust_cfg,
@@ -356,7 +318,7 @@ class Configuration:
             # read config files
             parser   = configparser.ConfigParser()
             try:
-                read_files = parser.read(fname)
+                parser.read(fname)
             except configparser.DuplicateOptionError as E:
                 print(E)
                 exit(0)
@@ -557,10 +519,10 @@ class Configuration:
                 alien_options.difference_update(found_aliens)
 
             if alien_options:
-                print('\n Options found in configuration, but not specified '
+                print('\n  Options found in configuration, but not specified '
                       'by a module:')
                 for option in alien_options:
-                    print('  ', option)
+                    print('   ', option)
 
             if not yn_prompt('\nAlien options found. Do you wish to '
                              'continue? [Y/n]: ', default='y'):
@@ -636,6 +598,14 @@ class ModelParameters:
             else: phase = 'd'
             self.set_omega2g_fn(phase)
 
+        if hasattr(self, 'SC'):
+            # set transformation fns in case we are unsaturated and use
+            #  parameterstrasformation
+            if hasattr(self, 'transform_params') and self.transform_params:
+                max_value = 1e150 # hack - see base_inverse.options.adjust_cfg()
+                self.SC.add_transformations_fns(self._transform,
+                                                self._untransform, max_value)
+
     def _get_iterable_value(self, key, not_found=None):
         if key in self._iterable_parameters:
             return self._iterable_parameters[key]
@@ -666,11 +636,11 @@ class ModelParameters:
         setattr(self, key, value)
 
     def set_parameters(self, parameters_dict):
-        for (key, value) in parameters_dict.items():
-            setattr(self, key, value)
+        if hasattr(self, 'SC'):
+            self.SC.set_parameters(parameters_dict)
 
-            if key == 'n':
-                setattr(self, 'm', 1.-1./value)
+        for (key, value) in parameters_dict.items():
+            if hasattr(self, key): setattr(self, key, value)
 
     def get_parameters(self, parameters):
         return {key: getattr(self, key)
@@ -748,23 +718,13 @@ class ModelParameters:
 #                   Load model function                          #
 ##################################################################
 
-def _process_global_constants(cfg, consts_cfg):
-    if not consts_cfg: return
-
-    tube_no = cfg.get_value('tube_no')
-    cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
-
-def _load_configuration(experiment_info):
+def load_configuration(experiment_info, include_global_constants=True):
     (search_dirs, data_dir, masks_dir) = \
       get_directories('ini', ['search', 'data', 'masks'], experiment_info)
 
-    filter_existing = \
-      lambda fnames: list(filter(lambda fname: path.exists(fname), fnames))
-    prefix_with_paths = lambda fname, dirs: map(lambda cfgdir: cfgdir + fname,
-                                                dirs)
-
-    defaults_files = filter_existing(prefix_with_paths(DEFAULTS_ININAME,
-                                                       search_dirs))
+    defaults_files = \
+      [fname for fname in [sdir + DEFAULTS_ININAME for sdir in search_dirs]
+       if path.exists(fname)]
 
     measurements_files = [data_dir + MEASUREMENTS_ININAME]
 
@@ -780,35 +740,40 @@ def _load_configuration(experiment_info):
     # Read masks files
     masks_files = []
     masks = experiment_info['mask']
-    for mask_name in masks:
-        mask_filename = masks_dir + mask_name + '.ini'
-        if not path.exists(mask_filename):
-            print('Mask file "{}" does not exist in expected location:'
-                  '\n{}.'.format(mask_name, masks_dir))
-            if not yn_prompt('Do you wish to continue without applying '
-                             'the mask? [Y/n]: '):
-                exit(0)
 
-        masks_files.append(mask_filename)
+    if masks:
+        for mask_name in masks:
+            mask_filename = masks_dir + mask_name + '.ini'
+            if not path.exists(mask_filename):
+                print('Mask file "{}" does not exist in expected location:'
+                      '\n{}.'.format(mask_name, masks_dir))
+                if not yn_prompt('Do you wish to continue without applying '
+                                 'the mask? [Y/n]: '):
+                    exit(0)
 
-    cfg.read_from_files(*masks_files)
+            masks_files.append(mask_filename)
+
+        cfg.read_from_files(*masks_files)
 
     # Handle CONSTANTS inifiles
-    constants_files = filter_existing(prefix_with_paths(CONSTANTS_ININAME,
-                                                        search_dirs))
-    consts_cfg = None
-    if constants_files:
-        consts_cfg = Configuration().read_from_files(*constants_files)
+    if include_global_constants:
+        constants_files = \
+          [fname for fname in [sdir + CONSTANTS_ININAME for sdir in search_dirs]
+           if path.exists(fname)]
 
-    return (cfg, consts_cfg)
+        if constants_files:
+            consts_cfg = Configuration().read_from_files(*constants_files)
+
+            tube_no = cfg.get_value('tube_no')
+            cfg.set_parameters(consts_cfg.get_value('tubes')[tube_no])
+
+    return cfg
 
 def load_model(experiment_info, display_only=False, validate=True,
                modman = None):
 
-    (cfg, consts_cfg) = _load_configuration(experiment_info)
-
-    # Assign global values not present in (or based on) configuration
-    _process_global_constants(cfg, consts_cfg)
+    # Process also global constants
+    cfg = load_configuration(experiment_info, include_global_constants=True)
 
     if display_only:
         header = ("Configuration file of experiment '{}' number {:d}"

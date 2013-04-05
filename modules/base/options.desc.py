@@ -106,29 +106,29 @@ CONFIG_OPTIONS = {
               "given type is in <1, 10) interval. See also *_weights, options, "
               "which specify a weight - i.e. importance of given measurement."
               "Value: dict of type: {measurement_name1: scale_coef1, ...}."),
-         'f_mo': ("Measured centrifugal force of the expelled water. More "
-                  "precisely it is the force divided by g (= gravitational "
-                  "constant)."),
-         'f_mt': ("Measured centrifugal force of the water inside the tube. "
-                  "More precisely it is the force divided by g "
-                  "(= gravitational constant)."),
-         'f_mo_tara': ("Force implied on the sensor of expelled water by the "
-                       "holding aparatus. Two possible values are supported: "
-                       "a) list of two items: (omega, gF_tara) where omega is "
-                       "the speed (in rpm) at which the force gF_tara was "
-                       "measured - force [gF_tara] = 1e-3 kgf (i.e as if "
-                       "measured under 1g: gF_tara = F_tara/g with F the "
-                       "centrifugal force. When this values is supplied, "
-                       "the gF_tara for other speeds is calculated dynamically "
-                       "at runtime."
-                       "\nb) a dictiory of form: {omega1: gF_tara1, omega2: "
-                       "gF_tara2, ...}. In this case forces are taken as "
-                       "static, so no dynamic adaptation is supported (which "
-                       "implicitly means that gF_tara in the acceleration/"
-                       "deceleration phase is wrong)"),
-         'f_mt_tara': ("Force implied on the sensor measuring the water inside "
-                       "of the tube. See also 'f_mo_tara'."),
-         'f_mo_calibration_curve':\
+         'gf_mo': ("Measured centrifugal force of the expelled water. More "
+                   "precisely it is the force divided by g (= gravitational "
+                   "constant)."),
+         'gf_mt': ("Measured centrifugal force of the water inside the tube. "
+                   "More precisely it is the force divided by g "
+                   "(= gravitational constant)."),
+         'gf_mo_tara': ("Force implied on the sensor of expelled water by the "
+                        "holding aparatus. Two possible values are supported: "
+                        "a) list of two items: (omega, gF_tara) where omega is "
+                        "the speed (in rpm) at which the force gF_tara was "
+                        "measured - force [gF_tara] = 1e-3 kgf (i.e as if "
+                        "measured under 1g: gF_tara = F_tara/g with F the "
+                        "centrifugal force. When this values is supplied, "
+                        "the gF_tara for other speeds is calculated dynamically "
+                        "at runtime."
+                        "\nb) a dictiory of form: {omega1: gF_tara1, omega2: "
+                        "gF_tara2, ...}. In this case forces are taken as "
+                        "static, so no dynamic adaptation is supported (which "
+                        "implicitly means that gF_tara in the acceleration/"
+                        "deceleration phase is wrong)"),
+         'gf_mt_tara': ("Force implied on the sensor measuring the water "
+                        "inside of the tube. See also 'f_mo_tara'."),
+         'gf_mo_calibration_curve':\
              ("Calibration curve for measured f_mo. Useful when there is some "
               "shift in measured data (e.g. in case of calibration with base "
               "not equal to zero). So f_mo:= f_mo - f_mo_calibration_curve. "
@@ -136,7 +136,7 @@ CONFIG_OPTIONS = {
               "length as 'f_mo') or a dict of format: "
               "{omega1: base1, omega2: base2, ...}. In the last case the "
               "measurements will be shifted accordin to the rotational speed."),
-         'f_mt_calibration_curve': "See 'f_mo_calibration_curve'.",
+         'gf_mt_calibration_curve': "See 'f_mo_calibration_curve'.",
          'mo_gc_calibration_curve': \
              ("Calibration curve for the expelled water. Allows to determine "
               "the gravitational centre of the expelled water. Value is a list "
