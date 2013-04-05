@@ -17,6 +17,10 @@ def lagrangean_derivative_coefs(dx):
     Returns the coeficients for the Lagrangeand derivative of the differences
     array 'dx'. The first point has a right derivative, last point a left
     derivative and central difference is for the mid-points.
+    Typical usage: res the values over grid x, then
+     dresdx[0]    = ldc1[0]   *  res[0] + ldc2[0]   *   res[1] + ldc3[0]  * res[2]
+     dresdx[1:-1] = ldc1[1:-1]*res[:-2] + ldc2[1:-1]*res[1:-1] + ldc3[1:-1]*res[2:]
+     dresdx[-1]   = ldc1[-1]  * res[-3] + ldc2[-1]  *  res[-2] + ldc3[-1] * res[-1]
     """
     ldc1 = np.concatenate(([-(2*dx[0]+dx[1])/(dx[0]*(dx[0]+dx[1]))],
                           -dx[1:]/(dx[:-1]*(dx[:-1]+dx[1:])),
