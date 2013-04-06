@@ -455,7 +455,7 @@ def mk_figurestyles(fig_id):
 def figures_styles_post_update(figures_styles, display_options):
     """
       This function is called after merging the default plotting styles
-      with styles from plotstyles inifiles. Styles can be adopted based
+      with styles from plotstyles inifiles. Styles can be adapted based
       on the information in the inifiles.
     """
 
@@ -466,12 +466,13 @@ def figures_styles_post_update(figures_styles, display_options):
 
 def linestyles_post_update(styles):
     """
-      linestyles do not have a default configuration as we don't know
-      (except 'measured' and 'computed') supplied lines as they are part
-      of the 'params_ref' variable specified by the plotstyles inifiles.
-      All the default values for all lines are therefore specified here,
-      just as the final correct format of the linestyles (which may differ)
-      from the values read from the inifiles.
+      Lines are specified in 'params_ref' variable of the plotstyles
+      inifiles, hence as we don't know them apriori (of course except for
+      lines 'measured and 'computed') and hence only post-update method is
+      available - all the default values for all lines are therefore specified
+      here.
+      The values are returned in the final (correct) format (which may be
+      different from the values read from the inifiles).
       Correct lines order based on the 'order' option for the line is
       determined here too.
     """
@@ -639,6 +640,7 @@ class DPlots():
         return self._styles['params_ref']
 
     def display(self, data, fignum=1):
+        """ Display the figures and/or write them to files. """
 
         display_options = self._display_options
 
@@ -773,8 +775,16 @@ class DPlots():
             else:
                 input('Press ENTER to continue...')
 
+################################################################################
+#                         Module's provided functions                          #
+################################################################################
+
 def show_results(experiment_info,
                  model=None, inv_params=None, cov=None):
+    """
+      Run the computation, store the results, load custom display styles
+      and previously stored values and show/store the final figures.
+    """
 
     data = DataStorage(experiment_info)
 
