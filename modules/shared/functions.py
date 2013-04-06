@@ -12,7 +12,7 @@ def rpm2radps(x):
     # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
     return x * np.pi/ 30.0
 
-def lagrangean_derivative_coefs(dx):
+def lagrangian_derivative_coefs(dx):
     """
     Returns the coeficients for the Lagrangeand derivative of the differences
     array 'dx'. The first point has a right derivative, last point a left
