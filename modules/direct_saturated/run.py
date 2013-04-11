@@ -37,6 +37,7 @@ def on_measurement(t, z, model, measurements):
 
         measurements.store_calc_gf_mo(omega2g, MO,
                                       model.mo_gc_calibration_curve,
+                                      model.density,
                                       model.tube_crosssectional_area)
 
     if measurements.calc_measurement_p('gF_MT'):
