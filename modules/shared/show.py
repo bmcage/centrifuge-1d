@@ -439,8 +439,6 @@ def mk_figurestyles(fig_id):
 
 
     if fig_id in ['h', 'u']:
-        figure_styles['legend_bbox'] = (1.01, 1.)
-        figure_styles['legend_loc'] = 2
         figure_styles['legend_title'] = 'Time [min]'
 
     elif fig_id == 'theta':
@@ -459,10 +457,19 @@ def figures_styles_post_update(figures_styles, display_options):
       on the information in the inifiles.
     """
 
-    if ((figures_styles['h']['show_legend'] is None)
-        and (not display_options['separate_figures'])):
-        figures_styles['h']['show_legend'] = False
+    h_styles = figures_styles['h']
 
+    if ((h_styles['show_legend'] is None)
+        and (not display_options['separate_figures'])):
+        h_styles['show_legend'] = False
+    elif (h_styles['legend_loc'] is None) and (h_styles['legend_bbox']):
+        h_styles['legend_bbox'] = (1.01, 1.)
+        h_styles['legend_loc'] = 2
+
+    u_styles = figures_styles['u']
+    if (u_styles['legend_loc'] is None) and (u_styles['legend_bbox']):
+        u_styles['legend_bbox'] = (1.01, 1.)
+        u_styles['legend_loc'] = 2
 
 def linestyles_post_update(styles):
     """
