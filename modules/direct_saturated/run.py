@@ -42,8 +42,8 @@ def on_measurement(t, z, model, measurements):
 
     if measurements.calc_measurement_p('gF_MT'):
         print("The 'gf_mt' option is not supported yet for direct saturated "
-              "flow")
-        exit(1)
+              "flow. Skipping.")
+        #exit(1)
 
 def initialize_z0(z0, model):
     z0[model.mass_in_idx]  = model.wl0
