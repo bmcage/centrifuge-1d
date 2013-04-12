@@ -337,12 +337,8 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
         for (name, value) in parameters.items():
             if lbounds[name] > value:
                 a = np.abs(value - lbounds[name])
-
-                print('Pen1', a)
-
             elif ubounds[name] < value:
                 a = np.abs(value - ubounds[name])
-                print('Pen2', a)
             else:
                 continue
 
@@ -353,8 +349,6 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
                 penalty = np.exp(1/tolerance) + np.exp(10*(a - a_max))
             else:
                 penalty = np.exp(1/(a_max + tolerance - a))
-
-            print('Penalty', penalty)
 
             penalization += min(penalty, max_penalization)
     else:
