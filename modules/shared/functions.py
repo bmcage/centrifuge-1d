@@ -44,16 +44,28 @@ def right_derivative(dx12, fx13):
     return derivative
 
 def f1(t):
+    """ Helper function for estimating the centrifuge acceleration curve. """
     return 1.7032046506 * np.power(t, 1.233644749)
 def f2(t):
+    """ Helper function for estimating the centrifuge acceleration curve. """
     return 0.630314472 * np.log(t) + 8.4248850255
 def f3(t):
+    """ Helper function for estimating the centrifuge acceleration curve. """
     return 0.1332308098 * np.log(t) + 9.5952480661
 
 def find_omega2g_fh(model, t):
+    """
+      Function for determination of the omega^2/g coef when simulation
+      falling-head test (i.e. simulating 1g environment).
+    """
     return 1./model.r0_fall
 
 def find_omega2g(model, t_total):
+    """
+      Function for determinantion of the omega^2/g coef under centrifugation.
+      This includes also the acceleration curve (but not deceleration curve).
+      Time 't_total' is the (total) time since the measuring started.
+    """
     if model.include_acceleration:
         t = t_total - model.t0
 
@@ -87,6 +99,10 @@ def find_omega2g(model, t_total):
     return omega * omega / model.g
 
 def find_omega2g_dec(model, t):
+    """
+      Function for determinantion of the omega^2/g coef (under centrifugation)
+      when decelerating.
+    """
     duration = model.duration
     # omega_end = 0.0, t_end == duration, t in [0, duration]
     omega = ((model.t0 + model.deceleration_duration - t)
@@ -95,6 +111,7 @@ def find_omega2g_dec(model, t):
     return omega * omega / model.g
 
 def y2x(y, s1, s2):
+    """ Transform interval y=<0,1> to original interval x. """
     s1_len = np.alen(s1)
     if s1_len != np.alen(s2):
         print('Interfaces array ''s1'' and ''s2'' have to be of the same'
@@ -122,6 +139,11 @@ def has_data(x):
 
 def phases_end_times(a_duration, d_duration, g_duration,
                      include_acceleration):
+    """
+      Calculate the stop-times for the direct solver based on the information
+      of the individual phases duration
+      (i.e. acceleration/centrifugation + deceleration + sample left under 1g).
+    """
 
     if a_duration is None:
         a_duration = 0.0
@@ -147,6 +169,10 @@ def phases_end_times(a_duration, d_duration, g_duration,
 
 def compare_data(name, value_computed, value_measured = None,
                  stream=None):
+    """
+      Display the measured and computed values, abs, rel and LSQ error.
+      Data is written to 'stream', which is by default stdout.
+    """
 
     if stream is None: stream=stdout
 

@@ -313,6 +313,8 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
     return (True, t, z, i-1)
 
 def print_params(params):
+    """ Print supplied parameters of type dict. """
+
     print()
     for (name, value) in params.items():
         if name == 'ks':
@@ -329,6 +331,12 @@ def untransform_dict(names, values, result, untransform):
             result[name] = value
 
 def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
+    """
+      Compute penalization coeficient.
+      If 'when' is set to 'out_of_bounds', the coef is found a if boundaries
+      are crossed (if not, 0 is returned); otherwise a coef based on the
+      distance of parameters from boundary is computed.
+    """
     max_penalization = 1e50
 
     penalization = 0.0
