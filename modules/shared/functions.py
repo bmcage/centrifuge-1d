@@ -1,6 +1,5 @@
 from __future__ import division, print_function
 
-
 import numpy as np
 from math import sqrt
 from sys import stdout
@@ -200,3 +199,43 @@ def compare_data(name, value_computed, value_measured = None,
     print('LSQ error ' + "'" + name + "':",
           np.sum(np.power(data_computed - data_measured, 2)),
           file=stream)
+
+#*******************************************************
+#
+#  Averaging functions
+#     From: http://www.swharden.com/blog/2008-11-17-linear-data-smoothing-in-python/
+#*******************************************************
+
+def smooth_list(list, degree=10):
+    # smooth based on linear averaging before after of window=degree points
+    smoothed=[0]*(len(list)-degree+1)
+    for i in range(len(smoothed)):
+        smoothed[i]=sum(list[i:i+degree])/degree
+    return smoothed
+
+def smooth_list_triangle(list, degree=5):
+    # smooth based on triangle averaging before after of window=2*degree-1 points
+    weight=[]
+    window=degree*2-1
+    smoothed=[0.0]*(len(list)-window)
+    for x in range(1, 2*degree):weight.append(degree-abs(degree-x))
+    w=np.array(weight)
+    for i in range(len(smoothed)):
+        smoothed[i]=sum(np.array(list[i:i+window])*w)/sum(w)
+    return smoothed
+
+def smooth_list_gaussian(list, degree=5):
+    # smooth based on triangle averaging before after of window=2*degree-1 points
+    window=degree*2-1
+    weight=np.array([1.0]*window)
+    weightGauss=[]
+    for i in range(window):
+        i=i-degree+1
+        frac=i/float(window)
+        gauss=1/(np.exp((4*(frac))**2))
+        weightGauss.append(gauss)
+    weight=np.array(weightGauss)*weight
+    smoothed=[0.0]*(len(list)-window)
+    for i in range(len(smoothed)):
+        smoothed[i]=sum(np.array(list[i:i+window])*weight)/sum(weight)
+    return smoothed

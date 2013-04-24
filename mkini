@@ -625,12 +625,22 @@ def process_scanned_data(experiment, experiment_info):
     experiment.set_value('fh_duration', g_duration)
 
     # Truncate unused values
+    from modules.shared.functions import (smooth_list_gaussian,
+                smooth_list_triangle, smooth_list)
     for (csv_name, ini_name) in CSV2INI_NAMES.items():
         scanned_force_weights = scanned_data.get_value(csv_name)
         scanned_force_weights = \
           multiply_list(scanned_force_weights, 1000.) # kg -> g
-        scanned_data.set_value(ini_name,
-                               scanned_force_weights[scan_first: (scan_last+1)])
+        measlist = scanned_force_weights[scan_first: (scan_last+1)]
+        measlist_orig = map(float, measlist)
+        measlist_linsmooth = smooth_list(measlist_orig)
+        measlist_trismooth = smooth_list_triangle(measlist_orig)
+        measlist_gausmooth = smooth_list_gaussian(measlist_orig)
+        scanned_data.set_value(ini_name, measlist)
+        scanned_data.set_value(ini_name+'_sm', measlist_linsmooth)
+        scanned_data.set_value(ini_name+'_smtri', measlist_trismooth)
+        scanned_data.set_value(ini_name+'_smgau', measlist_gausmooth)
+        
         scanned_data.delete(csv_name)
 
     # Remove unused data
