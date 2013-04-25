@@ -13,7 +13,10 @@ from modules.shared.functions import rpm2radps, compare_data
 MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'gF_MO': 'gf_mo', 'gF_MT': 'gf_mt',
                       'dgF_MO': None, 'dgF_MT': None,
-                      'theta': 'theta'}
+                      'theta': 'theta',
+                      'gF_MO_sm': 'gf_mo_sm', 'gF_MO_smtri': 'gf_mo_smtri', 'gF_MO_smgau': 'gf_mo_smgau',
+                      'gF_MT_sm': 'gf_mt_sm', 'gF_MT_smtri': 'gf_mt_smtri', 'gF_MT_smgau': 'gf_mt_smgau',
+                     }
 
 def calc_f_tara(omega2g, WR_tara):
     if WR_tara is None:
@@ -136,7 +139,14 @@ class Measurements():
 
         cfg.del_value('measurements_times')
 
-        # 2. a) determine measured data
+        # 2. a) determine measured data 
+        # first  store smoothing algorithm
+        sm = cfg.get_value('smooth_alg', not_found=None)
+        if sm:
+            self._smooth_algo = '_' + sm
+        else:
+            self._smooth_algo = ''
+
         for (name, iname) in MEASUREMENTS_NAMES.items():
             value = cfg.get_value(iname, not_found=None)
             if value == None: continue
@@ -145,8 +155,17 @@ class Measurements():
 
             value = np.asarray(value, dtype=float)
 
-            measurements[name] = value
-            measurements_xvalues[name] = t_meas
+            #for gf_mt and gf_mo we only store the value corresponding to the
+            #smoothing algorithm
+            if name[:5] in ('gF_MT', 'gF_MO'):
+                #only store required smooth algo value if base value was not 
+                #set to None
+                if name[5:] == self._smooth_algo and cfg.get_value(iname[:5], not_found=None):
+                    measurements[name[:5]] = value
+                    measurements_xvalues[name[:5]] = t_meas
+                else:
+                    #dont delete from cfg
+                    continue
 
             cfg.del_value(iname) # remove from cfg
 
