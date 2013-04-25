@@ -410,7 +410,7 @@ class Measurements():
 
                 scales.append(scales_coefs[name]
                               * np.ones((1, length), dtype=float))
-            self._scales = np.concatenate(scales, axis=1)
+            self._scales = np.concatenate(scales, axis=1)[0]
 
         return self._scales
 
@@ -837,7 +837,6 @@ class Measurements():
         error         = np.empty(measurements.shape, dtype=float)
 
         error[:] = scale * (computations - measurements)
-
         if not np.isscalar(weights):
             error[:] *= weights
 
@@ -871,6 +870,8 @@ class Measurements():
           Return penalization for given measurement.
           If 'scalar'=True, return it as a single scalar value.
         """
+        scale   = self._get_scales()
+        weights = self._get_weights()
         if self._measurements_array is None:
             print('ERROR: Cannot determine penalization if measurements'
                   'are not specified. Exiting.')
@@ -878,7 +879,11 @@ class Measurements():
         elif scalar:
             return penalization * np.alen(self._measurements_array)
         else:
-            return (penalization + self._measurements_array)
+            error =  (penalization + self._measurements_array)
+            error[:] *= scale
+            if not np.isscalar(weights):
+                error[:] *= weights
+            return error
 
 ##################################################################
 #                     Auxiliary functions                        #
