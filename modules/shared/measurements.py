@@ -170,7 +170,9 @@ class Measurements():
                 if not gF_tara_calibration is None:
                     (omega_rpm, gF_tara) = gF_tara_calibration
                     omega_radps = rpm2radps(omega_rpm)
-
+                    # Centrifugal force = F = M omega^2 r, 
+                    # sensor gives us m kg, so F = m g, with m measurement
+                    # M r = m g/ omega^2
                     WR_tara = gF_tara * g / omega_radps / omega_radps
 
                     if F_name == 'gF_MT':
@@ -198,7 +200,8 @@ class Measurements():
                         (fl1, fl2) = (extra_values['fl1'], extra_values['fl2'])
                         r0 = rE - fl2 - l0 - fl1
                         wl0 = extra_values['wl0']
-
+                        
+                        #COMP PAVOL
                         WR_fluid = 0.0
                         if wl0 > 0.0:
                             WR_fluid += wl0 * (r0 - extra_values['wl0'] / 2.0)
@@ -214,7 +217,24 @@ class Measurements():
 
                         WR_fluid *= cfg.get_value('density')
 
-                        WR_tara -= WR_fluid
+                        WR_tara_Pavol = WR_tara - WR_fluid
+                        #END COMP PAVOL
+
+                        #TRY BENNY BEGIN
+                        liq_dens = cfg.get_value('density')
+                        gF_fluid = extra_values['porosity'] * calc_sat_force(r0+fl1, 
+                                    rE-fl2, liq_dens)
+                        if fl1 > 0:
+                            gF_fluid += extra_values['fp1'] + calc_sat_force(r0,
+                                        r0+fl1, liq_dens)
+                        if fl2 > 0:
+                            gF_fluid += extra_values['fp2'] + calc_sat_force(rE-fl2,
+                                        rE, liq_dens)
+                        tube_area = np.power(cfg.get_value('tube_diam')/2, 2) * np.pi
+                        gF_fluid *= omega_radps**2 / g * tube_area
+                        WR_tara = (gF_tara * g - gF_fluid*g) / omega_radps / omega_radps
+                        #TRY BENNY END
+
                     setattr(self, 'WR' + F_name[2:].lower() + '_tara', WR_tara)
 
                 # Process the force measurements
@@ -378,7 +398,6 @@ class Measurements():
             scales_coefs = self._scales_coefs
 
             scales = []
-
             for (name, measurement) in self._measurements.items():
                 if not name in scales_coefs:
                     #scales_coefs[name] = determine_scaling_factor(measurement)
@@ -391,7 +410,6 @@ class Measurements():
 
                 scales.append(scales_coefs[name]
                               * np.ones((1, length), dtype=float))
-
             self._scales = np.concatenate(scales, axis=1)
 
         return self._scales
@@ -867,6 +885,10 @@ class Measurements():
 ##################################################################
 
 def calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity, fluid_density):
+    """
+    Calculate gram-force of the water in the unsaturated part of the sample
+    Multply with g for actual Newton!
+    """
     ds = s2 - s1
     r = r0 + s1 + ds*y
     F_unsat = (soil_porosity * fluid_density * ds/2
@@ -876,10 +898,20 @@ def calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity, fluid_density):
     return F_unsat
 
 def calc_sat_force(rS, rE, fluid_density):
+    """
+    Calculate gram-force of the water in the saturated part of the sample
+    Multply with g for actual Newton!
+    """
     return 1/2 * fluid_density * (np.power(rE, 2) - np.power(rS, 2))
 
 def calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
                soil_porosity, fl2, fp2, fr2, fluid_density):
+    """
+    Calculate gram-force of the water in the sample
+    Multply with g for actual Newton!
+    
+    TODO PAVOL: are you not forgetting fl1 and fp1 here?
+    """
 
     F_unsat = calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity,
                                fluid_density)
