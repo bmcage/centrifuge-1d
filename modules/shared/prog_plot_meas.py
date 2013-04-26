@@ -17,13 +17,28 @@ def main():
     except:
         import configparser
     ARGS = sys.argv
-    if len(ARGS) < 2:
-        print ("ERROR: give ini file with gf meas data")
+    if len(ARGS) < 2 or ARGS[1] in ['-h', '--help', 'help']:
+        print ("""
+USAGE: Give as first argument ini file with gramforce measurement data.
+       After this, optionally give couples of options with name, like:
+            * xmin value 
+            * xmax value
+
+Example use:
+$ python prog_plot_meas.py ~/git/centrifuge-1d/data/datafiles/gem-mixture-drain/16/Data\ Instr\ INSTR\ 9_27_2012\ 14_07_51.ini xmin 800 xmax 1000
+
+""")
         sys.exit(0)
     fname = ARGS[1]
     if not os.path.isfile(fname):
         print ("ERROR: %s is not a file on your PC" % fname)
         sys.exit(0)
+    optname = []
+    optval = []
+    for opt in ARGS[2::2]: 
+        optname.append(opt)
+    for opt in ARGS[3::2]: 
+        optval.append(opt)
 
     #now we open the file
     parser   = configparser.ConfigParser()
@@ -49,22 +64,38 @@ def main():
             raw_value = parser.get(psection, option).strip()
             setattr(data, option.lower(), raw_value)
     ind = 0
-    for prefix in ['gf_mo', 'gf_mt']:
+    for prefix, label in [('gf_mo', 'Weight output sensor [g]'), 
+                          ('gf_mt', 'Weight hanging sensor [g]')]:
         plt.figure(ind)
         ind += 1
-        plt.ylabel('weight %s' % prefix[-2:] )
+        plt.ylabel(label)
         plt.xlabel('scan')
         for (suffix, leg) in [('', ['.','measured']), 
-                               ('_sm', [':', 'Lin. Sm.']), 
-                              ('_smtri',['-.', 'Tri. Sm.']), 
+                               ('_sm', ['-', 'Lin. Sm.']), 
+                              ('_smtri',['-', 'Tri. Sm.']), 
                               ('_smgau', ['-', 'Gaus. Sm.'])]:
             try:
                 value = getattr(data, prefix+suffix)
                 value = eval(value)
-                plt.plot(value, leg[0], label=leg[1])
+                plt.plot(value, leg[0], label=leg[1],linewidth=2)
             except:
                 pass
-        plt.legend()
+        legend = True
+        plt.legend(loc=2)
+        for (name, val) in zip(optname, optval):
+            if name == 'xmin':
+                plt.xlim(xmin=float(val))
+            if name == 'xmax':
+                plt.xlim(xmax=float(val))
+            if name == 'legend':
+                lval = int(val)
+                legend = False
+                if lval == -1:
+                    pass
+                else:
+                    plt.legend(loc=lval)
+        if legend:
+            plt.legend()
     try:
         plt.show(block=False)
     except:
