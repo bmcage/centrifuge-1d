@@ -899,6 +899,10 @@ def calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity, fluid_density):
     Multply with g for actual Newton!
     """
     ds = s2 - s1
+    if ds == 0.:
+        #support calling by saturated experiment
+        return 0.
+
     r = r0 + s1 + ds*y
     F_unsat = (soil_porosity * fluid_density * ds/2
                * (dy[0]*u[0]*r[0] + dy[-1]*u[-1]*r[-1]
