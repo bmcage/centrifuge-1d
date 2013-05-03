@@ -700,8 +700,8 @@ def data2ini(data, experiment_info):
             exp_base_path = get_directories('ini', 'exp_base', experiment_info)
 
             if path.exists(exp_base_path + DEFAULTS_ININAME):
-                print('\n\t\tFile exists.\t\t\t\t\tSkipping'
-                      .format(DEFAULTS_ININAME))
+                print('\n\t\tFile {0} exists.\t\t\t\t\tSkipping'
+                      .format(exp_base_path + DEFAULTS_ININAME))
 
             else:
                 default_configuration = \
