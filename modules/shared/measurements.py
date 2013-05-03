@@ -724,6 +724,10 @@ class Measurements():
         for (mo1, gc1) in calibration[1:]:
             if mo < mo1:
                 GC = gc0 + (mo - mo0)/(mo1 - mo0) * (gc1 - gc0)
+                break
+            else:
+                mo0 = mo1
+                gc0 = gc1
 
         if GC < 0.0:
             print('Amount of expelled water: ', mo,  ' is more than the amount '
