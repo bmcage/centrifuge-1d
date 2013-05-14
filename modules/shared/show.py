@@ -502,6 +502,12 @@ def linestyles_post_update(styles):
         else:
             label = line_id
 
+        # Process line width
+        if 'width' in line_styles:
+            width = line_styles['width']
+        else:
+            width = 1
+
         # Process line order
         if 'order' in line_styles:
             lines_order[line_id] = line_styles['order']
@@ -526,7 +532,7 @@ def linestyles_post_update(styles):
             else:
                 lineopt = default_lineopt
 
-            line_styles[fig_id] = {'lineopt': lineopt, 'label': label}
+            line_styles[fig_id] = {'lineopt': lineopt, 'label': label, 'width': width}
 
     ordered_lines = list(sorted(lines_order, key=lines_order.__getitem__))
     styles['lines_order'] = ordered_lines
@@ -715,6 +721,7 @@ class DPlots():
                 ydata = figure_data['ydata']
                 line_label = figure_data['label']
                 plot_style = figure_data['lineopt']
+                width = figure_data['width']
 
                 xcoef = get_unit_coef(xunit)
                 ycoef = get_unit_coef(yunit)
@@ -722,7 +729,7 @@ class DPlots():
                     xdata = xcoef * np.asarray(xdata, dtype=float)
                 if not ycoef == 1.0:
                     xdata = ycoef * np.asarray(ydata, dtype=float)
-                plt.plot(xdata, ydata, plot_style)
+                plt.plot(xdata, ydata, plot_style, linewidth=width)
                 if type(line_label) == str:
                     plot_labels.append(line_label)
                 else:
