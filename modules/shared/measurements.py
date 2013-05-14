@@ -166,6 +166,9 @@ class Measurements():
                 else:
                     #dont delete from cfg
                     continue
+            else:
+                measurements[name] = value
+                measurements_xvalues[name] = t_meas
 
             cfg.del_value(iname) # remove from cfg
 
