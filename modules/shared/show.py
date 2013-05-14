@@ -421,7 +421,7 @@ def mk_figurestyles(fig_id):
     figure_styles = dict.fromkeys(('xlabel', 'ylabel',
                                    'xscale', 'yscale', 'xunit', 'yunit',
                                    'xmin', 'ymin', 'xmax', 'ymax',
-                                   'show', 'show_legend',
+                                   'show', 'ls', 'show_legend',
                                    'legend_title', 'legend_bbox', 'legend_loc'))
 
     # Default values
@@ -729,7 +729,15 @@ class DPlots():
                     xdata = xcoef * np.asarray(xdata, dtype=float)
                 if not ycoef == 1.0:
                     xdata = ycoef * np.asarray(ydata, dtype=float)
-                plt.plot(xdata, ydata, plot_style, linewidth=width)
+                if figure_styles['ls'] and len(xdata.shape) > 1:
+                    for ind in range(len(xdata[0])):
+                        entryx = xdata[:, ind]
+                        entryy = ydata[:, ind]
+                        plt.plot(entryx, entryy, 
+                             figure_styles['ls'][ind%len(figure_styles['ls'])],
+                             linewidth=width)
+                else:
+                    plt.plot(xdata, ydata, plot_style, linewidth=width)
                 if type(line_label) == str:
                     plot_labels.append(line_label)
                 else:
