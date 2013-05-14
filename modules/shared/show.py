@@ -34,7 +34,7 @@ dg_unit_time_length = ('time', 'length')
 DG_AXES_LABELS = \
   OrderedDict({'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                      ('length', 'length')),
-               'u': ((dg_label_length, "Relative saturation $u${}"),
+               'u': ((dg_label_length, "Effective saturation $S_e${}"),
                      ('length', 'none')),
                'MO': ((dg_label_time, "Expelled water [{}]"),
                       dg_unit_time_length),
@@ -54,7 +54,7 @@ DG_AXES_LABELS = \
                               dg_unit_time_length),
                'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                          ('none', 'pressure')),
-               'relsat': (("Relative saturation $u${}", "Hydraulic head $h$ [{}]"),
+               'relsat': (("Effective saturation $S_e${}", "Hydraulic head $h$ [{}]"),
                           ('none', 'length')),
                'K':  (("Water content $\\theta${}",
                        "Hydraulic conductivity $K(\\theta)$ [{}]"),
