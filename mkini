@@ -406,6 +406,7 @@ def CSV2data(csv_dir, csv_filebasename):
         missing = missing_fields_in_csv(csv_fields, required_fields)
         if not missing == []:
             print()
+            print("Or not correctly formed CSV data file, or")
             print("CSV file: missing identifiers: '%s' "% missing)
             print('CSV error: cannot process CSV file, aborting...')
             exit(1)
