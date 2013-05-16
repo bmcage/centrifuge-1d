@@ -633,7 +633,7 @@ def process_scanned_data(experiment, experiment_info):
         scanned_force_weights = \
           multiply_list(scanned_force_weights, 1000.) # kg -> g
         measlist = scanned_force_weights[scan_first: (scan_last+1)]
-        measlist_orig = map(float, measlist)
+        measlist_orig = list(map(float, measlist))
         measlist_linsmooth = smooth_list(measlist_orig)
         measlist_trismooth = smooth_list_triangle(measlist_orig)
         measlist_gausmooth = smooth_list_gaussian(measlist_orig)
