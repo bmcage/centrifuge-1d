@@ -385,7 +385,13 @@ def CSV2data(csv_dir, csv_filebasename):
 
         # replace original column names with something more readable:
         # csv_fields = ('scan', 'time', 'elapsed', 's101', 's102', 's103', ...)
+        dummy_nr = 1;
         for i in range(0, len(csv_fields)):
+            if csv_fields[i] == '':
+                csv_fields[i] = 'dummy' + str(dummy_nr)
+                dummy_nr += 1
+                continue
+
             csv_fields[i] = csv_fields[i].lower()
             fields = csv_fields[i].split(' ')
              # test for sensor measurements e.g. "101 (VDC)", "112 (VDC)"
