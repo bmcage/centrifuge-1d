@@ -613,7 +613,7 @@ def process_scanned_data(experiment, experiment_info):
         if g_duration_compressed == 0.0: g_duration = 0.0
 
     else: # constant omega
-        omega = c_omega
+        omega_cen = c_omega
         if c_omega == 0.0:
             include_acceleration = False
             a_duration = 0.0
