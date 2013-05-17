@@ -922,8 +922,6 @@ def calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
     """
     Calculate gram-force of the water in the sample
     Multply with g for actual Newton!
-    
-    TODO PAVOL: are you not forgetting fl1 and fp1 here?
     """
 
     F_unsat = calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity,
