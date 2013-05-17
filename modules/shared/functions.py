@@ -232,7 +232,7 @@ def compare_data(name, value_computed, value_measured = None,
 #     From: http://www.swharden.com/blog/2008-11-17-linear-data-smoothing-in-python/
 #*******************************************************
 
-def smooth_list(vlist, degree=5):
+def smoothing_linear(vlist, degree=5):
     # smooth based on linear averaging before after of window=2*degree-1 points
     window=degree*2-1
     smoothed = np.zeros(len(vlist), float)
@@ -240,9 +240,9 @@ def smooth_list(vlist, degree=5):
     for i in range(len(vlist)-window):
         smoothed[degree-1+i]=sum(vlist[i:i+window])/window
     smoothed[-degree:] = vlist[-degree:]
-    return list(smoothed)
+    return smoothed
 
-def smooth_list_triangle(vlist, degree=5):
+def smoothing_triangle(vlist, degree=5):
     # smooth based on triangle averaging before after of window=2*degree-1 points
     weight=[]
     window=degree*2-1
@@ -254,9 +254,9 @@ def smooth_list_triangle(vlist, degree=5):
     for i in range(len(vlist)-window):
         smoothed[degree-1+i]=sum(np.array(vlist[i:i+window])*w)/sum(w)
     smoothed[-degree:] = vlist[-degree:]
-    return list(smoothed)
+    return smoothed
 
-def smooth_list_gaussian(vlist, degree=5):
+def smoothing_gaussian(vlist, degree=5):
     # smooth based on gaussian averaging before after of window=2*degree-1 points
     window=degree*2-1
     weight=np.array([1.0]*window)
@@ -272,4 +272,4 @@ def smooth_list_gaussian(vlist, degree=5):
     for i in range(len(vlist)-window):
         smoothed[degree-1+i]=sum(np.array(vlist[i:i+window])*weight)/sum(weight)
     smoothed[-degree:] = vlist[-degree:]
-    return list(smoothed)
+    return smoothed
