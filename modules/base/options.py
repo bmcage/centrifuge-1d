@@ -43,6 +43,7 @@ CONFIG_OPTIONS = ['exp_type',
                     ['deceleration_duration'],
                     [('deceleration_duration', 0.0)]),
                   # measurements and referencing parameters
+                  ('smoothing', {}),
                   ('l1', None), ('gc1', None), ('rm1', None ),
                   ('gf_mo', None), ('gf_mt', None),
                   ('gf_mo_tara', None), ('gf_mt_tara', None),

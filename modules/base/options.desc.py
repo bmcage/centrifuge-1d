@@ -85,6 +85,11 @@ CONFIG_OPTIONS = {
                                 "one run - consisting of centrifugation phase, "
                                 "decelerating phase and a g-phase)."
                                 "Type: array of floats or None."),
+         'smoothing': ("Measured data can be 'smoothed', which may improve "
+                       "found results. Type: dict with key being measurement "
+                       "name and value is one of 'smlin' - linear averaging, "
+                       "'smtri' - triangular averaging, 'smgau' - gaussian "
+                       "averaging."),
          'l1': ("Soil sample length at measured time. "
                 "Type: array of floats or None"),
          'wl1': ("Measured length of water above the soil at given (measured) "

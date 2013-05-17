@@ -4,7 +4,9 @@ import numpy as np
 from collections import OrderedDict
 from shared import get_directories, flatten
 from os import makedirs, path
-from modules.shared.functions import rpm2radps, compare_data
+from modules.shared.functions import rpm2radps, compare_data, \
+    smoothing_gaussian, smoothing_triangle, smoothing_linear
+
 
 # MEASUREMENTS_NAMES are the mapping between the internal
 # denotation of measured data (used during computation and for
@@ -13,10 +15,7 @@ from modules.shared.functions import rpm2radps, compare_data
 MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'gF_MO': 'gf_mo', 'gF_MT': 'gf_mt',
                       'dgF_MO': None, 'dgF_MT': None,
-                      'theta': 'theta',
-                      'gF_MO_sm': 'gf_mo_sm', 'gF_MO_smtri': 'gf_mo_smtri', 'gF_MO_smgau': 'gf_mo_smgau',
-                      'gF_MT_sm': 'gf_mt_sm', 'gF_MT_smtri': 'gf_mt_smtri', 'gF_MT_smgau': 'gf_mt_smgau',
-                     }
+                      'theta': 'theta'}
 
 def calc_f_tara(omega2g, WR_tara):
     if WR_tara is None:
@@ -139,13 +138,8 @@ class Measurements():
 
         cfg.del_value('measurements_times')
 
-        # 2. a) determine measured data 
-        # first  store smoothing algorithm
-        sm = cfg.get_value('smooth_alg', not_found=None)
-        if sm:
-            self._smooth_algo = '_' + sm
-        else:
-            self._smooth_algo = ''
+        # 2. a) determine measured data
+        smoothing = cfg.get_value('smoothing', not_found={})
 
         for (name, iname) in MEASUREMENTS_NAMES.items():
             value = cfg.get_value(iname, not_found=None)
@@ -155,20 +149,23 @@ class Measurements():
 
             value = np.asarray(value, dtype=float)
 
-            #for gf_mt and gf_mo we only store the value corresponding to the
-            #smoothing algorithm
-            if name[:5] in ('gF_MT', 'gF_MO'):
-                #only store required smooth algo value if base value was not 
-                #set to None
-                if name[5:] == self._smooth_algo and cfg.get_value(iname[:5], not_found=None):
-                    measurements[name[:5]] = value
-                    measurements_xvalues[name[:5]] = t_meas
+            if name in smoothing:
+                sm_alg = smoothing[name]
+
+                if not sm_alg:
+                    pass   # no modification
+                elif sm_alg == 'smlin': # linear smoothing
+                    value = smoothing_linear(value)
+                elif sm_alg == 'smtri': # triangular smoothing
+                    value = smoothing_triangle(value)
+                elif sm_alg == 'smgau': # gaussian smoothing
+                    value = smoothing_gaussian(value)
                 else:
-                    #dont delete from cfg
-                    continue
-            else:
-                measurements[name] = value
-                measurements_xvalues[name] = t_meas
+                    print('Unknown smoothing value:', sm_alg,  'for key:', name)
+                    exit(0)
+
+            measurements[name] = value
+            measurements_xvalues[name] = t_meas
 
             cfg.del_value(iname) # remove from cfg
 
