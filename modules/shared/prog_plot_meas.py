@@ -3,7 +3,6 @@ from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
 
-# 
 class Data():
     def __init__(self):
         pass
@@ -21,7 +20,7 @@ def main():
         print ("""
 USAGE: Give as first argument ini file with gramforce measurement data.
        After this, optionally give couples of options with name, like:
-            * xmin value 
+            * xmin value
             * xmax value
 
 Example use:
@@ -35,9 +34,9 @@ $ python prog_plot_meas.py ~/git/centrifuge-1d/data/datafiles/gem-mixture-drain/
         sys.exit(0)
     optname = []
     optval = []
-    for opt in ARGS[2::2]: 
+    for opt in ARGS[2::2]:
         optname.append(opt)
-    for opt in ARGS[3::2]: 
+    for opt in ARGS[3::2]:
         optval.append(opt)
 
     #now we open the file
@@ -64,7 +63,7 @@ $ python prog_plot_meas.py ~/git/centrifuge-1d/data/datafiles/gem-mixture-drain/
             raw_value = parser.get(psection, option).strip()
             setattr(data, option.lower(), raw_value)
     ind = 0
-    for prefix, label in [('gf_mo', 'Weight output sensor [g]'), 
+    for prefix, label in [('gf_mo', 'Weight output sensor [g]'),
                           ('gf_mt', 'Weight hanging sensor [g]')]:
         plt.figure(ind)
         ind += 1
