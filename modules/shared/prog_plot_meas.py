@@ -2,6 +2,7 @@ from __future__ import division, print_function
 
 import numpy as np
 import matplotlib.pyplot as plt
+import functions
 
 class Data():
     def __init__(self):
@@ -69,16 +70,16 @@ $ python prog_plot_meas.py ~/git/centrifuge-1d/data/datafiles/gem-mixture-drain/
         ind += 1
         plt.ylabel(label)
         plt.xlabel('scan')
-        for (suffix, leg) in [('', ['.','measured']), 
-                               ('_sm', ['-', 'Lin. Sm.']), 
-                              ('_smtri',['-', 'Tri. Sm.']), 
-                              ('_smgau', ['-', 'Gaus. Sm.'])]:
-            try:
-                value = getattr(data, prefix+suffix)
-                value = eval(value)
-                plt.plot(value, leg[0], label=leg[1],linewidth=2)
-            except:
-                pass
+
+        value = eval(getattr(data, prefix))
+        plt.plot(value, '.', label='measured', linewidth=2)
+
+        for (suffix, leg) in [('linear', ['-', 'Lin. Sm.']),
+                              ('triangle',['-', 'Tri. Sm.']),
+                              ('gaussian', ['-', 'Gaus. Sm.'])]:
+            sm_method = getattr(functions, 'smoothing_'+suffix)
+            plt.plot(sm_method(value), leg[0], label=leg[1],linewidth=2)
+
         legend = True
         plt.legend(loc=2)
         for (name, val) in zip(optname, optval):
@@ -103,4 +104,7 @@ $ python prog_plot_meas.py ~/git/centrifuge-1d/data/datafiles/gem-mixture-drain/
 
 if __name__ == "__main__":
     main()
-    raw_input('Press key to quit')
+    try:
+        raw_input('Press key to quit')
+    except:
+        input('Press key to quit')
