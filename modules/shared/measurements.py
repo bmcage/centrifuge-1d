@@ -140,6 +140,14 @@ class Measurements():
 
         # 2. a) determine measured data
         smoothing = cfg.get_value('smoothing', not_found={})
+        if smoothing and (not type(smoothing) == dict):
+            print('Smoothing has do be a dict where key is measurement'
+                  'name and value is smoothing algorithm to be used.',
+                  '\nCurrent value: ', smoothing,
+                  '\n\nCannot continue, exiting...')
+            exit(0)
+        else:
+            smoothing = {} # make sure it's dict
 
         for (name, iname) in MEASUREMENTS_NAMES.items():
             value = cfg.get_value(iname, not_found=None)
