@@ -313,6 +313,8 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
     return (True, t, z, i-1)
 
 def print_params(params):
+    """ Print supplied parameters of type dict. """
+
     print()
     for (name, value) in params.items():
         if name == 'ks':
@@ -329,6 +331,12 @@ def untransform_dict(names, values, result, untransform):
             result[name] = value
 
 def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
+    """
+      Compute penalization coeficient.
+      If 'when' is set to 'out_of_bounds', the coef is found a if boundaries
+      are crossed (if not, 0 is returned); otherwise a coef based on the
+      distance of parameters from boundary is computed.
+    """
     max_penalization = 1e50
 
     penalization = 0.0
@@ -336,17 +344,27 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
     if when == 'out_of_bounds':
         for (name, value) in parameters.items():
             if lbounds[name] > value:
-                a = min(np.exp(value - lbounds[name]), max_penalization)
-                penalization += min(10 * (a + 1/a), max_penalization)
+                a = np.abs(value - lbounds[name])
             elif ubounds[name] < value:
-                a = min(np.exp(value - ubounds[name]), max_penalization)
-                penalization += min(10 * (a + 1/a), max_penalization)
+                a = np.abs(value - ubounds[name])
+            else:
+                continue
+
+            tolerance = 0.05
+            a_max = 0.01
+
+            if a > a_max:
+                penalty = np.exp(1/tolerance) + np.exp(10*(a - a_max))
+            else:
+                penalty = np.exp(1/(a_max + tolerance - a))
+
+            penalization += min(penalty, max_penalization)
     else:
         for (name, value) in parameters.items():
             a = min(np.exp(value - lbounds[name]), max_penalization)
             b = min(np.exp(value - ubounds[name]), max_penalization)
 
-            penalization += min(10 * (a + 1/a) + 10 * (b + 1/b),
+            penalization += 1e3*min(10 * (a + 1/a) + 10 * (b + 1/b),
                                 max_penalization)
 
     return penalization

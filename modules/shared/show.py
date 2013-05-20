@@ -34,7 +34,7 @@ dg_unit_time_length = ('time', 'length')
 DG_AXES_LABELS = \
   OrderedDict({'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                      ('length', 'length')),
-               'u': ((dg_label_length, "Relative saturation $u${}"),
+               'u': ((dg_label_length, "Effective saturation $S_e${}"),
                      ('length', 'none')),
                'MO': ((dg_label_time, "Expelled water [{}]"),
                       dg_unit_time_length),
@@ -54,7 +54,7 @@ DG_AXES_LABELS = \
                               dg_unit_time_length),
                'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                          ('none', 'pressure')),
-               'relsat': (("Relative saturation $u${}", "Hydraulic head $h$ [{}]"),
+               'relsat': (("Effective saturation $S_e${}", "Hydraulic head $h$ [{}]"),
                           ('none', 'length')),
                'K':  (("Water content $\\theta${}",
                        "Hydraulic conductivity $K(\\theta)$ [{}]"),
@@ -421,7 +421,7 @@ def mk_figurestyles(fig_id):
     figure_styles = dict.fromkeys(('xlabel', 'ylabel',
                                    'xscale', 'yscale', 'xunit', 'yunit',
                                    'xmin', 'ymin', 'xmax', 'ymax',
-                                   'show', 'show_legend',
+                                   'show', 'ls', 'show_legend',
                                    'legend_title', 'legend_bbox', 'legend_loc'))
 
     # Default values
@@ -439,8 +439,6 @@ def mk_figurestyles(fig_id):
 
 
     if fig_id in ['h', 'u']:
-        figure_styles['legend_bbox'] = (1.01, 1.)
-        figure_styles['legend_loc'] = 2
         figure_styles['legend_title'] = 'Time [min]'
 
     elif fig_id == 'theta':
@@ -455,23 +453,33 @@ def mk_figurestyles(fig_id):
 def figures_styles_post_update(figures_styles, display_options):
     """
       This function is called after merging the default plotting styles
-      with styles from plotstyles inifiles. Styles can be adopted based
+      with styles from plotstyles inifiles. Styles can be adapted based
       on the information in the inifiles.
     """
 
-    if ((figures_styles['h']['show_legend'] is None)
-        and (not display_options['separate_figures'])):
-        figures_styles['h']['show_legend'] = False
+    h_styles = figures_styles['h']
 
+    if ((h_styles['show_legend'] is None)
+        and (not display_options['separate_figures'])):
+        h_styles['show_legend'] = False
+    elif (h_styles['legend_loc'] is None) and (h_styles['legend_bbox']):
+        h_styles['legend_bbox'] = (1.01, 1.)
+        h_styles['legend_loc'] = 2
+
+    u_styles = figures_styles['u']
+    if (u_styles['legend_loc'] is None) and (u_styles['legend_bbox']):
+        u_styles['legend_bbox'] = (1.01, 1.)
+        u_styles['legend_loc'] = 2
 
 def linestyles_post_update(styles):
     """
-      linestyles do not have a default configuration as we don't know
-      (except 'measured' and 'computed') supplied lines as they are part
-      of the 'params_ref' variable specified by the plotstyles inifiles.
-      All the default values for all lines are therefore specified here,
-      just as the final correct format of the linestyles (which may differ)
-      from the values read from the inifiles.
+      Lines are specified in 'params_ref' variable of the plotstyles
+      inifiles, hence as we don't know them apriori (of course except for
+      lines 'measured and 'computed') and hence only post-update method is
+      available - all the default values for all lines are therefore specified
+      here.
+      The values are returned in the final (correct) format (which may be
+      different from the values read from the inifiles).
       Correct lines order based on the 'order' option for the line is
       determined here too.
     """
@@ -493,6 +501,12 @@ def linestyles_post_update(styles):
             del line_styles['label']
         else:
             label = line_id
+
+        # Process line width
+        if 'width' in line_styles:
+            width = line_styles['width']
+        else:
+            width = 1
 
         # Process line order
         if 'order' in line_styles:
@@ -518,7 +532,7 @@ def linestyles_post_update(styles):
             else:
                 lineopt = default_lineopt
 
-            line_styles[fig_id] = {'lineopt': lineopt, 'label': label}
+            line_styles[fig_id] = {'lineopt': lineopt, 'label': label, 'width': width}
 
     ordered_lines = list(sorted(lines_order, key=lines_order.__getitem__))
     styles['lines_order'] = ordered_lines
@@ -639,6 +653,7 @@ class DPlots():
         return self._styles['params_ref']
 
     def display(self, data, fignum=1):
+        """ Display the figures and/or write them to files. """
 
         display_options = self._display_options
 
@@ -706,6 +721,7 @@ class DPlots():
                 ydata = figure_data['ydata']
                 line_label = figure_data['label']
                 plot_style = figure_data['lineopt']
+                width = figure_data['width']
 
                 xcoef = get_unit_coef(xunit)
                 ycoef = get_unit_coef(yunit)
@@ -713,7 +729,15 @@ class DPlots():
                     xdata = xcoef * np.asarray(xdata, dtype=float)
                 if not ycoef == 1.0:
                     xdata = ycoef * np.asarray(ydata, dtype=float)
-                plt.plot(xdata, ydata, plot_style)
+                if figure_styles['ls'] and len(xdata.shape) > 1:
+                    for ind in range(len(xdata[0])):
+                        entryx = xdata[:, ind]
+                        entryy = ydata[:, ind]
+                        plt.plot(entryx, entryy, 
+                             figure_styles['ls'][ind%len(figure_styles['ls'])],
+                             linewidth=width)
+                else:
+                    plt.plot(xdata, ydata, plot_style, linewidth=width)
                 if type(line_label) == str:
                     plot_labels.append(line_label)
                 else:
@@ -773,8 +797,16 @@ class DPlots():
             else:
                 input('Press ENTER to continue...')
 
+################################################################################
+#                         Module's provided functions                          #
+################################################################################
+
 def show_results(experiment_info,
                  model=None, inv_params=None, cov=None):
+    """
+      Run the computation, store the results, load custom display styles
+      and previously stored values and show/store the final figures.
+    """
 
     data = DataStorage(experiment_info)
 

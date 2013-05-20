@@ -15,6 +15,7 @@ except:
 from const import DEFAULTS_ININAME, CONSTANTS_ININAME, MEASUREMENTS_ININAME
 from shared import parse_value, get_directories, yn_prompt
 from os import listdir, path, makedirs
+import sys
 from sys import modules as sysmodules
 from types import MethodType
 from modules.shared.measurements import Measurements
@@ -317,11 +318,18 @@ class Configuration:
         for fname in cfgs_filenames:
             # read config files
             parser   = configparser.ConfigParser()
-            try:
-                parser.read(fname)
-            except configparser.DuplicateOptionError as E:
-                print(E)
-                exit(0)
+            if sys.version_info[0] < 3:
+                try:
+                    parser.read(fname)
+                except Exception as E:
+                    print(E)
+                    exit(0)
+            else:
+                try:
+                    parser.read(fname)
+                except configparser.DuplicateOptionError as E:
+                    print(E)
+                    exit(0)
 
             # Write data from parser to configuration
             for psection in parser.sections():

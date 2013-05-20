@@ -385,11 +385,18 @@ def CSV2data(csv_dir, csv_filebasename):
 
         # replace original column names with something more readable:
         # csv_fields = ('scan', 'time', 'elapsed', 's101', 's102', 's103', ...)
-        for i in range(0, 3):
+        dummy_nr = 1;
+        for i in range(0, len(csv_fields)):
+            if csv_fields[i] == '':
+                csv_fields[i] = 'dummy' + str(dummy_nr)
+                dummy_nr += 1
+                continue
+
             csv_fields[i] = csv_fields[i].lower()
-        for i in range(3, len(csv_fields)):
             fields = csv_fields[i].split(' ')
-            csv_fields[i] = 's' + fields[0]
+             # test for sensor measurements e.g. "101 (VDC)", "112 (VDC)"
+            if (len(fields) > 1) and (fields[0][0] == "1"):
+                csv_fields[i] = 's' + fields[0]
 
         csv_type = 'scanned_data'
         data = ExperimentData(csv_type)
@@ -606,7 +613,7 @@ def process_scanned_data(experiment, experiment_info):
         if g_duration_compressed == 0.0: g_duration = 0.0
 
     else: # constant omega
-        omega = c_omega
+        omega_cen = c_omega
         if c_omega == 0.0:
             include_acceleration = False
             a_duration = 0.0
@@ -690,8 +697,8 @@ def data2ini(data, experiment_info):
             exp_base_path = get_directories('ini', 'exp_base', experiment_info)
 
             if path.exists(exp_base_path + DEFAULTS_ININAME):
-                print('\n\t\tFile exists.\t\t\t\t\tSkipping'
-                      .format(DEFAULTS_ININAME))
+                print('\n\t\tFile {0} exists.\t\t\t\t\tSkipping'
+                      .format(exp_base_path + DEFAULTS_ININAME))
 
             else:
                 default_configuration = \

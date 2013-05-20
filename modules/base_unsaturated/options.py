@@ -1,7 +1,7 @@
 from __future__ import division
 
 import modules.shared.saturation_curve as mSC
-from modules.shared.functions import lagrangean_derivative_coefs
+from modules.shared.functions import lagrangian_derivative_coefs
 from numpy import linspace, power, empty
 
 def dtype_deps(cfg):
@@ -65,7 +65,7 @@ def adjust_cfg(cfg):
     dy = y[1:]-y[:-1]
     cfg.set_value('dy', dy)
 
-    ldc1, ldc2, ldc3 = lagrangean_derivative_coefs(dy)
+    ldc1, ldc2, ldc3 = lagrangian_derivative_coefs(dy)
     cfg.set_value('ldc1', ldc1)
     cfg.set_value('ldc2', ldc2)
     cfg.set_value('ldc3', ldc3)

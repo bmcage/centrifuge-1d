@@ -4,7 +4,9 @@ import numpy as np
 from collections import OrderedDict
 from shared import get_directories, flatten
 from os import makedirs, path
-from modules.shared.functions import rpm2radps, compare_data
+from modules.shared.functions import rpm2radps, compare_data, \
+    smoothing_gaussian, smoothing_triangle, smoothing_linear
+
 
 # MEASUREMENTS_NAMES are the mapping between the internal
 # denotation of measured data (used during computation and for
@@ -137,6 +139,16 @@ class Measurements():
         cfg.del_value('measurements_times')
 
         # 2. a) determine measured data
+        smoothing = cfg.get_value('smoothing', not_found={})
+        if smoothing and (not type(smoothing) == dict):
+            print('Smoothing has do be a dict where key is measurement'
+                  'name and value is smoothing algorithm to be used.',
+                  '\nCurrent value: ', smoothing,
+                  '\n\nCannot continue, exiting...')
+            exit(0)
+        else:
+            smoothing = {} # make sure it's dict
+
         for (name, iname) in MEASUREMENTS_NAMES.items():
             value = cfg.get_value(iname, not_found=None)
             if value == None: continue
@@ -144,6 +156,21 @@ class Measurements():
             if type(value) in [int, float]: value = (value, )
 
             value = np.asarray(value, dtype=float)
+
+            if name in smoothing:
+                sm_alg = smoothing[name]
+
+                if not sm_alg:
+                    pass   # no modification
+                elif sm_alg == 'smlin': # linear smoothing
+                    value = smoothing_linear(value)
+                elif sm_alg == 'smtri': # triangular smoothing
+                    value = smoothing_triangle(value)
+                elif sm_alg == 'smgau': # gaussian smoothing
+                    value = smoothing_gaussian(value)
+                else:
+                    print('Unknown smoothing value:', sm_alg,  'for key:', name)
+                    exit(0)
 
             measurements[name] = value
             measurements_xvalues[name] = t_meas
@@ -170,14 +197,13 @@ class Measurements():
                 if not gF_tara_calibration is None:
                     (omega_rpm, gF_tara) = gF_tara_calibration
                     omega_radps = rpm2radps(omega_rpm)
-
+                    # Centrifugal force = F = M omega^2 r,
+                    # sensor gives us m kg, so F = m g, with m measurement
+                    # M r = m g/ omega^2
                     WR_tara = gF_tara * g / omega_radps / omega_radps
 
                     if F_name == 'gF_MT':
                         # as extra we need to subtract the water inside the tube
-                        # we assume that sample is fully satureted
-                        print('INFO: for [d]gF_MT tara we assume sample is '
-                              'full of water.')
                         extra_values = {}
                         for name in ('porosity', 'fl1', 'fl2', 'fp1', 'fp2'):
                             extra_values[name] = cfg.get_value(name)
@@ -199,22 +225,24 @@ class Measurements():
                         r0 = rE - fl2 - l0 - fl1
                         wl0 = extra_values['wl0']
 
-                        WR_fluid = 0.0
+                        liq_dens = cfg.get_value('density')
+                        WR_fluid = (extra_values['porosity']
+                                    * calc_sat_force(r0+fl1, rE-fl2, liq_dens))
                         if wl0 > 0.0:
-                            WR_fluid += wl0 * (r0 - extra_values['wl0'] / 2.0)
+                            WR_fluid += wl0 * (r0 - wl0/2.0)
                         if fl1 > 0.0:
-                            WR_fluid += ((fl1 * extra_values['fp1'])
-                                         * (r0 + fl1/2.))
-                        if l0 > 0.0:
-                            WR_fluid += ((l0 * extra_values['porosity'])
-                                         * (r0 + fl1 + l0/2.))
+                            WR_fluid += (extra_values['fp1']
+                                         * calc_sat_force(r0, r0+fl1, liq_dens))
                         if fl2 > 0.0:
-                            WR_fluid += ((fl2 * extra_values['fp2'])
-                                         * (rE - fl2/2.))
+                            WR_fluid += (extra_values['fp2']
+                                         * calc_sat_force(rE-fl2, rE, liq_dens))
+                        tube_area = np.power(cfg.get_value('tube_diam')/2, 2) * np.pi
+                        WR_fluid *= tube_area
+                        # WR_fluid =  gF_fluid * g/(omega_radps^2)
+                        # Hence:
+                        # WR_tara = (gF_tara - gF_fluid) * g / (omega_radps^2)
+                        WR_tara = WR_tara - WR_fluid
 
-                        WR_fluid *= cfg.get_value('density')
-
-                        WR_tara -= WR_fluid
                     setattr(self, 'WR' + F_name[2:].lower() + '_tara', WR_tara)
 
                 # Process the force measurements
@@ -378,7 +406,6 @@ class Measurements():
             scales_coefs = self._scales_coefs
 
             scales = []
-
             for (name, measurement) in self._measurements.items():
                 if not name in scales_coefs:
                     #scales_coefs[name] = determine_scaling_factor(measurement)
@@ -391,8 +418,7 @@ class Measurements():
 
                 scales.append(scales_coefs[name]
                               * np.ones((1, length), dtype=float))
-
-            self._scales = np.concatenate(scales, axis=1)
+            self._scales = np.concatenate(scales, axis=1)[0]
 
         return self._scales
 
@@ -706,6 +732,10 @@ class Measurements():
         for (mo1, gc1) in calibration[1:]:
             if mo < mo1:
                 GC = gc0 + (mo - mo0)/(mo1 - mo0) * (gc1 - gc0)
+                break
+            else:
+                mo0 = mo1
+                gc0 = gc1
 
         if GC < 0.0:
             print('Amount of expelled water: ', mo,  ' is more than the amount '
@@ -819,7 +849,6 @@ class Measurements():
         error         = np.empty(measurements.shape, dtype=float)
 
         error[:] = scale * (computations - measurements)
-
         if not np.isscalar(weights):
             error[:] *= weights
 
@@ -853,6 +882,8 @@ class Measurements():
           Return penalization for given measurement.
           If 'scalar'=True, return it as a single scalar value.
         """
+        scale   = self._get_scales()
+        weights = self._get_weights()
         if self._measurements_array is None:
             print('ERROR: Cannot determine penalization if measurements'
                   'are not specified. Exiting.')
@@ -860,14 +891,26 @@ class Measurements():
         elif scalar:
             return penalization * np.alen(self._measurements_array)
         else:
-            return (penalization + self._measurements_array)
+            error =  (penalization + self._measurements_array)
+            error[:] *= scale
+            if not np.isscalar(weights):
+                error[:] *= weights
+            return error
 
 ##################################################################
 #                     Auxiliary functions                        #
 ##################################################################
 
 def calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity, fluid_density):
+    """
+    Calculate gram-force of the water in the unsaturated part of the sample
+    Multply with g for actual Newton!
+    """
     ds = s2 - s1
+    if ds == 0.:
+        #support calling by saturated experiment
+        return 0.
+
     r = r0 + s1 + ds*y
     F_unsat = (soil_porosity * fluid_density * ds/2
                * (dy[0]*u[0]*r[0] + dy[-1]*u[-1]*r[-1]
@@ -876,10 +919,18 @@ def calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity, fluid_density):
     return F_unsat
 
 def calc_sat_force(rS, rE, fluid_density):
+    """
+    Calculate gram-force of the water in the saturated part of the sample
+    Multply with g for actual Newton!
+    """
     return 1/2 * fluid_density * (np.power(rE, 2) - np.power(rS, 2))
 
 def calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
                soil_porosity, fl2, fp2, fr2, fluid_density):
+    """
+    Calculate gram-force of the water in the sample
+    Multply with g for actual Newton!
+    """
 
     F_unsat = calc_unsat_force(r0, u, s1, s2, y, dy, soil_porosity,
                                fluid_density)

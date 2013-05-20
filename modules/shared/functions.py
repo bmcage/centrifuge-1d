@@ -1,6 +1,5 @@
 from __future__ import division, print_function
 
-
 import numpy as np
 from math import sqrt
 from sys import stdout
@@ -12,7 +11,7 @@ def rpm2radps(x):
     # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
     return x * np.pi/ 30.0
 
-def lagrangean_derivative_coefs(dx):
+def lagrangian_derivative_coefs(dx):
     """
     Returns the coeficients for the Lagrangeand derivative of the differences
     array 'dx'. The first point has a right derivative, last point a left
@@ -45,16 +44,28 @@ def right_derivative(dx12, fx13):
     return derivative
 
 def f1(t):
+    """ Helper function for estimating the centrifuge acceleration curve. """
     return 1.7032046506 * np.power(t, 1.233644749)
 def f2(t):
+    """ Helper function for estimating the centrifuge acceleration curve. """
     return 0.630314472 * np.log(t) + 8.4248850255
 def f3(t):
+    """ Helper function for estimating the centrifuge acceleration curve. """
     return 0.1332308098 * np.log(t) + 9.5952480661
 
 def find_omega2g_fh(model, t):
+    """
+      Function for determination of the omega^2/g coef when simulation
+      falling-head test (i.e. simulating 1g environment).
+    """
     return 1./model.r0_fall
 
 def find_omega2g(model, t_total):
+    """
+      Function for determinantion of the omega^2/g coef under centrifugation.
+      This includes also the acceleration curve (but not deceleration curve).
+      Time 't_total' is the (total) time since the measuring started.
+    """
     if model.include_acceleration:
         t = t_total - model.t0
 
@@ -88,6 +99,10 @@ def find_omega2g(model, t_total):
     return omega * omega / model.g
 
 def find_omega2g_dec(model, t):
+    """
+      Function for determinantion of the omega^2/g coef (under centrifugation)
+      when decelerating.
+    """
     duration = model.duration
     # omega_end = 0.0, t_end == duration, t in [0, duration]
     omega = ((model.t0 + model.deceleration_duration - t)
@@ -96,6 +111,7 @@ def find_omega2g_dec(model, t):
     return omega * omega / model.g
 
 def y2x(y, s1, s2):
+    """ Transform interval y=<0,1> to original interval x. """
     s1_len = np.alen(s1)
     if s1_len != np.alen(s2):
         print('Interfaces array ''s1'' and ''s2'' have to be of the same'
@@ -123,6 +139,11 @@ def has_data(x):
 
 def phases_end_times(a_duration, d_duration, g_duration,
                      include_acceleration):
+    """
+      Calculate the stop-times for the direct solver based on the information
+      of the individual phases duration
+      (i.e. acceleration/centrifugation + deceleration + sample left under 1g).
+    """
 
     if a_duration is None:
         a_duration = 0.0
@@ -148,6 +169,10 @@ def phases_end_times(a_duration, d_duration, g_duration,
 
 def compare_data(name, value_computed, value_measured = None,
                  stream=None):
+    """
+      Display the measured and computed values, abs, rel and LSQ error.
+      Data is written to 'stream', which is by default stdout.
+    """
 
     if stream is None: stream=stdout
 
@@ -200,3 +225,51 @@ def compare_data(name, value_computed, value_measured = None,
     print('LSQ error ' + "'" + name + "':",
           np.sum(np.power(data_computed - data_measured, 2)),
           file=stream)
+
+#*******************************************************
+#
+#  Averaging functions
+#     From: http://www.swharden.com/blog/2008-11-17-linear-data-smoothing-in-python/
+#*******************************************************
+
+def smoothing_linear(vlist, degree=5):
+    # smooth based on linear averaging before after of window=2*degree-1 points
+    window=degree*2-1
+    smoothed = np.zeros(len(vlist), float)
+    smoothed[:degree-1] = vlist[:degree-1]
+    for i in range(len(vlist)-window):
+        smoothed[degree-1+i]=sum(vlist[i:i+window])/window
+    smoothed[-degree:] = vlist[-degree:]
+    return smoothed
+
+def smoothing_triangle(vlist, degree=5):
+    # smooth based on triangle averaging before after of window=2*degree-1 points
+    weight=[]
+    window=degree*2-1
+    smoothed = np.zeros(len(vlist), float)
+    smoothed[:degree-1] = vlist[:degree-1]
+    for x in range(1, 2*degree):weight.append(degree-abs(degree-x))
+    w=np.array(weight)
+    smoothed[:degree-1] = vlist[:degree-1]
+    for i in range(len(vlist)-window):
+        smoothed[degree-1+i]=sum(np.array(vlist[i:i+window])*w)/sum(w)
+    smoothed[-degree:] = vlist[-degree:]
+    return smoothed
+
+def smoothing_gaussian(vlist, degree=5):
+    # smooth based on gaussian averaging before after of window=2*degree-1 points
+    window=degree*2-1
+    weight=np.array([1.0]*window)
+    weightGauss=[]
+    for i in range(window):
+        i=i-degree+1
+        frac=i/float(window)
+        gauss=1/(np.exp((4*(frac))**2))
+        weightGauss.append(gauss)
+    weight=np.array(weightGauss)*weight
+    smoothed = np.zeros(len(vlist), float)
+    smoothed[:degree-1] = vlist[:degree-1]
+    for i in range(len(vlist)-window):
+        smoothed[degree-1+i]=sum(np.array(vlist[i:i+window])*weight)/sum(weight)
+    smoothed[-degree:] = vlist[-degree:]
+    return smoothed
