@@ -158,16 +158,37 @@ class Measurements():
             value = np.asarray(value, dtype=float)
 
             if name in smoothing:
-                sm_alg = smoothing[name]
+                sm_opts = smoothing[name]
+
+                if type(sm_opts) == str:
+                    sm_opts = {'name': sm_opts}
+                elif not type(sm_opts) is dict:
+                    print('The value in smoothing has to be either string ',
+                          'of used method, or dict. Current value: ', sm_opts,
+                          '\nExiting...')
+                    exit(0)
+
+                sm_alg    = None
+                sm_degree = 5
+
+                for (sm_key, sm_value) in sm_opts.items():
+                    if sm_key == 'name':
+                        sm_alg = sm_value
+                    elif sm_key == 'degree':
+                        sm_degree = sm_value
+                    else:
+                        print('Unknown option for smoothing:', sm_key,
+                              'Exiting...')
+                        exit(0)
 
                 if not sm_alg:
                     pass   # no modification
                 elif sm_alg == 'smlin': # linear smoothing
-                    value = smoothing_linear(value)
+                    value = smoothing_linear(value, sm_degree)
                 elif sm_alg == 'smtri': # triangular smoothing
-                    value = smoothing_triangle(value)
+                    value = smoothing_triangle(value, sm_degree)
                 elif sm_alg == 'smgau': # gaussian smoothing
-                    value = smoothing_gaussian(value)
+                    value = smoothing_gaussian(value, sm_degree)
                 else:
                     print('Unknown smoothing value:', sm_alg,  'for key:', name)
                     exit(0)
