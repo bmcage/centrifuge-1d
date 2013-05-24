@@ -146,7 +146,7 @@ class Measurements():
                   '\nCurrent value: ', smoothing,
                   '\n\nCannot continue, exiting...')
             exit(0)
-        else:
+        elif not smoothing:
             smoothing = {} # make sure it's dict
 
         for (name, iname) in MEASUREMENTS_NAMES.items():
