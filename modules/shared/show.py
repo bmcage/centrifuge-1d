@@ -587,7 +587,7 @@ def mk_figures(data, styles):
     lines_ids = styles['lines_order']
 
     for line_id in lines_ids:
-        line_data = data.get_linedata(line_id)
+        line_data = data.get_linedata(line_id, not_found={})
         lines_styles = styles['lines'][line_id]
 
         for (fig_id, line_value) in line_data.items():
