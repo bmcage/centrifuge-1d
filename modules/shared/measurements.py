@@ -57,8 +57,10 @@ class Measurements():
 
         # User supplied (physically done) measurements
         self._measurements = OrderedDict() # values
+        self._original_measurements = OrderedDict() # untransformed values
         self._measurements_weights = OrderedDict() # weights of each of measurement's' values
         self._measurements_xvalues = OrderedDict() # x-axes values
+        self._original_measurements_xvalues = OrderedDict() # x-axes value of untransformed measurements
         self._measurements_times   = None # times at which measurements were taken
         self._measurements_diff    = []
 
@@ -181,9 +183,14 @@ class Measurements():
                               'Exiting...')
                         exit(0)
 
-                if not sm_alg:
-                    pass   # no modification
-                elif sm_alg == 'smlin': # linear smoothing
+                if not sm_alg: continue
+
+                # store untransformed value
+                self._original_measurements[name] = value
+                self._original_measurements_xvalues[name] = \
+                  scan_span * np.arange(1, np.alen(value)+1)
+
+                if sm_alg == 'smlin': # linear smoothing
                     value = smoothing_linear(value, sm_degree)
                 elif sm_alg == 'smtri': # triangular smoothing
                     value = smoothing_triangle(value, sm_degree)
@@ -396,6 +403,7 @@ class Measurements():
         """ Collect stored data to simple format for saving. """
         return (self._measurements, self._measurements_weights,
                 self._measurements_xvalues, self._measurements_times,
+                self._original_measurements, self._original_measurements_xvalues,
                 self._times, self._measurements_nr, self._computed,
                 self._indexes, self._scales_coefs)
 
@@ -403,6 +411,7 @@ class Measurements():
         """ Restore data in simple format from saved file. """
         (self._measurements, self._measurements_weights,
          self._measurements_xvalues, self._measurements_times,
+         self._original_measurements, self._original_measurements_xvalues,
          self._times, self._measurements_nr, self._computed,
          self._indexes, self._scales_coefs) = raw_data
 
@@ -553,18 +562,22 @@ class Measurements():
             if name in measurements_diff:
                 yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
 
-    def iterate_meas_measurements(self):
-        t = self.get_times()
-        if not t is None:
-            t = t[1:]
-
+    def iterate_meas_measurements(self, untransformed=False):
+        """
+          Iterate over measured values. If untransformed==True, original
+          (not in any way transformed) measurements are returned.
+        """
         measurements_diff = self._measurements_diff
 
-        for (name, yvalue) in self._measurements.items():
-            if name == 'theta':
-                xvalue = self._measurements_xvalues[name]
-            else:
-                xvalue = t
+        if untransformed:
+            measurements = self._original_measurements
+            xvalues      = self._original_measurements_xvalues
+        else:
+            measurements = self._measurements
+            xvalues      = self._measurements_xvalues
+
+        for (name, yvalue) in measurements.items():
+            xvalue = xvalues[name]
 
             if name in measurements_diff:
                 yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])

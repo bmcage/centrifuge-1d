@@ -234,15 +234,20 @@ class DataStorage():
         return True
 
     def store_measurements(self, measurements):
-        m = {}
+        for mtype in ('measured', 'original'):
+            m = {}
 
-        for (name, xvalue, yvalue) in measurements.iterate_meas_measurements():
-            m[name] = (xvalue, yvalue)
+            untransformed = (mtype == 'original')
+            for (name, xvalue, yvalue) \
+                in measurements.iterate_meas_measurements(untransformed):
 
-        self._data['lines']['measured'] = m
+                m[name] = (xvalue, yvalue)
+
+                self._data['lines'][mtype] = m
 
     def get_linedata(self, line_id, not_found=None):
         data = self._data['lines']
+
         if line_id in data:
             return data[line_id]
         else:
@@ -484,7 +489,8 @@ def linestyles_post_update(styles):
       determined here too.
     """
 
-    lines_ids = ['measured', 'computed'] + list(styles['params_ref'].keys())
+    lines_ids = (['measured', 'computed', 'original']
+                 + list(styles['params_ref'].keys()))
     lines_styles = styles['lines']
     lines_order  = {}
 
