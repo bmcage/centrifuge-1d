@@ -310,6 +310,11 @@ def display_status(data_plots=None, stream=None):
         compare_data(plot_id, value_computed, value_measured, stream)
 
 def print_status(data, filename=None):
+    computed     = data.get_linedata('computed')
+    measurements = data.get_linedata('measured')
+
+    if not computed: return
+
     if filename is None:
         stream = None
     else:
@@ -317,8 +322,6 @@ def print_status(data, filename=None):
 
     status_items = []
 
-    measurements = data.get_linedata('measured')
-    computed     = data.get_linedata('computed')
 
     if not measurements: return
 
