@@ -511,8 +511,14 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 
     # run the direct once more to obtain correct covariance
     opt_error = optimfn_wrapper(opt_params)
-    s_sq = (np.sum(np.power(opt_error, 2))
-            / (np.alen(opt_error) - np.alen(opt_params)))
+
+    if cov is None:
+        print('Warning: singular matrix for covariance  encountered '
+              '(indicates very flat curvature in some direction).')
+    else:
+        s_sq = (np.sum(np.power(opt_error, 2))
+                / (np.alen(opt_error) - np.alen(opt_params)))
+        cov *= s_sq
 
     # Display inverse solver statistic
     print('\nInverse problem statistics:\n')
@@ -532,7 +538,7 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
             out += ' |{:8d}'.format(value)
     print(out, '|')
 
-    return (optim_params, cov * s_sq)
+    return (optim_params, cov)
 
 def compute_raster(model):
         lbounds = xdata.inv_lbounds
