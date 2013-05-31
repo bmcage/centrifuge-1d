@@ -163,9 +163,9 @@ class DataStorage():
 
                 if hasattr(model, 'p') or hasattr(model, 'pc'):
                     if hasattr(model, 'p'):
-                        p_meas = model.p
+                        p_meas = np.asarray(model.p)
                     else:
-                        p_meas = model.pc
+                        p_meas = np.asarray(model.pc)
 
                     (p_user, theta_user) = \
                       SC.retention_curve(theta_s, model.density, model.g,
