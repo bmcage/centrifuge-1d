@@ -520,9 +520,7 @@ def process_scanned_data(experiment, experiment_info):
 
     scanned_inflow_weights  = scanned_data.get_value('s102')
 
-    total_time = scan_last - scan_first + 1
-    # we assume measurement to be taken every second
-    measurements_times = list(range(1, total_time+1))
+    scan_max = len(scanned_inflow_weights)
 
     if not omegas:
         print('Rotational speed ''omega'' not specified: ', omegas,
@@ -540,67 +538,94 @@ def process_scanned_data(experiment, experiment_info):
         d_duration = []
         g_duration = []
 
-        omega = omegas[0]
-        scan  = scans[0]
+        d_scan = 0           # index where deceleration/fh starts
+        acceleration = True # accelerate? On the beginning we accelerate
 
-        if omega == 0.0:
+        if omegas[0] == 0.0:
             a_duration.append(0.0)
 
-        append_g_duration = False
+        append_g_duration = 0.0
 
         scans_nr = len(scans)
 
-        for i in range(1, scans_nr):
-            omega_next = omegas[i]
-            scan_next  = scans[i]
+        for i in range(0, scans_nr):
+            omega = omegas[i]
+            scan  = scans[i]
+
+            if (i+1 < scans_nr):
+                omega_next = omegas[i+1]
+                scan_next  = scans[i+1]
+            else:
+                if omega > 0.0:
+                    # we continue to accelerate
+                    a_duration.append(scan_max - scan)
+                    d_duration.append(0.0)
+                    g_duration.append(0.0)
+                    scan_last = scan_max
+                else:
+                    # we stop
+                    d_scan = scan - 1
+                    mi0    = float(scanned_inflow_weights[d_scan])
+
+                    while (d_scan+1 < scan_max):
+                        mi1    = float(scanned_inflow_weights[d_scan+1])
+                        d_scan += 1
+
+                        if (abs(mi1 - mi0) < 0.02):
+                            break
+                        else:
+                            mi0 = mi1
+
+                    d_duration.append(d_scan - scan)
+                    g_duration.append(0.0)
+
+                    scan_last = d_scan
+                    break
 
             # handle case last two omegas are same - the last value is needed
-            if (omega == omega_next) and (i+1 < scans_nr): continue
+            if (omega == omega_next): continue
 
             if omega > 0.0: # centrifugation
                 omega_cen.append(omega)
 
-                if omega < omega_next:
-                    a_duration.append(scan_next - scan)
+            if acceleration:
+                a_duration.append(scan_next - scan)
+
+                if (omega < omega_next):
+                    # we continue to accelerate
                     d_duration.append(0.0)
                     g_duration.append(0.0)
                 elif omega_next == 0.0:
-                    d_scan = scan_next - 15 # "guess" that dec takes at most 10s
-                    mi0 = float(scanned_inflow_weights[d_scan])
-                    for (sc, mi) in zip(range(d_scan+1, scan_next),
-                                        scanned_inflow_weights[(d_scan+1):scan_next]):
-                        mi = float(mi)
-                        if abs(mi - mi0) < 0.5: # rough estimage of change
-                            mi0 = mi # normal centrifugation; continue
-                        else: # deceleration was triggered
-                            d_scan = sc
-                            break
-                    a_duration.append(d_scan - scan)
-                    d_duration.append(scan_next - d_scan)
-                    append_g_duration = True # activate
-                elif omega == omega_next:
-                    if not i+1 == scans_nr:
-                        raise ValueError('Something went wrong. omega can''t '
-                                         'be equal to omega_next unless they '
-                                         'are last values.')
-                    print('\nWARNING: Last provided omega ' + str(omega) + 'is the '
-                          'same as the previous one, hence no deceleration at '
-                          'the end is performed !')
-                    a_duration.append(scan_next - scan)
-                    d_duration.append(0.0)
-                    g_duration.append(0.0)
+                    # we will decelerate
+                    # what will be d_duration, g_duration we don't know atm
+                    d_scan = scan_next   # set the correct d_scan used for dec
+                    acceleration = False
                 else: # 0 < omega_next < omega
                     raise NotImplementedError('Decelerating to omega>0 is not '
                                               'supported.')
-            else: # omega = 0.0 i.e. only g
-                g_duration.append(scan_next - scan)
-                append_g_duration = False # disable
-                # a_duration, d_duration were set in previous iteration
 
-            if append_g_duration:
-                # was activated but not deactivated, so one final is missing
-                g_duration.append(0.0)
+            else:
+                # we decelerate or do fh
+                if (omega_next > 0.0):
+                    # we will again accelerate
 
+                    # set deceleration duration
+                    mi0    = float(scanned_inflow_weights[d_scan])
+
+                    while ((abs(float(scanned_inflow_weights[d_scan+1]) - mi0)
+                            > 0.5) and (d_scan < scan_next)
+                        and (d_scan < scans_nr)):
+
+                        dscan += 1
+
+                    d_duration.append(d_scan - scan)
+                    g_duration.append(scan_next - d_scan)
+                    acceleration = True
+                else:
+                    # nothing to do atm
+                    pass
+
+            #acceleration = (omega_next >= omega)
             omega = omega_next
             scan  = scan_next
 
@@ -615,6 +640,9 @@ def process_scanned_data(experiment, experiment_info):
 
     else: # constant omega
         omega_cen = c_omega
+
+        total_time = scan_max - scan_first + 1
+
         if c_omega == 0.0:
             include_acceleration = False
             a_duration = 0.0
