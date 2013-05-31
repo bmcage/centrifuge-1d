@@ -26,7 +26,7 @@ EXCLUDE_FROM_MODEL = ['inv_init_params']
 def provide_inv_init_params(cfg):
     inv_init_params = cfg.get_value('inv_init_params')
     if inv_init_params and (type(inv_init_params) is dict):
-        value = inv_init_params.keys()
+        value = list(inv_init_params.keys())
     else:
         value = []
 
@@ -40,6 +40,8 @@ def check_cfg(cfg):
     if not type(cfg.get_value('inv_init_params')) is dict:
         print("Option 'inv_init_params' has to be of type dict.")
         return False
+
+    return True
 
 def prior_adjust_cfg(cfg):
     pass
