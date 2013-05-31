@@ -580,7 +580,8 @@ class Measurements():
             xvalue = xvalues[name]
 
             if name in measurements_diff:
-                yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
+                if not untransformed:
+                    yield ('d' + name, xvalue[1:], yvalue[1:] - yvalue[:-1])
             else:
                 yield (name, xvalue, yvalue)
 
