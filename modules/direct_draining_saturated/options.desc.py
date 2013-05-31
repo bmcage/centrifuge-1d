@@ -3,11 +3,11 @@ CONFIG_OPTIONS = {
         {'porosity': "Porosity of the soil sample. Type: float",
          'n': ("Van Genuchten parameter 'n' of the soil. "
                "Type: float or list"),
-               'gamma': ("Van Genuchten parameter 'gamma' of the soil. "
+        'gamma': ("Van Genuchten parameter 'gamma' of the soil. "
                          "Type: float or list")},
     'initial-and-boundary-conditions': \
         {'h_init': ("Initial fluid head value (close to 0) for the "
-                    "(almost fully saturated) sample.")
+                    "(almost fully saturated) sample.)"
                     " soil sample (e.g. end of the starting-filter)."
                     "Type: float or list"),
          'rb_type': ("Right boundary condition of type:"
@@ -29,8 +29,6 @@ CONFIG_OPTIONS = {
                    "\n\t 2 - the distance of two points is 'k_dx'*(dist of "
                    "previous two points. See also: k_dx)"
                    "\nType: integer"),
-
-
         }
     }
 

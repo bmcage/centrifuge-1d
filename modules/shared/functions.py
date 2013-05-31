@@ -273,3 +273,10 @@ def smoothing_gaussian(vlist, degree=5):
         smoothed[degree-1+i]=sum(np.array(vlist[i:i+window])*weight)/sum(weight)
     smoothed[-degree:] = vlist[-degree:]
     return smoothed
+
+def smoothing_gaussian_rec(vlist, rec = 2, degree=5):
+    # smooth based on gaussian averaging before after of window=2*degree-1 points
+    assert rec > 1
+    for entry in range(rec):
+        vlist = smoothing_gaussian(vlist, degree)
+    return vlist
