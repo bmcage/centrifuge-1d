@@ -744,6 +744,7 @@ def load_configuration(experiment_info, include_global_constants=True):
     csv_datafilename = cfg.get_value('csv_file', not_found=None)
     if csv_datafilename:
         cfg.read_from_files(data_dir + csv_datafilename + '.ini')
+    cfg.del_value('csv_file')
 
     # Read masks files
     masks_files = []
