@@ -162,8 +162,11 @@ def parse_input():
 
     return args
 
-def run_experiments(exp_id, first_experiment, last_experiment, mask,
-                    verbose=True, print_cfg_only=False):
+def run_experiments(options):
+    (exp_id, mask) = (options.exp_id, options.mask)
+    (first_experiment, last_experiment) = (options.exp_no, options.last_exp_no)
+    print_cfg_only = options.print_config_p
+    verbose = not print_cfg_only
 
     if verbose:
         print('\n\n GENERAL experiments informations'
@@ -285,8 +288,4 @@ if __name__ == "__main__":
     elif options.compare_p:
         compare2configs(options)
     else:
-        print_cfg_only = options.print_config_p
-        run_experiments(options.exp_id, options.exp_no,
-                        options.last_exp_no, options.mask,
-                        verbose=(not print_cfg_only),
-                        print_cfg_only=print_cfg_only)
+        run_experiments(options)
