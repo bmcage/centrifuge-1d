@@ -17,12 +17,6 @@ MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'dgF_MO': None, 'dgF_MT': None,
                       'theta': 'theta'}
 
-def calc_f_tara(omega2g, WR_tara):
-    if WR_tara is None:
-        raise NotImplementedError
-
-    return omega2g * WR_tara
-
 def determine_scaling_factor(v):
     return np.power(10, -np.floor(np.log10(np.max(np.abs(v)))))
 
@@ -68,8 +62,7 @@ class Measurements():
         self._measurements_nr = -1 # i.e. length(self._times)
 
         # Radius * weight of tara (R is at the gravitational centre)
-        self.WR_mt_tara = None
-        self.WR_mo_tara = None
+        self.WR_tara = {} # {'gF_MO': None, 'gF_MT': None}
 
         # Measurements scales
         self._scales_coefs = None
@@ -271,7 +264,7 @@ class Measurements():
                         # WR_tara = (gF_tara - gF_fluid) * g / (omega_radps^2)
                         WR_tara = WR_tara - WR_fluid
 
-                    setattr(self, 'WR' + F_name[2:].lower() + '_tara', WR_tara)
+                    self.WR_tara[F_name] = WR_tara
 
                 # Process the force measurements
                 F  = measurements[F_name]
@@ -780,9 +773,9 @@ class Measurements():
 
         F = omega2g * GC * mo
 
-        if not self.WR_mo_tara is None:
+        if 'gF_MO' in self.WR_tara:
             self.store_calc_measurement('gF_MO_tara',
-                                        calc_f_tara(omega2g, self.WR_mo_tara))
+                                        omega2g * self.WR_tara['gF_MO'])
 
         return self.store_calc_measurement('gF_MO', F)
 
@@ -832,9 +825,9 @@ class Measurements():
                         soil_porosity, fl2, fp2, fr2, fluid_density)
              * omega2g * tube_area)
 
-        if not self.WR_mt_tara is None:
+        if 'gF_MT' in self.WR_tara:
             self.store_calc_measurement('gF_MT_tara',
-                                        calc_f_tara(omega2g, self.WR_mt_tara))
+                                        omega2g * self.WR_tara['gF_MT'])
 
         return self.store_calc_measurement('gF_MT', F)
 
