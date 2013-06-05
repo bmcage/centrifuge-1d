@@ -206,7 +206,7 @@ def run_experiments(options):
         if options.dry_run:
             if not hasattr(solver_module, 'dry_run'):
                 print("\nERROR: Module '" + model.exp_type + "' has not "
-                      "specified 'dry_run' function. Existing...\n")
+                      "specified 'dry_run' function. Exiting...\n")
                 exit(1)
 
             solver_module.dry_run(model)

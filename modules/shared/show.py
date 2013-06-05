@@ -322,7 +322,6 @@ def print_status(data, filename=None):
 
     status_items = []
 
-
     if not measurements: return
 
     try:

@@ -131,7 +131,7 @@ def check_cfg(cfg):
         elif type(F_calibration_curve) in (float, int, dict):
             pass
         elif F_calibration_curve is None:
-            print('Info: Calibration curve: ' +  F_name + '_calibration_curve'
+            print('INFO: Calibration curve: ' +  F_name + '_calibration_curve'
                   + ' was not specified, difference between two subsequent '
                   'forces will be used instead.')
             pass
