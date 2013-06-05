@@ -233,13 +233,13 @@ class DataStorage():
 
         return True
 
-    def store_measurements(self, measurements):
+    def store_measurements(self, measurements, model=None):
         for mtype in ('measured', 'original'):
             m = {}
 
             untransformed = (mtype == 'original')
             for (name, xvalue, yvalue) \
-                in measurements.iterate_meas_measurements(untransformed):
+                in measurements.iterate_meas_measurements(untransformed, model):
 
                 m[name] = (xvalue, yvalue)
 
@@ -830,7 +830,7 @@ def show_results(experiment_info,
         # Disable this to determine all data in the direct run
         model.measurements.run_inverse_problem_p(False)
 
-        data.store_measurements(model.measurements)
+        data.store_measurements(model.measurements, model)
         data.store_computation(model, model.measurements)
 
         if not inv_params is None: data.store('inv_params', inv_params)
