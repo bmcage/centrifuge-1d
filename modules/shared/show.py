@@ -234,7 +234,7 @@ class DataStorage():
         return True
 
     def store_measurements(self, measurements, model=None):
-        for mtype in ('measured', 'original'):
+        for mtype in ('original', 'measured'):
             m = {}
 
             untransformed = (mtype == 'original')
@@ -491,7 +491,7 @@ def linestyles_post_update(styles):
       determined here too.
     """
 
-    lines_ids = (['measured', 'computed', 'original']
+    lines_ids = (['original', 'measured', 'computed']
                  + list(styles['params_ref'].keys()))
     lines_styles = styles['lines']
     lines_order  = {}
