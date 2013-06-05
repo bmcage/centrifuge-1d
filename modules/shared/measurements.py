@@ -127,7 +127,11 @@ class Measurements():
             t = None
             t_meas = None
             scans_meas = None
+            m_first_idx = None
+            m_last_idx  = None
         else:
+            m_first_idx = scans[1]
+            m_last_idx  = scans[-1]
             t = scans * scan_span
             t_meas = t[1:]
             scans_meas = scans[1:]
@@ -272,6 +276,15 @@ class Measurements():
 
                 # Leave only values at desired point (t_meas)
                 F_filter = F[filter_idxs]
+
+                if F_name in self._original_measurements:
+                    orig_value  = self._original_measurements[F_name]
+                    orig_xvalue = self._original_measurements_xvalues[F_name]
+
+                    self._original_measurements[F_name] = \
+                      orig_value[m_first_idx:m_last_idx+1]
+                    self._original_measurements_xvalues[F_name] = \
+                      orig_xvalue[m_first_idx:m_last_idx+1]
 
                 calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[F_name]
                                                   + '_calibration_curve')
