@@ -159,6 +159,10 @@ def check_cfg(cfg):
                       MO_GC)
                 return False
 
+        if not cfg.get_value('mo_gc_calibration_curve'):
+            print("WARNING: 'MO_GC_calibration_curve' is not set. This may "
+                  "lead to problems. You have been warned:)")
+
     return True
 
 def adjust_cfg(cfg):
