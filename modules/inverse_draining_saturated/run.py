@@ -27,3 +27,23 @@ def run(model):
         model.verbosity = model_verbosity # restore verbosity
 
     return inv_params
+
+def dry_run(model):
+    import numpy as np
+
+    inv_params = {'n': 2.81, 'gamma': -0.0189, 'ks': 1e-5}
+    cov = np.asarray([[2.0, 3.0, 4.0], [5.0, 6.0, 7.0], [1.0, 3.0, 6.0]])
+
+    # DISPLAY RESULTS:
+    if inv_params:
+        model.set_parameters(inv_params)
+        # run once again the direct problem with optimal parameters
+        model_verbosity = model.verbosity # backup verbosity
+        model.verbosity = 0
+
+        show_results(model.experiment_info, model=model,
+                     inv_params=inv_params, cov=cov)
+
+        model.verbosity = model_verbosity # restore verbosity
+
+    return inv_params

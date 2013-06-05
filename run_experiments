@@ -111,6 +111,10 @@ def parse_input():
                            help=("Get the list of all available centrifuge "
                                  "modules. Using the -v option gives also "
                                  "more detailed description of modules."))
+    argparser.add_argument('--dry-run', dest='dry_run',
+                           action="store_true", default=False,
+                           help=("Simulate running, but without the actual "
+                                 "computation. For debugging purposes only."))
     argparser.add_argument('-l', '--list', dest='list', action="store_true",
                            default=False,
                            help="List. If 'exp_ID' is not provided, list all "
@@ -199,7 +203,15 @@ def run_experiments(options):
 
         solver_module = modman.find_module(model.exp_type, submodule='run')
 
-        solver_module.run(model)
+        if options.dry_run:
+            if not hasattr(solver_module, 'dry_run'):
+                print("\nERROR: Module '" + model.exp_type + "' has not "
+                      "specified 'dry_run' function. Existing...\n")
+                exit(1)
+
+            solver_module.dry_run(model)
+        else:
+            solver_module.run(model)
 
 def iterate_value(arg):
 

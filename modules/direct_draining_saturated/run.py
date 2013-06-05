@@ -344,3 +344,6 @@ solve_direct = solve  # to remove warning about 'solve_direct' not specified
 
 def run(model):
     show_results(model.experiment_info, model=model)
+
+def dry_run(model):
+    show_results(model.experiment_info, model=model)
