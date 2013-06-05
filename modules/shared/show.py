@@ -516,6 +516,10 @@ def linestyles_post_update(styles):
         else:
             width = 1
 
+        if 'symbolsize' in line_styles:
+            symbolsize = line_styles['symbolsize']
+        else:
+            symbolsize = None
         # Process line order
         if 'order' in line_styles:
             lines_order[line_id] = line_styles['order']
@@ -540,7 +544,8 @@ def linestyles_post_update(styles):
             else:
                 lineopt = default_lineopt
 
-            line_styles[fig_id] = {'lineopt': lineopt, 'label': label, 'width': width}
+            line_styles[fig_id] = {'lineopt': lineopt, 'label': label, 'width': width,
+                            'symbolsize': symbolsize}
 
     ordered_lines = list(sorted(lines_order, key=lines_order.__getitem__))
     styles['lines_order'] = ordered_lines
@@ -730,6 +735,7 @@ class DPlots():
                 line_label = figure_data['label']
                 plot_style = figure_data['lineopt']
                 width = figure_data['width']
+                symbolsize = figure_data['symbolsize']
 
                 xcoef = get_unit_coef(xunit)
                 ycoef = get_unit_coef(yunit)
@@ -741,11 +747,20 @@ class DPlots():
                     for ind in range(len(xdata[0])):
                         entryx = xdata[:, ind]
                         entryy = ydata[:, ind]
-                        plt.plot(entryx, entryy, 
+                        if symbolsize:
+                            plt.plot(entryx, entryy, 
+                             figure_styles['ls'][ind%len(figure_styles['ls'])],
+                             linewidth=width, markersize=symbolsize)
+                        else:
+                            plt.plot(entryx, entryy, 
                              figure_styles['ls'][ind%len(figure_styles['ls'])],
                              linewidth=width)
                 else:
-                    plt.plot(xdata, ydata, plot_style, linewidth=width)
+                    if symbolsize:
+                        plt.plot(xdata, ydata, plot_style, linewidth=width,
+                                    markersize=symbolsize)
+                    else:
+                        plt.plot(xdata, ydata, plot_style, linewidth=width)
                 if type(line_label) == str:
                     plot_labels.append(line_label)
                 else:
