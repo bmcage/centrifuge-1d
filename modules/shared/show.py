@@ -530,6 +530,8 @@ def linestyles_post_update(styles):
         # Default lineopt
         if line_id == 'measured':
             default_lineopt = 'x'
+        elif line_id == 'original':
+            default_lineopt = '-'
         else:
             default_lineopt = '.'
 
