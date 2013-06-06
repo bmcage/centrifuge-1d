@@ -48,6 +48,18 @@ class SC_base():
 
         return (p, theta)
 
+    def retention_curve_u(self, h=None, p=None, g=None, rho=None):
+        """ Retention curve in terms of relative saturation u. """
+
+        if (p is None) and (h is None):
+            assert (g is not None) and (rho is not None)
+            p = P_DEFAULT
+
+        if h is None:
+            h = -10.0* p /rho / g
+
+        return (h, self.h2u(h))
+
     def conductivity_curve(self, Ks, theta_s, theta_r=0.0, u=None, p=None,
                            h=None, rho=None, g=None):
         """

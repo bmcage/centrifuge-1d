@@ -54,7 +54,8 @@ DG_AXES_LABELS = \
                               dg_unit_time_length),
                'theta': (("Water content $\\theta${}", "Pressure $p$ [{}]"),
                          ('none', 'pressure')),
-               'relsat': (("Effective saturation $S_e${}", "Hydraulic head $h$ [{}]"),
+               'relsat': (("Effective saturation $S_e${}",
+                           "Negative hydraulic head $h$ [{}]"),
                           ('none', 'length')),
                'K':  (("Water content $\\theta${}",
                        "Hydraulic conductivity $K(\\theta)$ [{}]"),
@@ -160,6 +161,8 @@ class DataStorage():
 
                 (p, theta) = SC.retention_curve(theta_s, model.density, model.g,
                                                 theta_r=theta_r)
+                (rc_h, rc_u) = SC.retention_curve_u(g=model.g,
+                                                    rho=model.density)
 
                 if hasattr(model, 'p') or hasattr(model, 'pc'):
                     if hasattr(model, 'p'):
@@ -170,10 +173,15 @@ class DataStorage():
                     (p_user, theta_user) = \
                       SC.retention_curve(theta_s, model.density, model.g,
                                          theta_r=theta_r, p=p_meas)
+                    (rc_h_user, rc_u_user) = \
+                      SC.retention_curve_u(g=model.g, rho=model.density,
+                                           p=p_meas)
 
-                    data['theta'] = (p, theta, theta_user)
+                    data['theta']  = (p, theta, p_user, theta_user)
+                    data['relsat'] = (-rc_h, rc_u, -rc_h_user, rc_u_user)
                 else:
-                    data['theta'] = (p, theta)
+                    data['theta']  = (p, theta)
+                    data['relsat'] = (rc_h, rc_u)
 
                 K = SC.conductivity_curve(model.ks, theta_s,
                                           theta_r=theta_r, g=model.g,
@@ -448,7 +456,7 @@ def mk_figurestyles(fig_id):
     if fig_id in ['h', 'u']:
         figure_styles['legend_title'] = 'Time [min]'
 
-    elif fig_id == 'theta':
+    elif fig_id in ['theta', 'relsat']:
         figure_styles['yscale'] = 'log'
         figure_styles['legend_loc'] = 1
 
@@ -541,7 +549,8 @@ def linestyles_post_update(styles):
                 lineopt = line_styles[fig_id]
             elif fig_id in ('h', 'u'):
                 lineopt = '-'
-            elif (fig_id == 'theta') and (not line_id == 'measured'):
+            elif ((fig_id in ['theta', 'relsat'])
+                  and (not line_id == 'measured')):
                 lineopt = '-'
             else:
                 lineopt = default_lineopt
@@ -619,7 +628,7 @@ def mk_figures(data, styles):
                 line_style['label'] = \
                   ['% 6d' % (ti/60.) for ti in line_value[2]]
 
-            if fig_id == 'theta':
+            if fig_id in ['theta', 'relsat']:
                 item = {'xdata': ydata, 'ydata': xdata}
             else:
                 item = {'xdata': xdata, 'ydata': ydata}
