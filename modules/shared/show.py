@@ -183,10 +183,11 @@ class DataStorage():
                     data['theta']  = (p, theta)
                     data['relsat'] = (rc_h, rc_u)
 
-                K = SC.conductivity_curve(model.ks, theta_s,
-                                          theta_r=theta_r, g=model.g,
-                                          rho=model.density)
-                data['K'] = K
+                if hasattr(model, 'ks'):
+                    K = SC.conductivity_curve(model.ks, theta_s,
+                                              theta_r=theta_r, g=model.g,
+                                              rho=model.density)
+                    data['K'] = K
 
             self._data['lines'][ID] = data
             self.store('experiment_info', model.experiment_info)
