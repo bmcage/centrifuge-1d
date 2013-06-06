@@ -557,7 +557,7 @@ def linestyles_post_update(styles):
                 lineopt = default_lineopt
 
             line_styles[fig_id] = {'lineopt': lineopt, 'label': label, 'width': width,
-                            'symbolsize': symbolsize}
+                                   'symbolsize': symbolsize}
 
     ordered_lines = list(sorted(lines_order, key=lines_order.__getitem__))
     styles['lines_order'] = ordered_lines
