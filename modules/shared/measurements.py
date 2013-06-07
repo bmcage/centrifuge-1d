@@ -29,6 +29,75 @@ def same_value(item):
 
     return ref
 
+def determine_WR_tara(cfg, measurements):
+    WR_tara_gF = {}
+
+    g = cfg.get_value('g')
+
+    for F_name in ('gF_MT', 'gF_MO'):
+        if not F_name in measurements: continue
+
+        # Determine the influence of tara
+        gF_tara_calibration = cfg.get_value(F_name.lower() + '_tara')
+
+        if gF_tara_calibration is None: continue
+
+        (omega_rpm, gF_tara) = gF_tara_calibration
+        omega_radps = rpm2radps(omega_rpm)
+        # Centrifugal force = F = M omega^2 r,
+        # sensor gives us m kg, so F = m g, with m measurement
+        # M r = m g/ omega^2
+        WR_tara = gF_tara * g / omega_radps / omega_radps
+
+        if F_name == 'gF_MT':
+
+            # as extra we need to subtract the water inside the tube
+            extra_values = {}
+
+            for name in ('porosity', 'fl1', 'fl2', 'fp1', 'fp2'):
+                extra_values[name] = cfg.get_value(name)
+
+                if not np.isscalar(extra_values[name]):
+                    print(name+' has to be scalar to compute gF_MT. Aborting.')
+                    exit(1)
+
+            for name in ('wl0', 'l0', 're'):
+                value = cfg.get_value(name)
+                if value is None:
+                    extra_values[name] = 0.0
+                elif np.isscalar(value):
+                    extra_values[name] = value
+                else:
+                    extra_values[name] = value[0]
+
+            (rE, l0)   = (extra_values['re'], extra_values['l0'])
+            (fl1, fl2) = (extra_values['fl1'], extra_values['fl2'])
+            r0 = rE - fl2 - l0 - fl1
+            wl0 = extra_values['wl0']
+
+            liq_dens = cfg.get_value('density')
+            WR_fluid = (extra_values['porosity']
+                        * calc_sat_force(r0+fl1, rE-fl2, liq_dens))
+            if wl0 > 0.0:
+                WR_fluid += wl0 * (r0 - wl0/2.0)
+            if fl1 > 0.0:
+                WR_fluid += (extra_values['fp1']
+                             * calc_sat_force(r0, r0+fl1, liq_dens))
+            if fl2 > 0.0:
+                WR_fluid += (extra_values['fp2']
+                             * calc_sat_force(rE-fl2, rE, liq_dens))
+
+            tube_area = np.power(cfg.get_value('tube_diam')/2, 2) * np.pi
+            WR_fluid *= tube_area
+            # WR_fluid =  gF_fluid * g/(omega_radps^2)
+            # Hence:
+            # WR_tara = (gF_tara - gF_fluid) * g / (omega_radps^2)
+            WR_tara = WR_tara - WR_fluid
+
+        WR_tara_gF[F_name] = WR_tara
+
+    return WR_tara_gF
+
 def determine_measurements_scans(cfg):
     """
       Determine scans of times at which measurements were taken.
@@ -281,63 +350,10 @@ class Measurements():
         #           - if calibration curve present, use directly force as
         #              measurement, otherwise use difference between two
         #              subsequent force measurements
-        g = cfg.get_value('g')
         filter_idxs = np.asarray(scans[1:], dtype=int)
+
         for F_name in ('gF_MT', 'gF_MO'):
             if F_name in measurements:
-
-                # Determine the influence of tara
-                gF_tara_calibration = cfg.get_value(F_name.lower() + '_tara')
-                if not gF_tara_calibration is None:
-                    (omega_rpm, gF_tara) = gF_tara_calibration
-                    omega_radps = rpm2radps(omega_rpm)
-                    # Centrifugal force = F = M omega^2 r,
-                    # sensor gives us m kg, so F = m g, with m measurement
-                    # M r = m g/ omega^2
-                    WR_tara = gF_tara * g / omega_radps / omega_radps
-
-                    if F_name == 'gF_MT':
-                        # as extra we need to subtract the water inside the tube
-                        extra_values = {}
-                        for name in ('porosity', 'fl1', 'fl2', 'fp1', 'fp2'):
-                            extra_values[name] = cfg.get_value(name)
-                            if not np.isscalar(extra_values[name]):
-                                print(name + ' has to be scalar to compute '
-                                      'gF_MT. Aborting.')
-                                exit(1)
-                        for name in ('wl0', 'l0', 're'):
-                            value = cfg.get_value(name)
-                            if value is None:
-                                extra_values[name] = 0.0
-                            elif np.isscalar(value):
-                                extra_values[name] = value
-                            else:
-                                extra_values[name] = value[0]
-
-                        (rE, l0)   = (extra_values['re'], extra_values['l0'])
-                        (fl1, fl2) = (extra_values['fl1'], extra_values['fl2'])
-                        r0 = rE - fl2 - l0 - fl1
-                        wl0 = extra_values['wl0']
-
-                        liq_dens = cfg.get_value('density')
-                        WR_fluid = (extra_values['porosity']
-                                    * calc_sat_force(r0+fl1, rE-fl2, liq_dens))
-                        if wl0 > 0.0:
-                            WR_fluid += wl0 * (r0 - wl0/2.0)
-                        if fl1 > 0.0:
-                            WR_fluid += (extra_values['fp1']
-                                         * calc_sat_force(r0, r0+fl1, liq_dens))
-                        if fl2 > 0.0:
-                            WR_fluid += (extra_values['fp2']
-                                         * calc_sat_force(rE-fl2, rE, liq_dens))
-                        tube_area = np.power(cfg.get_value('tube_diam')/2, 2) * np.pi
-                        WR_fluid *= tube_area
-                        # WR_fluid =  gF_fluid * g/(omega_radps^2)
-                        # Hence:
-                        # WR_tara = (gF_tara - gF_fluid) * g / (omega_radps^2)
-                        WR_tara = WR_tara - WR_fluid
-
-                    self.WR_tara[F_name] = WR_tara
 
                 # Process the force measurements
                 F  = measurements[F_name]
@@ -403,6 +419,7 @@ class Measurements():
         self._times                = t
         self._measurements_nr      = np.alen(t)
         self._weights              = None # weights as numpy array
+        self.WR_tara[F_name]       = determine_WR_tara(cfg, measurements)
 
         # 5. scaling measurements
         self._scales_coefs = cfg.get_value('measurements_scale_coefs')
