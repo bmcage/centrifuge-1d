@@ -275,6 +275,63 @@ def apply_smoothing(cfg, measurements, measurements_xvalues, scans):
 
     return (original_measurements, original_measurements_xvalues)
 
+def filter_measurements(cfg, measurements, measurements_xvalues):
+    mfilters = cfg.get_value('measurements_filter')
+    cfg.del_value('measurements_filter')
+
+    if not type(mfilters) is dict:
+        return
+
+    for (name, mfilter) in mfilters.items():
+
+        if not name in measurements:
+            continue
+
+        measurements[name] = np.delete(measurements[name], mfilter)
+
+def apply_calibration_curve(cfg, measurements, phases_scans):
+    """
+      Calibration curve sets the base level for measured force.
+    """
+
+    omegas = cfg.get_value('omega')
+
+    for name in ('gF_MT', 'gF_MO'):
+        # for now calibration curve only for gF_* is supported
+
+        calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[name]
+                                          + '_calibration_curve')
+        if calibration_curve is None:
+            continue
+
+        elif np.isscalar(calibration_curve):
+            measurements[name] -= calibration_curve
+
+        elif type(calibration_curve) is dict:
+            first_idx = 0
+            F = measurements[name]
+
+            # phases_scans = [0.0, phase1_end, phase2_end, ...]
+            for (phase_end, omega) in zip(phases_scans[1:], omegas):
+                if not omega in calibration_curve:
+                    print('Value of omega=' + str(omega) + ' not '
+                          'found in ' + name + '_calibration'
+                          '_curve. Cannot proceed, exiting.')
+                    exit(1)
+
+                base_weight = calibration_curve[omega]
+                F[first_idx: phase_end+1] -= base_weight
+
+                first_idx = phase_end+1
+
+            measurements[name] = F
+
+        else:
+            # type(calibration_curve) == list:
+            calibration_curve   = np.asarray(calibration_curve, dtype=float)
+            measurements[name] -= calibration_curve
+
+
 class Measurements():
     """
     This class is for handling with measurements of all types - measured data
@@ -367,62 +424,17 @@ class Measurements():
         (self._original_measurements,  self._original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues, scans)
 
-        #    c) postprocessing MO: MO is a cumulative value
+        #    c) Adapt MO: MO is a cumulative value
         if 'MO' in measurements:
             measurements['MO'] = np.cumsum(measurements['MO'])
 
-        #    d) postprocessing gF_MO, gF_MT:
-        #           - filter out values outside the measured times
-        #           - if calibration curve present, use directly force as
-        #              measurement, otherwise use difference between two
-        #              subsequent force measurements
-        filter_idxs = np.asarray(scans[1:], dtype=int)
+        #    d) Apply calibration curve
+        apply_calibration_curve(cfg, measurements, phases_scans)
 
-        for F_name in ('gF_MT', 'gF_MO'):
-            if F_name in measurements:
+        #    e) Filter out unwanted measurements
+        filter_measurements(cfg, measurements, measurements_xvalues)
 
-                # Process the force measurements
-                F  = measurements[F_name]
-
-                # Leave only values at desired point (t_meas)
-                F_filter = F[filter_idxs]
-
-                calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[F_name]
-                                                  + '_calibration_curve')
-                if calibration_curve is None:
-                    measurements_diff.append(F_name)
-
-                elif np.isscalar(calibration_curve):
-                    F_filter -= calibration_curve
-                    F = F_filter
-
-                elif type(calibration_curve) is dict:
-                    first_idx = 0
-                    omegas = cfg.get_value('omega')
-
-                    # phases_scans = [0.0, phase1_end, phase2_end, ...]
-                    for (phase_end, omega) in zip(phases_scans[1:], omegas):
-                        if not omega in calibration_curve:
-                            print('Value of omega=' + str(omega) + ' not '
-                                  'found in ' + F_name + '_calibration'
-                                  '_curve. Cannot proceed, exiting.')
-                            exit(1)
-
-                        base_weight = calibration_curve[omega]
-                        F[first_idx: phase_end+1] -= base_weight
-
-                        first_idx = phase_end+1
-
-                    F_filter = F[filter_idxs]
-                else:
-                    # type(calibration_curve) == list:
-                    calibration_curve = np.asarray(calibration_curve,
-                                                   dtype=float)
-                    F_filter -= calibration_curve
-
-                measurements[F_name] = F_filter
-
-        #    d) theta uses pressure as x-value (and not time)
+        #    f) theta uses pressure as x-value (and not time)
         if 'theta' in measurements:
             measurements_xvalues['theta'] = np.asarray(cfg.get_value('p'),
                                                        dtype=float)
