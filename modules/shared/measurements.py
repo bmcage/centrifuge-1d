@@ -324,18 +324,42 @@ def apply_smoothing(cfg, measurements, measurements_xvalues, scans):
     return (original_measurements, original_measurements_xvalues)
 
 def filter_measurements(cfg, measurements, measurements_xvalues):
-    mfilters = cfg.get_value('measurements_filter')
-    cfg.del_value('measurements_filter')
+    kfilters = cfg.get_value('measurements_keep')
+    rfilters = cfg.get_value('measurements_remove')
+    cfg.del_value('measurements_keep')
+    cfg.del_value('measurements_remove')
 
-    if not type(mfilters) is dict:
+    if not kfilters:
+        kfilters = {}
+    if not rfilters:
+        rfilters = {}
+
+    if (not kfilters) and (not rfilters):
         return
 
-    for (name, mfilter) in mfilters.items():
+    if (not type(kfilters) is dict) or (not type(rfilters) is dict):
+        print("Measurements filters 'measurements_keep' and "
+              "'measurements_remove' must be of type dict."
+              "\nCannot continue, exiting...")
+        exit(1)
 
-        if not name in measurements:
+    for name in measurements.keys():
+        if (not name in kfilters) and (not name in rfilters):
             continue
 
-        measurements[name] = np.delete(measurements[name], mfilter)
+        filter_idxs = np.ones(measurements[name].shape, dtype=bool)
+
+        if name in kfilters:
+            kfilter = np.asarray(flatten(kfilters[name]),
+                                 dtype=float)
+            filter_idxs[~kfilter] = false
+
+        if name in rfilters:
+            rfilter = np.asarray(flatten(rfilters[name]),
+                                 dtype=float)
+            filter_idxs[rfilter] = false
+
+        measurements[name] = measurements[name][filter_idxs]
 
 def apply_calibration_curve(cfg, measurements, phases_scans):
     """
