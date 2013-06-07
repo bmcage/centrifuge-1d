@@ -101,12 +101,15 @@ def determine_WR_tara(cfg, measurements):
 
     return WR_tara_gF
 
-def determine_measurements_scans(cfg):
+def determine_measurements(cfg):
     """
-      Determine scans of times at which measurements were taken.
-      This also determines when measurements should be computed.
+      Determine the measurements and their xvalues (which in most cases
+      are times at which measurements were taken).
     """
     from modules.shared.functions import phases_end_times
+
+    measurements         = OrderedDict()
+    measurements_xvalues = OrderedDict()
 
     phases_scans = \
         phases_end_times(cfg.get_value('duration', not_found=None),
@@ -115,33 +118,78 @@ def determine_measurements_scans(cfg):
                          cfg.get_value('include_acceleration', not_found=True))
 
     if phases_scans is None:
-        print("\nPhases scand could not be determined. Were "
+        print("\nPhases scans could not be determined. Were "
               "'duration'/'fh_duration'/'deceleration_duration' "
               "set properly?\n Cannot continue, exiting...")
         exit(1)
 
-    if cfg.get_value('measurements_times'):
-        scans = np.asarray(flatten(cfg.get_value('measurements_times')),
-                           dtype=float)
-        if not scans[0] == 0.0:
-            scans = np.concatenate(([0.0], scans))
+    # determine default xvalue when none specified
+    xvalues = cfg.get_value('measurements_xvalues')
+    cfg.del_value('measurements_xvalues') # could exist (e.g. set to "None")
+
+    if xvalues is None:
+        default_xvalue = phases_scans[1:]
+        xvalues = {}
+    elif type(xvalues) is dict:
+        default_xvalue = phases_scans[1:]
     else:
-        scans = phases_scans
+        default_xvalue = np.asarray(xvalues, dtype=float)
+        xvalues = {}
 
-    cfg.del_value('measurements_times') # could have been set to "None"
+    # make sure xvalues are numpy arrays
+    for (name, value) in xvalues.items():
+        xvalues[name] = np.asarray(value, dtype=float)
 
-    scan_span = float(cfg.get_value('scan_span', not_found=1.0))
+    # determine xvalues_spans
+    xvalues_span = cfg.get_value('measurements_xvalues_span')
+    if type(xvalues_span) is dict:
+        xvalue_span_default = 1.0
+    elif np.isscalar(xvalues_span)  == 1.0:
+        xvalue_span_default = xvalues_span
+        xvalues_span = {}
+    elif xvalues_span is None:
+        xvalue_span_default = 1.0
+        xvalues_span = {}
+    else:
+        print("Wrong value: 'xvalues_span' must be either a float or dict "
+              "of floats: ", xvalues_span, "\nCannot continue, exiting...")
+        exit(1)
 
-    # adjust durations accordingly to scan_span
-    if scan_span != 1.0:
-        for name in ('duration', 'fh_duration', 'deceleration_duration'):
-            duration = scan_span * np.asarray(cfg.get_value(name),
-                                              dtype=float)
-            if not np.alen(duration) > 0:
-                duration = list(duration)
-            cfg.set_value(name, duration)
+    # assign measurements and xvalues
+    for (name, iname) in MEASUREMENTS_NAMES.items():
+        value = cfg.get_value(iname)
 
-    return (phases_scans, scans, scan_span)
+        cfg.del_value(iname) # remove from cfg
+
+        if value is None:
+             continue
+        elif type(value) in [int, float]:
+            value = (value, )
+
+        value = np.asarray(value, dtype=float)
+        measurements[name] = value
+
+        if name in xvalues:
+            measurements_xvalues[name] = xvalues[name]
+        else:
+            measurements_xvalues[name] = default_xvalue
+
+        if name in xvalues_span:
+            xvalue_span = xvalues_span[name]
+        else:
+            xvalue_span = xvalue_span_default
+
+        if xvalue_span != 1.0:
+            measurements_xvalues[name] *= xvalue_span
+
+        if not np.alen(value) == np.alen(measurements_xvalues[name]):
+            print("The length of measurement '" + name + "' ("
+                  + str(np.alen(value)) + ") has to be the same as it's xvalue "
+                  "(" + str(np.alen(measurements_xvalues[name])) + ")."
+                  "\nCannot continue, exiting...")
+            exit(1)
+
+    return (phases_scans, measurements, measurements_xvalues)
 
 def determine_weights(cfg, measurements, measurements_diff):
     measurements_weights = {}
@@ -392,35 +440,19 @@ class Measurements():
         information - measurements times, weights and scaling.
         """
 
-
-        measurements = self._measurements
-        measurements_xvalues = self._measurements_xvalues
         measurements_diff    = self._measurements_diff
 
         # 0. Determine whether we run direct or inverse problem
         self.run_inverse_problem_p(cfg.get_value('inv_init_params'))
 
         # 1. determine measurements times
-        [phases_scans, scans, scan_span] = determine_measurements_scans(cfg)
+        [phases_scans, measurements, measurements_xvalues] = \
+          determine_measurements(cfg)
 
         t = scans * scan_span   # actual times of measurements
         t_meas = t[1:]
 
-        # 2. a) determine measured data
-        for (name, iname) in MEASUREMENTS_NAMES.items():
-            value = cfg.get_value(iname, not_found=None)
-            if value == None: continue
-
-            if type(value) in [int, float]: value = (value, )
-
-            value = np.asarray(value, dtype=float)
-
-            measurements[name] = value
-            measurements_xvalues[name] = t_meas
-
-            cfg.del_value(iname) # remove from cfg
-
-        #    b) Apply smoothing
+        # 2. a) Apply smoothing
         (self._original_measurements,  self._original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues, scans)
 
