@@ -40,7 +40,10 @@ def determine_WR_tara(cfg, measurements):
         # Determine the influence of tara
         gF_tara_calibration = cfg.get_value(F_name.lower() + '_tara')
 
-        if gF_tara_calibration is None: continue
+        if gF_tara_calibration is None:
+            print("Tara calibration curve '" + F_name.lower() + "_tara""' "
+                  "was not specified. Computation cannot continue. Exiting...")
+            exit(0)
 
         (omega_rpm, gF_tara) = gF_tara_calibration
         omega_radps = rpm2radps(omega_rpm)
@@ -234,7 +237,7 @@ class Measurements():
         self._measurements_nr = -1 # i.e. length(self._times)
 
         # Radius * weight of tara (R is at the gravitational centre)
-        self.WR_tara = {} # {'gF_MO': None, 'gF_MT': None}
+        self._WR_tara = {} # {'gF_MO': None, 'gF_MT': None}
 
         # Measurements scales
         self._scales_coefs = None
@@ -419,7 +422,7 @@ class Measurements():
         self._times                = t
         self._measurements_nr      = np.alen(t)
         self._weights              = None # weights as numpy array
-        self.WR_tara[F_name]       = determine_WR_tara(cfg, measurements)
+        self._WR_tara               = determine_WR_tara(cfg, measurements)
 
         # 5. scaling measurements
         self._scales_coefs = cfg.get_value('measurements_scale_coefs')
@@ -621,9 +624,9 @@ class Measurements():
             else:
                 for name in ('gF_MO', 'gF_MT'):
                     if name in measurements:
-                        assert name in self.WR_tara
+                        assert name in self._WR_tara
                         omega2g = determine_omega2g(model, xvalues[name])
-                        measurements[name] -= omega2g * self.WR_tara[name]
+                        measurements[name] -= omega2g * self._WR_tara[name]
                 self._original_already_shifted = True
         else:
             measurements = self._measurements
@@ -833,9 +836,9 @@ class Measurements():
 
         F = omega2g * GC * mo
 
-        if 'gF_MO' in self.WR_tara:
+        if 'gF_MO' in self._WR_tara:
             self.store_calc_measurement('gF_MO_tara',
-                                        omega2g * self.WR_tara['gF_MO'])
+                                        omega2g * self._WR_tara['gF_MO'])
 
         return self.store_calc_measurement('gF_MO', F)
 
@@ -885,9 +888,9 @@ class Measurements():
                         soil_porosity, fl2, fp2, fr2, fluid_density)
              * omega2g * tube_area)
 
-        if 'gF_MT' in self.WR_tara:
+        if 'gF_MT' in self._WR_tara:
             self.store_calc_measurement('gF_MT_tara',
-                                        omega2g * self.WR_tara['gF_MT'])
+                                        omega2g * self._WR_tara['gF_MT'])
 
         return self.store_calc_measurement('gF_MT', F)
 
