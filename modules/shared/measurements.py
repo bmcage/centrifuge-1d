@@ -141,7 +141,7 @@ def determine_measurements_scans(cfg):
                 duration = list(duration)
             cfg.set_value(name, duration)
 
-    return (scans, scan_span)
+    return (phases_scans, scans, scan_span)
 
 def determine_weights(cfg, measurements, measurements_diff):
     measurements_weights = {}
@@ -344,7 +344,7 @@ class Measurements():
         self.run_inverse_problem_p(cfg.get_value('inv_init_params'))
 
         # 1. determine measurements times
-        [scans, scan_span] = determine_measurements_scans(cfg)
+        [phases_scans, scans, scan_span] = determine_measurements_scans(cfg)
 
         t = scans * scan_span   # actual times of measurements
         t_meas = t[1:]
