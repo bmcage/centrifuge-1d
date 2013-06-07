@@ -184,7 +184,7 @@ class DataStorage():
                     data['relsat'] = (-rc_h, rc_u, -rc_h_user, rc_u_user)
                 else:
                     data['theta']  = (p, theta)
-                    data['relsat'] = (rc_h, rc_u)
+                    data['relsat'] = (-rc_h, rc_u)
 
                 if hasattr(model, 'ks'):
                     K = SC.conductivity_curve(model.ks, theta_s,
