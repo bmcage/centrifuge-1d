@@ -203,6 +203,78 @@ def determine_weights(measurements, measurements_diff, cfg):
 
     return measurements_weights
 
+def apply_smoothing(cfg, measurements, measurements_xvalues, scans):
+    """
+      Apply smoothing on measurements and return original (non-smoothed) values.
+      Excessive values of original measurements out of measurements range are
+      truncated.
+    """
+    m_first_idx = scans[1]  # scan[0] == 0.0
+    m_last_idx  = scans[-1]
+
+    original_measurements = {}
+    original_measurements_xvalues = {}
+
+    smoothing = cfg.get_value('smoothing')
+
+    if smoothing and (not type(smoothing) == dict):
+        print('Smoothing has do be a dict where key is measurement'
+              'name and value is smoothing algorithm to be used.',
+              '\nCurrent value: ', smoothing,
+              '\n\nCannot continue, exiting...')
+        exit(0)
+
+    if not smoothing:
+        return ({}, {}) # nothing was smoothed
+
+    for (name, sm_opts) in smoothing.items():
+        if not name in measurements:
+            continue
+
+        if type(sm_opts) == str:
+            sm_opts = {'name': sm_opts}
+        elif not type(sm_opts) is dict:
+            print('The value in smoothing has to be either string ',
+                  'of used method, or dict. Current value: ', sm_opts,
+                  '\nExiting...')
+            exit(0)
+
+        sm_alg    = None
+        sm_degree = 5
+
+        for (sm_key, sm_value) in sm_opts.items():
+            if sm_key == 'name':
+                sm_alg = sm_value
+            elif sm_key == 'degree':
+                sm_degree = sm_value
+            else:
+                print('Unknown option for smoothing:', sm_key,
+                      'Exiting...')
+                exit(0)
+
+        if not sm_alg: continue
+
+        # store old (original) values (and truncate values out of range)
+        value  = measurements[name]
+        xvalue = measurements_xvalues[name]
+        original_measurements[name]   = value[m_first_idx:m_last_idx+1]
+        original_measurements_xvalues = xvalue[m_first_idx:m_last_idx+1]
+
+        # ...and save smoothed values
+        if sm_alg == 'smlin': # linear smoothing
+            value = smoothing_linear(value, sm_degree)
+        elif sm_alg == 'smtri': # triangular smoothing
+            value = smoothing_triangle(value, sm_degree)
+        elif sm_alg == 'smgau': # gaussian smoothing
+            value = smoothing_gaussian(value, sm_degree)
+        else:
+            print('Unknown smoothing value:', sm_alg,  'for key:', name)
+            exit(0)
+
+        measurements[name] = value
+
+    return (original_measurements, original_measurements_xvalues)
+
 class Measurements():
     """
     This class is for handling with measurements of all types - measured data
@@ -274,22 +346,10 @@ class Measurements():
         # 1. determine measurements times
         [scans, scan_span] = determine_measurements_scans(cfg)
 
-        m_first_idx = scans[1]  # scan[0] == 0.0
-        m_last_idx  = scans[-1]
         t = scans * scan_span   # actual times of measurements
         t_meas = t[1:]
 
         # 2. a) determine measured data
-        smoothing = cfg.get_value('smoothing', not_found={})
-        if smoothing and (not type(smoothing) == dict):
-            print('Smoothing has do be a dict where key is measurement'
-                  'name and value is smoothing algorithm to be used.',
-                  '\nCurrent value: ', smoothing,
-                  '\n\nCannot continue, exiting...')
-            exit(0)
-        elif not smoothing:
-            smoothing = {} # make sure it's dict
-
         for (name, iname) in MEASUREMENTS_NAMES.items():
             value = cfg.get_value(iname, not_found=None)
             if value == None: continue
@@ -298,57 +358,20 @@ class Measurements():
 
             value = np.asarray(value, dtype=float)
 
-            if name in smoothing:
-                sm_opts = smoothing[name]
-
-                if type(sm_opts) == str:
-                    sm_opts = {'name': sm_opts}
-                elif not type(sm_opts) is dict:
-                    print('The value in smoothing has to be either string ',
-                          'of used method, or dict. Current value: ', sm_opts,
-                          '\nExiting...')
-                    exit(0)
-
-                sm_alg    = None
-                sm_degree = 5
-
-                for (sm_key, sm_value) in sm_opts.items():
-                    if sm_key == 'name':
-                        sm_alg = sm_value
-                    elif sm_key == 'degree':
-                        sm_degree = sm_value
-                    else:
-                        print('Unknown option for smoothing:', sm_key,
-                              'Exiting...')
-                        exit(0)
-
-                if not sm_alg: continue
-
-                # store untransformed value
-                self._original_measurements[name] = value
-                self._original_measurements_xvalues[name] = \
-                  scan_span * np.arange(0, np.alen(value))
-
-                if sm_alg == 'smlin': # linear smoothing
-                    value = smoothing_linear(value, sm_degree)
-                elif sm_alg == 'smtri': # triangular smoothing
-                    value = smoothing_triangle(value, sm_degree)
-                elif sm_alg == 'smgau': # gaussian smoothing
-                    value = smoothing_gaussian(value, sm_degree)
-                else:
-                    print('Unknown smoothing value:', sm_alg,  'for key:', name)
-                    exit(0)
-
             measurements[name] = value
             measurements_xvalues[name] = t_meas
 
             cfg.del_value(iname) # remove from cfg
 
-        #    b) postprocessing MO: MO is a cumulative value
+        #    b) Apply smoothing
+        (self._original_measurements,  self._original_measurements_xvalues) = \
+            apply_smoothing(cfg, measurements, measurements_xvalues, scans)
+
+        #    c) postprocessing MO: MO is a cumulative value
         if 'MO' in measurements:
             measurements['MO'] = np.cumsum(measurements['MO'])
 
-        #    c) postprocessing gF_MO, gF_MT:
+        #    d) postprocessing gF_MO, gF_MT:
         #           - filter out values outside the measured times
         #           - if calibration curve present, use directly force as
         #              measurement, otherwise use difference between two
@@ -363,15 +386,6 @@ class Measurements():
 
                 # Leave only values at desired point (t_meas)
                 F_filter = F[filter_idxs]
-
-                if F_name in self._original_measurements:
-                    orig_value  = self._original_measurements[F_name]
-                    orig_xvalue = self._original_measurements_xvalues[F_name]
-
-                    self._original_measurements[F_name] = \
-                      orig_value[m_first_idx:m_last_idx+1]
-                    self._original_measurements_xvalues[F_name] = \
-                      orig_xvalue[m_first_idx:m_last_idx+1]
 
                 calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[F_name]
                                                   + '_calibration_curve')
