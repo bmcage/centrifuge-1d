@@ -796,13 +796,13 @@ class DPlots():
             if figure_styles['yscale']:
                 plt.yscale(figure_styles['yscale'])
 
-            if figure_styles['xmin']:
+            if np.isscalar(figure_styles['xmin']):
                 plt.xlim(xmin=figure_styles['xmin'])
-            if figure_styles['xmax']:
+            if np.isscalar(figure_styles['xmax']):
                 plt.xlim(xmax=figure_styles['xmax'])
-            if figure_styles['ymin']:
+            if np.isscalar(figure_styles['ymin']):
                 plt.ylim(ymin=figure_styles['ymin'])
-            if figure_styles['ymax']:
+            if np.isscalar(figure_styles['ymax']):
                 plt.ylim(ymax=figure_styles['ymax'])
 
             show_legend = figure_styles['show_legend']
