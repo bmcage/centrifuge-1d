@@ -60,6 +60,9 @@ DG_AXES_LABELS = \
                'K':  (("Water content $\\theta${}",
                        "Hydraulic conductivity $K(\\theta)$ [{}]"),
                       ('none', 'velocity')),
+               'K_u':  (("Effective saturation $S_e${}",
+                       "Hydraulic conductivity $K(S_e)$ [{}]"),
+                      ('none', 'velocity')),
                'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
                          ('time', 'force_kgp')),
                'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
@@ -70,7 +73,7 @@ DG_AXES_LABELS = \
                           ('time', 'force_kgp'))})
 
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
-            ('dgF_MT', 'dgF_MO'), ('s1', 's2'), ('theta', 'relsat'))
+            ('dgF_MT', 'dgF_MO'), ('s1', 's2'), ('theta', 'relsat'), ('K', 'K_u'))
 
 FIGURES_IDS = list(DG_AXES_LABELS.keys())
 
@@ -187,7 +190,12 @@ class DataStorage():
                     K = SC.conductivity_curve(model.ks, theta_s,
                                               theta_r=theta_r, g=model.g,
                                               rho=model.density)
+                    
+                    K_u = SC.conductivity_curve_u(model.ks, theta_s,
+                                              theta_r=theta_r, g=model.g,
+                                              rho=model.density)
                     data['K'] = K
+                    data['K_u'] = K_u
 
             self._data['lines'][ID] = data
             self.store('experiment_info', model.experiment_info)
@@ -461,7 +469,7 @@ def mk_figurestyles(fig_id):
         figure_styles['yscale'] = 'log'
         figure_styles['legend_loc'] = 1
 
-    elif fig_id == 'K':
+    elif fig_id in ['K', 'K_u']:
         figure_styles['yscale'] = 'log'
 
     return figure_styles
