@@ -206,7 +206,6 @@ class Measurements():
         m_last_idx  = scans[-1]
         t = scans * scan_span   # actual times of measurements
         t_meas = t[1:]
-        scans_meas = scans[1:]
 
         # 2. a) determine measured data
         smoothing = cfg.get_value('smoothing', not_found={})
@@ -283,8 +282,7 @@ class Measurements():
         #              measurement, otherwise use difference between two
         #              subsequent force measurements
         g = cfg.get_value('g')
-        if not scans_meas is None:
-            filter_idxs = np.asarray(scans_meas, dtype=int)
+        filter_idxs = np.asarray(scans[1:], dtype=int)
         for F_name in ('gF_MT', 'gF_MO'):
             if F_name in measurements:
 
