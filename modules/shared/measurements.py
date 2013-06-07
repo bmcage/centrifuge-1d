@@ -143,7 +143,7 @@ def determine_measurements_scans(cfg):
 
     return (scans, scan_span)
 
-def determine_weights(measurements, measurements_diff, cfg):
+def determine_weights(cfg, measurements, measurements_diff):
     measurements_weights = {}
 
     same_weights = True
@@ -428,8 +428,8 @@ class Measurements():
                                                        dtype=float)
 
         # 3. determine weights of measurements
-        self._measurements_weights = determine_weights(measurements,
-                                                       measurements_diff, cfg)
+        self._measurements_weights = determine_weights(cfg, measurements,
+                                                       measurements_diff)
 
         # 4. set remaining data to internal variables
         self._measurements_times   = t_meas
