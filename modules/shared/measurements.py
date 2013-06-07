@@ -29,6 +29,48 @@ def same_value(item):
 
     return ref
 
+def determine_measurements_scans(cfg):
+    """
+      Determine scans of times at which measurements were taken.
+      This also determines when measurements should be computed.
+    """
+    from modules.shared.functions import phases_end_times
+
+    phases_scans = \
+        phases_end_times(cfg.get_value('duration', not_found=None),
+                         cfg.get_value('deceleration_duration', not_found=None),
+                         cfg.get_value('fh_duration', not_found=None),
+                         cfg.get_value('include_acceleration', not_found=True))
+
+    if phases_scans is None:
+        print("\nPhases scand could not be determined. Were "
+              "'duration'/'fh_duration'/'deceleration_duration' "
+              "set properly?\n Cannot continue, exiting...")
+        exit(1)
+
+    if cfg.get_value('measurements_times'):
+        scans = np.asarray(flatten(cfg.get_value('measurements_times')),
+                           dtype=float)
+        if not scans[0] == 0.0:
+            scans = np.concatenate(([0.0], scans))
+    else:
+        scans = phases_scans
+
+    cfg.del_value('measurements_times') # could have been set to "None"
+
+    scan_span = float(cfg.get_value('scan_span', not_found=1.0))
+
+    # adjust durations accordingly to scan_span
+    if scan_span != 1.0:
+        for name in ('duration', 'fh_duration', 'deceleration_duration'):
+            duration = scan_span * np.asarray(cfg.get_value(name),
+                                              dtype=float)
+            if not np.alen(duration) > 0:
+                duration = list(duration)
+            cfg.set_value(name, duration)
+
+    return (scans, scan_span)
+
 def determine_weights(measurements, measurements_diff, cfg):
     measurements_weights = {}
 
@@ -149,7 +191,6 @@ class Measurements():
         information - measurements times, weights and scaling.
         """
 
-        from modules.shared.functions import phases_end_times
 
         measurements = self._measurements
         measurements_xvalues = self._measurements_xvalues
@@ -159,43 +200,13 @@ class Measurements():
         self.run_inverse_problem_p(cfg.get_value('inv_init_params'))
 
         # 1. determine measurements times
-        phases_scans = \
-          phases_end_times(cfg.get_value('duration', not_found=None),
-                           cfg.get_value('deceleration_duration', not_found=None),
-                           cfg.get_value('fh_duration', not_found=None),
-                           cfg.get_value('include_acceleration', not_found=True))
+        [scans, scan_span] = determine_measurements_scans(cfg)
 
-        if cfg.get_value('measurements_times'):
-            scans = np.asarray(flatten(cfg.get_value('measurements_times')),
-                           dtype=float)
-            if not scans[0] == 0.0:
-                scans = np.concatenate(([0.0], scans))
-        else:
-            scans = phases_scans
-
-        scan_span = float(cfg.get_value('scan_span', not_found=1.0))
-        if scan_span != 1.0:
-            for name in ('duration', 'fh_duration', 'deceleration_duration'):
-                duration = scan_span * np.asarray(cfg.get_value(name),
-                                                  dtype=float)
-                if not np.alen(duration) > 0:
-                    duration = list(duration)
-                cfg.set_value(name, duration)
-
-        if scans is None:
-            t = None
-            t_meas = None
-            scans_meas = None
-            m_first_idx = None
-            m_last_idx  = None
-        else:
-            m_first_idx = scans[1]
-            m_last_idx  = scans[-1]
-            t = scans * scan_span
-            t_meas = t[1:]
-            scans_meas = scans[1:]
-
-        cfg.del_value('measurements_times')
+        m_first_idx = scans[1]  # scan[0] == 0.0
+        m_last_idx  = scans[-1]
+        t = scans * scan_span   # actual times of measurements
+        t_meas = t[1:]
+        scans_meas = scans[1:]
 
         # 2. a) determine measured data
         smoothing = cfg.get_value('smoothing', not_found={})
