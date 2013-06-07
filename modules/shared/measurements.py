@@ -29,6 +29,66 @@ def same_value(item):
 
     return ref
 
+def determine_weights(measurements, measurements_diff, cfg):
+    measurements_weights = {}
+
+    same_weights = True
+    common_weight  = None
+
+    for name in measurements.keys():
+        iname_w = MEASUREMENTS_NAMES[name] + '_weights'
+        if name in measurements_diff:
+            iname_w = 'd' + iname_w
+
+        value_w = cfg.get_value(iname_w, not_found=1.0)
+        if not np.isscalar(value_w):
+            value_w = flatten(value_w)
+        cfg.del_value(iname_w)
+
+        if same_weights: # are all weights the same float/integer?
+            # (if yes, we don't have to preallocate array for each)
+            w_ref = same_value(value_w)
+            if w_ref is False:
+                same_weights = False
+            elif common_weight is None:
+                common_weight = w_ref
+            elif common_weight != w_ref:
+                same_weights = False
+
+        measurements_weights[name] = value_w
+
+    if same_weights:
+        measurements_weights = None
+    else:
+        for name in measurements_weights.keys():
+            value_w = measurements_weights[name]
+            value_m = measurements[name]
+
+            m_length = np.alen(value_m)
+            if name in measurements_diff:
+                m_length -= 1
+
+            if np.isscalar(value_w):
+                value_w = value_w * np.ones((1, m_length), dtype=float)
+            else:
+                value_w = np.asarray(value_w, dtype=float)
+
+                if not np.alen(value_w) == m_length:
+                    if name in measurements_diff:
+                        name = 'd' + name
+                        value_m = value_m[1:] - value_m[:-1]
+                    print('Length of measurements array and it''s weight '
+                          'has to be the same:\nMeasurement name: ', name,
+                          '\nMeasurements:\n  ', value_m,
+                          '\nWeights:\n  ', value_w,
+                          '\nLenghts: Measurements: ', m_length,
+                          '  Weights: ', np.alen(value_w))
+                    exit(1)
+
+            measurements_weights[name] = value_w
+
+    return measurements_weights
+
 class Measurements():
     """
     This class is for handling with measurements of all types - measured data
@@ -93,7 +153,6 @@ class Measurements():
 
         measurements = self._measurements
         measurements_xvalues = self._measurements_xvalues
-        measurements_weights = self._measurements_weights
         measurements_diff    = self._measurements_diff
 
         # 0. Determine whether we run direct or inverse problem
@@ -327,60 +386,8 @@ class Measurements():
                                                        dtype=float)
 
         # 3. determine weights of measurements
-        same_weights = True
-        common_weight  = None
-
-        for name in measurements.keys():
-            iname_w = MEASUREMENTS_NAMES[name] + '_weights'
-            if name in measurements_diff:
-                iname_w = 'd' + iname_w
-
-            value_w = cfg.get_value(iname_w, not_found=1.0)
-            if not np.isscalar(value_w):
-                value_w = flatten(value_w)
-            cfg.del_value(iname_w)
-
-            if same_weights: # are all weights the same float/integer?
-                # (if yes, we don't have to preallocate array for each)
-                w_ref = same_value(value_w)
-                if w_ref is False:
-                    same_weights = False
-                elif common_weight is None:
-                    common_weight = w_ref
-                elif common_weight != w_ref:
-                    same_weights = False
-
-            measurements_weights[name] = value_w
-
-        if same_weights:
-            self._measurements_weights = None
-        else:
-            for name in measurements_weights.keys():
-                value_w = measurements_weights[name]
-                value_m = measurements[name]
-
-                m_length = np.alen(value_m)
-                if name in measurements_diff:
-                    m_length -= 1
-
-                if np.isscalar(value_w):
-                    value_w = value_w * np.ones((1, m_length), dtype=float)
-                else:
-                    value_w = np.asarray(value_w, dtype=float)
-
-                    if not np.alen(value_w) == m_length:
-                        if name in measurements_diff:
-                            name = 'd' + name
-                            value_m = value_m[1:] - value_m[:-1]
-                        print('Length of measurements array and it''s weight '
-                              'has to be the same:\nMeasurement name: ', name,
-                              '\nMeasurements:\n  ', value_m,
-                              '\nWeights:\n  ', value_w,
-                              '\nLenghts: Measurements: ', m_length,
-                              '  Weights: ', np.alen(value_w))
-                        exit(1)
-
-                measurements_weights[name] = value_w
+        self._measurements_weights = determine_weights(measurements,
+                                                       measurements_diff, cfg)
 
         # 4. set remaining data to internal variables
         self._measurements_times   = t_meas
