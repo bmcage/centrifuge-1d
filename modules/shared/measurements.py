@@ -305,9 +305,18 @@ def apply_smoothing(cfg, measurements, measurements_xvalues):
 
     return (original_measurements, original_measurements_xvalues)
 
-def filter_measurements(cfg, measurements, measurements_xvalues,
-                        measurements_original, measurements_original_xvalues):
+def filter_measurements(cfg, measurements_times, measurements,
+                        measurements_xvalues, measurements_original,
+                        measurements_original_xvalues):
+    """
+      Filter out unwanted measurements and determine indices corresponding
+      to times at which kept measurements were taken as measurements are
+      taken generally only on a subset of times specified by measurements_times.
+    """
 
+    indices = {}
+
+    # filter out unwanted values
     kfilters = cfg.get_value('measurements_keep')
     rfilters = cfg.get_value('measurements_remove')
     cfg.del_value('measurements_keep')
@@ -328,36 +337,52 @@ def filter_measurements(cfg, measurements, measurements_xvalues,
         exit(1)
 
     for name in measurements.keys():
+
         if (not name in kfilters) and (not name in rfilters):
+            filter_idxs = np.ones(measurements[name].shape, dtype=bool)
+
+            if not name is 'theta':
+                # all measurements except theta have time as xvalue
+                # and hence at t=0.0 they are not measured
+                filter_idxs[0] = False
+
+            indices[name] = filter_idxs
             continue
 
-        filter_idxs = np.ones(measurements[name].shape, dtype=bool)
+        # determine elements that remain after filtering out unwanted
+        filter_idxs = np.zeros(measurements[name].shape, dtype=bool)
 
         if name in kfilters:
             kfilter = np.asarray(flatten(kfilters[name]),
                                  dtype=float)
-            filter_idxs[~kfilter] = false
+            for kf in kfilter:
+                filter_idxs[kf] = True
 
         if name in rfilters:
             rfilter = np.asarray(flatten(rfilters[name]),
                                  dtype=float)
-            filter_idxs[rfilter] = false
+            filter_idxs[rfilter] = False
+
+        filter_idxs = np.flatnonzero(filter_idxs)
 
         # determine smallest and biggest index of remaining element
-        idx_min = 0
-        while not filter_idxs[idx_min]:
-            idx_min += 1
+        idx_min = filter_idxs[0]
+        idx_max = filter_idxs[-1]
 
-        idx_max = np.alen(filter_idxs)-1
-        while not filter_idxs[idx_max]:
-            idx_max -= 1
+        # keep only desired measurements
         measurements[name] = measurements[name][filter_idxs]
+        measurements_xvalues[name] = measurements_xvalues[name][filter_idxs]
+
         # keep original measurements - without are out of measured range
         if name in measurements_original:
             measurements_original[name] = \
               measurements_original[name][idx_min:idx_max+1]
             measurements_original_xvalues[name] = \
               measurements_original_xvalues[name][idx_min:idx_max+1]
+
+        indices[name] = filter_idxs
+
+    return indices
 
 def determine_measurements_times(measurements_xvalues):
     times = [0.0]
@@ -369,22 +394,6 @@ def determine_measurements_times(measurements_xvalues):
             times = np.union1d(times, value)
 
     return times
-
-def determine_measurements_indices(measurements_times, measurements_xvalues):
-    """
-      Determine indices corresponding to times at which particular measurements
-      were taken.
-    """
-
-    indices = {}
-
-    for (name, value) in measurements_xvalues.items():
-        if name in ('theta'): # xvalues are not times
-            indices['theta'] = np.arange(np.alen(value))
-        else:
-            indices[name] = measurements_times.searchsorted(value)
-
-    return indices
 
 def apply_calibration_curve(cfg, measurements, phases_scans):
     """
@@ -502,13 +511,9 @@ class Measurements():
 
         #    d) Apply calibration curve
         times = determine_measurements_times(measurements_xvalues)
-        measurements_indices = \
-          determine_measurements_indices(times, measurements_xvalues)
         apply_calibration_curve(cfg, measurements, phases_scans)
 
         #    e) Filter out unwanted measurements
-        filter_measurements(cfg, measurements, measurements_xvalues)
-
 
         # 3. determine weights of measurements
         self._measurements_weights = determine_weights(cfg, measurements,
@@ -522,9 +527,14 @@ class Measurements():
         cfg.del_value('measurements_scale_coefs')
 
         # 6. convert omega from rpm to radians/s
+        measurements_indices = \
+          filter_measurements(cfg, times, measurements, measurements_xvalues,
+                              original_measurements,
+                              original_measurements_xvalues)
         self._times           = times
         self._measurements_nr = np.alen(times)
         self._scales_coefs    = scales_coefs
+        self._measurements_indices          = measurements_indices
         #    NOTE: we do it here because *_calibration_curve is expressed
         #          in terms of omega(rpm)
         omega = cfg.get_value('omega', not_found=None)
