@@ -229,6 +229,15 @@ def determine_weights(cfg, measurements, measurements_diff):
 
     return measurements_weights
 
+def determine_scaling_coefs(cfg):
+    scale_coefs = cfg.get_value('measurements_scale_coefs')
+    cfg.del_value('measurements_scale_coefs')
+
+    if not scale_coefs:
+        self._scales_coefs = {}
+
+    return scale_coefs
+
 def apply_smoothing(cfg, measurements, measurements_xvalues):
     """
       Apply smoothing on measurements and return original (non-smoothed) values.
@@ -509,15 +518,13 @@ class Measurements():
         self._weights              = None # weights as numpy array
         self._WR_tara               = determine_WR_tara(cfg, measurements)
 
-        # 5. scaling measurements
-        self._scales_coefs = cfg.get_value('measurements_scale_coefs')
-        if not self._scales_coefs: self._scales_coefs = {}
 
         cfg.del_value('measurements_scale_coefs')
 
         # 6. convert omega from rpm to radians/s
         self._times           = times
         self._measurements_nr = np.alen(times)
+        self._scales_coefs    = scales_coefs
         #    NOTE: we do it here because *_calibration_curve is expressed
         #          in terms of omega(rpm)
         omega = cfg.get_value('omega', not_found=None)
