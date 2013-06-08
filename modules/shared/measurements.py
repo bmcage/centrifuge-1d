@@ -693,17 +693,23 @@ class Measurements():
 
     def iterate_calc_measurements(self):
         """ Iterate over stored values of calculated measurements. """
-        t = self.get_times()
+        t = self.get_times()[1:] # default
         measurements_diff = self._measurements_diff
+        indices = self._measurements_indices
 
         for (name, yvalue) in self._computed.items():
             if name in ('x'): continue
 
             if name in ('h', 'u'):
                 xvalue = self._computed['x']
-            elif name == 'theta':
+            elif name in ('gF_MT_tara', 'gF_MO_tara'):
+                continue
+            elif name in indices:
+                yvalue = yvalue[indices[name]]
                 xvalue = self._measurements_xvalues[name]
+                print(name, np.alen(yvalue), np.alen(xvalue))
             else:
+                yvalue = yvalue[1:]
                 xvalue = t
 
             yield (name, xvalue, yvalue)
