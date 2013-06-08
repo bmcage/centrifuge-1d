@@ -124,36 +124,7 @@ def determine_measurements(cfg):
         exit(1)
 
     # determine default xvalue when none specified
-    xvalues = cfg.get_value('measurements_xvalues')
-    cfg.del_value('measurements_xvalues') # could exist (e.g. set to "None")
-
-    if xvalues is None:
-        default_xvalue = phases_scans[1:]
-        xvalues = {}
-    elif type(xvalues) is dict:
-        default_xvalue = phases_scans[1:]
-    else:
-        default_xvalue = np.asarray(xvalues, dtype=float)
-        xvalues = {}
-
-    # make sure xvalues are numpy arrays
-    for (name, value) in xvalues.items():
-        xvalues[name] = np.asarray(value, dtype=float)
-
-    # determine xvalues_spans
-    xvalues_span = cfg.get_value('measurements_xvalues_span')
-    if type(xvalues_span) is dict:
-        xvalue_span_default = 1.0
-    elif np.isscalar(xvalues_span)  == 1.0:
-        xvalue_span_default = xvalues_span
-        xvalues_span = {}
-    elif xvalues_span is None:
-        xvalue_span_default = 1.0
-        xvalues_span = {}
-    else:
-        print("Wrong value: 'xvalues_span' must be either a float or dict "
-              "of floats: ", xvalues_span, "\nCannot continue, exiting...")
-        exit(1)
+    default_xvalue = phases_scans[1:]
 
     # assign measurements and xvalues
     for (name, iname) in MEASUREMENTS_NAMES.items():
@@ -169,23 +140,20 @@ def determine_measurements(cfg):
         value = np.asarray(value, dtype=float)
         measurements[name] = value
 
-        if name in xvalues:
-            measurements_xvalues[name] = xvalues[name]
+        xvalue = cfg.get_value(iname + '_xvalues')
+        cfg.del_value('measurements_xvalues') # could exist (e.g. set to "None")
+
+        if not xvalue:
+            xvalue = default_xvalue
         else:
-            measurements_xvalues[name] = default_xvalue
+            xvalue = np.asarray(xvalue, dtype=float)
 
-        if name in xvalues_span:
-            xvalue_span = xvalues_span[name]
-        else:
-            xvalue_span = xvalue_span_default
+        measurements_xvalues[name] = xvalue
 
-        if xvalue_span != 1.0:
-            measurements_xvalues[name] *= xvalue_span
-
-        if not np.alen(value) == np.alen(measurements_xvalues[name]):
+        if not np.alen(value) == np.alen(xvalue):
             print("The length of measurement '" + name + "' ("
                   + str(np.alen(value)) + ") has to be the same as it's xvalue "
-                  "(" + str(np.alen(measurements_xvalues[name])) + ")."
+                  "(" + str(np.alen(xvalue)) + ")."
                   "\nCannot continue, exiting...")
             exit(1)
 
