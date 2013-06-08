@@ -19,7 +19,6 @@ BASE_MODULE = MODMAN.find_module('base', submodule='csv_parse')
 # dynamicall created options: options added to generated MEASUREMENTS_ININAME
 # file, that are not specified by the csv file
 # {opt_name: gen_data_function} with 'gen_data_function(exp_type, data, modman)'
-DYNAMIC_OPTIONS = {'measurements_length': None}
 
 def parse_input():
 
@@ -690,24 +689,6 @@ PROCESS_DATA = {'regular_ini': lambda exp, info: True,
                 'scan_ini': process_scanned_data}
 
 def data2ini(data, experiment_info):
-
-    def _get_measurement_length(key, value, array_info):
-        if ((not type(value) in [list, tuple])
-            or ((not key in array_info['iterables'])
-                and (not key in array_info['measurements_names']))):
-            return
-
-        if array_info['len'] == -1:
-            array_info['len'] = len(value)
-            array_info['ref'] = key
-        elif array_info['len'] != len(value):
-            print("Option list '{}' has length: {:d}\n"
-                  "Reference list '{}' has length: {:d}\n:"
-                  "Cannot iterate over lists of unequal length. "
-                  "Aborting.".format(key, len(value),
-                                     array_info['ref'], array_info['len']))
-            exit(1)
-
     def _filter_data(key, value):
         cvalue = compress_seq(value)
 
@@ -790,14 +771,6 @@ def data2ini(data, experiment_info):
 
         if not path.exists(masks_dir):
             makedirs(masks_dir) # create empty masks directory
-
-        # determine the size of iterable items (has to be the same for all)
-        array_info = {'len': -1, 'ref': None,
-                      'iterables': get_iterables_list(exp_type, MODMAN),
-                      'measurements_names': MEASUREMENTS_NAMES.values()}
-
-        experiment.iterate(_get_measurement_length, user_data=array_info)
-        experiment.set_value('measurements_length', max(array_info['len'], 1))
 
         # support custom modification per-data_type
         PROCESS_DATA[experiment.get_datatype()](experiment, experiment_info)
