@@ -506,25 +506,22 @@ class Measurements():
         [phases_scans, measurements, measurements_xvalues] = \
           determine_measurements(cfg)
         # 2. a) Apply smoothing
-        (self._original_measurements,  self._original_measurements_xvalues) = \
-            apply_smoothing(cfg, measurements, measurements_xvalues, scans)
-
         #    d) Apply calibration curve
+        measurements_weights = determine_weights(cfg, measurements,
+                                                 measurements_diff)
         times = determine_measurements_times(measurements_xvalues)
+        WR_tara = determine_WR_tara(cfg, measurements)
+        scales_coefs = determine_scaling_coefs(cfg)
+        (original_measurements, original_measurements_xvalues) = \
+            apply_smoothing(cfg, measurements, measurements_xvalues)
         apply_calibration_curve(cfg, measurements, phases_scans)
 
         #    e) Filter out unwanted measurements
 
         # 3. determine weights of measurements
-        self._measurements_weights = determine_weights(cfg, measurements,
-                                                       measurements_diff)
-
         # 4. set remaining data to internal variables
-        self._weights              = None # weights as numpy array
-        self._WR_tara               = determine_WR_tara(cfg, measurements)
 
 
-        cfg.del_value('measurements_scale_coefs')
 
         # 6. convert omega from rpm to radians/s
         measurements_indices = \
@@ -533,8 +530,11 @@ class Measurements():
                               original_measurements_xvalues)
         self._times           = times
         self._measurements_nr = np.alen(times)
+        self._WR_tara         = WR_tara
         self._scales_coefs    = scales_coefs
+        self._measurements_weights          = measurements_weights
         self._measurements_indices          = measurements_indices
+        self._weights         = None # weights as numpy array
         #    NOTE: we do it here because *_calibration_curve is expressed
         #          in terms of omega(rpm)
         omega = cfg.get_value('omega', not_found=None)
