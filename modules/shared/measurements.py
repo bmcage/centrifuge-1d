@@ -351,6 +351,22 @@ def determine_measurements_times(measurements_xvalues):
 
     return times
 
+def determine_measurements_indices(measurements_times, measurements_xvalues):
+    """
+      Determine indices corresponding to times at which particular measurements
+      were taken.
+    """
+
+    indices = {}
+
+    for (name, value) in measurements_xvalues.items():
+        if name in ('theta'): # xvalues are not times
+            indices['theta'] = np.arange(np.alen(value))
+        else:
+            indices[name] = measurements_times.searchsorted(value)
+
+    return indices
+
 def apply_calibration_curve(cfg, measurements, phases_scans):
     """
       Calibration curve sets the base level for measured force.
@@ -471,6 +487,8 @@ class Measurements():
 
         #    d) Apply calibration curve
         times = determine_measurements_times(measurements_xvalues)
+        measurements_indices = \
+          determine_measurements_indices(times, measurements_xvalues)
         apply_calibration_curve(cfg, measurements, phases_scans)
 
         #    e) Filter out unwanted measurements
@@ -604,22 +622,20 @@ class Measurements():
 
     def _get_computations(self):
         computations = self._computations_array
+        indices      = self._measurements_indices
         data = self._computed
 
         iS = 0
         for name in self._measurements.keys():
-            if name == 'theta':
-                # theta is in x and not t
-                value = data[name]
-            else:
-                value = data[name][1:]
+            idx = indices[name]
+            iE = iS + np.alen(idx)
 
             if name in self._measurements_diff:
-                iE = iS + np.alen(value) - 1
-                computations[iS:iE] = value[1:] - value[:-1]
+                value = data[name][idx]
+                computations[iS:iE-1] = value[1:] - value[:-1]
             else:
-                iE = iS + np.alen(value)
-                computations[iS:iE] = value
+                computations[iS:iE] = data[name][idx]
+
             iS = iE
 
         return computations
