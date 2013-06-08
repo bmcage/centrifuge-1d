@@ -4,12 +4,19 @@ import numpy as np
 from math import sqrt
 from sys import stdout
 
-def rpm2radps(x):
+def rpm2radps(omega):
     """
       Converts rpm to rad.s^{-1}
     """
     # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
-    return x * np.pi/ 30.0
+    _rpm2radps = lambda omega: omega * np.pi/ 30.0
+
+    if np.isscalar(omega):
+        omega_converted = _rpm2radps(omega)
+    else:
+        omega_converted = [_rpm2radps(omg) for omg in omega]
+
+    return omega_converted
 
 def lagrangian_derivative_coefs(dx):
     """

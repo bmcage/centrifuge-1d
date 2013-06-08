@@ -515,14 +515,9 @@ class Measurements():
         # 6. convert omega from rpm to radians/s
         #    NOTE: we do it here because *_calibration_curve is expressed
         #          in terms of omega(rpm)
-        for key in ['omega']:
-            value = cfg.get_value(key, not_found=None)
-            if value is None:
-                continue
-            elif type(value) == list:
-                cfg.set_value(key, [rpm2radps(omega) for omega in value])
-            else:
-                cfg.set_value(key, rpm2radps(value))
+        omega = cfg.get_value('omega', not_found=None)
+        if not omega is None:
+            cfg.set_value('omega', rpm2radps(omega))
 
     def dump(self):
         """ Collect stored data to simple format for saving. """
