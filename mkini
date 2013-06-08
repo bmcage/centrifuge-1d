@@ -665,8 +665,13 @@ def process_scanned_data(experiment, experiment_info):
     experiment.set_value('deceleration_duration', d_duration)
     experiment.set_value('fh_duration', g_duration)
 
-    # Truncate unused values
+    # Truncate unused values and store xvalues
+    times = np.arange(1, scan_last-scan_first+2)
     for (csv_name, ini_name) in CSV2INI_NAMES.items():
+        # store xvalue
+        scanned_data.set_value(ini_name + '_xvalues', times)
+
+        # truncate
         scanned_force_weights = scanned_data.get_value(csv_name)
         scanned_force_weights = \
           multiply_list(scanned_force_weights, 1000.) # kg -> g
