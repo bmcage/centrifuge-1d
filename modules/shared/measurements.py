@@ -15,7 +15,7 @@ from modules.shared.functions import rpm2radps, compare_data, \
 MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'gF_MO': 'gf_mo', 'gF_MT': 'gf_mt',
                       'dgF_MO': None, 'dgF_MT': None,
-                      'theta': 'theta'}
+                      'SL': 'l1', 'theta': 'theta'}
 
 def determine_scaling_factor(v):
     return np.power(10, -np.floor(np.log10(np.max(np.abs(v)))))
