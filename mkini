@@ -518,6 +518,7 @@ def process_scanned_data(experiment, experiment_info):
     omegas = experiment.get_value('omega')
     scans  = np.asarray(experiment.get_value('scan'), dtype=int)
     (scan_first, scan_last) = (scans[0], scans[-1])
+    scan_span = float(experiment.get_value('scan_span', not_found=1.0))
 
     scanned_inflow_weights  = scanned_data.get_value('s102')
 
@@ -559,7 +560,7 @@ def process_scanned_data(experiment, experiment_info):
             else:
                 if omega > 0.0:
                     # we continue to accelerate
-                    a_duration.append(scan_max - scan)
+                    a_duration.append(scan_span * (scan_max - scan))
                     d_duration.append(0.0)
                     g_duration.append(0.0)
                     scan_last = scan_max
@@ -577,7 +578,7 @@ def process_scanned_data(experiment, experiment_info):
                         else:
                             mi0 = mi1
 
-                    d_duration.append(d_scan - scan)
+                    d_duration.append(scan_span * (d_scan - scan))
                     g_duration.append(0.0)
 
                     scan_last = d_scan
@@ -590,7 +591,7 @@ def process_scanned_data(experiment, experiment_info):
                 omega_cen.append(omega)
 
             if acceleration:
-                a_duration.append(scan_next - scan)
+                a_duration.append(scan_span * (scan_next - scan))
 
                 if (omega < omega_next):
                     # we continue to accelerate
@@ -619,8 +620,8 @@ def process_scanned_data(experiment, experiment_info):
 
                         dscan += 1
 
-                    d_duration.append(d_scan - scan)
-                    g_duration.append(scan_next - d_scan)
+                    d_duration.append(scan_span * (d_scan - scan))
+                    g_duration.append(scan_span * (scan_next - d_scan))
                     acceleration = True
                 else:
                     # nothing to do atm
@@ -642,7 +643,7 @@ def process_scanned_data(experiment, experiment_info):
     else: # constant omega
         omega_cen = c_omega
 
-        total_time = scan_max - scan_first + 1
+        total_time = scan_span * (scan_max - scan_first + 1)
 
         if c_omega == 0.0:
             include_acceleration = False
