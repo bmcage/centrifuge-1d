@@ -340,6 +340,16 @@ def filter_measurements(cfg, measurements, measurements_xvalues,
             measurements_original_xvalues[name] = \
               measurements_original_xvalues[name][idx_min:idx_max+1]
 
+def determine_measurements_times(measurements_xvalues):
+    times = [0.0]
+
+    for (name, value) in measurements_xvalues.items():
+        if name in ('theta'): # xvalues are not times
+            continue
+        else:
+            times = np.union1d(times, value)
+
+    return times
 
 def apply_calibration_curve(cfg, measurements, phases_scans):
     """
@@ -410,7 +420,6 @@ class Measurements():
         self._measurements_weights = OrderedDict() # weights of each of measurement's' values
         self._measurements_xvalues = OrderedDict() # x-axes values
         self._original_measurements_xvalues = OrderedDict() # x-axes value of untransformed measurements
-        self._measurements_times   = None # times at which measurements were taken
         self._measurements_diff    = []
 
         self._original_already_shifted = False # 'original' weren't adjusted WR_tara
@@ -452,10 +461,6 @@ class Measurements():
         # 1. determine measurements times
         [phases_scans, measurements, measurements_xvalues] = \
           determine_measurements(cfg)
-
-        t = scans * scan_span   # actual times of measurements
-        t_meas = t[1:]
-
         # 2. a) Apply smoothing
         (self._original_measurements,  self._original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues, scans)
@@ -465,6 +470,7 @@ class Measurements():
             measurements['MO'] = np.cumsum(measurements['MO'])
 
         #    d) Apply calibration curve
+        times = determine_measurements_times(measurements_xvalues)
         apply_calibration_curve(cfg, measurements, phases_scans)
 
         #    e) Filter out unwanted measurements
@@ -480,9 +486,6 @@ class Measurements():
                                                        measurements_diff)
 
         # 4. set remaining data to internal variables
-        self._measurements_times   = t_meas
-        self._times                = t
-        self._measurements_nr      = np.alen(t)
         self._weights              = None # weights as numpy array
         self._WR_tara               = determine_WR_tara(cfg, measurements)
 
@@ -493,6 +496,8 @@ class Measurements():
         cfg.del_value('measurements_scale_coefs')
 
         # 6. convert omega from rpm to radians/s
+        self._times           = times
+        self._measurements_nr = np.alen(times)
         #    NOTE: we do it here because *_calibration_curve is expressed
         #          in terms of omega(rpm)
         omega = cfg.get_value('omega', not_found=None)
@@ -502,7 +507,7 @@ class Measurements():
     def dump(self):
         """ Collect stored data to simple format for saving. """
         return (self._measurements, self._measurements_weights,
-                self._measurements_xvalues, self._measurements_times,
+                self._measurements_xvalues,
                 self._original_measurements, self._original_measurements_xvalues,
                 self._times, self._measurements_nr, self._computed,
                 self._indexes, self._scales_coefs)
@@ -510,7 +515,7 @@ class Measurements():
     def load(self, raw_data):
         """ Restore data in simple format from saved file. """
         (self._measurements, self._measurements_weights,
-         self._measurements_xvalues, self._measurements_times,
+         self._measurements_xvalues,
          self._original_measurements, self._original_measurements_xvalues,
          self._times, self._measurements_nr, self._computed,
          self._indexes, self._scales_coefs) = raw_data
