@@ -621,9 +621,10 @@ class Measurements():
                     # force of tara found during computation - but this
                     # information is only available at runtime
                     if (name + '_tara' in self._computed):
+                        gf_filter = self._measurements_indices[name]
                         F_tara = self._computed[name + '_tara']
 
-                        self._measurements[name][:] -= F_tara[1:]
+                        self._measurements[name][:] -= F_tara[gf_filter]
 
                 if name in self._measurements_diff:
                     values.append(value[1:] - value[:-1])
@@ -1050,13 +1051,11 @@ class Measurements():
 
         computed = self._computed
         measured = self._measurements
+        indices  = self._measurements_indices
 
         for (name, measured_value) in self._measurements.items():
-            if name == 'theta':
-                # theta is based on pressures in x, not t
-                computed_value = computed[name]
-            else:
-                computed_value = computed[name][1:]
+            filter_idxs = indices[name]
+            computed_value = computed[name][filter_idxs]
 
             if name in measurements_diff:
                 compare_data('d'+name, computed_value[1:] - computed_value[:-1],
