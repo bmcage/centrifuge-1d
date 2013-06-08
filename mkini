@@ -563,6 +563,7 @@ def process_scanned_data(experiment, experiment_info):
             else:
                 if omega > 0.0:
                     # we continue to accelerate
+                    omega_cen.append(omega)
                     a_duration.append(scan_span * (scan_max - scan))
                     d_duration.append(0.0)
                     g_duration.append(0.0)
