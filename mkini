@@ -533,6 +533,7 @@ def process_scanned_data(experiment, experiment_info):
         exit(1)
 
     c_omega = compress_seq(omegas)
+
     if type(c_omega) in (list, tuple): # mixed acc+dec+g
         omegas = np.asarray(omegas, dtype=float)
 
@@ -638,7 +639,6 @@ def process_scanned_data(experiment, experiment_info):
         a_duration_compressed = compress_seq(a_duration)
         d_duration_compressed = compress_seq(d_duration)
         g_duration_compressed = compress_seq(g_duration)
-
 
         if a_duration_compressed == 0.0: a_duration = 0.0
         if d_duration_compressed == 0.0: d_duration = 0.0

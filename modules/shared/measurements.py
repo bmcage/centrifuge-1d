@@ -502,32 +502,32 @@ class Measurements():
         # 0. Determine whether we run direct or inverse problem
         self.run_inverse_problem_p(cfg.get_value('inv_init_params'))
 
-        # 1. determine measurements times
+        # 1. Determine values
+        #    a) measurements, xvalues, phases scans
         [phases_scans, measurements, measurements_xvalues] = \
           determine_measurements(cfg)
-        # 2. a) Apply smoothing
-        #    d) Apply calibration curve
+        #    b) measurements weights
         measurements_weights = determine_weights(cfg, measurements,
                                                  measurements_diff)
+        #    c) measurements times
         times = determine_measurements_times(measurements_xvalues)
+        #    d) influence of tara
         WR_tara = determine_WR_tara(cfg, measurements)
+        #    e) scaling coefs of measurements
         scales_coefs = determine_scaling_coefs(cfg)
+
+        # 2. Data transformation
+        #    a) Apply smoothing
         (original_measurements, original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues)
+        #    b) Apply calibration curve
         apply_calibration_curve(cfg, measurements, phases_scans)
-
-        #    e) Filter out unwanted measurements
-
-        # 3. determine weights of measurements
-        # 4. set remaining data to internal variables
-
-
-
-        # 6. convert omega from rpm to radians/s
+        #    c) Filter out unwanted measurements
         measurements_indices = \
           filter_measurements(cfg, times, measurements, measurements_xvalues,
                               original_measurements,
                               original_measurements_xvalues)
+        # 3. Set internal variables
         self._times           = times
         self._measurements_nr = np.alen(times)
         self._WR_tara         = WR_tara
@@ -538,7 +538,11 @@ class Measurements():
         self._original_measurements_xvalues = original_measurements_xvalues
         self._measurements_weights          = measurements_weights
         self._measurements_indices          = measurements_indices
+
+        # 4. Initialize internal variables
         self._weights         = None # weights as numpy array
+
+        # 5. convert omega from rpm to radians/s
         #    NOTE: we do it here because *_calibration_curve is expressed
         #          in terms of omega(rpm)
         omega = cfg.get_value('omega', not_found=None)
