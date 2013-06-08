@@ -350,7 +350,7 @@ def print_status(data, filename=None):
                 if key == 'theta':
                     c_value = computed[key][2]
                 else:
-                    c_value = computed[key][1][1:]
+                    c_value = computed[key][1]
                 m_value = m_data[1]
             else:
                 continue
