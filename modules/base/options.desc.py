@@ -78,13 +78,18 @@ CONFIG_OPTIONS = {
                          "for example left some time outside the centrifuge "
                          "or for falling-head test simulation. See also option "
                          "'r0_fall'. Type: same as 'duration'."),
-         'measurements_times': ("Times (in seconds) at which we want to make"
-                                "measurement (or at which measurement was "
-                                "taken). If not specified it is by default "
-                                "taken at the end of one iteration (i.e. after "
-                                "one run - consisting of centrifugation phase, "
-                                "decelerating phase and a g-phase)."
-                                "Type: array of floats or None."),
+         'measurements_keep',: "See 'measurements_remove'.",
+         'measurements_remove': \
+             ("For filtering measurements 'measurements_keep' (further 'keep') "
+              "and 'measurements_remove' (further 'remove') are used. They are "
+              "of type dict with keys being the measurements names and values "
+              "is a list of indices. If 'keep' is supplied, indices specified "
+              "will be preserved whereas the rest is dropped. On the other "
+              "if 'remove' is supplied, indices specified in there will be "
+              "removed an the rest is preserved. These two parameters are not "
+              "complementary, in fact what can be achieved using one, can be "
+              "achived also using only the other. But sometimes it is more "
+              "convenient to specify it one way than the other."),
          'smoothing': ("Measured data can be 'smoothed', which may improve "
                        "found results. Type: dict with key being measurement "
                        "name and value is one of 'smlin' - linear averaging, "
@@ -144,6 +149,14 @@ CONFIG_OPTIONS = {
               "Set to None to compute with differences between measurements, "
               "instead of absolute values."),
          'gf_mt_calibration_curve': "See 'f_mo_calibration_curve'.",
+         'xvalues': ("Specify the 'xvalues' of given measurement, mostly it's "
+                     "it's times at which measurements were taken. 'xvalues' "
+                     "are indicated as option '[option_name]_xvalues', e.g. "
+                     "'gF_MO_xvalues'. If xvalues are not specified, it is "
+                     "implicitly assumed that measurement was taken at the end "
+                     "of one run/cycle (consisting of centrifugation phase, "
+                     "deceleration phase and g-phase)."
+                     "This is kept mainly for backward compatibility."),
          'mo_gc_calibration_curve': \
              ("Calibration curve for the expelled water. Allows to determine "
               "the gravitational centre of the expelled water. Value is a list "
