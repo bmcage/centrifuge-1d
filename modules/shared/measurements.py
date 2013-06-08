@@ -251,15 +251,10 @@ def determine_weights(cfg, measurements, measurements_diff):
 
     return measurements_weights
 
-def apply_smoothing(cfg, measurements, measurements_xvalues, scans):
+def apply_smoothing(cfg, measurements, measurements_xvalues):
     """
       Apply smoothing on measurements and return original (non-smoothed) values.
-      Excessive values of original measurements out of measurements range are
-      truncated.
     """
-    m_first_idx = scans[1]  # scan[0] == 0.0
-    m_last_idx  = scans[-1]
-
     original_measurements = {}
     original_measurements_xvalues = {}
 
@@ -302,11 +297,11 @@ def apply_smoothing(cfg, measurements, measurements_xvalues, scans):
 
         if not sm_alg: continue
 
-        # store old (original) values (and truncate values out of range)
+        # store old (original) values
         value  = measurements[name]
         xvalue = measurements_xvalues[name]
-        original_measurements[name]   = value[m_first_idx:m_last_idx+1]
-        original_measurements_xvalues = xvalue[m_first_idx:m_last_idx+1]
+        original_measurements[name]   = value
+        original_measurements_xvalues[name] = xvalue
 
         # ...and save smoothed values
         if sm_alg == 'smlin': # linear smoothing
@@ -323,7 +318,9 @@ def apply_smoothing(cfg, measurements, measurements_xvalues, scans):
 
     return (original_measurements, original_measurements_xvalues)
 
-def filter_measurements(cfg, measurements, measurements_xvalues):
+def filter_measurements(cfg, measurements, measurements_xvalues,
+                        measurements_original, measurements_original_xvalues):
+
     kfilters = cfg.get_value('measurements_keep')
     rfilters = cfg.get_value('measurements_remove')
     cfg.del_value('measurements_keep')
@@ -359,7 +356,22 @@ def filter_measurements(cfg, measurements, measurements_xvalues):
                                  dtype=float)
             filter_idxs[rfilter] = false
 
+        # determine smallest and biggest index of remaining element
+        idx_min = 0
+        while not filter_idxs[idx_min]:
+            idx_min += 1
+
+        idx_max = np.alen(filter_idxs)-1
+        while not filter_idxs[idx_max]:
+            idx_max -= 1
         measurements[name] = measurements[name][filter_idxs]
+        # keep original measurements - without are out of measured range
+        if name in measurements_original:
+            measurements_original[name] = \
+              measurements_original[name][idx_min:idx_max+1]
+            measurements_original_xvalues[name] = \
+              measurements_original_xvalues[name][idx_min:idx_max+1]
+
 
 def apply_calibration_curve(cfg, measurements, phases_scans):
     """
