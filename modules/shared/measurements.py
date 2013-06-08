@@ -532,6 +532,10 @@ class Measurements():
         self._measurements_nr = np.alen(times)
         self._WR_tara         = WR_tara
         self._scales_coefs    = scales_coefs
+        self._measurements                  = measurements
+        self._measurements_xvalues          = measurements_xvalues
+        self._original_measurements         = original_measurements
+        self._original_measurements_xvalues = original_measurements_xvalues
         self._measurements_weights          = measurements_weights
         self._measurements_indices          = measurements_indices
         self._weights         = None # weights as numpy array
