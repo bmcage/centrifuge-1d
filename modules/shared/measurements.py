@@ -157,6 +157,16 @@ def determine_measurements(cfg):
                   "\nCannot continue, exiting...")
             exit(1)
 
+    # additional postprocessing
+    if 'MO' in measurements:
+        # 'MO' is a cumulative value
+        measurements['MO'] = np.cumsum(measurements['MO'])
+
+    if 'theta' in measurements:
+        # 'theta' uses pressure as x-value (and not time)
+        measurements_xvalues['theta'] = np.asarray(cfg.get_value('p'),
+                                                   dtype=float)
+
     return (phases_scans, measurements, measurements_xvalues)
 
 def determine_weights(cfg, measurements, measurements_diff):
@@ -481,10 +491,6 @@ class Measurements():
         (self._original_measurements,  self._original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues, scans)
 
-        #    c) Adapt MO: MO is a cumulative value
-        if 'MO' in measurements:
-            measurements['MO'] = np.cumsum(measurements['MO'])
-
         #    d) Apply calibration curve
         times = determine_measurements_times(measurements_xvalues)
         measurements_indices = \
@@ -494,10 +500,6 @@ class Measurements():
         #    e) Filter out unwanted measurements
         filter_measurements(cfg, measurements, measurements_xvalues)
 
-        #    f) theta uses pressure as x-value (and not time)
-        if 'theta' in measurements:
-            measurements_xvalues['theta'] = np.asarray(cfg.get_value('p'),
-                                                       dtype=float)
 
         # 3. determine weights of measurements
         self._measurements_weights = determine_weights(cfg, measurements,
