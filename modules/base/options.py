@@ -1,7 +1,18 @@
 import numpy as np
 from modules.shared.utils import test_related_options
+from modules.shared.measurements import MEASUREMENTS_NAMES
 
 PARENTAL_MODULES = []
+
+def gen_measurements(cfg):
+    names   = [(name, None) for name in MEASUREMENTS_NAMES.values() \
+               if not name is None]
+    xvalues = [(name + '_xvalues', None) for name in MEASUREMENTS_NAMES.values()  \
+               if not name is None]
+    weights = [(name + '_weights', 1.0) for name in MEASUREMENTS_NAMES.values() \
+               if not name is None]
+
+    return names + xvalues + weights
 
 CONFIG_OPTIONS = ['exp_type',
                   'ks',
@@ -9,9 +20,6 @@ CONFIG_OPTIONS = ['exp_type',
                   ('ww0', None),
                   'fh_duration', 'r0_fall',
                   ('acceleration_duration', 21.),
-                  ('measurements_times', None),
-                  ('scan_span', 1.0),
-                  'wt_out',
                   'include_acceleration',
                   # solver options
                   'atol', 'rtol',
@@ -44,17 +52,13 @@ CONFIG_OPTIONS = ['exp_type',
                     [('deceleration_duration', 0.0)]),
                   # measurements and referencing parameters
                   ('smoothing', {}),
-                  ('l1', None), ('gc1', None), ('rm1', None ),
-                  ('gf_mo', None), ('gf_mt', None),
-                  ('gf_mo_tara', None), ('gf_mt_tara', None),
-                  ('wl1', None), ('wl_out', None), ('ww1', None),
-                  # measurement weights
-                  ('wl1_weights', 1.0), ('wl_out_weights', 1.0),
-                  ('gc1_weights', 1.0), ('rm1_weights', 1.0),
+                  gen_measurements,
+                  ('ww1', None), ('gf_mo_tara', None), ('gf_mt_tara', None),
+                  ('measurements_scale_coefs', None),
                   ('cf_weights', 1.0),
+                  ('measurements_keep', None), ('measurements_remove', None),
 
                   ('descr', None), ('re', None),
-                  ('measurements_scale_coefs', None),
                   (lambda cfg: not (cfg.get_value('gf_mo') is None),
                     [('gf_mo_calibration_curve', None)]),
                   (lambda cfg: not (cfg.get_value('gf_mt') is None),
