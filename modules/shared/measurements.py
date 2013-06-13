@@ -186,7 +186,7 @@ class Measurements():
                 # store untransformed value
                 self._original_measurements[name] = value
                 self._original_measurements_xvalues[name] = \
-                  scan_span * np.arange(1, np.alen(value)+1)
+                  scan_span * np.arange(0, np.alen(value))
 
                 if sm_alg == 'smlin': # linear smoothing
                     value = smoothing_linear(value, sm_degree)
