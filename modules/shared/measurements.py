@@ -40,10 +40,18 @@ def determine_WR_tara(cfg, measurements):
         # Determine the influence of tara
         gF_tara_calibration = cfg.get_value(F_name.lower() + '_tara')
 
-        if gF_tara_calibration is None:
-            print("Tara calibration curve '" + F_name.lower() + "_tara""' "
-                  "was not specified. Computation cannot continue. Exiting...")
-            exit(0)
+        if not gF_tara_calibration:
+            print("INFO: Tara calibration curve '" + F_name.lower() + "_tara'"
+                  "was not specified. Assuming it is 0.")
+            WR_tara_gF[F_name] = 0.0
+            continue
+
+        if ((not type(gF_tara_calibration) in (list, tuple))
+               or (len(gF_tara_calibration) != 2)):
+            print('The tara value of ' + F_name + ' (' + F_name + '_tara) '
+                  'must be a list/tuple of length 2 of type '
+                  '[omega, weight]. Aborting.')
+            exit(1)
 
         (omega_rpm, gF_tara) = gF_tara_calibration
         omega_radps = rpm2radps(omega_rpm)

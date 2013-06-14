@@ -115,15 +115,6 @@ def check_cfg(cfg):
 
         if (F is None): continue
 
-        F_tara = cfg.get_value(F_name + '_tara')
-        if not F_tara is None:
-            if ((not type(F_tara) in (list, tuple))
-                or (len(F_tara) != 2)):
-                print('The tara value of ' + F_name + ' (' + F_name + '_tara) '
-                      'must be a list/tuple of length 2 of type '
-                      '[omega, weight]. Aborting.')
-                return False
-
         if F_name in ('gf_mo'):
             MO_GC = cfg.get_value('mo_gc_calibration_curve')
 
