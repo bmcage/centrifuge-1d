@@ -404,11 +404,12 @@ def CSV2data(csv_dir, csv_filebasename):
         csv_type = 'regular_ini'
         required_fields = ('exp_type', 'exp_id', 'exp_no')
         missing = missing_fields_in_csv(csv_fields, required_fields)
-        if not missing == []:
-            print()
-            print("Or not correctly formed CSV data file, or")
-            print("CSV file: missing identifiers: '%s' "% missing)
-            print('CSV error: cannot process CSV file, aborting...')
+        if missing:
+            if len(missing) = len(required_fields):
+                print("Could not read csv table header. Possibly corrupted "
+                      "csv file?")
+            print("CSV file: missing identifiers: '%s' "% missing,
+                  "\nCSV error: cannot process CSV file, aborting...")
             exit(1)
 
         extended_fields = ('scan', 'csv_file', 'omega')
