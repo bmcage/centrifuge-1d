@@ -536,11 +536,11 @@ class Measurements():
         scales_coefs = determine_scaling_coefs(cfg)
 
         # 2. Data transformation
-        #    a) Apply smoothing
+        #    a) Apply calibration curve
+        apply_calibration_curve(cfg, measurements, phases_scans)
+        #    b) Apply smoothing
         (original_measurements, original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues)
-        #    b) Apply calibration curve
-        apply_calibration_curve(cfg, measurements, phases_scans)
         #    c) Filter out unwanted measurements
         (measurements_indices, computed_indices) = \
           filter_measurements(cfg, times, measurements, measurements_xvalues,
