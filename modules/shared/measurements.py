@@ -327,9 +327,6 @@ def filter_measurements(cfg, measurements_times, measurements,
     if not rfilters:
         rfilters = {}
 
-    if (not kfilters) and (not rfilters):
-        return
-
     if (not type(kfilters) is dict) or (not type(rfilters) is dict):
         print("Measurements filters 'measurements_keep' and "
               "'measurements_remove' must be of type dict."
@@ -537,6 +534,7 @@ class Measurements():
           filter_measurements(cfg, times, measurements, measurements_xvalues,
                               original_measurements,
                               original_measurements_xvalues)
+
         # 3. Set internal variables
         self._times           = times
         self._measurements_nr = np.alen(times)
