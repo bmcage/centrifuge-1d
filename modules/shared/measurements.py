@@ -407,7 +407,7 @@ def apply_calibration_curve(cfg, measurements, phases_scans):
 
         calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[name]
                                           + '_calibration_curve')
-        if calibration_curve is None:
+        if (calibration_curve is None) or (not name in measurements):
             continue
 
         elif np.isscalar(calibration_curve):
