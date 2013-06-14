@@ -785,9 +785,9 @@ def load_model(experiment_info, display_only=False, validate=True,
     cfg = load_configuration(experiment_info, include_global_constants=True)
 
     if display_only:
-        header = ("Configuration file of experiment '{}' number {:d}"
-                  .format(experiment_info['exp_id'],
-                          experiment_info['exp_no']))
+        header = ("Configuration file of experiment '{}' "
+                  "number {}".format(experiment_info['exp_id'],
+                                     experiment_info['exp_no']))
         print("\n", header, '\n', len(header) * '-')
         cfg.echo()
 

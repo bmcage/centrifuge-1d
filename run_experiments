@@ -94,10 +94,10 @@ def parse_input():
                            metavar='exp_ID',
                            help=('ID identifying an experiment (see -l for all '
                                  'available experiments'))
-    argparser.add_argument('exp_no', type=int, nargs="?", metavar='exp_NO',
+    argparser.add_argument('exp_no', nargs="?", metavar='exp_NO',
                            help=("the number of the first experiment in the "
                                  "experiments serie identified by 'exp_ID' "))
-    argparser.add_argument('last_exp_no', type=int, nargs='?', metavar='last_exp_NO',
+    argparser.add_argument('last_exp_no', nargs='?', metavar='last_exp_NO',
                            help=("the number of the last experiment. All "
                                  "experiments between the 'exp_NO' "
                                  "and 'last_exp_NO' (included) will be "
@@ -164,32 +164,49 @@ def parse_input():
         argparser.print_help()
         exit(0)
 
+    if not args.last_exp_no is None:
+        try:
+            int(args.exp_no)
+            int(args.last_exp_no)
+        except:
+            print("\nERROR: When running a range of experiments, "
+                  "first and last experiment numbers must be of type 'int'."
+                  "\nCannot proceed, exiting...")
+            exit(1)
+
+
     return args
+
+def get_exp_no(options):
+    if options.last_exp_no is None:
+        yield options.exp_no
+    else:
+        first_experiment = int(options.exp_no)
+        last_experiment  = int(options.last_exp_no)
+
+        for exp_no in range(first_experiment, last_experiment):
+            yield str(exp_no)
 
 def run_experiments(options):
     (exp_id, mask) = (options.exp_id, options.mask)
-    (first_experiment, last_experiment) = (options.exp_no, options.last_exp_no)
     print_cfg_only = options.print_config_p
     verbose = not print_cfg_only
-
-    if verbose:
-        print('\n\n GENERAL experiments informations'
-              '\n---------------------------------------------------------'
-              '\n ID              : %s'
-              '\n First experiment: %s'
-              '\n Last  experiment: %s'
-              '\n---------------------------------------------------------'
-              % (exp_id, first_experiment, last_experiment))
 
     if print_cfg_only:
         modman = None
     else:
         modman = ModulesManager()
 
-    for exp_no in range(first_experiment, last_experiment+1):
+    if verbose and options.last_exp_no:
+        print('\n\n GENERAL experiments informations\n' + (60 * '-') +
+              '\n Experiment ID   : ' + exp_id +
+              '\n First experiment: ' + options.exp_no +
+              '\n Last  experiment: ' + options.last_exp_no + '\n'+ (60 * '-'))
+
+    for exp_no in get_exp_no(options):
         if verbose:
-            header = ("Executing experiment {} number {:d}."
-                      "".format(exp_id, exp_no))
+            header = ("Executing experiment {} number {}.".format(exp_id,
+                                                                  exp_no))
             print('\n', len(header) * '=', '\n', header,
                   '\n', len(header) * '=')
 
@@ -284,9 +301,6 @@ def compare2configs(options):
 
 if __name__ == "__main__":
     options = parse_input()
-
-    if options.last_exp_no is None:
-        options.last_exp_no = options.exp_no
 
     if options.show_p:
         from modules.shared.show import show_results
