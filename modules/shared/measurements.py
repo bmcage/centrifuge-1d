@@ -320,9 +320,16 @@ def filter_measurements(cfg, measurements_times, measurements,
       Filter out unwanted measurements and determine indices corresponding
       to times at which kept measurements were taken as measurements are
       taken generally only on a subset of times specified by measurements_times.
+
+      Return values:
+        measurements_indices - indices of element that should be kept from
+                               measurements array
+        computed_indices     - indices that should be kept from computed values
+                               (correspondin to xvalues in measurements)
     """
 
-    indices = {}
+    measurements_indices = {}
+    computed_indices     = {}
 
     # filter out unwanted values
     kfilters = cfg.get_value('measurements_keep')
@@ -343,25 +350,16 @@ def filter_measurements(cfg, measurements_times, measurements,
 
     for name in measurements.keys():
 
-        if (not name in kfilters) and (not name in rfilters):
-            filter_idxs = np.ones(measurements[name].shape, dtype=bool)
-
-            if not name is 'theta':
-                # all measurements except theta have time as xvalue
-                # and hence at t=0.0 they are not measured
-                filter_idxs[0] = False
-
-            indices[name] = filter_idxs
-            continue
-
         # determine elements that remain after filtering out unwanted
-        filter_idxs = np.zeros(measurements[name].shape, dtype=bool)
-
         if name in kfilters:
+            filter_idxs = np.zeros(measurements[name].shape, dtype=bool)
+
             kfilter = np.asarray(flatten(kfilters[name]),
                                  dtype=float)
             for kf in kfilter:
                 filter_idxs[kf] = True
+        else:
+            filter_idxs = np.ones(measurements[name].shape, dtype=bool)
 
         if name in rfilters:
             rfilter = np.asarray(flatten(rfilters[name]),
@@ -385,9 +383,11 @@ def filter_measurements(cfg, measurements_times, measurements,
             measurements_original_xvalues[name] = \
               measurements_original_xvalues[name][idx_min:idx_max+1]
 
-        indices[name] = filter_idxs
+        measurements_indices[name] = filter_idxs
+        computed_indices[name]     = np.searchsorted(measurements_times,
+                                                     filter_idxs)
 
-    return indices
+    return (measurements_indices, computed_indices)
 
 def determine_measurements_times(measurements_xvalues):
     times = [0.0]
@@ -502,6 +502,10 @@ class Measurements():
         self._computations_array = None
         self._error_array        = None
 
+        # Indices of used subset of measured and/or computed values
+        measurements_indices = {}
+        computed_indices     = {}
+
         # Do we run a direct or inverse problem?
         self._run_inverse_p = None
 
@@ -538,7 +542,7 @@ class Measurements():
         #    b) Apply calibration curve
         apply_calibration_curve(cfg, measurements, phases_scans)
         #    c) Filter out unwanted measurements
-        measurements_indices = \
+        (measurements_indices, computed_indices) = \
           filter_measurements(cfg, times, measurements, measurements_xvalues,
                               original_measurements,
                               original_measurements_xvalues)
@@ -554,6 +558,7 @@ class Measurements():
         self._original_measurements_xvalues = original_measurements_xvalues
         self._measurements_weights          = measurements_weights
         self._measurements_indices          = measurements_indices
+        self._computed_indices              = computed_indices
 
         # 4. Initialize internal variables
         self._weights         = None # weights as numpy array
@@ -645,9 +650,15 @@ class Measurements():
                     # force of tara found during computation - but this
                     # information is only available at runtime
                     if (name + '_tara' in self._computed):
-                        gf_filter = self._measurements_indices[name]
+                        gf_filter = self._computed_indices[name]
                         F_tara = self._computed[name + '_tara']
-
+                        print('HHH', self._measurements_diff, name,
+                              np.alen(F_tara),
+                              np.alen(self._computed[name]),
+                              np.alen(self._computed[name][gf_filter]),
+                              np.alen(self._measurements[name]),
+                              np.alen(gf_filter),
+                              np.alen(F_tara[gf_filter]))
                         self._measurements[name][:] -= F_tara[gf_filter]
 
                 if name in self._measurements_diff:
@@ -666,7 +677,7 @@ class Measurements():
 
     def _get_computations(self):
         computations = self._computations_array
-        indices      = self._measurements_indices
+        indices      = self._computed_indices
         data = self._computed
 
         iS = 0
@@ -711,7 +722,7 @@ class Measurements():
         """ Iterate over stored values of calculated measurements. """
         t = self.get_times()[1:] # default
         measurements_diff = self._measurements_diff
-        indices = self._measurements_indices
+        indices = self._computed_indices
 
         for (name, yvalue) in self._computed.items():
             if name in ('x'): continue
