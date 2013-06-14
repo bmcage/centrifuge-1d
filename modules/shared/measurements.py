@@ -432,10 +432,20 @@ def apply_calibration_curve(cfg, measurements, phases_scans):
 
             measurements[name] = F
 
-        else:
-            # type(calibration_curve) == list:
+        elif type(calibration_curve) in (list, tuple):
+            if not (len(calibration_curve) == len(measurements[name])):
+                print("Force calibration curve '" + F_name + "_calibration_curve"
+                      "' supplied as array has to be of the same length "
+                      "as the measured force '"+ F + "'."
+                      'Cannot continue, exiting...')
+
             calibration_curve   = np.asarray(calibration_curve, dtype=float)
             measurements[name] -= calibration_curve
+        else:
+            print('Unsuppported type for calibration_curve of ' + name + '.'
+                  '\nOThe type can by only float, array of floats or dict.'
+                  'Cannot continue, exiting...')
+            exit(1)
 
 
 class Measurements():
