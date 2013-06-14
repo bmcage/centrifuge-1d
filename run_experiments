@@ -164,33 +164,29 @@ def parse_input():
         argparser.print_help()
         exit(0)
 
-    if not args.last_exp_no is None:
-        try:
-            int(args.exp_no)
-            int(args.last_exp_no)
-        except:
-            print("\nERROR: When running a range of experiments, "
-                  "first and last experiment numbers must be of type 'int'."
-                  "\nCannot proceed, exiting...")
-            exit(1)
-
-
     return args
 
 def get_exp_no(options):
     if options.last_exp_no is None:
         yield options.exp_no
     else:
-        first_experiment = int(options.exp_no)
-        last_experiment  = int(options.last_exp_no)
+        try:
+            first_experiment = int(options.exp_no)
+            last_experiment  = int(options.last_exp_no)
 
-        for exp_no in range(first_experiment, last_experiment):
-            yield str(exp_no)
+            for exp_no in range(first_experiment, last_experiment):
+                yield exp_no
+        except:
+            print("ERROR: cannot run a range of experiment values "
+                  "when experiment numbers are not of type 'int'."
+                  "Cannot proceed, exiting...")
+            exit(1)
 
 def run_experiments(options):
     (exp_id, mask) = (options.exp_id, options.mask)
     print_cfg_only = options.print_config_p
     verbose = not print_cfg_only
+
 
     if print_cfg_only:
         modman = None
@@ -205,8 +201,8 @@ def run_experiments(options):
 
     for exp_no in get_exp_no(options):
         if verbose:
-            header = ("Executing experiment {} number {}.".format(exp_id,
-                                                                  exp_no))
+            header = ("Executing experiment {} number {}."
+                      "".format(exp_id, exp_no))
             print('\n', len(header) * '=', '\n', header,
                   '\n', len(header) * '=')
 
