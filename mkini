@@ -666,7 +666,7 @@ def process_scanned_data(experiment, experiment_info):
     experiment.set_value('fh_duration', g_duration)
 
     # Truncate unused values and store xvalues
-    times = np.arange(1, scan_last-scan_first+1)
+    times = scan_span * np.arange(1, scan_last-scan_first+1)
     for (csv_name, ini_name) in CSV2INI_NAMES.items():
         # store xvalue
         scanned_data.set_value(ini_name + '_xvalues', times)
