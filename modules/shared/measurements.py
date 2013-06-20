@@ -652,13 +652,7 @@ class Measurements():
                     if (name + '_tara' in self._computed):
                         gf_filter = self._computed_indices[name]
                         F_tara = self._computed[name + '_tara']
-                        print('HHH', self._measurements_diff, name,
-                              np.alen(F_tara),
-                              np.alen(self._computed[name]),
-                              np.alen(self._computed[name][gf_filter]),
-                              np.alen(self._measurements[name]),
-                              np.alen(gf_filter),
-                              np.alen(F_tara[gf_filter]))
+
                         self._measurements[name][:] -= F_tara[gf_filter]
 
                 if name in self._measurements_diff:
@@ -734,7 +728,6 @@ class Measurements():
             elif name in indices:
                 yvalue = yvalue[indices[name]]
                 xvalue = self._measurements_xvalues[name]
-                print(name, np.alen(yvalue), np.alen(xvalue))
             else:
                 yvalue = yvalue[1:]
                 xvalue = t
