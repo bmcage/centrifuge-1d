@@ -405,7 +405,7 @@ def CSV2data(csv_dir, csv_filebasename):
         required_fields = ('exp_type', 'exp_id', 'exp_no')
         missing = missing_fields_in_csv(csv_fields, required_fields)
         if missing:
-            if len(missing) = len(required_fields):
+            if len(missing) == len(required_fields):
                 print("Could not read csv table header. Possibly corrupted "
                       "csv file?")
             print("CSV file: missing identifiers: '%s' "% missing,
