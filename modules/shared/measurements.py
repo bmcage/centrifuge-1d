@@ -154,7 +154,7 @@ def determine_measurements(cfg):
         if not xvalue:
             xvalue = default_xvalue
         else:
-            xvalue = np.asarray(xvalue, dtype=float)
+            xvalue = np.asarray(flatten(xvalue), dtype=float)
 
         measurements_xvalues[name] = xvalue
 
