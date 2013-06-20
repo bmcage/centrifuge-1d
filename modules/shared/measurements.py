@@ -373,8 +373,9 @@ def filter_measurements(cfg, measurements_times, measurements,
         idx_max = filter_idxs[-1]
 
         # keep only desired measurements
+        xvalue = measurements_xvalues[name][filter_idxs]
         measurements[name] = measurements[name][filter_idxs]
-        measurements_xvalues[name] = measurements_xvalues[name][filter_idxs]
+        measurements_xvalues[name] = xvalue
 
         # keep original measurements - without are out of measured range
         if name in measurements_original:
@@ -384,8 +385,7 @@ def filter_measurements(cfg, measurements_times, measurements,
               measurements_original_xvalues[name][idx_min:idx_max+1]
 
         measurements_indices[name] = filter_idxs
-        computed_indices[name]     = np.searchsorted(measurements_times,
-                                                     filter_idxs)
+        computed_indices[name]     = np.searchsorted(measurements_times, xvalue)
 
     return (measurements_indices, computed_indices)
 
