@@ -481,7 +481,6 @@ class Measurements():
         self._original_measurements_xvalues = OrderedDict() # x-axes value of untransformed measurements
         self._measurements_diff    = []
 
-        self._original_already_shifted = False # 'original' weren't adjusted WR_tara
         # Maximal number of values stored per measurement
         self._measurements_nr = -1 # i.e. length(self._times)
 
@@ -747,19 +746,6 @@ class Measurements():
         if untransformed:
             measurements = self._original_measurements
             xvalues      = self._original_measurements_xvalues
-
-            if self._original_already_shifted:
-                pass # nothing to do, measurements were already adjusted
-            elif not model:
-                print("Warning: 'original' line will not be shifted as 'model' "
-                      "variable was not set.")
-            else:
-                for name in ('gF_MO', 'gF_MT'):
-                    if name in measurements:
-                        assert name in self._WR_tara
-                        omega2g = determine_omega2g(model, xvalues[name])
-                        measurements[name] -= omega2g * self._WR_tara[name]
-                self._original_already_shifted = True
         else:
             measurements = self._measurements
             xvalues      = self._measurements_xvalues
@@ -1163,41 +1149,3 @@ def calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
         F_sat += fp2 * calc_sat_force(r0+fr2, r0+fr2+fl2, fluid_density)
 
     return F_unsat + F_sat
-
-def determine_omega2g(model, measurements_times):
-    from scikits.odes.sundials.ida import IDA_RhsFunction
-    from modules.shared.solver import simulate_direct
-    from modules.shared.measurements import Measurements
-
-    class _omega2g_residual(IDA_RhsFunction):
-        def evaluate(self, t, z, zdot, result, model):
-            result[:] = zdot[:]
-            return 0
-
-    residual_fn = _omega2g_residual()
-
-    def _omega2g_on_measurement(t, z, model, measurements):
-        measurements.store_calc_measurement('omega2g', model.find_omega2g(t))
-    def _omega2g_initialize_z0(z0, model):
-        z0[:] = -1.0
-
-    measurements = Measurements()
-    measurements._times = measurements_times
-    measurements._measurements_nr = np.alen(measurements_times)
-
-    z_size_backup = model.z_size
-    model.z_size = 1
-
-    (flag, t, z, i) = simulate_direct(_omega2g_initialize_z0, model,
-                                      measurements, residual_fn,
-                                      root_fn = None, nr_rootfns=None,
-                                      on_measurement=_omega2g_on_measurement)
-
-    model.z_size = z_size_backup
-
-    if not flag:
-        print('Computation of omega2g was not successfull.\nDetails:',
-              't=', t,'\nz=', z, '\nindex=', i, '\Exiting.')
-        exit(1)
-
-    return measurements._computed['omega2g']
