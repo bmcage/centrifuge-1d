@@ -254,6 +254,127 @@ def determine_scaling_coefs(cfg):
 
     return scale_coefs
 
+def determine_omega2g(measurements_times, omega_radps, acc_duration_list,
+                      dec_duration_list, fh_duration_list, include_acceleration,
+                      t_acceleration_duration, g_list, r0_fall_list):
+
+    measurements_nr = np.alen(measurements_times)
+
+    omega2g_values = np.zeros(measurements_times.shape, dtype=float)
+    omega_start = 0.0
+
+    i = 0 # index of current measurement
+
+    t_phase_end = 0.0 # previous phase end in total time
+
+    if np.isscalar(g_list):
+        g = g_list
+
+    if np.isscalar(r0_fall_list):
+        r0_fall = r0_fall_list
+
+    if np.isscalar(acc_duration_list):
+        acceleration_duration = acc_duration_list
+    if np.isscalar(dec_duration_list):
+        deceleration_duration = dec_duration_list
+    if np.isscalar(fh_duration_list):
+        fh_duration = fh_duration_list
+    if np.isscalar(t_acceleration_duration):
+        t_acc_duration = t_acceleration_duration
+
+    if np.isscalar(omega_radps):
+        omega_final = omega_radps
+
+    iterations_nr = np.max([np.alen(acc_duration_list),
+                            np.alen(dec_duration_list),
+                            np.alen(fh_duration_list)])
+
+    for iteration in range(iterations_nr):
+        if not np.isscalar(g_list):
+            g = g_list[iteration]
+        if not  np.isscalar(r0_fall_list):
+            r0_fall = r0_fall_list[iteration]
+
+        if not np.isscalar(omega_radps):
+            omega_final = omega_radps[iteration]
+
+        for phase in ('a', 'd', 'g'):
+            if phase == 'a':
+                if not np.isscalar(t_acceleration_duration):
+                    t_acc_duration = t_acceleration_duration[iteration]
+
+                if np.isscalar(acc_duration_list):
+                    duration = acc_duration_list
+                else:
+                    duration = acc_duration_list[iteration]
+            elif phase == 'd':
+                if np.isscalar(dec_duration_list):
+                    duration = dec_duration_list
+                else:
+                    duration = dec_duration_list[iteration]
+            else:
+                if np.isscalar(fh_duration_list):
+                    duration = fh_duration
+                else:
+                    duration = fh_duration_list[iteration]
+
+            if duration == 0.0: continue
+
+            t_phase_start = t_phase_end
+            t_phase_end   = t_phase_start + duration
+
+            while ((i < measurements_nr)
+                   and (measurements_times[i] <= t_phase_end)):
+
+                if phase == 'a':
+                    omega2g = \
+                      find_omega2g(measurements_times[i] - t_phase_start,
+                                   omega_final, omega_start, g,
+                                   include_acceleration, t_acc_duration)
+                elif phase == 'd':
+                    omega2g = \
+                      find_omega2g_dec(measurements_times[i] - t_phase_start,
+                                       duration, omega_start, g)
+                else:
+                    omega2g = find_omega2g_fh(r0_fall)
+
+                omega2g_values[i] = omega2g
+                i += 1
+
+            if i == measurements_nr:
+                break
+
+            omega_start = omega_final
+
+    return omega2g_values
+
+def determine_omega(cfg, acc_duration_list, dec_duration_list, fh_duration_list,
+                    include_acceleration, measurements_times):
+    """
+      Determine values of 'omega' needed for computations:
+          omega_rpm   - original values
+          omega_radps - orignail values transformed to [rad/s] units
+          omega2g     - (omega^2)/g, where omega is the rotational speed
+                         at measurements_times
+    """
+
+    t_acc_duration = cfg.get_value('acceleration_duration', not_found=None)
+    g_list = cfg.get_value('g', not_found=None)
+    r0_fall_list = cfg.get_value('r0_fall', not_found=None)
+
+    omega_rpm = cfg.get_value('omega', not_found=None)
+    if not omega_rpm:
+        return (None, None, None)
+
+    omega_radps = rpm2radps(omega_rpm)
+
+    omega2g = determine_omega2g(measurements_times, omega_radps,
+                                acc_duration_list, dec_duration_list,
+                                fh_duration_list, include_acceleration,
+                                t_acc_duration, g_list, r0_fall_list)
+
+    return (omega_rpm, omega_radps, omega2g)
+
 def apply_smoothing(cfg, measurements, measurements_xvalues):
     """
       Apply smoothing on measurements and return original (non-smoothed) values.
@@ -539,6 +660,10 @@ class Measurements():
                                                  measurements_diff)
         #    c) measurements times
         times = determine_measurements_times(measurements_xvalues)
+        #    e) omega (rpm, radps, omega2g)
+        (omega_rpm, omega_radps, omega2g) = \
+          determine_omega(cfg, acc_duration, dec_duration, fh_duration,
+                          include_acceleration, times)
         #    d) influence of tara
         WR_tara = determine_WR_tara(cfg, measurements)
         #    e) scaling coefs of measurements
@@ -573,11 +698,7 @@ class Measurements():
         self._weights         = None # weights as numpy array
 
         # 5. convert omega from rpm to radians/s
-        #    NOTE: we do it here because *_calibration_curve is expressed
-        #          in terms of omega(rpm)
-        omega = cfg.get_value('omega', not_found=None)
-        if not omega is None:
-            cfg.set_value('omega', rpm2radps(omega))
+        cfg.set_value('omega', omega_radps)
 
     def dump(self):
         """ Collect stored data to simple format for saving. """
