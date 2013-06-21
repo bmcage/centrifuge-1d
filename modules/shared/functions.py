@@ -60,27 +60,26 @@ def f3(t):
     """ Helper function for estimating the centrifuge acceleration curve. """
     return 0.1332308098 * np.log(t) + 9.5952480661
 
-def find_omega2g_fh(model, t):
+def find_omega2g_fh(r0_fall):
     """
       Function for determination of the omega^2/g coef when simulation
       falling-head test (i.e. simulating 1g environment).
     """
-    return 1./model.r0_fall
+    return 1./r0_fall
 
-def find_omega2g(model, t_total):
+def find_omega2g(t, omega_final, omega_start, g,
+                 include_acceleration, acceleration_duration):
     """
       Function for determinantion of the omega^2/g coef under centrifugation.
       This includes also the acceleration curve (but not deceleration curve).
-      Time 't_total' is the (total) time since the measuring started.
+      Time 't' is the time since the centrifugation (phase) started.
     """
-    if model.include_acceleration:
-        t = t_total - model.t0
+    if include_acceleration:
+        # Transform t so that acc is in <0, acceleration_duration>
+        t = t * 21/acceleration_duration
 
-        # Transform t so that acc is in <0, model.acceleration_duration>
-        t = t * 21/model.acceleration_duration
-
-        if (model.omega == model.omega_start) or (t > 21.0):
-            omega = model.omega
+        if (omega_final == omega_start) or (t > 21.0):
+            omega = omega_final
         else:
             omega_base = 10.
 
@@ -97,25 +96,23 @@ def find_omega2g(model, t_total):
             else:
                 omega = f1(t)
 
-            omega_start = model.omega_start
-            omega_rel = model.omega - omega_start
-            omega = omega_start + omega/omega_base * (model.omega - omega_start)
+            omega_rel = omega_final - omega_start
+            omega = omega_start + omega/omega_base * (omega_final - omega_start)
     else:
-        omega = model.omega
+        omega = omega_final
 
-    return omega * omega / model.g
+    return omega * omega / g
 
-def find_omega2g_dec(model, t):
+def find_omega2g_dec(t, deceleration_duration, omega_start, g):
     """
       Function for determinantion of the omega^2/g coef (under centrifugation)
       when decelerating.
     """
-    duration = model.duration
     # omega_end = 0.0, t_end == duration, t in [0, duration]
-    omega = ((model.t0 + model.deceleration_duration - t)
-             / model.deceleration_duration * model.omega)
+    omega = ((deceleration_duration - t)
+             / deceleration_duration * omega_start)
 
-    return omega * omega / model.g
+    return omega * omega / g
 
 def y2x(y, s1, s2):
     """ Transform interval y=<0,1> to original interval x. """

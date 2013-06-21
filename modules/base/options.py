@@ -152,8 +152,17 @@ def adjust_cfg(cfg):
 
     # NOTE: conversion of omega from rpm to radians is done inside the
     #       read() method of class Measurements
-    cfg.set_value('omega2g_fns', {'a': find_omega2g, 'g': find_omega2g_fh,
-                                  'd': find_omega2g_dec})
+    omega_acc = (lambda model, t_total:
+                 find_omega2g(t_total-model.t0, model.omega, model.omega_start,
+                              model.g, model.include_acceleration,
+                              model.acceleration_duration))
+    omega_dec = (lambda model, t_total:
+                 find_omega2g_dec(t_total - model.t0, model.deceleration_duration,
+                                  model.omega_start, model.g))
+    omega_fh = lambda model, t_total: find_omega2g_fh(model.r0_fall)
+
+    cfg.set_value('omega2g_fns', {'a': omega_acc, 'g': omega_fh,
+                                  'd': omega_dec})
 
     # if r0 was set (but not rE), we set rE (and discard r0)
     if not cfg.get_value('re'):
