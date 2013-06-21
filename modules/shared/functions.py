@@ -167,7 +167,8 @@ def phases_end_times(a_duration, d_duration, g_duration,
 
     if np.isscalar(duration_times):
         duration_times = duration_times.reshape([1,])
-    stop_times = np.cumsum(np.concatenate(([0.0], duration_times)))
+
+    stop_times = np.cumsum(duration_times)
 
     return stop_times
 

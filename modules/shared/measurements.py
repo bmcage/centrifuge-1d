@@ -422,8 +422,8 @@ def apply_calibration_curve(cfg, measurements, phases_scans):
             first_idx = 0
             F = measurements[name]
 
-            # phases_scans = [0.0, phase1_end, phase2_end, ...]
-            for (phase_end, omega) in zip(phases_scans[1:], omegas):
+            # phases_scans = [phase1_end, phase2_end, ...]
+            for (phase_end, omega) in zip(phases_scans, omega_rpm):
                 if not omega in calibration_curve:
                     print('Value of omega=' + str(omega) + ' not '
                           'found in ' + name + '_calibration'
