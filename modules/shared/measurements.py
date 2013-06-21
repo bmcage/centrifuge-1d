@@ -648,25 +648,27 @@ class Measurements():
         #    b) measurements, xvalues
         (measurements, measurements_xvalues) = \
           determine_measurements(cfg, phases_scans)
+        #    c) measurements weights
         measurements_weights = determine_weights(cfg, measurements,
                                                  measurements_diff)
-        #    c) measurements times
+        #    d) measurements times
         times = determine_measurements_times(measurements_xvalues)
         #    e) omega (rpm, radps, omega2g)
         (omega_rpm, omega_radps, omega2g) = \
           determine_omega(cfg, acc_duration, dec_duration, fh_duration,
                           include_acceleration, times)
-        #    e) scaling coefs of measurements
+        #    f) scaling coefs of measurements
         scales_coefs = determine_scaling_coefs(cfg)
 
         # 2. Data transformation
         #    a) Apply calibration curve
         apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm)
-        #    b) Apply smoothing
+        #    b) Apply tara calibration curve
         apply_tara_calibration(cfg, measurements, omega2g)
+        #    c) Apply smoothing
         (original_measurements, original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues)
-        #    c) Filter out unwanted measurements
+        #    d) Filter out unwanted measurements
         (measurements_indices, computed_indices) = \
           filter_measurements(cfg, times, measurements, measurements_xvalues,
                               original_measurements,
