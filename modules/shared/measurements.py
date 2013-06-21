@@ -529,12 +529,11 @@ def determine_measurements_times(measurements_xvalues):
 
     return times
 
-def apply_calibration_curve(cfg, measurements, phases_scans):
+def apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm):
     """
       Calibration curve sets the base level for measured force.
     """
-
-    omegas = cfg.get_value('omega')
+    assert(np.alen(omega_rpm) == np.alen(phases_scans))
 
     for name in ('gF_MT', 'gF_MO'):
         # for now calibration curve only for gF_* is supported
@@ -671,7 +670,7 @@ class Measurements():
 
         # 2. Data transformation
         #    a) Apply calibration curve
-        apply_calibration_curve(cfg, measurements, phases_scans)
+        apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm)
         #    b) Apply smoothing
         (original_measurements, original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues)
