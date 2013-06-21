@@ -5,6 +5,7 @@ from collections import OrderedDict
 from shared import get_directories, flatten
 from os import makedirs, path
 from modules.shared.functions import rpm2radps, compare_data, \
+    find_omega2g, find_omega2g_dec, find_omega2g_fh, \
     smoothing_gaussian, smoothing_triangle, smoothing_linear
 
 
@@ -109,21 +110,17 @@ def determine_WR_tara(cfg, measurements):
 
     return WR_tara_gF
 
-def determine_measurements(cfg):
-    """
-      Determine the measurements and their xvalues (which in most cases
-      are times at which measurements were taken).
-    """
+def determine_centrifugation_times(cfg):
     from modules.shared.functions import phases_end_times
 
-    measurements         = OrderedDict()
-    measurements_xvalues = OrderedDict()
+    acc_duration_list = cfg.get_value('duration', not_found=None)
+    dec_duration_list = cfg.get_value('deceleration_duration', not_found=None)
+    fh_duration_list  = cfg.get_value('fh_duration', not_found=None)
+    include_acceleration = cfg.get_value('include_acceleration', not_found=True)
 
     phases_scans = \
-        phases_end_times(cfg.get_value('duration', not_found=None),
-                         cfg.get_value('deceleration_duration', not_found=None),
-                         cfg.get_value('fh_duration', not_found=None),
-                         cfg.get_value('include_acceleration', not_found=True))
+        phases_end_times(acc_duration_list, dec_duration_list, fh_duration_list,
+                         include_acceleration)
 
     if phases_scans is None:
         print("\nPhases scans could not be determined. Were "
@@ -131,8 +128,19 @@ def determine_measurements(cfg):
               "set properly?\n Cannot continue, exiting...")
         exit(1)
 
+    return (acc_duration_list, dec_duration_list, fh_duration_list,
+            phases_scans, include_acceleration)
+
+def determine_measurements(cfg, phases_scans):
+    """
+      Determine the measurements and their xvalues (which in most cases
+      are times at which measurements were taken).
+    """
+    measurements         = OrderedDict()
+    measurements_xvalues = OrderedDict()
+
     # determine default xvalue when none specified
-    default_xvalue = phases_scans[1:]
+    default_xvalue = phases_scans
 
     # assign measurements and xvalues
     for (name, iname) in MEASUREMENTS_NAMES.items():
@@ -175,7 +183,7 @@ def determine_measurements(cfg):
         measurements_xvalues['theta'] = np.asarray(cfg.get_value('p'),
                                                    dtype=float)
 
-    return (phases_scans, measurements, measurements_xvalues)
+    return (measurements, measurements_xvalues)
 
 def determine_weights(cfg, measurements, measurements_diff):
     measurements_weights = {}
@@ -521,10 +529,12 @@ class Measurements():
         self.run_inverse_problem_p(cfg.get_value('inv_init_params'))
 
         # 1. Determine values
-        #    a) measurements, xvalues, phases scans
-        [phases_scans, measurements, measurements_xvalues] = \
-          determine_measurements(cfg)
-        #    b) measurements weights
+        #    a) centrifugation (phases) times
+        (acc_duration, dec_duration, fh_duration, phases_scans,
+         include_acceleration) = determine_centrifugation_times(cfg)
+        #    b) measurements, xvalues
+        (measurements, measurements_xvalues) = \
+          determine_measurements(cfg, phases_scans)
         measurements_weights = determine_weights(cfg, measurements,
                                                  measurements_diff)
         #    c) measurements times
