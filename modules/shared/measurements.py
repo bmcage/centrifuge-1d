@@ -30,8 +30,7 @@ def same_value(item):
 
     return ref
 
-def determine_WR_tara(cfg, measurements):
-    WR_tara_gF = {}
+def apply_tara_calibration(cfg, measurements, omega2g):
 
     g = cfg.get_value('g')
 
@@ -42,9 +41,6 @@ def determine_WR_tara(cfg, measurements):
         gF_tara_calibration = cfg.get_value(F_name.lower() + '_tara')
 
         if not gF_tara_calibration:
-            print("INFO: Tara calibration curve '" + F_name.lower() + "_tara'"
-                  "was not specified. Assuming it is 0.")
-            WR_tara_gF[F_name] = 0.0
             continue
 
         if ((not type(gF_tara_calibration) in (list, tuple))
@@ -54,12 +50,12 @@ def determine_WR_tara(cfg, measurements):
                   '[omega, weight]. Aborting.')
             exit(1)
 
-        (omega_rpm, gF_tara) = gF_tara_calibration
-        omega_radps = rpm2radps(omega_rpm)
+        (omega_rpm_calibration, gF_tara) = gF_tara_calibration
+        omega_radps_calib = rpm2radps(omega_rpm_calibration)
         # Centrifugal force = F = M omega^2 r,
         # sensor gives us m kg, so F = m g, with m measurement
         # M r = m g/ omega^2
-        WR_tara = gF_tara * g / omega_radps / omega_radps
+        WR_tara = gF_tara * g / omega_radps_calib / omega_radps_calib
 
         if F_name == 'gF_MT':
 
@@ -106,9 +102,9 @@ def determine_WR_tara(cfg, measurements):
             # WR_tara = (gF_tara - gF_fluid) * g / (omega_radps^2)
             WR_tara = WR_tara - WR_fluid
 
-        WR_tara_gF[F_name] = WR_tara
-
-    return WR_tara_gF
+        # subtract the tara influence from measured values
+        gF_tara_computed = omega2g  * WR_tara
+        measurements[F_name] -= gF_tara_computed[1:] # tara is computed also at t=0
 
 def determine_centrifugation_times(cfg):
     from modules.shared.functions import phases_end_times
@@ -612,9 +608,6 @@ class Measurements():
         # Maximal number of values stored per measurement
         self._measurements_nr = -1 # i.e. length(self._times)
 
-        # Radius * weight of tara (R is at the gravitational centre)
-        self._WR_tara = {} # {'gF_MO': None, 'gF_MT': None}
-
         # Measurements scales
         self._scales_coefs = None
         self._scales = None
@@ -663,8 +656,6 @@ class Measurements():
         (omega_rpm, omega_radps, omega2g) = \
           determine_omega(cfg, acc_duration, dec_duration, fh_duration,
                           include_acceleration, times)
-        #    d) influence of tara
-        WR_tara = determine_WR_tara(cfg, measurements)
         #    e) scaling coefs of measurements
         scales_coefs = determine_scaling_coefs(cfg)
 
@@ -672,6 +663,7 @@ class Measurements():
         #    a) Apply calibration curve
         apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm)
         #    b) Apply smoothing
+        apply_tara_calibration(cfg, measurements, omega2g)
         (original_measurements, original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues)
         #    c) Filter out unwanted measurements
@@ -683,7 +675,6 @@ class Measurements():
         # 3. Set internal variables
         self._times           = times
         self._measurements_nr = np.alen(times)
-        self._WR_tara         = WR_tara
         self._scales_coefs    = scales_coefs
         self._measurements                  = measurements
         self._measurements_xvalues          = measurements_xvalues
@@ -772,18 +763,6 @@ class Measurements():
         if self._measurements_array is None:
             values = []
             for (name, value) in self._measurements.items():
-                if name in ('gF_MO', 'gF_MT'):
-                    # For the forces we need to determine the influence of tara
-                    # and subtract it from the measured values of force; but as
-                    # we don't have the value from measurement, we subtract the
-                    # force of tara found during computation - but this
-                    # information is only available at runtime
-                    if (name + '_tara' in self._computed):
-                        gf_filter = self._computed_indices[name]
-                        F_tara = self._computed[name + '_tara']
-
-                        self._measurements[name][:] -= F_tara[gf_filter]
-
                 if name in self._measurements_diff:
                     values.append(value[1:] - value[:-1])
                 else:
@@ -1084,10 +1063,6 @@ class Measurements():
 
         F = omega2g * GC * mo
 
-        if 'gF_MO' in self._WR_tara:
-            self.store_calc_measurement('gF_MO_tara',
-                                        omega2g * self._WR_tara['gF_MO'])
-
         return self.store_calc_measurement('gF_MO', F)
 
     def store_calc_gcf_mo(self, omega2g, rS, rE, fluid_density, chamber_area):
@@ -1135,10 +1110,6 @@ class Measurements():
         F = (calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
                         soil_porosity, fl2, fp2, fr2, fluid_density)
              * omega2g * tube_area)
-
-        if 'gF_MT' in self._WR_tara:
-            self.store_calc_measurement('gF_MT_tara',
-                                        omega2g * self._WR_tara['gF_MT'])
 
         return self.store_calc_measurement('gF_MT', F)
 
