@@ -30,7 +30,9 @@ def same_value(item):
 
     return ref
 
-def apply_tara_calibration(cfg, measurements, omega2g):
+def determine_tara_calibration(cfg, measurements, omega2g):
+
+    tara_calibration = {}
 
     g = cfg.get_value('g')
 
@@ -104,8 +106,16 @@ def apply_tara_calibration(cfg, measurements, omega2g):
             WR_tara = WR_tara - WR_fluid
 
         # subtract the tara influence from measured values
-        gF_tara = omega2g  * WR_tara
-        measurements[F_name] -= gF_tara[1:] # tara is computed also for omega  at t=0
+        gF_tara = omega2g[1:]  * WR_tara # omega is computed at t=0
+        tara_calibration[F_name] = gF_tara
+
+    return tara_calibration
+
+def apply_tara_calibration(measurements, tara_calibration):
+    print(measurements, tara_calibration)
+    for F_name in ('gF_MT', 'gF_MO'):
+        if (F_name in measurements) and (F_name in tara_calibration):
+            measurements[F_name] -= tara_calibration[F_name]
 
 def determine_centrifugation_times(cfg):
     from modules.shared.functions import phases_end_times
@@ -666,17 +676,24 @@ class Measurements():
                           include_acceleration, times)
         #    f) scaling coefs of measurements
         scales_coefs = determine_scaling_coefs(cfg)
+        #    g) determine tara calibration curve
+        tara_calibration =  determine_tara_calibration(cfg, measurements,
+                                                       omega2g)
         #    h) store original values
         (original_measurements, original_measurements_xvalues) = \
             store_original_measurements(cfg, measurements, measurements_xvalues)
 
         # 2. Data transformation
+
         #    a) Apply calibration curve
         apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm)
         #    b) Apply smoothing
         apply_smoothing(cfg, measurements)
-        #    c) Subtract the influence of tara from measurements
-        apply_tara_calibration(cfg, measurements, omega2g)
+        #    c) Apply tara calibration curve: subtract the influence of tara
+        #       from measurements (measurements can be smoothed already, but
+        #       not the original values)
+        apply_tara_calibration(measurements, tara_calibration)
+        apply_tara_calibration(original_measurements, tara_calibration)
         #    d) Filter out unwanted measurements
         (measurements_indices, computed_indices) = \
           filter_measurements(cfg, times, measurements, measurements_xvalues,
