@@ -372,13 +372,10 @@ def determine_omega(cfg, acc_duration_list, dec_duration_list, fh_duration_list,
 
     return (omega_rpm, omega_radps, omega2g)
 
-def apply_smoothing(cfg, measurements, measurements_xvalues):
+def apply_smoothing(cfg, measurements):
     """
       Apply smoothing on measurements and return original (non-smoothed) values.
     """
-    original_measurements = {}
-    original_measurements_xvalues = {}
-
     smoothing = cfg.get_value('smoothing')
 
     if smoothing and (not type(smoothing) == dict):
@@ -418,13 +415,9 @@ def apply_smoothing(cfg, measurements, measurements_xvalues):
 
         if not sm_alg: continue
 
-        # store old (original) values
+        # save smoothed values
         value  = measurements[name]
-        xvalue = measurements_xvalues[name]
-        original_measurements[name]   = value
-        original_measurements_xvalues[name] = xvalue
 
-        # ...and save smoothed values
         if sm_alg == 'smlin': # linear smoothing
             value = smoothing_linear(value, sm_degree)
         elif sm_alg == 'smtri': # triangular smoothing
@@ -437,7 +430,6 @@ def apply_smoothing(cfg, measurements, measurements_xvalues):
 
         measurements[name] = value
 
-    return (original_measurements, original_measurements_xvalues)
 
 def filter_measurements(cfg, measurements_times, measurements,
                         measurements_xvalues, measurements_original,
@@ -577,6 +569,20 @@ def apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm):
                   'Cannot continue, exiting...')
             exit(1)
 
+def store_original_measurements(cfg, measurements, measurements_xvalues):
+    original_measurements         = {}
+    original_measurements_xvalues = {}
+
+    orig_names = cfg.get_value('show_original_measurements', not_found=None)
+    if not orig_names:
+        orig_names = []
+
+    for name in orig_names:
+        if name in measurements:
+            original_measurements[name] = measurements[name]
+            original_measurements_xvalues[name] = measurements_xvalues[name]
+
+    return (original_measurements, original_measurements_xvalues)
 
 class Measurements():
     """
@@ -660,13 +666,15 @@ class Measurements():
                           include_acceleration, times)
         #    f) scaling coefs of measurements
         scales_coefs = determine_scaling_coefs(cfg)
+        #    h) store original values
+        (original_measurements, original_measurements_xvalues) = \
+            store_original_measurements(cfg, measurements, measurements_xvalues)
 
         # 2. Data transformation
         #    a) Apply calibration curve
         apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm)
         #    b) Apply smoothing
-        (original_measurements, original_measurements_xvalues) = \
-            apply_smoothing(cfg, measurements, measurements_xvalues)
+        apply_smoothing(cfg, measurements)
         #    c) Subtract the influence of tara from measurements
         apply_tara_calibration(cfg, measurements, omega2g)
         #    d) Filter out unwanted measurements

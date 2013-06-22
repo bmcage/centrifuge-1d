@@ -57,6 +57,7 @@ CONFIG_OPTIONS = ['exp_type',
                   ('measurements_scale_coefs', None),
                   ('cf_weights', 1.0),
                   ('measurements_keep', None), ('measurements_remove', None),
+                  ('show_original_measurements', None),
 
                   ('descr', None), ('re', None),
                   (lambda cfg: not (cfg.get_value('gf_mo') is None),
