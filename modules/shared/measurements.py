@@ -50,12 +50,13 @@ def apply_tara_calibration(cfg, measurements, omega2g):
                   '[omega, weight]. Aborting.')
             exit(1)
 
-        (omega_rpm_calibration, gF_tara) = gF_tara_calibration_data
-        omega_radps_calib = rpm2radps(omega_rpm_calibration)
+        (omega_rpm_calibration, gF_tara_calibration) = gF_tara_calibration_data
+        omega_radps_calibration = rpm2radps(omega_rpm_calibration)
         # Centrifugal force = F = M omega^2 r,
         # sensor gives us m kg, so F = m g, with m measurement
         # M r = m g/ omega^2
-        WR_tara = gF_tara * g / omega_radps_calib / omega_radps_calib
+        WR_tara = (gF_tara_calibration * g
+                   / omega_radps_calibration / omega_radps_calibration)
 
         if F_name == 'gF_MT':
 
@@ -103,8 +104,8 @@ def apply_tara_calibration(cfg, measurements, omega2g):
             WR_tara = WR_tara - WR_fluid
 
         # subtract the tara influence from measured values
-        gF_tara_computed = omega2g  * WR_tara
-        measurements[F_name] -= gF_tara_computed[1:] # tara is computed also at t=0
+        gF_tara = omega2g  * WR_tara
+        measurements[F_name] -= gF_tara[1:] # tara is computed also for omega  at t=0
 
 def determine_centrifugation_times(cfg):
     from modules.shared.functions import phases_end_times
