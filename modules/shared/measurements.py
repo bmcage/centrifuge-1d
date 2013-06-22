@@ -664,11 +664,11 @@ class Measurements():
         # 2. Data transformation
         #    a) Apply calibration curve
         apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm)
-        #    b) Apply tara calibration curve
-        apply_tara_calibration(cfg, measurements, omega2g)
-        #    c) Apply smoothing
+        #    b) Apply smoothing
         (original_measurements, original_measurements_xvalues) = \
             apply_smoothing(cfg, measurements, measurements_xvalues)
+        #    c) Subtract the influence of tara from measurements
+        apply_tara_calibration(cfg, measurements, omega2g)
         #    d) Filter out unwanted measurements
         (measurements_indices, computed_indices) = \
           filter_measurements(cfg, times, measurements, measurements_xvalues,
