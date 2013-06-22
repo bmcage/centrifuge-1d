@@ -38,19 +38,19 @@ def apply_tara_calibration(cfg, measurements, omega2g):
         if not F_name in measurements: continue
 
         # Determine the influence of tara
-        gF_tara_calibration = cfg.get_value(F_name.lower() + '_tara')
+        gF_tara_calibration_data = cfg.get_value(F_name.lower() + '_tara')
 
-        if not gF_tara_calibration:
+        if not gF_tara_calibration_data:
             continue
 
-        if ((not type(gF_tara_calibration) in (list, tuple))
-               or (len(gF_tara_calibration) != 2)):
+        if ((not type(gF_tara_calibration_data) in (list, tuple))
+               or (len(gF_tara_calibration_data) != 2)):
             print('The tara value of ' + F_name + ' (' + F_name + '_tara) '
                   'must be a list/tuple of length 2 of type '
                   '[omega, weight]. Aborting.')
             exit(1)
 
-        (omega_rpm_calibration, gF_tara) = gF_tara_calibration
+        (omega_rpm_calibration, gF_tara) = gF_tara_calibration_data
         omega_radps_calib = rpm2radps(omega_rpm_calibration)
         # Centrifugal force = F = M omega^2 r,
         # sensor gives us m kg, so F = m g, with m measurement
