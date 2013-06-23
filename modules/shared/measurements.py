@@ -511,7 +511,10 @@ def determine_filtering_indices(cfg, measurements_times, measurements,
 
         measurements_filter[name] = filter_idxs
 
-        if not name in MEASUREMENTS_TIME_INDEPENDENT:
+        if name in MEASUREMENTS_TIME_INDEPENDENT:
+            # we take all measurements
+            measurements_times_filter[name] = np.arange(np.alen(filter_idxs))
+        else:
             xvalue = measurements_xvalues[name]
             measurements_times_filter[name] = \
               np.searchsorted(measurements_times, xvalue[filter_idxs])
