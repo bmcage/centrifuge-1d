@@ -538,9 +538,9 @@ def determine_measurements_times(measurements_xvalues):
     return (measurements_indices, computed_indices)
 
 
-def apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm):
+def apply_baseline_curve(cfg, measurements, phases_scans, omega_rpm):
     """
-      Calibration curve sets the base level for measured force.
+      Baseline calibration curve sets the base level for measured force.
     """
     assert(np.alen(omega_rpm) == np.alen(phases_scans))
 
@@ -548,7 +548,7 @@ def apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm):
         # for now calibration curve only for gF_* is supported
 
         calibration_curve = cfg.get_value(MEASUREMENTS_NAMES[name]
-                                          + '_calibration_curve')
+                                          + '_baseline')
         if (calibration_curve is None) or (not name in measurements):
             continue
 
@@ -696,7 +696,7 @@ class Measurements():
         # 2. Data transformation
 
         #    a) Apply calibration curve
-        apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm)
+        apply_baseline_curve(cfg, measurements, phases_scans, omega_rpm)
         #    b) Apply smoothing
         apply_smoothing(cfg, measurements)
         #    c) Apply tara calibration curve: subtract the influence of tara
