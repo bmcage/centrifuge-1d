@@ -451,24 +451,22 @@ def apply_smoothing(cfg, measurements):
 
         measurements[name] = value
 
-
-def filter_measurements(cfg, measurements_times, measurements,
-                        measurements_xvalues, measurements_original,
-                        measurements_original_xvalues):
+def determine_filtering_indices(cfg, measurements_times, measurements,
+                                measurements_xvalues):
     """
-      Filter out unwanted measurements and determine indices corresponding
-      to times at which kept measurements were taken as measurements are
-      taken generally only on a subset of times specified by measurements_times.
+      Determine filters (indices) so that only wanted measurements
+      are preserved.
 
-      Return values:
-        measurements_indices - indices of element that should be kept from
-                               measurements array
-        computed_indices     - indices that should be kept from computed values
-                               (correspondin to xvalues in measurements)
+      Returns values:
+        measurements_filter - a dict of indices vectors. Each vector corresponds
+                              to indices of preserved measurements.
+        measurements_times_filter - dict of indices vector. Each vector
+                              corresponds to indices of total times, at which
+                              to which filtered measurements correspond, as its
+                              xvalue is only a subset of measurements_times.
     """
-
-    measurements_indices = {}
-    computed_indices     = {}
+    measurements_filter       = {}
+    measurements_times_filter = {}
 
     # filter out unwanted values
     kfilters = cfg.get_value('measurements_keep')
@@ -507,6 +505,15 @@ def filter_measurements(cfg, measurements_times, measurements,
 
         filter_idxs = np.flatnonzero(filter_idxs)
 
+        measurements_filter[name] = filter_idxs
+
+        if not name in MEASUREMENTS_TIME_INDEPENDENT:
+            xvalue = measurements_xvalues[name]
+            measurements_times_filter[name] = \
+              np.searchsorted(measurements_times, xvalue[filter_idxs])
+
+    return (measurements_filter, measurements_times_filter)
+
 def determine_measurements_times(measurements_xvalues):
     times = [0.0]
 
@@ -516,27 +523,27 @@ def determine_measurements_times(measurements_xvalues):
 
     return times
 
-        # determine smallest and biggest index of remaining element
-        idx_min = filter_idxs[0]
-        idx_max = filter_idxs[-1]
+def apply_filter(measurements_times, measurements, measurements_xvalues,
+                 measurements_original, measurements_original_xvalues,
+                 measurements_filter, measurements_times_filter):
+    """ Filter out unwanted measurements. """
 
+    for name in measurements.keys():
+        filter_idxs = measurements_filter[name]
         # keep only desired measurements
-        xvalue = measurements_xvalues[name][filter_idxs]
         measurements[name] = measurements[name][filter_idxs]
-        measurements_xvalues[name] = xvalue
+        measurements_xvalues[name] = measurements_xvalues[name][filter_idxs]
 
         # keep original measurements - without are out of measured range
         if name in measurements_original:
+            # determine smallest and biggest index of remaining element
+            idx_min = filter_idxs[0]
+            idx_max = filter_idxs[-1]
+
             measurements_original[name] = \
-              measurements_original[name][idx_min:idx_max+1]
+                measurements_original[name][idx_min:idx_max+1]
             measurements_original_xvalues[name] = \
-              measurements_original_xvalues[name][idx_min:idx_max+1]
-
-        measurements_indices[name] = filter_idxs
-        computed_indices[name]     = np.searchsorted(measurements_times, xvalue)
-
-    return (measurements_indices, computed_indices)
-
+                measurements_original_xvalues[name][idx_min:idx_max+1]
 
 def apply_baseline_curve(cfg, measurements, phases_scans, omega_rpm):
     """
@@ -692,6 +699,9 @@ class Measurements():
         #    h) store original values
         (original_measurements, original_measurements_xvalues) = \
             store_original_measurements(cfg, measurements, measurements_xvalues)
+        (measurements_filter, measurements_times_filter) =  \
+          determine_filtering_indices(cfg, times, measurements,
+                                      measurements_xvalues)
 
         # 2. Data transformation
 
@@ -705,10 +715,9 @@ class Measurements():
         apply_tara_calibration(measurements, tara_calibration)
         apply_tara_calibration(original_measurements, tara_calibration)
         #    d) Filter out unwanted measurements
-        (measurements_indices, computed_indices) = \
-          filter_measurements(cfg, times, measurements, measurements_xvalues,
-                              original_measurements,
-                              original_measurements_xvalues)
+        apply_filter(times, measurements, measurements_xvalues,
+                     original_measurements, original_measurements_xvalues,
+                     measurements_filter, measurements_times_filter)
 
         # 3. Set internal variables
         self._times           = times
@@ -719,8 +728,8 @@ class Measurements():
         self._original_measurements         = original_measurements
         self._original_measurements_xvalues = original_measurements_xvalues
         self._measurements_weights          = measurements_weights
-        self._measurements_indices          = measurements_indices
-        self._computed_indices              = computed_indices
+        self._measurements_indices          = measurements_filter
+        self._computed_indices              = measurements_times_filter
 
         # 4. Initialize internal variables
         self._weights         = None # weights as numpy array
