@@ -18,6 +18,19 @@ MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'dgF_MO': None, 'dgF_MT': None,
                       'SL': 'l1', 'theta': 'theta'}
 
+MEASUREMENTS_TIME_INDEPENDENT = ('theta')
+
+def _store_time_independent_xvalues(cfg, measurements, measurements_xvalues):
+    """
+      Determine and store xvalues for measurements independent on time.
+      This functions resolves all measurements listed in variable
+      'MEASUREMENTS_TIME_INDEPENDENT'.
+    """
+    if 'theta' in measurements:
+        # 'theta' uses pressure as x-value (and not time)
+        measurements_xvalues['theta'] = np.asarray(cfg.get_value('p'),
+                                                   dtype=float)
+
 def determine_scaling_factor(v):
     return np.power(10, -np.floor(np.log10(np.max(np.abs(v)))))
 
@@ -185,10 +198,8 @@ def determine_measurements(cfg, phases_scans):
         # 'MO' is a cumulative value
         measurements['MO'] = np.cumsum(measurements['MO'])
 
-    if 'theta' in measurements:
-        # 'theta' uses pressure as x-value (and not time)
-        measurements_xvalues['theta'] = np.asarray(cfg.get_value('p'),
-                                                   dtype=float)
+    # determine xvalues for time-independent measurements
+    _store_time_independent_xvalues(cfg, measurements, measurements_xvalues)
 
     return (measurements, measurements_xvalues)
 
