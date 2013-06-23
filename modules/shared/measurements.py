@@ -696,9 +696,6 @@ class Measurements():
         #    g) determine tara calibration curve
         tara_calibration =  determine_tara_calibration(cfg, measurements,
                                                        omega2g)
-        #    h) store original values
-        (original_measurements, original_measurements_xvalues) = \
-            store_original_measurements(cfg, measurements, measurements_xvalues)
         (measurements_filter, measurements_times_filter) =  \
           determine_filtering_indices(cfg, times, measurements,
                                       measurements_xvalues)
@@ -707,6 +704,9 @@ class Measurements():
 
         #    a) Apply calibration curve
         apply_baseline_curve(cfg, measurements, phases_scans, omega_rpm)
+        #    b) store original values
+        (original_measurements, original_measurements_xvalues) = \
+          store_original_measurements(cfg, measurements, measurements_xvalues)
         #    b) Apply smoothing
         apply_smoothing(cfg, measurements)
         #    c) Apply tara calibration curve: subtract the influence of tara
