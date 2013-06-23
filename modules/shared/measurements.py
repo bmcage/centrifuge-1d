@@ -507,6 +507,15 @@ def filter_measurements(cfg, measurements_times, measurements,
 
         filter_idxs = np.flatnonzero(filter_idxs)
 
+def determine_measurements_times(measurements_xvalues):
+    times = [0.0]
+
+    for (name, value) in measurements_xvalues.items():
+        if not name in MEASUREMENTS_TIME_INDEPENDENT: # xvalues are not times
+            times = np.union1d(times, value)
+
+    return times
+
         # determine smallest and biggest index of remaining element
         idx_min = filter_idxs[0]
         idx_max = filter_idxs[-1]
@@ -528,16 +537,6 @@ def filter_measurements(cfg, measurements_times, measurements,
 
     return (measurements_indices, computed_indices)
 
-def determine_measurements_times(measurements_xvalues):
-    times = [0.0]
-
-    for (name, value) in measurements_xvalues.items():
-        if name in ('theta'): # xvalues are not times
-            continue
-        else:
-            times = np.union1d(times, value)
-
-    return times
 
 def apply_calibration_curve(cfg, measurements, phases_scans, omega_rpm):
     """
