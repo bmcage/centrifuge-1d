@@ -128,11 +128,21 @@ def determine_tara_calibration(cfg, measurements, omega2g):
 
     return tara_calibration
 
-def apply_tara_calibration(measurements, tara_calibration):
-    print(measurements, tara_calibration)
+def apply_tara_calibration(tara_calibration, measurements_times_filter,
+                           measurements, measurements_original):
     for F_name in ('gF_MT', 'gF_MO'):
-        if (F_name in measurements) and (F_name in tara_calibration):
-            measurements[F_name] -= tara_calibration[F_name]
+        if (not F_name in tara_calibration) or (not F_name in measurements):
+            continue
+
+        filter_idxs = measurements_times_filter[F_name]
+        measurements[F_name] -= tara_calibration[F_name][filter_idxs]
+
+        if F_name in measurements_original:
+            idx_min = filter_idxs[0]
+            idx_max = filter_idxs[-1]
+
+            measurements_original[F_name] -= \
+              tara_calibration[F_name][idx_min:idx_max+1]
 
 def determine_centrifugation_times(cfg):
     from modules.shared.functions import phases_end_times
@@ -705,8 +715,9 @@ class Measurements():
         #    f) scaling coefs of measurements
         scales_coefs = determine_scaling_coefs(cfg)
         #    g) determine tara calibration curve
-        tara_calibration =  determine_tara_calibration(cfg, measurements,
-                                                       omega2g)
+        tara_calibration = \
+          determine_tara_calibration(cfg, measurements, times, omega2g,
+                                     phases_scans, omega_rpm)
         #    h) determine indices of preserved measurements
         (measurements_filter, measurements_times_filter) =  \
           determine_filtering_indices(cfg, times, measurements,
@@ -723,15 +734,15 @@ class Measurements():
           store_original_measurements(cfg, measurements, measurements_xvalues)
         #    c) Apply smoothing
         apply_smoothing(cfg, measurements)
-        #    d) Apply tara calibration curve: subtract the influence of tara
-        #       from measurements (measurements can be smoothed already, but
-        #       not the original values)
-        apply_tara_calibration(measurements, tara_calibration)
-        apply_tara_calibration(original_measurements, tara_calibration)
-        #    e) Filter out unwanted measurements
+        #    d) Filter out unwanted measurements
         apply_filter(times, measurements, measurements_xvalues,
                      original_measurements, original_measurements_xvalues,
                      measurements_filter, measurements_times_filter)
+        #    e) Apply tara calibration curve: subtract the influence of tara
+        #       from measurements (measurements can be smoothed already, but
+        #       not the original values)
+        apply_tara_calibration(tara_calibration, measurements_times_filter,
+                               measurements, original_measurements)
 
         # 3. Set internal variables
         self._times           = times
