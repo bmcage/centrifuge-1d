@@ -20,6 +20,10 @@ MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
 
 MEASUREMENTS_TIME_INDEPENDENT = ('theta')
 
+##################################################################
+#        Auxiliary functions for the Measurements class          #
+##################################################################
+
 def _store_time_independent_xvalues(cfg, measurements, measurements_xvalues):
     """
       Determine and store xvalues for measurements independent on time.
@@ -611,6 +615,10 @@ def store_original_measurements(cfg, measurements, measurements_xvalues):
 
     return (original_measurements, original_measurements_xvalues)
 
+##################################################################
+#                     Measurements class                         #
+##################################################################
+
 class Measurements():
     """
     This class is for handling with measurements of all types - measured data
@@ -696,25 +704,28 @@ class Measurements():
         #    g) determine tara calibration curve
         tara_calibration =  determine_tara_calibration(cfg, measurements,
                                                        omega2g)
+        #    h) determine indices of preserved measurements
         (measurements_filter, measurements_times_filter) =  \
           determine_filtering_indices(cfg, times, measurements,
                                       measurements_xvalues)
 
         # 2. Data transformation
 
-        #    a) Apply calibration curve
+        #    a) Apply baseline curve (this need to be done BEFORE storing
+        #       ORIGINAL MEASUREMENTS as they also need to be shifted, so
+        #       that we don't have to apply it twice)
         apply_baseline_curve(cfg, measurements, phases_scans, omega_rpm)
         #    b) store original values
         (original_measurements, original_measurements_xvalues) = \
           store_original_measurements(cfg, measurements, measurements_xvalues)
-        #    b) Apply smoothing
+        #    c) Apply smoothing
         apply_smoothing(cfg, measurements)
-        #    c) Apply tara calibration curve: subtract the influence of tara
+        #    d) Apply tara calibration curve: subtract the influence of tara
         #       from measurements (measurements can be smoothed already, but
         #       not the original values)
         apply_tara_calibration(measurements, tara_calibration)
         apply_tara_calibration(original_measurements, tara_calibration)
-        #    d) Filter out unwanted measurements
+        #    e) Filter out unwanted measurements
         apply_filter(times, measurements, measurements_xvalues,
                      original_measurements, original_measurements_xvalues,
                      measurements_filter, measurements_times_filter)
