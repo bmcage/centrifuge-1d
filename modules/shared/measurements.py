@@ -47,7 +47,19 @@ def same_value(item):
 
     return ref
 
-def determine_tara_calibration(cfg, measurements, omega2g):
+def _determine_WR_tara(omega_rpm, gF_tara, g):
+    """ Determine the value of constant Weight * Radius """
+    omega_radps = rpm2radps(omega_rpm)
+
+    # Centrifugal force = F = M omega^2 r,
+    # sensor gives us m kg, so F = m g, with m measurement
+    # M r = m g/ omega^2
+    WR_tara = gF_tara * g / omega_radps / omega_radps
+
+    return WR_tara
+
+def determine_tara_calibration(cfg, measurements, measurements_times, omega2g,
+                               phases_end_times, omega_phases_rpm):
 
     tara_calibration = {}
 
@@ -62,20 +74,39 @@ def determine_tara_calibration(cfg, measurements, omega2g):
         if not gF_tara_calibration_data:
             continue
 
-        if ((not type(gF_tara_calibration_data) in (list, tuple))
-               or (len(gF_tara_calibration_data) != 2)):
-            print('The tara value of ' + F_name + ' (' + F_name + '_tara) '
-                  'must be a list/tuple of length 2 of type '
-                  '[omega, weight]. Aborting.')
-            exit(1)
+        if (type(gF_tara_calibration_data) in (list, tuple)
+            and (len(gF_tara_calibration_data) == 2)):
 
-        (omega_rpm_calibration, gF_tara_calibration) = gF_tara_calibration_data
-        omega_radps_calibration = rpm2radps(omega_rpm_calibration)
-        # Centrifugal force = F = M omega^2 r,
-        # sensor gives us m kg, so F = m g, with m measurement
-        # M r = m g/ omega^2
-        WR_tara = (gF_tara_calibration * g
-                   / omega_radps_calibration / omega_radps_calibration)
+            (omega_rpm_calib, gF_tara_calib) = gF_tara_calibration_data
+
+            WR_tara = _determine_WR_tara(omega_rpm_calib, gF_tara_calib, g)
+
+        elif type(gF_tara_calibration_data) is dict:
+            WR_tara = np.empty(measurements_times.shape, dtype=float)
+            calibration = {omega: _determine_WR_tara(omega, gF_tara, g)
+                           for (omega, gF_tara) in gF_tara_calibration_data.items()}
+
+            phase_start_idx = 0
+            phases_indices = np.searchsorted(measurements_times,
+                                             phases_end_times, side='right')
+
+            for (omega, phase_end_idx) in zip(omega_phases_rpm, phases_indices):
+                # omega correspond to speed during phase
+                if not omega in calibration:
+                    print("Value of omega=" + str(omega) + " not "
+                          "found in '" + name + "_tara' calibration"
+                          "curve. Cannot proceed, exiting.")
+                    exit(1)
+
+                WR_tara[phase_start_idx:phase_end_idx] = calibration[omega]
+                phase_start_idx = phase_end_idx
+        else:
+           print('The tara value of ' + F_name + ' (' + F_name + '_tara) '
+                 'must be a list/tuple of length 2 of type [omega, weight] '
+                 'or dict constisting of pairs "omega:wight".'
+                 '\nCannot continue, aborting.')
+           exit(1)
+
 
         if F_name == 'gF_MT':
 
@@ -123,9 +154,8 @@ def determine_tara_calibration(cfg, measurements, omega2g):
             WR_tara = WR_tara - WR_fluid
 
         # subtract the tara influence from measured values
-        gF_tara = omega2g[1:]  * WR_tara # omega is computed at t=0
-        tara_calibration[F_name] = gF_tara
-
+        gF_tara = omega2g  * WR_tara
+        tara_calibration[F_name] = gF_tara[1:]  # omega is computed also at t=0
     return tara_calibration
 
 def apply_tara_calibration(tara_calibration, measurements_times_filter,
