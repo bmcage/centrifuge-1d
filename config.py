@@ -31,7 +31,8 @@ class ModulesManager():
     def __init__(self):
         available_modules = listdir('modules')
         for name in ('__init__.py', '__init__.pyc', '__pycache__'):
-            if name in available_modules: available_modules.remove(name)
+            if name in available_modules:
+                available_modules.remove(name)
 
         loaded_modules = {}
 
@@ -71,7 +72,8 @@ class ModulesManager():
 
         for module_name in sorted(self._available_modules):
             module = find_module(module_name, submodule='info', not_found=None)
-            if module is None: continue
+            if module is None:
+                continue
             print('\n  %s:' % module_name)
             print('        Experiment types:', module.types)
             if verbose:
@@ -221,11 +223,7 @@ class Configuration:
         else:
             cfg_dict = self._cfg_dict
 
-        result = []
-
-        for option in options:
-            if not option in cfg_dict:
-                result.append(option)
+        result = [option for option in options if not option in cfg_dict]
 
         return result
 
