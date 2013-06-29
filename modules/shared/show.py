@@ -303,30 +303,12 @@ class DataStorage():
 #          Reading display configuration files and data displaying             #
 ################################################################################
 
-def mk_status_item(data_id, data_computed, data_measured = []):
-    return {'id': data_id, 'data': (data_computed, data_measured)}
-
-def display_status(data_plots=None, stream=None):
-
-    if not data_plots: return
-
-    for plot in data_plots:
-        plot_id = plot['id']
-
-        data_items_nr = len(plot['data'])
-        if (data_items_nr == 0 ) or (not has_data(plot['data'][0])):
-            continue
-
-        value_computed = np.asarray(plot['data'][0])
-
-        if (data_items_nr == 1 ) or (not has_data(plot['data'][1])):
-            value_measured =  None
-        else:
-            value_measured = np.asarray(plot['data'][1])
-
-        compare_data(plot_id, value_computed, value_measured, stream)
-
 def print_status(data, filename=None):
+    """
+      Compare measured vs. computed data.
+      If filename is supplied, write it to the file.
+    """
+
     computed     = data.get_linedata('computed')
     measurements = data.get_linedata('measured')
 
@@ -336,8 +318,6 @@ def print_status(data, filename=None):
         stream = None
     else:
         stream = open(filename, 'w')
-
-    status_items = []
 
     if not measurements: return
 
@@ -356,10 +336,7 @@ def print_status(data, filename=None):
                 continue
 
             if c_value is not None:
-                status_items.append(mk_status_item(key, c_value, m_value))
-
-        if status_items:
-            display_status(status_items, stream)
+                compare_data(key, c_value, m_value, stream)
 
         # display additional data
         cov = data.get('cov')
