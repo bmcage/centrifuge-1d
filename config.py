@@ -89,6 +89,7 @@ class ModulesManager():
         """
 
         def traverse(module):
+            """ Walk through specified module """
 
             if prehook:
                 prehook(module)
@@ -140,6 +141,10 @@ class ModulesManager():
 ##################################################################
 
 class Configuration:
+    """
+      Class for storing data read from ini-files.
+    """
+
     def __init__(self, preserve_sections_p = False):
 
         self._preserve_sections_p = preserve_sections_p
@@ -147,6 +152,7 @@ class Configuration:
         self._config_definition = None
 
     def set_value(self, key, value, section = None):
+        """ Set value for specified key. """
 
         if self._preserve_sections_p:
             if not section:
@@ -159,6 +165,7 @@ class Configuration:
         cfg_dict[key] = value
 
     def get_value(self, key, section = None, not_found=None):
+        """ Get value for specified key. """
 
         cfg_dict = self._cfg_dict
 
@@ -191,6 +198,7 @@ class Configuration:
             del cfg_dict[key]
 
     def iterate_values(self, section = None):
+        """ Return key-value pairs of all values stored in configuration. """
         if self._preserve_sections_p and section:
             print('cfg:iterate_values: preserving sections is not implemented.')
             exit(1)
@@ -198,6 +206,10 @@ class Configuration:
         return self._cfg_dict.items()
 
     def missing_options(self, options, section = None):
+        """
+          Return the list of all from supplied options that are not present in
+          the current data.
+        """
 
         if self._preserve_sections_p:
             if (not section) or (not section in self._cfg_dict):
@@ -224,6 +236,8 @@ class Configuration:
         return list(self._cfg_dict.keys())
 
     def echo(self):
+        """ Print current data to stdout. """
+
         def echo_section(section_dict):
             for (name, value) in sorted(section_dict.items()):
                 print('%-12s = %s' % (name, value))
@@ -350,6 +364,11 @@ class Configuration:
         return self
 
     def load_definition(self, modman):
+        """
+          For current data load the corresponding template. Based on this
+          template by comparison we can tell which values should and should
+          not be present to assure the loaded data is valid.
+        """
 
         if not self._preserve_sections_p:
             section = 'foo'
@@ -475,6 +494,10 @@ class Configuration:
         self._config_definition = parsed_options
 
     def is_valid(self, modman, verbose=True):
+        """
+          Check the validity of the read data by comparing it with it's
+          corresponding template.
+        """
 
         def custom_cfg_check(options_module):
             if hasattr(options_module, 'check_cfg'):

@@ -78,6 +78,11 @@ DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
 FIGURES_IDS = list(DG_AXES_LABELS.keys())
 
 def get_unit_coef(unit_base):
+    """
+      Return the coeficient for the new unit type to be used, so that
+      the internal unit is converted to the new unit.
+    """
+
     unit = unit_base.lower()
     # units used for computation are: cm, s, pa, gf and "no units"
     if unit in ['cm', 's', 'pa', 'g', 'gf', 'cm/s', '']: coef = 1.0
@@ -106,13 +111,17 @@ class DataStorage():
         self._modman = None
 
     def has_data(self, data_type):
+        """ Return true if data 'data_type' is present in stored data. """
+
         return ((data_type in self._data)
                 and (not self._data[data_type] is None))
 
     def store(self, name, value):
+        """ Store the value under supplied name. """
         self._data[name] = value
 
     def get(self, key, not_found=None):
+        """ Get the value corresponding to supplied name. """
         if key in self._data:
             return self._data[key]
         else:
@@ -190,7 +199,7 @@ class DataStorage():
                     K = SC.conductivity_curve(model.ks, theta_s,
                                               theta_r=theta_r, g=model.g,
                                               rho=model.density)
-                    
+
                     K_u = SC.conductivity_curve_u(model.ks, theta_s,
                                               theta_r=theta_r, g=model.g,
                                               rho=model.density)
@@ -203,6 +212,8 @@ class DataStorage():
         return flag
 
     def store_references(self, user_references, model=None):
+        """ Store computations corresponding to referenced parameters. """
+
         stored_references = self.get('references', not_found={})
 
         if type(user_references) in (list, tuple):
@@ -251,6 +262,8 @@ class DataStorage():
         return True
 
     def store_measurements(self, measurements, model=None):
+        """ Store measured (supplied) data. """
+
         for mtype in ('original', 'measured'):
             m = {}
 
@@ -263,6 +276,8 @@ class DataStorage():
                 self._data['lines'][mtype] = m
 
     def get_linedata(self, line_id, not_found=None):
+        """ Get data for specified line. """
+
         data = self._data['lines']
 
         if line_id in data:
@@ -271,6 +286,8 @@ class DataStorage():
             return not_found
 
     def save(self):
+        """ Save all stored data to a file. """
+
         if not self._data:
             print('No data was stored. Nothing to be saved. Skipping saving...')
             return
@@ -283,6 +300,8 @@ class DataStorage():
             pickle.dump(self._data, fout, DUMP_DATA_VERSION)
 
     def load(self):
+        """ Load data stored in a file. """
+
         pathdir = get_directories('figs', 'mask', self.get('experiment_info'))
         filename = pathdir + DUMP_DATA_FILENAME
         if not path.exists(filename):
@@ -295,7 +314,6 @@ class DataStorage():
             # Old compatibility
             if 'ResultsData' in self._data:
                 self._data = self._data['ResultsData']
-
 
         return True
 
