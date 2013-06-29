@@ -532,6 +532,7 @@ def linestyles_post_update(styles):
             symbolsize = line_styles['symbolsize']
         else:
             symbolsize = None
+
         # Process line order
         if 'order' in line_styles:
             lines_order[line_id] = line_styles['order']
@@ -559,8 +560,8 @@ def linestyles_post_update(styles):
             else:
                 lineopt = default_lineopt
 
-            line_styles[fig_id] = {'lineopt': lineopt, 'label': label, 'width': width,
-                                   'symbolsize': symbolsize}
+            line_styles[fig_id] = {'lineopt': lineopt, 'label': label,
+                                   'width': width, 'symbolsize': symbolsize}
 
     ordered_lines = list(sorted(lines_order, key=lines_order.__getitem__))
     styles['lines_order'] = ordered_lines
@@ -763,19 +764,20 @@ class DPlots():
                         entryx = xdata[:, ind]
                         entryy = ydata[:, ind]
                         if symbolsize:
-                            plt.plot(entryx, entryy, 
+                            plt.plot(entryx, entryy,
                              figure_styles['ls'][ind%len(figure_styles['ls'])],
                              linewidth=width, markersize=symbolsize)
                         else:
-                            plt.plot(entryx, entryy, 
+                            plt.plot(entryx, entryy,
                              figure_styles['ls'][ind%len(figure_styles['ls'])],
                              linewidth=width)
                 else:
                     if symbolsize:
                         plt.plot(xdata, ydata, plot_style, linewidth=width,
-                                    markersize=symbolsize)
+                                 markersize=symbolsize)
                     else:
                         plt.plot(xdata, ydata, plot_style, linewidth=width)
+
                 if type(line_label) == str:
                     plot_labels.append(line_label)
                 else:
