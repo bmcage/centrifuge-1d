@@ -129,6 +129,26 @@ def parse_dict(raw_value):
 
     return result
 
+def parse_range(raw_value):
+    """
+      Parse ranges. If second value is '' or negative value, return an indices
+      object instead.
+    """
+    range_values = raw_value.split(':')
+
+    rstart = parse_string(range_values[0])
+    rstop  = parse_string(range_values[1])
+    if len(range_values) > 2:
+        rstep = parse_string(range_values[2])
+    else:
+        rstep = 1
+    if (rstop is '') or (rstop < 0):
+        range_value = (rstart, rstop, rstep)
+    else:
+        range_value = list(np.arange(rstart, rstop+1, rstep))
+
+    return range_value
+
 def parse_string(str_value):
     """
       Given a value as string, tries to convert to it's correspending type.
@@ -164,14 +184,7 @@ def parse_string(str_value):
         val = parse_string(raw_val)
         return [val for i in range(mul)]
     elif ':' in raw_value:
-        range_values = raw_value.split(':')
-        rstart = parse_string(range_values[0])
-        rstop  = parse_string(range_values[1]) + 1
-        if len(range_values) > 2:
-            rstep = parse_string(range_values[2])
-        else:
-            rstep = 1
-        return list(np.arange(rstart, rstop, rstep))
+        return parse_range(raw_value)
     elif "." in raw_value or "e" in raw_value or "E" in raw_value:
         return float(raw_value)
     else:
@@ -186,6 +199,22 @@ def parse_value(str_value, raise_error=False):
             raise ValueError()
         else:
             exit(0)
+
+def get_range(range_data, referencing_array=None):
+    if type(range_data) in (list, tuple):
+        if not type(referencing_array) is np.ndarray:
+            raise ValueError('For open range value a referencing array must be '
+                             'specified.')
+        range_data = flatten(range_data)
+        rstop = np.alen(referencing_array)
+        if not range_data[1] is '':
+            rstop += range_data[1]
+
+        range_value = np.arange(range_data[0], rstop + 1, range_data[2])
+    else:
+        range_value = range_data
+
+    return range_value
 
 def flatten(seq):
     result = []
