@@ -137,7 +137,9 @@ def parse_string(str_value):
 
     raw_value = str_value.strip()
 
-    if raw_value[0] == "[" and raw_value[-1] == "]":
+    if raw_value is '':
+        return raw_value
+    elif raw_value[0] == "[" and raw_value[-1] == "]":
         return parse_list(raw_value[1:-1])
     elif raw_value[0] == "(" and raw_value[-1] == ")":
         return tuple(parse_list(raw_value[1:-1]))
