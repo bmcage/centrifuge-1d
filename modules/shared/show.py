@@ -4,7 +4,7 @@ import numpy as np, matplotlib, pickle
 import sys
 from const import PLOTSTYLE_ININAME, DUMP_DATA_VERSION, DUMP_DATA_FILENAME
 from os import makedirs, path
-from shared import get_directories, parse_value
+from shared import get_directories, parse_value, get_range
 from config import ModulesManager, load_model
 from collections import OrderedDict
 from modules.shared.functions import has_data, compare_data
@@ -608,6 +608,7 @@ def mk_figures(data, styles):
                 for fig_id in FIGURES_IDS}
 
     lines_ids = styles['lines_order']
+    plot_keep = styles['plot_keep']
 
     for line_id in lines_ids:
         line_data = data.get_linedata(line_id, not_found={})
@@ -630,6 +631,28 @@ def mk_figures(data, styles):
 
             if ((fig_id in ['h', 'u']) and (len(line_value) > 2)
                 and has_data(line_value[2])):
+                line_style['label'] = line_value[2]
+                print(fig_id, xdata.shape, ydata.shape, line_value[2].shape)
+
+
+            if ((not line_id in ('measured', 'original'))
+                and (fig_id in plot_keep)):
+
+                filter_idxs = get_range(plot_keep[fig_id], xdata)
+                if fig_id in ('h', 'u'):
+                    xdata = xdata[:, filter_idxs]
+                    ydata = ydata[:, filter_idxs]
+
+                    if type(line_style['label'] is np.ndarray):
+                        print('LV', line_value[2])
+                        print('LV', line_style['label'])
+                        line_style['label'] = line_style['label'][filter_idxs]
+                else:
+                    xdata = xdata[filter_idxs]
+                    ydata = ydata[filter_idxs]
+
+            if ((fig_id in ('h', 'u'))
+                and (type(line_style['label'] is np.ndarray))):
                 line_style['label'] = \
                   ['% 6d' % (ti/60.) for ti in line_value[2]]
 
@@ -657,7 +680,8 @@ class DPlots():
                           for fig_id in FIGURES_IDS}
 
         styles = {'options': display_options, 'figures': figures_styles,
-                  'lines': {}, 'params_ref': {}, 'lines_order': ()}
+                  'lines': {}, 'params_ref': {}, 'lines_order': (),
+                  'plot_keep': {}}
 
         plotstyles_filenames = get_filenames(experiment_info)
 
