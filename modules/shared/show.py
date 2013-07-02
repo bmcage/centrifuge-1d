@@ -654,7 +654,7 @@ def mk_figures(data, styles):
             if ((fig_id in ('h', 'u'))
                 and (type(line_style['label'] is np.ndarray))):
                 line_style['label'] = \
-                  ['% 6d' % (ti/60.) for ti in line_value[2]]
+                  ['% 6.1f' % (ti/60.) for ti in line_style['label']]
 
             if fig_id in ['theta', 'relsat']:
                 item = {'xdata': ydata, 'ydata': xdata}
