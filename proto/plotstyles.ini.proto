@@ -141,6 +141,16 @@
 #                  'legend_bbox': None}
 #          }
 
+# plots_keep - specify range of displayed plots that will be plotted (instead
+#              of all computed values)
+#            - value: range
+#            - range can be specified as an absolute range e.g. [1:200:10]
+#              (this required to know the last value of the range)
+#              or with "open" end e.g. [1::10] or [1:-5:10]
+#              (if the last index is negative or not specified, it is
+#              substituted with the actual length of the array at runtime)
+#plots_keep = {'h': [0::10], 'u': [2:-3:20], ...}
+
 # Displaying options - these are general options applied to all plotted images
 #
 # 'separate_figures'   - Include all figures in one image or each figure should
