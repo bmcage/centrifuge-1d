@@ -608,7 +608,7 @@ def mk_figures(data, styles):
                 for fig_id in FIGURES_IDS}
 
     lines_ids = styles['lines_order']
-    plot_keep = styles['plot_keep']
+    plot_keep = styles['plots_keep']
 
     for line_id in lines_ids:
         line_data = data.get_linedata(line_id, not_found={})
@@ -681,7 +681,7 @@ class DPlots():
 
         styles = {'options': display_options, 'figures': figures_styles,
                   'lines': {}, 'params_ref': {}, 'lines_order': (),
-                  'plot_keep': {}}
+                  'plots_keep': {}}
 
         plotstyles_filenames = get_filenames(experiment_info)
 
