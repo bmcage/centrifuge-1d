@@ -1,143 +1,164 @@
 [plotting-styles]
 # ADDITIONAL DATA
 #
-# params_ref - reference parameters - used when we want to compare the computed results with another
-#              (direct problem) solution which differs in following values:
-#                               parameterN1: valueN1, ..., parameterNk: valueNk
-#              where parameterNi is any valid option in the configuration file of our computed problem
-#              and valueNi is the (new) corresponding value;
-#            - multiple referencing curves (parameters) can be specified, each with an unique line ID
+# params_ref - reference parameters - used when we want to compare the computed
+#              results with another (direct problem) solution which differs in
+#              following values:
+#                      parameterN1: valueN1, ..., parameterNk: valueNk
+#              where parameterNi is any valid option in the configuration file
+#              and valueNi is the (new) corresponding value
+#            - multiple referencing curves (parameters) can be specified, each
+#              with an unique line ID
 #
-#params_ref = {'line-id-1': {parameter1-1: value1-1, parameter1-2: value1-2, parameter1-3: value1-3},
-#	       'line-id-2': {parameter2-1: value2-1, parameter2-2: value2-2, parameter2-3: value2-3}
-#	      }
+#params_ref = {'line-id-1': {parameter1-1: value1-1, parameter1-2: value1-2,
+#                            parameter1-3: value1-3},
+#              'line-id-2': {parameter2-1: value2-1, parameter2-2: value2-2,
+                             parameter2-3: value2-3}
+#             }
 
 # DISPLAYING STYLES
 #
-# Figures IDs - an ID represents a particular figure and the type of value displayed on that figure
-# Recognized figures IDs are: 'h', 'u', GC', 'RM', 'MI', 'MO', 'WM', 's1', s2', 'theta', 'K'
-# Description of figures IDs:
-#       Following measurements use as x-axis value time (unit: time):
+# Figures IDs - an ID represents a particular figure and the type of value
+#               displayed on that figure (the y-axis)
+#             - each figure has it's type of x-axis value
+# Recognized figures IDs are:
+#
+#    -  x-axis value: time (unit: time):
 #
 #       'GC' - gravitational center; unit: length
-#	'RM' - rotational momentum
-#	'MI' - mass in - water in inflow cup; unit: length
-#	'MO' - mass out - expelled water; unit: length
-#	'WM' - water mass - mass balance of water; unit: length (or volume)
+#       'RM' - rotational momentum
+#       'MI' - mass in - water in inflow cup; unit: length
+#       'MO' - mass out - expelled water; unit: length
+#       'WM' - water mass - mass balance of water; unit: length (or volume)
 #
-#       Interfaces s1, s2:
-#		- arise between 2 zones: saturated/unsaturated or unsaturated/dry
-#		- which interface appear (or even both) depends on experiment type
-#	's1' - first interface; unit: length
-#	's2' - second interface (between 2 zones); unit: length
+#       's1' - first interface; unit: length
+#       's2' - second interface (between 2 zones); unit: length
+#            - NOTE: - interfaces arise arise between 2 zones:
+                       saturated/unsaturated or unsaturated/dry
+#                    - which interface appear (or even both) depends
+#                      on experiment type
 #
-#	These use as x-axis space - it the distribution of given quantity
-#	along the sample:
-#	'h': hydraulic head; unit: length
-#	'u': relative saturation; unit: None
+#    - x-axis value: space
+#       'h': hydraulic head; unit: length
+#       'u': relative saturation; unit: None
 #
-#	'theta' - saturation theta; used by the retention curve fitting
-#		- x-axis on this measurement is 'theta', y-axis is the hydraulic head 'h'
-#		- unit: pressure
+#    - x-axis value: hydraulic head 'h'
+#       'theta' - saturation theta; used by the retention curve fitting
+#               - on figure the x and y axis is switched
+#               - unit: pressure
 #       'K'    - soil conductivity (function of theta); unit: velocity
 
-# lines - displaying options for lines; allows customization how individual lines are displayed
-#         (for each line can be specified how it is drawn under each ID)
+# lines - displaying options for lines; allows customization how individual
+#         lines are displayed (for each line can be specified how it is drawn
+#          under each ID)
 #       - the line IDs should correspond to those in 'params_ref'
 #       - 'label' is the line label as displayed in figure legend
-#       - 'order' is the label order in the legend; first in legend are displayed lines with
-#         'order' value set increasingly (i.e. sequence of 'order's 1,5,200 is valid; further,
-#         if multiple lines have the same 'order' value, their actual position is not specified
+#       - 'order' is the label order in the legend; first in legend are
+#         displayed lines with 'order' value set increasingly (i.e. sequence
+#         of 'order's 1,5,200 is valid; further, if multiple lines have the
+#         same 'order' value, their actual position is not specified
 #       - next follows a sequence of ID: plot_style, see example below
 #
-#lines = {'computed': {'label': 'Computed', 'order': 2, 'GC': 'x', 'MO': 'x', 'theta': 'x'},
-#	  'measured': {'label': 'Measured', 'order': 1, 'GC': '.', 'MO': '.', 'theta': '.'},
-#	  'line-id-1': {'label': 'Label 1', 'order': 9, 'GC': '^', 'MO': '^', 'theta': '^'},
-#	  'line-id-2': {'label': 'Label 2', 'order': 4, 'GC': 'v', 'MO': 'v', 'theta': 'v'},
-#	  'line-id-3': {'label': 'Label 3', 'order': 6, 'GC': '-', 'MO': '-', 'theta': '-'}}
-
+#lines = {'computed': {'label': 'Computed', 'order': 2, 'GC': 'x', 'MO': 'x',
+#                      'theta': 'x'},
+#         'measured': {'label': 'Measured', 'order': 1, 'GC': '.', 'MO': '.',
+#                      'theta': '.'},
+#        'line-id-1': {'label': 'Label 1', 'order': 9, 'GC': '^', 'MO': '^',
+#                      'theta': '^'},
+#        'line-id-2': {'label': 'Label 2', 'order': 4, 'GC': 'v', 'MO': 'v',
+#                      'theta': 'v'},
+#        'line-id-3': {'label': 'Label 3', 'order': 6, 'GC': '-', 'MO': '-',
+#                      'theta': '-'}}
 #
-# figures - displaying options for figures, allows customization of individual figures are displayed;
-#           options corresponding to a particular figure are distinguished by the figure ID 
-#	Figure options:
-#	'show'		   - display values of given measurement; value: True/FalseTrue; Default: True
-#	'xlabel', 'ylabel' - axes labels; value: string; Default: ''
-#	'xscale', 'yscale' - scaling of axes; values: None (linear scaling) or 'log' (logaritmic)
-#	'xunit',  'yunit'  - units of displayed measurements; units types - time   - 's', 'min' 'h'
-#									  - length - 'mm', 'cm', 'm'
-#									  - pressure - 'Pa', 'kPa'
-#			   - By default time unit is 's', length unit is 'cm' and pressure unit is 'Pa'
-#       'xmin', 'xmax'     - set the minimal/maximal value on the x-axis; if not set all values are displayed
-#       'ymin', 'ymax'     - set the minimal/maximal value on the y-axis; if not set all values are displayed
-# 	'show_legend'	   - legend should be displayed; value: True/False; default: True
-# 	'legend_title'	   - title of legend; value: string or None; default: None
-# 	'legend_loc'	   - legend location:	1 - upper right corner
-#		     	 			2 - upper left corner
-#						3 - lower left corner
-#						4 - lower right corner
-#			   - value: 1,2,3,4
-#			   - default: 2 (upper right), for 'h' and 'u' is outside the figure
-#	'legend_bbox'	   - if default placement of legend is not suitable, an box
-# 			     in which the legend should be aligned can be specified
-# 			     by this value; value: (x_coord, y_coord) or None
-# 			     the corner of the legend specified by the 'legend_loc'
-#			     will be attached to this point.
-#			     Coordinates x_coor, y_coord are relative to given plot
-#			     image - i.e. point (1., 1.) corresponds to the upper right
-#			     corner of the image, whereas (0., 0.) to the lower left
-#			     If value is None, the default legend location is used (see 'legend_loc')
-#			   - default: None
+# figures - displaying options for figures, allows customization of individual
+#           figures are displayed; options corresponding to a particular figure
+#           are distinguished by the figure ID
+#
+#    Figure options:
+#       'show'             - display values of given measurement;
+#                          - value: True/FalseTrue; Default: True
+#       'xlabel', 'ylabel' - axes labels; value: string; Default: ''
+#       'xscale', 'yscale' - scaling of axes;
+#                          - values: None (linear scaling) or 'log' (logaritmic)
+#       'xunit',  'yunit'  - units of displayed measurements;
+#                          - units types - time: 's' (default), 'min' 'h'
+#                                        - length: 'mm', 'cm' (default), 'm'
+#                                        - pressure: 'Pa' (default), 'kPa'
+#       'xmin', 'xmax'     - set the minimal/maximal value on the x-axis;
+#                            if not set all values are displayed
+#       'ymin', 'ymax'     - set the minimal/maximal value on the y-axis;
+#                            if not set all values are displayed
+#       'show_legend'      - legend should be displayed; value: True/False;
+#                            default: True
+#       'legend_title'     - title of legend; value: string or None (default)
+#       'legend_loc'       - legend location:   1 - upper right corner
+#                                               2 - upper left corner
+#                                               3 - lower left corner
+#                                               4 - lower right corner
+#                          - value: 1,2 (default),3,4
+#                          - for 'h' and 'u' is legend placed outside the figure
+#       'legend_bbox'      - if default placement of legend is not suitable, a
+#                            box in which the legend should be aligned can be
+#                            specified by this value;
+#                          - value: (x_coord, y_coord) or None (default)
+#                            the corner of the legend specified by the option
+#                            'legend_loc' will be attached to this point.
+#                            Coordinates x_coor, y_coord are relative to given
+#                            plot image - i.e. point (1., 1.) corresponds to the
+#                            upper right corner of the image, whereas (0., 0.)
+#                            to the lower left; if value is None, the default
+#                            legend location is used (see 'legend_loc')
 
 #figures = {'GC': {'show': True,
-#		   'xlabel': 'X-axis label',
-#		   'ylabel': 'Y-axis label',
-#		   'xscale': 'yscale',
-#		   'xunit': 's',
-#		   'yunit': 'cm',
-#		   'show_legend': True,
-#		   'legend_title': None,
-#		   'legend_loc': 1,
-#		   'legend_bbox': None},
-#	    'h':  {'show': True,
-#		   'xlabel': 'X-axis label',
-#		   'ylabel': 'Y-axis label',
-#		   'xscale': 'yscale',
-#		   'xunit': 's',
-#		   'yunit': 'cm',
-#		   'show_legend': True,
-#		   'legend_title': None,
-#		   'legend_loc': 1,
-#		   'legend_bbox': None},
-#	    'theta': {'show': True,
-#		   'xlabel': 'X-axis label',
-#		   'ylabel': 'Y-axis label',
-#		   'xscale': 'yscale',
-#		   'xunit': 's',
-#		   'yunit': 'cm',
-#		   'show_legend': True,
-#		   'legend_title': None,
-#		   'legend_loc': 1,
-#		   'legend_bbox': None}
-#	    }
+#                  'xlabel': 'X-axis label',
+#                  'ylabel': 'Y-axis label',
+#                  'xscale': 'yscale',
+#                  'xunit': 's',
+#                  'yunit': 'cm',
+#                  'show_legend': True,
+#                  'legend_title': None,
+#                  'legend_loc': 1,
+#                  'legend_bbox': None},
+#           'h':  {'show': True,
+#                  'xlabel': 'X-axis label',
+#                  'ylabel': 'Y-axis label',
+#                  'xscale': 'yscale',
+#                  'xunit': 's',
+#                  'yunit': 'cm',
+#                  'show_legend': True,
+#                  'legend_title': None,
+#                  'legend_loc': 1,
+#                  'legend_bbox': None},
+#        'theta': {'show': True,
+#                  'xlabel': 'X-axis label',
+#                  'ylabel': 'Y-axis label',
+#                  'xscale': 'yscale',
+#                  'xunit': 's',
+#                  'yunit': 'cm',
+#                  'show_legend': True,
+#                  'legend_title': None,
+#                  'legend_loc': 1,
+#                  'legend_bbox': None}
+#          }
 
 # Displaying options - these are general options applied to all plotted images
 #
-# 'separate_figures' 	- Include all figures in one image or each figure should be
-# 			  drawn separately; value: True/False; Default: False
-# 'show_figures'	- Determines the displaying of figures (useful e.g. when we
-#			  know they are good, we just need to save them with different
-#			  backend); value: True/False; Default: True
-# 'save_figures'       	- automatically save figures after computation; value: True/False
-#			  Default: True
-# 'matplotlib_backend' 	- Use different backend for matplotlib. If value is None, the
-#			  default one for matplotlib is used. Note: given backend has
-#			  to be installed just as python bindings for it.
-#			  Example of backends: 'ps', 'TkAgg', 'WX', 'QTAgg', 'QT4Agg',
-#	                  'cairo.pdf', 'cairo.png'
-#			  Value: backend name or None; Default: None
+# 'separate_figures'   - Include all figures in one image or each figure should
+#                        be drawn separately; value: True/False; Default: False
+# 'show_figures'       - Determines the displaying of figures (useful e.g. when
+#                        we know they are good, we just need to save them with
+#                        different backend); value: True (default)/False
+# 'save_figures'       - automatically save figures after computation
+#                      - value: True (default) /False
+# 'matplotlib_backend' - Use different backend for matplotlib. If value is None,
+#                        the default one for matplotlib is used. Note: given
+#                        backend has to be installed just as the python bindings
+#                        for it.
+#                      - Example of backends: 'ps', 'TkAgg', 'WX', 'QTAgg',
+#                        'QT4Agg', 'cairo.pdf', 'cairo.png'
+#                      - value: backend name or None (default)
 #
 #options = {'separate_figures': False,
-#	    'show_figures': True,
-#	    'save_figures': True,
-#	    'matplotlib_backend': None
-#	   }
+#           'show_figures': True,
+#           'save_figures': True,
+#           'matplotlib_backend': None}
