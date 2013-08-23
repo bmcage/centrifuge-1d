@@ -235,6 +235,7 @@ def compare_data(name, value_computed, value_measured = None,
 #
 #  Averaging functions
 #     From: http://www.swharden.com/blog/2008-11-17-linear-data-smoothing-in-python/
+#     From: http://pandas.pydata.org
 #*******************************************************
 
 def smoothing_linear(vlist, degree=5):
@@ -280,8 +281,32 @@ def smoothing_gaussian(vlist, degree=5):
     return smoothed
 
 def smoothing_gaussian_rec(vlist, rec = 2, degree=5):
-    # smooth based on gaussian averaging before after of window=2*degree-1 points
+    # smooth based on recursive gaussian averaging, averaging starts before and
+    # after of window=2*degree-1 points
     assert rec > 1
     for entry in range(rec):
         vlist = smoothing_gaussian(vlist, degree)
     return vlist
+
+def smoothing_gaussian_exp(vlist, degree=5, smooth_fac=0.5):
+    #exponential smoothing based on underlying gaussian smoothing
+    #smooth_fac is the exponential smoothing factor. If 0 no extra smoothing, 
+    assert 0 < smooth_fac < 1
+    vlist = smoothing_gaussian(vlist, degree)
+    smoothed = np.empty(len(vlist), float)
+    smoothed[:] = vlist[:]
+    #now exponential smoothing on this
+    for i in range(1, len(vlist)):
+        smoothed[i]=smooth_fac * smoothed[i-1] + (1-smooth_fac) * smoothed[i]
+    return smoothed
+
+def smoothing_exp(vlist, smooth_fac=0.5):
+    #exponential smoothin
+    #smooth_fac is the exponential smoothing factor. If 0 no extra smoothing
+    assert 0 < smooth_fac < 1
+    smoothed = np.empty(len(vlist), float)
+    smoothed[:] = vlist[:]
+    #now exponential smoothing on this
+    for i in range(1, len(vlist)):
+        smoothed[i]=smooth_fac * smoothed[i-1] + (1-smooth_fac) * smoothed[i]
+    return smoothed

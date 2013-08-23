@@ -3,6 +3,7 @@ from __future__ import division, print_function
 import numpy as np
 import matplotlib.pyplot as plt
 import functions
+import measurements
 
 class Data():
     def __init__(self):
@@ -72,24 +73,32 @@ $ python prog_plot_meas.py ~/git/centrifuge-1d/data/datafiles/gem-mixture-drain/
         plt.xlabel('scan')
 
         value = eval(getattr(data, prefix))
-        plt.plot(value, '.', label='measured', linewidth=2)
+        plt.plot(value, '.k', label='measured', linewidth=2,markersize=7)
 
-        for (suffix, leg) in [('linear', ['-', 'Lin. Sm.', 5]),
-                              ('triangle',['-', 'Tri. Sm.', 5]),
-                              ('gaussian', ['-', 'Gaus. Sm.', 5]),
-                              ('gaussian', ['-', 'Gaus. Sm. deg 10', 10]),
-                              ('gaussian', ['-', 'Gaus. Sm. deg 15', 15]),
-                              ('gaussian', ['-', 'Gaus. Sm. deg 25', 25]),
-                              ('gaussian_rec_2', ['-', 'Gaus. Sm. 2',5]),
-                             ]:
+        tests_to_show = [
+                #('linear', ['-', 'Lin. Sm.', 5]),
+                #('triangle',['-.k', 'Tri. Sm.', 5]),
+                ('gaussian', ['--k', 'Gaus. Sm. deg 5', 5]),
+                #('gaussian', ['-', 'Gaus. Sm. deg 10', 10]),
+                ('gaussian', ['-.k', 'Gaus. Sm. deg 15', 15]),
+                ('gaussian', ['-k', 'Gaus. Sm. deg 25', 25]),
+                ('gaussian_exp', ['-r', 'Gaus. Exp Sm. deg 25, alpha=0.5', 25]),
+                ('exp', ['-b', 'Exp Sm., alpha=0.5', None]),
+                #('gaussian_rec_2', ['-', 'Gaus. Sm. 2',5]),
+                        ]
+        for (suffix, leg) in tests_to_show:
             print (suffix.split('_'))
             if len(suffix.split('_')) > 1 and suffix.split('_')[1] == 'rec':
                 sm_method = getattr(functions, 'smoothing_'+ suffix.split('_')[0]+ '_rec')
                 plt.plot(sm_method(value, rec=int(suffix.split('_')[2]), degree=leg[2]), 
-                         leg[0], label=leg[1],linewidth=2)
+                         leg[0], label=leg[1], linewidth=2)
             else:
                 sm_method = getattr(functions, 'smoothing_' + suffix)
-                plt.plot(sm_method(value, degree=leg[2]), leg[0], label=leg[1], linewidth=2)
+                if suffix == 'exp':
+                    val = sm_method(value)
+                else:
+                    val = sm_method(value, degree=leg[2])
+                plt.plot(val, leg[0], label=leg[1], linewidth=2)
 
         legend = True
         plt.legend(loc=2)
