@@ -437,7 +437,7 @@ def determine_omega(cfg, acc_duration_list, dec_duration_list, fh_duration_list,
 
     return (omega_rpm, omega_radps, omega2g)
 
-def apply_smoothing(cfg, measurements):
+def apply_smoothing(cfg, measurements, omega2g, times):
     """
       Apply smoothing on measurements and return original (non-smoothed) values.
     """
@@ -481,19 +481,112 @@ def apply_smoothing(cfg, measurements):
         if not sm_alg: continue
 
         # save smoothed values
-        value  = measurements[name]
+        valueorig  = measurements[name]
+        ## TODO why start at [1:] ??
+        value = actual_smoothing(sm_alg, omega2g[1:], valueorig, sm_degree)
+        measurements[name] = value
+        # I want to see this plot immediately, not wait till end of computation!
+        from multiprocessing import Process
+        p = Process(target=stupid_plot, args=(name, valueorig, value, sm_alg))
+        p.start()
+        p.join(1)
 
+def stupid_plot(name, valueorig, value, sm_alg):
+    """
+    This does a plot and can be called async, so as not to block the main thread
+    """
+    import matplotlib.pyplot as plt
+    plt.figure(1000)
+    plt.ylabel(name)
+    plt.xlabel('scan')
+    plt.plot(valueorig, '.k', label='measured', linewidth=2, markersize=7)
+    plt.plot(value, '-b', label='smoothed ' + sm_alg, linewidth=2)
+    plt.legend()
+    #don't do ion, as this is a process, so not blocking would make the process
+    # just finish and not show anything!
+    plt.show()
+    
+def actual_smoothing(sm_alg, omega2g, value, sm_degree):
+    """
+    Smooth time series experiment of weight as done in the centrifuge
+    """
+    # step 1: reduce to normal gravity
+    value = value[:] / omega2g[:]
+    # step 2: determine the sections
+    sectionstart = []
+    sectionend = []
+    prev = omega2g[0]
+    for ind, val in enumerate(omega2g[1:]):
+        realind = ind + 1
+        if 0.98 * prev < val < 1.02 * prev:
+            #section continues
+            if len(sectionstart) == len(sectionend):
+                #no section yet, add it
+                sectionstart += [realind-1]
+                prev = val
+        else:
+            #end of a section
+            prev = val
+            if len(sectionstart) == len(sectionend):
+                # not in a section
+                pass
+            else:
+                sectionend += [realind]
+    if not (len(sectionstart) == len(sectionend)):
+        sectionend += [len(omega2g)]
+    # step 3: fix outliers. Based on http://stackoverflow.com/questions/10231206/can-scipy-stats-identify-and-mask-obvious-outliers
+    try:
+        HASSTATS = False
+        import statsmodels
+        HASSTATS = True
+    except:
+        print ("\nWARNING: No statsmodels python module found ... no outlier detection!\n")
+        pass
+
+    ind_outliers = []
+    if HASSTATS:
+        from statsmodels.formula.api import ols
+        for start, stop in zip(sectionstart, sectionend):
+            # Set data
+            x = range(stop-start)
+            y = value[start:stop]
+            # Make least squares fit
+            regression = ols("weight ~ expnr", data=dict(weight=y, expnr=x)).fit()
+            # Find outliers
+            test = regression.outlier_test()
+            outliers = (i for i, t in enumerate(test.icol(2)) if t < 0.5)
+            for outl in outliers:
+                ind_outliers.append(start + outl)
+    
+    if ind_outliers:
+        print ("Outliers found:")
+        for ind in ind_outliers:
+            print ("  index:", ind, 'values:', value[ind-1], 
+                    value[ind] , value[ind+1] )
+        #our smoothing should skip the outliers. We do this by replacing outlier with 
+        #previous value in the array for now. 
+        ##TODO: improve following
+        for ind in ind_outliers:
+            value[ind] = value[ind-1]
+
+    # step 4: smooth the sections
+    
+    for start, stop in zip(sectionstart, sectionend):
+        val = value[start:stop]
         if sm_alg == 'smlin': # linear smoothing
-            value = smoothing_linear(value, sm_degree)
+            val = smoothing_linear(val, sm_degree)
         elif sm_alg == 'smtri': # triangular smoothing
-            value = smoothing_triangle(value, sm_degree)
+            val = smoothing_triangle(val, sm_degree)
         elif sm_alg == 'smgau': # gaussian smoothing
-            value = smoothing_gaussian(value, sm_degree)
+            val = smoothing_gaussian(val, sm_degree)
         else:
             print('Unknown smoothing value:', sm_alg,  'for key:', name)
             exit(0)
+        
+        value[start:stop] = val
 
-        measurements[name] = value
+    # step 5: go back to actual weight measured
+    return value[:] * omega2g[:]
 
 def determine_filtering_indices(cfg, measurements_times, measurements,
                                 measurements_xvalues):
@@ -763,7 +856,7 @@ class Measurements():
         (original_measurements, original_measurements_xvalues) = \
           store_original_measurements(cfg, measurements, measurements_xvalues)
         #    c) Apply smoothing
-        apply_smoothing(cfg, measurements)
+        apply_smoothing(cfg, measurements, omega2g, times)
         #    d) Filter out unwanted measurements
         apply_filter(times, measurements, measurements_xvalues,
                      original_measurements, original_measurements_xvalues,
