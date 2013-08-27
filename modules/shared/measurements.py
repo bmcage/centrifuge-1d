@@ -482,7 +482,7 @@ def apply_smoothing(cfg, measurements, omega2g, times):
 
         # save smoothed values
         valueorig  = measurements[name]
-        ## TODO why start at [1:] ??
+        ## omega2g contains t=0, which is not part of the data to smooth
         value = actual_smoothing(sm_alg, omega2g[1:], valueorig, sm_degree)
         measurements[name] = value
         # I want to see this plot immediately, not wait till end of computation!
