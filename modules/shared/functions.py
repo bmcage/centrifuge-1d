@@ -6,15 +6,20 @@ from sys import stdout
 
 def rpm2radps(omega):
     """
-      Converts rpm to rad.s^{-1}
+      Converts rpm to rad/s
     """
-    # rpm->rad.s-1:  omega_radps = (2pi)*omega_rps/60
+    # rpm->rad.s-1:  omega_radps = (2pi)*omega_rpm/60
     _rpm2radps = lambda omega: omega * np.pi/ 30.0
 
-    if np.isscalar(omega):
+    if np.isscalar(omega) or type(omega) is np.ndarray:
         omega_converted = _rpm2radps(omega)
-    else:
+    elif type(omega) in (list, tuple):
         omega_converted = [_rpm2radps(omg) for omg in omega]
+    else:
+        raise ValueError('Unknown type for omega')
+
+    return omega_converted
+
 def radps2rpm(omega):
     """
       Converts rad/s to rpm
