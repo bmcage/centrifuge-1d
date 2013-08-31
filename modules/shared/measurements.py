@@ -872,8 +872,10 @@ class Measurements():
         apply_tara_calibration(tara_calibration, measurements_times_filter,
                                measurements, original_measurements)
 
-        # 3. Set internal variables
+        # 3. Supply computed values that will not change
         self._computed['omega_rpm'] = omega_rpm
+
+        # 4. Set internal variables
         self._times           = times
         self._measurements_nr = np.alen(times)
         self._scales_coefs    = scales_coefs
@@ -885,10 +887,10 @@ class Measurements():
         self._measurements_indices          = measurements_filter
         self._computed_indices              = measurements_times_filter
 
-        # 4. Initialize internal variables
+        # 5. Initialize internal variables
         self._weights         = None # weights as numpy array
 
-        # 5. convert omega from rpm to radians/s
+        # 6. convert omega from rpm to radians/s
         cfg.set_value('omega', omega_ini_radps)
 
     def dump(self):
