@@ -23,10 +23,11 @@ DATA_UNITS = {'length': ('mm', 'cm', 'm'),
               'weight': ('g', 'kg'),
               'force_kgp': ('gf', 'kgf'),
               'velocity': ('cm/s', 'm/s'),
+              'rotational_speed': ('rpm', 'rps', 'rad/s', 'rad/min'),
               'none': ('', )}
 DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
                  'force_kgp': 'gf', 'weight': 'g', 'velocity': 'cm/s',
-                 'none': ''}
+                 'rotational_speed': 'rpm', 'none': ''}
 
 dg_label_time = "Time [{}]"
 dg_label_length = "Sample length $L$ [{}]"
@@ -70,7 +71,9 @@ DG_AXES_LABELS = \
                'dgF_MO': ((dg_label_time, "Force difference of expelled water [{}]"),
                           ('time', 'force_kgp')),
                'dgF_MT': ((dg_label_time, "Force difference of water in tube [{}]"),
-                          ('time', 'force_kgp'))})
+                          ('time', 'force_kgp')),
+               'omega_rpm': ((dg_label_time, "Rotational speed [{}]"),
+                         ('time', 'rotational_speed'))})
 
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
             ('dgF_MT', 'dgF_MO'), ('s1', 's2'), ('theta', 'relsat'), ('K', 'K_u'))
@@ -85,12 +88,15 @@ def get_unit_coef(unit_base):
 
     unit = unit_base.lower()
     # units used for computation are: cm, s, pa, gf and "no units"
-    if unit in ['cm', 's', 'pa', 'g', 'gf', 'cm/s', '']: coef = 1.0
+    if unit in ['cm', 's', 'pa', 'g', 'gf', 'cm/s', 'rpm', '']: coef = 1.0
     elif unit == 'mm': coef = 10.
-    elif unit == 'min': coef = 1./60.
+    elif unit in ('min'): coef = 1./60.
     elif unit == 'h': coef = 1./3600.
     elif unit in ('m', 'm/s'): coef = 0.01
     elif unit in ['kpa', 'kg', 'kgp']: coef = 0.001
+    elif unit == 'rps': coef = 60.
+    elif unit == 'rad/s': coef = np.pi/30.
+    elif unit == 'rad/min': coef = 2*np.pi
     else:
         print('Unknown unit:', unit_base, '\nKnown units are only:', DATA_UNITS)
         exit(1)

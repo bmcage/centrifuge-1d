@@ -873,6 +873,7 @@ class Measurements():
                                measurements, original_measurements)
 
         # 3. Set internal variables
+        self._computed['omega_rpm'] = omega_rpm
         self._times           = times
         self._measurements_nr = np.alen(times)
         self._scales_coefs    = scales_coefs
@@ -1022,7 +1023,8 @@ class Measurements():
 
     def iterate_calc_measurements(self):
         """ Iterate over stored values of calculated measurements. """
-        t = self.get_times()[1:] # default
+        t_all = self.get_times()
+        t = t_all[1:] # default
         measurements_diff = self._measurements_diff
         indices = self._computed_indices
 
@@ -1033,6 +1035,8 @@ class Measurements():
                 xvalue = self._computed['x']
             elif name in ('gF_MT_tara', 'gF_MO_tara'):
                 continue
+            elif name == 'omega_rpm':
+                xvalue = t_all
             elif name in indices:
                 yvalue = yvalue[indices[name]]
                 xvalue = self._measurements_xvalues[name]
