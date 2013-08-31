@@ -316,13 +316,14 @@ def determine_scaling_coefs(cfg):
 
     return scale_coefs
 
-def determine_omega2g(measurements_times, omega_radps, acc_duration_list,
+def determine_rotspeed(measurements_times, omega_ini_radps, acc_duration_list,
                       dec_duration_list, fh_duration_list, include_acceleration,
                       t_acceleration_duration, g_list, r0_fall_list):
 
     measurements_nr = np.alen(measurements_times)
 
-    omega2g_values = np.zeros(measurements_times.shape, dtype=float)
+    omega2g_values = np.zeros(measurements_nr, dtype=float)
+    omega_radps    = np.zeros(measurements_nr, dtype=float)
     omega_start = 0.0
 
     i = 0 # index of current measurement
@@ -345,7 +346,7 @@ def determine_omega2g(measurements_times, omega_radps, acc_duration_list,
         t_acc_duration = t_acceleration_duration
 
     if np.isscalar(omega_radps):
-        omega_final = omega_radps
+        omega_final = omega_ini_radps
 
     iterations_nr = np.max([np.alen(acc_duration_list),
                             np.alen(dec_duration_list),
@@ -357,8 +358,8 @@ def determine_omega2g(measurements_times, omega_radps, acc_duration_list,
         if not  np.isscalar(r0_fall_list):
             r0_fall = r0_fall_list[iteration]
 
-        if not np.isscalar(omega_radps):
-            omega_final = omega_radps[iteration]
+        if not np.isscalar(omega_ini_radps):
+            omega_final = omega_ini_radps[iteration]
 
         for phase in ('a', 'd', 'g'):
             if phase == 'a':
@@ -401,6 +402,7 @@ def determine_omega2g(measurements_times, omega_radps, acc_duration_list,
                     omega2g = find_omega2g_fh(r0_fall)
 
                 omega2g_values[i] = omega2g
+                omega_radps[i]    = np.sqrt(omega2g * g)
                 i += 1
 
             if i == measurements_nr:
@@ -408,7 +410,7 @@ def determine_omega2g(measurements_times, omega_radps, acc_duration_list,
 
             omega_start = omega_final
 
-    return omega2g_values
+    return (omega2g_values, omega_radps)
 
 def determine_omega(cfg, acc_duration_list, dec_duration_list, fh_duration_list,
                     include_acceleration, measurements_times):
