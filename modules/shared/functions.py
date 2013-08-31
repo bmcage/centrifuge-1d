@@ -15,6 +15,19 @@ def rpm2radps(omega):
         omega_converted = _rpm2radps(omega)
     else:
         omega_converted = [_rpm2radps(omg) for omg in omega]
+def radps2rpm(omega):
+    """
+      Converts rad/s to rpm
+    """
+    # rad/s->rpm:  omega_rpm = 60*omega_radps/(2pi)
+    _radps2rpm = lambda omega: omega * 30/np.pi
+
+    if np.isscalar(omega) or type(omega) is np.ndarray:
+        omega_converted = _radps2rpm(omega)
+    elif type(omega) in (list, tuple):
+        omega_converted = [_radps2rpm(omg) for omg in omega]
+    else:
+        raise ValueError('Unknown type for omega')
 
     return omega_converted
 
