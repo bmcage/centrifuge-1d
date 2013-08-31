@@ -4,7 +4,7 @@ import numpy as np
 from collections import OrderedDict
 from shared import get_directories, flatten
 from os import makedirs, path
-from modules.shared.functions import rpm2radps, compare_data, \
+from modules.shared.functions import rpm2radps, radps2rpm, compare_data, \
     find_omega2g, find_omega2g_dec, find_omega2g_fh, \
     smoothing_gaussian, smoothing_triangle, smoothing_linear
 
@@ -418,26 +418,29 @@ def determine_omega(cfg, acc_duration_list, dec_duration_list, fh_duration_list,
       Determine values of 'omega' needed for computations:
           omega_rpm   - original values
           omega_radps - orignail values transformed to [rad/s] units
-          omega2g     - (omega^2)/g, where omega is the rotational speed
-                         at measurements_times
+          omega2g     - (omega^2)/g, where omega [rad/s] is the rotational
+                        speed at measurements_times
     """
 
     t_acc_duration = cfg.get_value('acceleration_duration', not_found=None)
     g_list = cfg.get_value('g', not_found=None)
     r0_fall_list = cfg.get_value('r0_fall', not_found=None)
 
-    omega_rpm = cfg.get_value('omega', not_found=None)
-    if not omega_rpm:
+    omega_orig_rpm = cfg.get_value('omega', not_found=None)
+    if not omega_orig_rpm:
         return (None, None, None)
 
-    omega_radps = rpm2radps(omega_rpm)
+    omega_orig_radps = rpm2radps(omega_orig_rpm)
 
-    omega2g = determine_omega2g(measurements_times, omega_radps,
-                                acc_duration_list, dec_duration_list,
-                                fh_duration_list, include_acceleration,
-                                t_acc_duration, g_list, r0_fall_list)
+    (omega2g, omega_radps) = \
+      determine_rotspeed(measurements_times, omega_orig_radps,
+                         acc_duration_list, dec_duration_list, fh_duration_list,
+                         include_acceleration, t_acc_duration, g_list,
+                         r0_fall_list)
 
-    return (omega_rpm, omega_radps, omega2g)
+    omega_rpm = radps2rpm(omega_radps)
+
+    return (omega_orig_rpm, omega_orig_radps, omega2g, omega_rpm, omega_radps)
 
 def apply_smoothing(cfg, measurements, omega2g, times):
     """
@@ -834,7 +837,7 @@ class Measurements():
         #    d) measurements times
         times = determine_measurements_times(measurements_xvalues)
         #    e) omega (rpm, radps, omega2g)
-        (omega_rpm, omega_radps, omega2g) = \
+        (omega_ini_rpm, omega_ini_radps, omega2g, omega_rpm, omega_radps) = \
           determine_omega(cfg, acc_duration, dec_duration, fh_duration,
                           include_acceleration, times)
         #    f) scaling coefs of measurements
@@ -842,7 +845,7 @@ class Measurements():
         #    g) determine tara calibration curve
         tara_calibration = \
           determine_tara_calibration(cfg, measurements, times, omega2g,
-                                     phases_scans, omega_rpm)
+                                     phases_scans, omega_ini_rpm)
         #    h) determine indices of preserved measurements
         (measurements_filter, measurements_times_filter) =  \
           determine_filtering_indices(cfg, times, measurements,
@@ -853,7 +856,7 @@ class Measurements():
         #    a) Apply baseline curve (this need to be done BEFORE storing
         #       ORIGINAL MEASUREMENTS as they also need to be shifted, so
         #       that we don't have to apply it twice)
-        apply_baseline_curve(cfg, measurements, phases_scans, omega_rpm)
+        apply_baseline_curve(cfg, measurements, phases_scans, omega_ini_rpm)
         #    b) store original values
         (original_measurements, original_measurements_xvalues) = \
           store_original_measurements(cfg, measurements, measurements_xvalues)
@@ -885,7 +888,7 @@ class Measurements():
         self._weights         = None # weights as numpy array
 
         # 5. convert omega from rpm to radians/s
-        cfg.set_value('omega', omega_radps)
+        cfg.set_value('omega', omega_ini_radps)
 
     def dump(self):
         """ Collect stored data to simple format for saving. """
