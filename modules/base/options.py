@@ -196,6 +196,21 @@ def adjust_cfg(cfg):
             else:
                 cfg.set_value('wl'+name[2], list(new_value))
 
+    duration   = cfg.get_value('duration')
+    d_duration = cfg.get_value('deceleration_duration')
+    if type(d_duration) is list:
+        if type(duration) is list:
+            duration = [c_dur - d_dur for (c_dur, d_dur) in zip(duration,
+                                                                d_duration)]
+        else:
+            duration = [duration - d_dur for d_dur in d_duration]
+    else:
+        if type(duration) is list:
+            duration = [c_dur - d_duration for c_dur in duration]
+        else:
+            duration -= d_duration
+    cfg.set_value('duration', duration)
+
 def prior_adjust_cfg(cfg):
     """
       This function is called prior to the adjust_cfg() function. It is intended
