@@ -97,6 +97,9 @@ def get_module_function(function_name, module, base_module=BASE_MODULE):
 def compress_seq(seq):
     if not type(seq) in [list, tuple]: return seq
 
+    if not seq:
+        return seq
+
     ref = seq[0]
 
     # all(seq[:] == ref)
