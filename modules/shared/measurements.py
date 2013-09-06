@@ -523,7 +523,7 @@ def actual_smoothing(sm_alg, omega2g, value, sm_degree):
     prev = omega2g[0]
     for ind, val in enumerate(omega2g[1:]):
         realind = ind + 1
-        if 0.98 * prev < val < 1.02 * prev:
+        if 0.995 * prev < val < 1.005 * prev:
             #section continues
             if len(sectionstart) == len(sectionend):
                 #no section yet, add it
@@ -549,19 +549,25 @@ def actual_smoothing(sm_alg, omega2g, value, sm_degree):
         pass
 
     ind_outliers = []
+    piece = 20
     if HASSTATS:
         from statsmodels.formula.api import ols
-        for start, stop in zip(sectionstart, sectionend):
-            # Set data
-            x = range(stop-start)
-            y = value[start:stop]
-            # Make least squares fit
-            regression = ols("weight ~ expnr", data=dict(weight=y, expnr=x)).fit()
-            # Find outliers
-            test = regression.outlier_test()
-            outliers = (i for i, t in enumerate(test.icol(2)) if t < 0.5)
-            for outl in outliers:
-                ind_outliers.append(start + outl)
+        for realstart, realstop in zip(sectionstart, sectionend):
+            # detect outliers in pieces of piece (=20) measurements
+            start = realstart
+            stop = start + piece
+            while stop < realstop:
+                x = range(stop-start)
+                y = value[start:stop]
+                # Make least squares fit
+                regression = ols("weight ~ expnr", data=dict(weight=y, expnr=x)).fit()
+                # Find outliers
+                test = regression.outlier_test()
+                outliers = (i for i, t in enumerate(test.icol(2)) if t < 0.5)
+                for outl in outliers:
+                    ind_outliers.append(start + outl)
+                start = stop
+                stop = start + piece
     
     if ind_outliers:
         print ("Outliers found:")
