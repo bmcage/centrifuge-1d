@@ -177,20 +177,36 @@ def apply_tara_calibration(tara_calibration, measurements_times_filter,
 def determine_centrifugation_times(cfg):
     from modules.shared.functions import phases_end_times
 
-    acc_duration_list = cfg.get_value('duration', not_found=None)
-    dec_duration_list = cfg.get_value('deceleration_duration', not_found=None)
-    fh_duration_list  = cfg.get_value('fh_duration', not_found=None)
-    include_acceleration = cfg.get_value('include_acceleration', not_found=True)
+    acc_duration_list = cfg.get_value('duration', not_found='NotFound')
+    dec_duration_list = cfg.get_value('deceleration_duration', not_found='NotFound')
+    fh_duration_list  = cfg.get_value('fh_duration', not_found='NotFound')
 
-    phases_scans = \
-        phases_end_times(acc_duration_list, dec_duration_list, fh_duration_list,
-                         include_acceleration)
+    if (acc_duration_list is 'NotFound' and dec_duration_list is 'NotFound'
+        and fh_duration_list is 'NotFound'):
 
-    if phases_scans is None:
-        print("\nPhases scans could not be determined. Were "
-              "'duration'/'fh_duration'/'deceleration_duration' "
-              "set properly?\n Cannot continue, exiting...")
-        exit(1)
+        include_acceleration = False
+        acc_duration_list = dec_duration_list = fh_duration_list = None
+        phases_scans = None
+    else:
+        if acc_duration_list is 'NotFound':
+            acc_duration_list = 0.0
+        if dec_duration_list is 'NotFound':
+            dec_duration_list = 0.0
+        if fh_duration_list is 'NotFound':
+            fh_duration_list = 0.0
+
+        include_acceleration = cfg.get_value('include_acceleration',
+                                             not_found=True)
+
+        phases_scans = \
+          phases_end_times(acc_duration_list, dec_duration_list,
+                           fh_duration_list, include_acceleration)
+
+        if phases_scans is None:
+            print("\nPhases scans could not be determined. Were "
+                  "'duration'/'fh_duration'/'deceleration_duration' "
+                  "set properly?\n Cannot continue, exiting...")
+            exit(1)
 
     return (acc_duration_list, dec_duration_list, fh_duration_list,
             phases_scans, include_acceleration)
