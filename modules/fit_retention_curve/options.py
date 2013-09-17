@@ -42,25 +42,7 @@ INTERNAL_OPTIONS = ['h', 'separate_figures']
 def check_cfg(cfg):
     return True
 
-def filter_measurements(cfg, measurements):
-    fltr = cfg.get_value('measurements_filter')
-
-    if not fltr: return
-
-    for (name, value) in cfg.iterate_values():
-        if (not type(value) in [list, tuple]) or (not name in measurements):
-             continue
-
-        filtered_value = []
-        for (v, keep_p) in zip(value, fltr):
-            if keep_p: filtered_value.append(v)
-
-        print('name:', name, '\nvalue:', value, 'fv:', filtered_value,
-              '\nfilter:', fltr)
-        cfg.set_value(name, filtered_value)
-
 def adjust_cfg(cfg):
-    filter_measurements(cfg, ['theta', 'p'])
     cfg.set_value('separate_figures', True)
 
     # Brute hack as default options cannot be overriden in child modules
