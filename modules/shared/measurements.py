@@ -312,7 +312,7 @@ def determine_scaling_coefs(cfg):
     cfg.del_value('measurements_scale_coefs')
 
     if not scale_coefs:
-        scales_coefs = {}
+        scale_coefs = {}
 
     return scale_coefs
 
