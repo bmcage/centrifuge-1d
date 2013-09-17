@@ -221,6 +221,12 @@ def determine_measurements(cfg, phases_scans):
         measurements[name] = value
 
         xvalue = cfg.get_value(iname + '_xvalues')
+
+        if (iname == 'theta') and (xvalue is None):
+            # allow for 'theta' the xvalue to be defined in two ways:
+            # either as 'theta_xvalue' or as 'p'
+            xvalue = cfg.get_value('p')
+
         cfg.del_value('measurements_xvalues') # could exist (e.g. set to "None")
 
         if not xvalue:
