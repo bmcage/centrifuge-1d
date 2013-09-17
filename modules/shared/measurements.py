@@ -840,14 +840,14 @@ class Measurements():
         #    c) measurements weights
         measurements_weights = determine_weights(cfg, measurements,
                                                  measurements_diff)
-        #    d) measurements times
+        #    d) scaling coefs of measurements
+        scales_coefs = determine_scaling_coefs(cfg)
+        #    e) measurements times
         times = determine_measurements_times(measurements_xvalues)
-        #    e) omega (rpm, radps, omega2g)
+        #    f) omega (rpm, radps, omega2g)
         (omega_ini_rpm, omega_ini_radps, omega2g, omega_rpm, omega_radps) = \
           determine_omega(cfg, acc_duration, dec_duration, fh_duration,
                           include_acceleration, times)
-        #    f) scaling coefs of measurements
-        scales_coefs = determine_scaling_coefs(cfg)
         #    g) determine tara calibration curve
         tara_calibration = \
           determine_tara_calibration(cfg, measurements, times, omega2g,
