@@ -31,6 +31,8 @@ CONFIG_OPTIONS = ['exp_type', 'p', 'theta', 'g', 'density',
                   ignore_options
                   ]
 
+BLACKLIST_OPTIONS = ['duration', 'deceleration_duration', 'fh_duration']
+
 OPTIONS_ITERABLE_LISTS = []
 
 EXCLUDE_FROM_MODEL = ['measurements_length', 'measurements_filter'] + _ignore_list
