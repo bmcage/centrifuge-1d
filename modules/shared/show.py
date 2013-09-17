@@ -155,6 +155,8 @@ class DataStorage():
 
             # Store all computed data
             for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
+                if xvalue is None or yvalue is None:
+                    continue
                 # make a local copy as array may be overwritten
                 xvalue = xvalue.copy()
                 yvalue = yvalue.copy()
