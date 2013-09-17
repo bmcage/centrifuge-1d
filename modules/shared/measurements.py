@@ -427,18 +427,19 @@ def determine_omega(cfg, acc_duration_list, dec_duration_list, fh_duration_list,
     r0_fall_list = cfg.get_value('r0_fall', not_found=None)
 
     omega_orig_rpm = cfg.get_value('omega', not_found=None)
-    if not omega_orig_rpm:
-        return (None, None, None)
 
-    omega_orig_radps = rpm2radps(omega_orig_rpm)
+    if omega_orig_rpm:
+        omega_orig_radps = rpm2radps(omega_orig_rpm)
 
-    (omega2g, omega_radps) = \
-      determine_rotspeed(measurements_times, omega_orig_radps,
-                         acc_duration_list, dec_duration_list, fh_duration_list,
-                         include_acceleration, t_acc_duration, g_list,
-                         r0_fall_list)
+        (omega2g, omega_radps) = \
+            determine_rotspeed(measurements_times, omega_orig_radps,
+                               acc_duration_list, dec_duration_list,
+                               fh_duration_list, include_acceleration,
+                               t_acc_duration, g_list, r0_fall_list)
 
-    omega_rpm = radps2rpm(omega_radps)
+        omega_rpm = radps2rpm(omega_radps)
+    else:
+        omega_orig_radps = omega2g = omega_radps = omega_rpm = None
 
     return (omega_orig_rpm, omega_orig_radps, omega2g, omega_rpm, omega_radps)
 
