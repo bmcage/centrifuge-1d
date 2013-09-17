@@ -16,7 +16,7 @@ def ignore_options(cfg):
     return [(name, None) for name in _ignore_list]
 
 CONFIG_OPTIONS = ['exp_type', 'p', 'theta', 'g', 'density',
-                  ('rho', 1.0), 'show_figures',
+                  ('rho', 1.0),
                   'theta_s', 'theta_r',
                   ('sample_id', None), ('wl_out1', None),
                   ('measurements_filter', None),
