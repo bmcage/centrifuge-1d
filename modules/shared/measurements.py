@@ -700,6 +700,9 @@ def apply_baseline_curve(cfg, measurements, phases_scans, omega_rpm):
     """
       Baseline calibration curve sets the base level for measured force.
     """
+    if (not 'gF_MT' in measurements) and (not 'gF_MO' in measurements):
+        return
+
     assert(np.alen(omega_rpm) == np.alen(phases_scans))
 
     for name in ('gF_MT', 'gF_MO'):
