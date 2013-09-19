@@ -435,10 +435,12 @@ def read_plotstyles_file(filename):
 
                 result[option] = parse_value(raw_value, raise_error=True)
         except:
-            print('WARNING: Errors during parsing occured, only default values '
-                  'will be used.')
-            result = {} # whatever was read so far is discared
-            break
+            if yn_prompt('WARNING: Errors during parsing occured. Do you wish '
+                         'to continue with default values used? [Y/n]: '):
+                result = {} # whatever was read so far is discared
+                break
+            else:
+                exit(0)
 
     return result
 
