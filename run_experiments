@@ -184,7 +184,7 @@ def get_exp_no(options):
         first_experiment = int(options.exp_no)
         last_experiment  = int(options.last_exp_no)
 
-        for exp_no in range(first_experiment, last_experiment):
+        for exp_no in range(first_experiment, last_experiment+1):
             yield str(exp_no)
 
 def run_experiments(options):
