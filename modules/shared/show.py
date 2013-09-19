@@ -4,7 +4,7 @@ import numpy as np, matplotlib, pickle
 import sys
 from const import PLOTSTYLE_ININAME, DUMP_DATA_VERSION, DUMP_DATA_FILENAME
 from os import makedirs, path
-from shared import get_directories, parse_value, get_range
+from shared import get_directories, parse_value, get_range, yn_prompt
 from config import ModulesManager, load_model
 from collections import OrderedDict
 from modules.shared.functions import has_data, compare_data
