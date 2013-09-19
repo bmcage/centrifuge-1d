@@ -115,17 +115,18 @@ def parse_dict(raw_value):
                 key   = parse_string(raw_value[i0:k])
                 value = parse_string(raw_value[k+1:i])
                 result[key] = value
-
                 i0 = i+1
             else:
                 pass
         elif char in brackets:
             counts[char] += 1
 
-    k     = i0 + raw_value[i0:].index(':')
-    key   = parse_string(raw_value[i0:k])
-    value = parse_string(raw_value[k+1:])
-    result[key] = value
+    last_part = raw_value[i0:]
+    if not last_part is '':
+        k     = i0 + last_part.index(':')
+        key   = parse_string(raw_value[i0:k])
+        value = parse_string(raw_value[k+1:])
+        result[key] = value
 
     return result
 
