@@ -1,0 +1,14 @@
+#from ..direct_saturated.csv_parse import filtered_fields
+
+def skip(row):
+    if row.exp_type == 'ish-sc':
+        # only those rows where the difference between the
+        # starting and ending soil heigh has less than 5% difference
+        l0 = float(row.l0)
+        l1 = float(row.l1)
+        return (abs((l0 - l1) / l0) > 0.05)
+    else:
+        return False
+
+def CSV2ini_fields(field_name, field_value):
+    return (field_name, field_value)
