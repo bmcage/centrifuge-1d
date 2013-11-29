@@ -5,10 +5,11 @@ import argparse
 from os import listdir
 from ..shared import get_directories
 from ..config import ModulesManager, load_model
+from ..const import CSV_DIR, INI_DIR, FIGS_DIR
 
-def compare_experiment_csv(exp_id):
+def compare_experiment_csv(exp_id, dataout_path=None):
     import os, subprocess
-    from ..const import DIFFPROG, CSV_DIR
+    from ..const import DIFFPROG
 
     if not DIFFPROG:
         print('No DIFFPROG was selected. Cannot compare. Exiting.')
@@ -16,6 +17,12 @@ def compare_experiment_csv(exp_id):
 
     exp_info = {key: '' for key in ['exp_no', 'mask']}
     exp_info['exp_id'] = exp_id
+    if dataout_path:
+        exp_info['ini_dir'] = dataout_path + sep + 'datafiles'
+        exp_info['figs_dir'] = dataout_path + sep + 'datafiles' 
+    else:
+        exp_info['ini_dir'] = INI_DIR
+        exp_info['figs_dir'] = FIGS_DIR
 
     csv_filename = ''
     exp_basedir = get_directories('ini', 'exp_base', exp_info)
@@ -46,7 +53,7 @@ def compare_experiment_csv(exp_id):
 
     exit(0)
 
-def list_experiments(args, verbose=True):
+def list_experiments(args, verbose=True, dataout_path=None):
     if not args.exp_id:
         list_type = 'base'
     elif not args.exp_no:
@@ -57,6 +64,12 @@ def list_experiments(args, verbose=True):
         list_type = 'masks'
 
     exp_info = {key: getattr(args, key) for key in ['exp_id', 'exp_no', 'mask']}
+    if dataout_path:
+        exp_info['ini_dir'] = dataout_path + sep + 'datafiles'
+        exp_info['figs_dir'] = dataout_path + sep + 'datafiles' 
+    else:
+        exp_info['ini_dir'] = INI_DIR
+        exp_info['figs_dir'] = FIGS_DIR
     filenames = listdir(get_directories('ini', list_type, exp_info))
 
     if list_type == 'base':
@@ -86,7 +99,7 @@ def list_modules(verbose=True):
     modman = ModulesManager()
     modman.echo(verbose)
 
-def parse_input():
+def parse_input(dataout_path=None):
     usage_str = '\n\t%(prog)s [options] [exp_ID] [exp_NO] [last_exp_NO]'
 
     argparser = argparse.ArgumentParser(usage=usage_str)
@@ -156,7 +169,7 @@ def parse_input():
         argparser.print_help()
         exit(0)
     elif args.csv_diff:
-        compare_experiment_csv(args.exp_id)
+        compare_experiment_csv(args.exp_id, dataout_path)
         exit(0)
     elif args.exp_id and args.exp_no:
         pass # all needed data is passed
@@ -187,7 +200,7 @@ def get_exp_no(options):
         for exp_no in range(first_experiment, last_experiment+1):
             yield str(exp_no)
 
-def run_experiments(options):
+def run_experiments(options, dataout_path=None):
     (exp_id, mask) = (options.exp_id, options.mask)
     print_cfg_only = options.print_config_p
     verbose = not print_cfg_only
@@ -212,6 +225,12 @@ def run_experiments(options):
 
         experiment_info =  {'exp_id': exp_id, 'exp_no': exp_no,
                             'mask': mask}
+        if dataout_path:
+            experiment_info['ini_dir'] = dataout_path + sep + 'datafiles'
+            experiment_info['figs_dir'] = dataout_path + sep + 'datafiles' 
+        else:
+            experiment_info['ini_dir'] = INI_DIR
+            experiment_info['figs_dir'] = FIGS_DIR
 
         model = load_model(experiment_info, display_only=print_cfg_only,
                            modman = modman)
@@ -249,7 +268,7 @@ def iterate_value(arg):
     while True:
         yield ''
 
-def compare2configs(options):
+def compare2configs(options, dataout_path=None):
     from ..config import load_configuration
 
     print('Add information for the second configuration file:')
@@ -263,7 +282,17 @@ def compare2configs(options):
     exp_info1 = {'exp_id': options.exp_id, 'exp_no': options.first_experiment,
                  'mask': options.mask[0]}
     exp_info2 = {'exp_id': exp_id2, 'exp_no': int(exp_no2), 'mask': mask2}
-
+    if dataout_path:
+        exp_info1['ini_dir'] = dataout_path + sep + 'datafiles'
+        exp_info1['figs_dir'] = dataout_path + sep + 'datafiles'
+        exp_info2['ini_dir'] = dataout_path + sep + 'datafiles'
+        exp_info2['figs_dir'] = dataout_path + sep + 'datafiles'
+    else:
+        exp_info1['ini_dir'] = INI_DIR
+        exp_info1['figs_dir'] = FIGS_DIR
+        exp_info2['ini_dir'] = INI_DIR
+        exp_info2['figs_dir'] = FIGS_DIR
+        
     cfg1 = load_configuration(exp_info1)
     cfg2 = load_configuration(exp_info2)
 
@@ -297,8 +326,8 @@ def compare2configs(options):
 
                 print(fstring.format('', v1_value, v2_value))
 
-def main():
-    options = parse_input()
+def main(dataout_path=None):
+    options = parse_input(dataout_path)
 
     if options.show_p:
         from ..modules.shared.show import show_results
@@ -306,13 +335,20 @@ def main():
         experiment_info =  \
           {'exp_id': options.exp_id, 'exp_no': options.exp_no,
            'mask': options.mask}
+        
+        if dataout_path:
+            experiment_info['ini_dir'] = dataout_path + sep + 'datafiles'
+            experiment_info['figs_dir'] = dataout_path + sep + 'datafiles' 
+        else:
+            experiment_info['ini_dir'] = INI_DIR
+            experiment_info['figs_dir'] = FIGS_DIR
 
         show_results(experiment_info)
 
     elif options.compare_p:
-        compare2configs(options)
+        compare2configs(options, dataout_path)
     else:
-        run_experiments(options)    
+        run_experiments(options, dataout_path)    
 
 if __name__ == "__main__":
     main()

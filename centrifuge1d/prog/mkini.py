@@ -6,11 +6,13 @@ import numpy as np
 from os import makedirs, path, sep
 from optparse import OptionParser
 from ..config import ModulesManager
-from ..const import CSV_DIR, INI_DIR, DEFAULTS_ININAME, MEASUREMENTS_ININAME, \
-    PROTO_DIR, PLOTSTYLE_ININAME
+from ..const import (CSV_DIR, INI_DIR, FIGS_DIR, DEFAULTS_ININAME,
+                     MEASUREMENTS_ININAME, PROTO_DIR, PLOTSTYLE_ININAME)
 from ..shared import get_directories
 from collections import namedtuple, defaultdict
 from ..modules.shared.measurements import MEASUREMENTS_NAMES
+import logging
+LOG = logging.getLogger(".")
 
 MODMAN = ModulesManager()
 
@@ -710,6 +712,7 @@ def data2ini(data, experiment_info):
                                            section_name='experiment')
 
             if not path.exists(exp_base_path + PLOTSTYLE_ININAME):
+                LOG.warn ("copying " + PROTO_DIR + PLOTSTYLE_ININAME + '.proto' + ' to ' + exp_base_path + PLOTSTYLE_ININAME)
                 shutil.copy(PROTO_DIR + PLOTSTYLE_ININAME + '.proto',
                             exp_base_path + PLOTSTYLE_ININAME)
 
@@ -770,10 +773,30 @@ def data2ini(data, experiment_info):
                  level_posthook=_post_process_data)
     print('All done.')
 
-def main():
-    options = parse_input()
-    info = {'csv_path': options.csv_path,
-            'csv_filebasename': options.csv_filebasename}
+def main(csv_path=None, csv_filebasename=None, dataout_path=None):
+    """
+    Make ini files based on  a file.csv in csv_path. Here file would be
+    csv_filebasename.
+    If one of the arguments is not given, argv is parsed to determine them.
+    """
+    if csv_path is None or csv_filebasename is None:
+        options = parse_input()
+        info = {'csv_path': options.csv_path,
+               'csv_filebasename': options.csv_filebasename}
+        if csv_path:
+            info['csv_path'] = csv_path
+        if csv_filebasename:
+            info['csv_filebasename'] = csv_filebasename
+    else:
+        info = {'csv_path': csv_path + sep,
+               'csv_filebasename': csv_filebasename}
+
+    if dataout_path:
+        info['ini_dir'] = dataout_path + sep + 'datafiles'
+        info['figs_dir'] = dataout_path + sep + 'datafiles' 
+    else:
+        info['ini_dir'] = INI_DIR
+        info['figs_dir'] = FIGS_DIR
 
     data = CSV2data(info['csv_path'], info['csv_filebasename'])
     data2ini(data, info)

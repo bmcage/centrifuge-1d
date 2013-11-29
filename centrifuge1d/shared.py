@@ -48,9 +48,9 @@ def get_directories(basedir_type, dirs, experiment_info):
     if not dirs: dirs = 'search'
 
     if basedir_type == 'ini':
-        basedir = INI_DIR + '/'
+        basedir = experiment_info['ini_dir'] + '/'
     elif basedir_type == 'figs':
-        basedir = FIGS_DIR + '/'
+        basedir = experiment_info['figs_dir'] + '/'
     else:
         raise ValueError('Unrecognized type of basedir_type: ', basedir_type)
 
