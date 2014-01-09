@@ -2,7 +2,7 @@
 from __future__ import print_function
 
 import argparse
-from os import listdir
+from os import listdir, sep
 from ..shared import get_directories
 from ..config import ModulesManager, load_model
 from ..const import CSV_DIR, INI_DIR, FIGS_DIR
@@ -99,7 +99,14 @@ def list_modules(verbose=True):
     modman = ModulesManager()
     modman.echo(verbose)
 
-def parse_input(dataout_path=None):
+def parse_input(dataout_path=None, parse_arg=[]):
+    """
+    Parse the calling sequence of the script. If run independent, 
+    don't pass parse_arg and sys.argv will be used.
+    Otherwise, pass in the arguments as a list, eg
+     parse_arg = ['gem-zwijnaarde2-drain', '1', '-m', 'f_mo_limit']
+    to run from folder gem-zwijnaarde2-drain, exp 1, with mast f_mo_limit.
+    """
     usage_str = '\n\t%(prog)s [options] [exp_ID] [exp_NO] [last_exp_NO]'
 
     argparser = argparse.ArgumentParser(usage=usage_str)
@@ -157,7 +164,10 @@ def parse_input(dataout_path=None):
                            action='store_true',
                            help=("Compare the original with actual csv file."))
 
-    args = argparser.parse_args()
+    if parse_arg:
+        args = argparser.parse_args(parse_arg)
+    else:
+        args = argparser.parse_args()
 
     if args.list:
         list_experiments(args, args.verbose)
@@ -326,8 +336,8 @@ def compare2configs(options, dataout_path=None):
 
                 print(fstring.format('', v1_value, v2_value))
 
-def main(dataout_path=None):
-    options = parse_input(dataout_path)
+def main(dataout_path=None, parse_arg=[]):
+    options = parse_input(dataout_path, parse_arg)
 
     if options.show_p:
         from ..modules.shared.show import show_results
