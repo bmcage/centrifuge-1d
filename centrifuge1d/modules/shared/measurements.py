@@ -513,26 +513,26 @@ def apply_smoothing(cfg, measurements, omega2g, times):
         ## omega2g contains t=0, which is not part of the data to smooth
         value = actual_smoothing(sm_alg, omega2g[1:], valueorig, sm_degree)
         measurements[name] = value
-        # I want to see this plot immediately, not wait till end of computation!
-        from multiprocessing import Process
-        p = Process(target=stupid_plot, args=(name, valueorig, value, sm_alg))
-        p.start()
-        p.join(1)
+#        # I want to see this plot immediately, not wait till end of computation!
+#        from multiprocessing import Process
+#        p = Process(target=stupid_plot, args=(name, valueorig, value, sm_alg))
+#        p.start()
+#        p.join(1)
 
-def stupid_plot(name, valueorig, value, sm_alg):
-    """
-    This does a plot and can be called async, so as not to block the main thread
-    """
-    import matplotlib.pyplot as plt
-    plt.figure(1000)
-    plt.ylabel(name)
-    plt.xlabel('scan')
-    plt.plot(valueorig, '.k', label='measured', linewidth=2, markersize=7)
-    plt.plot(value, '-b', label='smoothed ' + sm_alg, linewidth=2)
-    plt.legend()
-    #don't do ion, as this is a process, so not blocking would make the process
-    # just finish and not show anything!
-    plt.show()
+#def stupid_plot(name, valueorig, value, sm_alg):
+#    """
+#    This does a plot and can be called async, so as not to block the main thread
+#    """
+#    import matplotlib.pyplot as plt
+#    plt.figure(1000)
+#    plt.ylabel(name)
+#    plt.xlabel('scan')
+#    plt.plot(valueorig, '.k', label='measured', linewidth=2, markersize=7)
+#    plt.plot(value, '-b', label='smoothed ' + sm_alg, linewidth=2)
+#    plt.legend()
+#    #don't do ion, as this is a process, so not blocking would make the process
+#    # just finish and not show anything!
+#    plt.show()
     
 def actual_smoothing(sm_alg, omega2g, value, sm_degree):
     """
