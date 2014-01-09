@@ -5,7 +5,7 @@ CONFIG_OPTIONS = {
     'experiment': \
         {'exp_type': ("Identifier of type of experiment do determine which "
                       "module should be used. Type: string"),
-         'tube_no': ("Tube number. To given tube number should correspong "
+         'tube_no': ("Tube number. The given tube number should correspond to "
                      "an entry in the 'constants.ini' file, where starting "
                      "and ending filter proberties should be specified"
                      "Type: integer"),
