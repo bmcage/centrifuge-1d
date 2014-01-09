@@ -1,0 +1,10 @@
+
+centrifuge1-d requires:
+
+* python, numpy, scipy
+* python odes scikit to interface sundials: https://github.com/bmcage/odes
+* sundials (see README in odes, package in Ubuntu available)
+
+Highly recommended: 
+* python statsmodels 0.5+ : needed for outlier detection.
+  On Debian based: sudo apt-get install python-statsmodels
