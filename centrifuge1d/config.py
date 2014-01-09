@@ -556,7 +556,8 @@ class Configuration:
                 for option in alien_options:
                     print('   ', option)
 
-            if not yn_prompt('\nAlien options found. Do you wish to '
+            if not 'ignore_alien_options' in alien_options \
+                and not yn_prompt('\nAlien options found. Do you wish to '
                              'continue? [Y/n]: ', default='y'):
                 return False
 
