@@ -13,7 +13,7 @@
 #params_ref = {'line-id-1': {parameter1-1: value1-1, parameter1-2: value1-2,
 #                            parameter1-3: value1-3},
 #              'line-id-2': {parameter2-1: value2-1, parameter2-2: value2-2,
-                             parameter2-3: value2-3}
+#                            parameter2-3: value2-3}
 #             }
 
 # DISPLAYING STYLES
@@ -34,7 +34,7 @@
 #       's1' - first interface; unit: length
 #       's2' - second interface (between 2 zones); unit: length
 #            - NOTE: - interfaces arise arise between 2 zones:
-                       saturated/unsaturated or unsaturated/dry
+#                      saturated/unsaturated or unsaturated/dry
 #                    - which interface appear (or even both) depends
 #                      on experiment type
 #
