@@ -141,6 +141,8 @@ def parse_range(raw_value):
     rstop  = parse_string(range_values[1])
     if len(range_values) > 2:
         rstep = parse_string(range_values[2])
+        if rstep is '':
+            rstep = 1
     else:
         rstep = 1
     if (rstop is '') or (rstop < 0):
