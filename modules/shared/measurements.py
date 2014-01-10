@@ -661,9 +661,17 @@ def determine_filtering_indices(cfg, measurements_times, measurements,
         # determine elements that remain after filtering out unwanted
         if name in kfilters:
             filter_idxs = np.zeros(measurements[name].shape, dtype=bool)
+            filter_idxs_len = np.alen(filter_idxs)
 
-            kfilter = np.asarray(flatten(kfilters[name]),
-                                 dtype=float)
+            kfilter = kfilters[name]
+            for (idx, kf) in enumerate(kfilter):
+                if callable(kf):
+                    (rstart, rstop, rstep) = kf()
+                    kfilter[idx] = list(np.arange(rstart, filter_idxs_len+rstop+1,
+                                                  rstep))
+
+            kfilter = np.asarray(flatten(kfilters[name]), dtype=float)
+
             for kf in kfilter:
                 filter_idxs[kf] = True
         else:
