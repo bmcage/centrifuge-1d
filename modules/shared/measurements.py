@@ -622,6 +622,27 @@ def actual_smoothing(sm_alg, omega2g, value, sm_degree):
     # step 5: go back to actual weight measured
     return value[:] * omega2g[:]
 
+def _filter_indices(filter_idxs, pfilter, new_value):
+    """
+      Set the 'new_value on 'filter_idxs' indicated by 'pfilters'.
+
+    """
+    filter_idxs_len = np.alen(filter_idxs)
+
+    for kf in pfilter:
+        if callable(kf):
+            (rstart, rstop, rstep) = kf()
+            for idx in range(rstart, filter_idxs_len+rstop+1, rstep):
+                filter_idxs[idx] = new_value
+        elif np.isscalar(kf):
+            filter_idxs[kf] = new_value
+        else:
+            # type(kf) in (list, tuple)
+            for idx in kf:
+                filter_idxs[idx] = new_value
+
+    return filter_idxs
+
 def determine_filtering_indices(cfg, measurements_times, measurements,
                                 measurements_xvalues):
     """
@@ -661,26 +682,15 @@ def determine_filtering_indices(cfg, measurements_times, measurements,
         # determine elements that remain after filtering out unwanted
         if name in kfilters:
             filter_idxs = np.zeros(measurements[name].shape, dtype=bool)
-            filter_idxs_len = np.alen(filter_idxs)
 
-            kfilter = kfilters[name]
-            for (idx, kf) in enumerate(kfilter):
-                if callable(kf):
-                    (rstart, rstop, rstep) = kf()
-                    kfilter[idx] = list(np.arange(rstart, filter_idxs_len+rstop+1,
-                                                  rstep))
-
-            kfilter = np.asarray(flatten(kfilters[name]), dtype=float)
-
-            for kf in kfilter:
-                filter_idxs[kf] = True
+            # set 'filter_idxs' depending on the 'kfilters[name]' value
+            _filter_indices(filter_idxs, kfilters[name], True)
         else:
             filter_idxs = np.ones(measurements[name].shape, dtype=bool)
 
         if name in rfilters:
-            rfilter = np.asarray(flatten(rfilters[name]),
-                                 dtype=float)
-            filter_idxs[rfilter] = False
+            # set 'filter_idxs' depending on the 'rfilters[name]' value
+            _filter_indices(filter_idxs, rfilters[name], False)
 
         filter_idxs = np.flatnonzero(filter_idxs)
 
