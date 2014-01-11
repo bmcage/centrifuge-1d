@@ -533,7 +533,7 @@ def stupid_plot(name, valueorig, value, sm_alg):
     #don't do ion, as this is a process, so not blocking would make the process
     # just finish and not show anything!
     plt.show()
-    
+
 def actual_smoothing(sm_alg, omega2g, value, sm_degree):
     """
     Smooth time series experiment of weight as done in the centrifuge
@@ -591,20 +591,20 @@ def actual_smoothing(sm_alg, omega2g, value, sm_degree):
                     ind_outliers.append(start + outl)
                 start = stop
                 stop = start + piece
-    
+
     if ind_outliers:
         print ("Outliers found:")
         for ind in ind_outliers:
-            print ("  index:", ind, 'values:', value[ind-1], 
+            print ("  index:", ind, 'values:', value[ind-1],
                     value[ind] , value[ind+1] )
         #our smoothing should skip the outliers. We do this by replacing outlier with 
-        #previous value in the array for now. 
+        #previous value in the array for now.
         ##TODO: improve following
         for ind in ind_outliers:
             value[ind] = value[ind-1]
 
     # step 4: smooth the sections
-    
+
     for start, stop in zip(sectionstart, sectionend):
         val = value[start:stop]
         if sm_alg == 'smlin': # linear smoothing
@@ -616,7 +616,7 @@ def actual_smoothing(sm_alg, omega2g, value, sm_degree):
         else:
             print('Unknown smoothing value:', sm_alg,  'for key:', name)
             exit(0)
-        
+
         value[start:stop] = val
 
     # step 5: go back to actual weight measured
