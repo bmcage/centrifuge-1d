@@ -227,22 +227,6 @@ def filter_indices(filter_idxs, pfilter, new_value):
 
     return filter_idxs
 
-def get_range(range_data, referencing_array=None):
-    if type(range_data) in (list, tuple):
-        if not type(referencing_array) is np.ndarray:
-            raise ValueError('For open range value a referencing array must be '
-                             'specified.')
-        range_data = flatten(range_data)
-        rstop = np.alen(referencing_array)
-        if not range_data[1] is '':
-            rstop += range_data[1]
-
-        range_value = np.arange(range_data[0], rstop + 1, range_data[2])
-    else:
-        range_value = range_data
-
-    return range_value
-
 def flatten(seq):
     result = []
     for element in seq:
