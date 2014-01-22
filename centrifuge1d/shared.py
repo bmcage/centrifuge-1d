@@ -141,10 +141,15 @@ def parse_range(raw_value):
     rstop  = parse_string(range_values[1])
     if len(range_values) > 2:
         rstep = parse_string(range_values[2])
+        if rstep is '':
+            rstep = 1
     else:
         rstep = 1
     if (rstop is '') or (rstop < 0):
-        range_value = (rstart, rstop, rstep)
+        # set the offset from end to be 0
+        if rstop is '':
+            rstop = 0
+        range_value = lambda: (rstart, rstop, rstep)
     else:
         range_value = list(np.arange(rstart, rstop+1, rstep))
 

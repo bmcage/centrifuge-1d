@@ -591,20 +591,20 @@ def actual_smoothing(sm_alg, omega2g, value, sm_degree):
                     ind_outliers.append(start + outl)
                 start = stop
                 stop = start + piece
-    
+
     if ind_outliers:
         print ("Outliers found:")
         for ind in ind_outliers:
-            print ("  index:", ind, 'values:', value[ind-1], 
+            print ("  index:", ind, 'values:', value[ind-1],
                     value[ind] , value[ind+1] )
         #our smoothing should skip the outliers. We do this by replacing outlier with 
-        #previous value in the array for now. 
+        #previous value in the array for now.
         ##TODO: improve following
         for ind in ind_outliers:
             value[ind] = value[ind-1]
 
     # step 4: smooth the sections
-    
+
     for start, stop in zip(sectionstart, sectionend):
         val = value[start:stop]
         if sm_alg == 'smlin': # linear smoothing
@@ -616,11 +616,32 @@ def actual_smoothing(sm_alg, omega2g, value, sm_degree):
         else:
             print('Unknown smoothing value:', sm_alg,  'for key:', name)
             exit(0)
-        
+
         value[start:stop] = val
 
     # step 5: go back to actual weight measured
     return value[:] * omega2g[:]
+
+def _filter_indices(filter_idxs, pfilter, new_value):
+    """
+      Set the 'new_value on 'filter_idxs' indicated by 'pfilters'.
+
+    """
+    filter_idxs_len = np.alen(filter_idxs)
+
+    for kf in pfilter:
+        if callable(kf):
+            (rstart, rstop, rstep) = kf()
+            for idx in range(rstart, filter_idxs_len+rstop+1, rstep):
+                filter_idxs[idx] = new_value
+        elif np.isscalar(kf):
+            filter_idxs[kf] = new_value
+        else:
+            # type(kf) in (list, tuple)
+            for idx in kf:
+                filter_idxs[idx] = new_value
+
+    return filter_idxs
 
 def determine_filtering_indices(cfg, measurements_times, measurements,
                                 measurements_xvalues):
@@ -662,17 +683,14 @@ def determine_filtering_indices(cfg, measurements_times, measurements,
         if name in kfilters:
             filter_idxs = np.zeros(measurements[name].shape, dtype=bool)
 
-            kfilter = np.asarray(flatten(kfilters[name]),
-                                 dtype=float)
-            for kf in kfilter:
-                filter_idxs[kf] = True
+            # set 'filter_idxs' depending on the 'kfilters[name]' value
+            _filter_indices(filter_idxs, kfilters[name], True)
         else:
             filter_idxs = np.ones(measurements[name].shape, dtype=bool)
 
         if name in rfilters:
-            rfilter = np.asarray(flatten(rfilters[name]),
-                                 dtype=float)
-            filter_idxs[rfilter] = False
+            # set 'filter_idxs' depending on the 'rfilters[name]' value
+            _filter_indices(filter_idxs, rfilters[name], False)
 
         filter_idxs = np.flatnonzero(filter_idxs)
 
