@@ -618,7 +618,7 @@ def mk_figures(data, styles):
                 for fig_id in FIGURES_IDS}
 
     lines_ids = styles['lines_order']
-    plot_keep = styles['plots_keep']
+    plots_keep = styles['plots_keep']
 
     for line_id in lines_ids:
         line_data = data.get_linedata(line_id, not_found={})
@@ -646,9 +646,9 @@ def mk_figures(data, styles):
 
 
             if ((not line_id in ('measured', 'original'))
-                and (fig_id in plot_keep)):
+                and (fig_id in plots_keep)):
 
-                filter_idxs = get_range(plot_keep[fig_id], xdata)
+                filter_idxs = get_range(plots_keep[fig_id], xdata)
                 if fig_id in ('h', 'u'):
                     xdata = xdata[:, filter_idxs]
                     ydata = ydata[:, filter_idxs]
