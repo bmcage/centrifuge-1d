@@ -4,7 +4,7 @@ import numpy as np, matplotlib, pickle
 import sys
 from const import PLOTSTYLE_ININAME, DUMP_DATA_VERSION, DUMP_DATA_FILENAME
 from os import makedirs, path
-from shared import get_directories, parse_value, get_range, yn_prompt
+from shared import get_directories, parse_value, yn_prompt, filter_indices
 from config import ModulesManager, load_model
 from collections import OrderedDict
 from modules.shared.functions import has_data, compare_data
@@ -648,7 +648,16 @@ def mk_figures(data, styles):
             if ((not line_id in ('measured', 'original'))
                 and (fig_id in plots_keep)):
 
-                filter_idxs = get_range(plots_keep[fig_id], xdata)
+                # filter computed data
+                if fig_id in ('h', 'u'):
+                    filter_size = xdata.shape[1]
+                else:
+                    filter_size = np.alen(xdata) # can be (n, ) ~ (1,n) ~ (n,1)
+
+                if fig_id in plots_keep:
+                    filter_idxs = np.zeros((filter_size, ), dtype=bool)
+                    filter_indices(filter_idxs, plots_keep[fig_id], True)
+
                 if fig_id in ('h', 'u'):
                     xdata = xdata[:, filter_idxs]
                     ydata = ydata[:, filter_idxs]
