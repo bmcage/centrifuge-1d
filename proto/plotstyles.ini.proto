@@ -149,7 +149,13 @@
 #              or with "open" end e.g. [1::10] or [1:-5:10]
 #              (if the last index is negative or not specified, it is
 #              substituted with the actual length of the array at runtime)
+# plots_remove - same as 'plots_keep' but values are removed
+#
+# NOTE: Values specified in 'plots_remove' take precedence, so if a value
+#       appears in both 'plots_keep' and 'plots_remove' then is removed.
+#
 #plots_keep = {'h': [0::10], 'u': [2:-3:20], ...}
+#plots_remove = {'h': [0::10], 'u': [2:-3:20], ...}
 
 # Displaying options - these are general options applied to all plotted images
 #

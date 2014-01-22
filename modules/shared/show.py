@@ -619,6 +619,7 @@ def mk_figures(data, styles):
 
     lines_ids = styles['lines_order']
     plots_keep = styles['plots_keep']
+    plots_remove = styles['plots_remove']
 
     for line_id in lines_ids:
         line_data = data.get_linedata(line_id, not_found={})
@@ -646,7 +647,7 @@ def mk_figures(data, styles):
 
 
             if ((not line_id in ('measured', 'original'))
-                and (fig_id in plots_keep)):
+                and ((fig_id in plots_keep) or (fig_id in plots_remove))):
 
                 # filter computed data
                 if fig_id in ('h', 'u'):
@@ -657,6 +658,11 @@ def mk_figures(data, styles):
                 if fig_id in plots_keep:
                     filter_idxs = np.zeros((filter_size, ), dtype=bool)
                     filter_indices(filter_idxs, plots_keep[fig_id], True)
+                else:
+                    filter_ones = np.zeros((filter_size, ), dtype=bool)
+
+                if fig_id in plots_remove:
+                    filter_indices(filter_idxs, plots_remove[fig_id], False)
 
                 if fig_id in ('h', 'u'):
                     xdata = xdata[:, filter_idxs]
@@ -700,7 +706,7 @@ class DPlots():
 
         styles = {'options': display_options, 'figures': figures_styles,
                   'lines': {}, 'params_ref': {}, 'lines_order': (),
-                  'plots_keep': {}}
+                  'plots_keep': {}, 'plots_remove': {}}
 
         plotstyles_filenames = get_filenames(experiment_info)
 
