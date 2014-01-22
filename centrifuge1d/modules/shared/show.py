@@ -4,7 +4,7 @@ import numpy as np, matplotlib, pickle
 import sys
 from ...const import PLOTSTYLE_ININAME, DUMP_DATA_VERSION, DUMP_DATA_FILENAME
 from os import makedirs, path
-from ...shared import get_directories, parse_value, get_range, yn_prompt
+from ...shared import get_directories, parse_value, yn_prompt, filter_indices
 from ...config import ModulesManager, load_model
 from collections import OrderedDict
 from .functions import has_data, compare_data
@@ -618,7 +618,8 @@ def mk_figures(data, styles):
                 for fig_id in FIGURES_IDS}
 
     lines_ids = styles['lines_order']
-    plot_keep = styles['plots_keep']
+    plots_keep = styles['plots_keep']
+    plots_remove = styles['plots_remove']
 
     for line_id in lines_ids:
         line_data = data.get_linedata(line_id, not_found={})
@@ -646,9 +647,23 @@ def mk_figures(data, styles):
 
 
             if ((not line_id in ('measured', 'original'))
-                and (fig_id in plot_keep)):
+                and ((fig_id in plots_keep) or (fig_id in plots_remove))):
 
-                filter_idxs = get_range(plot_keep[fig_id], xdata)
+                # filter computed data
+                if fig_id in ('h', 'u'):
+                    filter_size = xdata.shape[1]
+                else:
+                    filter_size = np.alen(xdata) # can be (n, ) ~ (1,n) ~ (n,1)
+
+                if fig_id in plots_keep:
+                    filter_idxs = np.zeros((filter_size, ), dtype=bool)
+                    filter_indices(filter_idxs, plots_keep[fig_id], True)
+                else:
+                    filter_ones = np.zeros((filter_size, ), dtype=bool)
+
+                if fig_id in plots_remove:
+                    filter_indices(filter_idxs, plots_remove[fig_id], False)
+
                 if fig_id in ('h', 'u'):
                     xdata = xdata[:, filter_idxs]
                     ydata = ydata[:, filter_idxs]
@@ -691,7 +706,7 @@ class DPlots():
 
         styles = {'options': display_options, 'figures': figures_styles,
                   'lines': {}, 'params_ref': {}, 'lines_order': (),
-                  'plots_keep': {}}
+                  'plots_keep': {}, 'plots_remove': {}}
 
         plotstyles_filenames = get_filenames(experiment_info)
 

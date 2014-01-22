@@ -206,21 +206,26 @@ def parse_value(str_value, raise_error=False):
         else:
             exit(0)
 
-def get_range(range_data, referencing_array=None):
-    if type(range_data) in (list, tuple):
-        if not type(referencing_array) is np.ndarray:
-            raise ValueError('For open range value a referencing array must be '
-                             'specified.')
-        range_data = flatten(range_data)
-        rstop = np.alen(referencing_array)
-        if not range_data[1] is '':
-            rstop += range_data[1]
+def filter_indices(filter_idxs, pfilter, new_value):
+    """
+      Set the 'new_value on 'filter_idxs' indicated by 'pfilters'.
 
-        range_value = np.arange(range_data[0], rstop + 1, range_data[2])
-    else:
-        range_value = range_data
+    """
+    filter_idxs_len = np.alen(filter_idxs)
 
-    return range_value
+    for kf in pfilter:
+        if callable(kf):
+            (rstart, rstop, rstep) = kf()
+            for idx in range(rstart, filter_idxs_len+rstop+1, rstep):
+                filter_idxs[idx] = new_value
+        elif np.isscalar(kf):
+            filter_idxs[kf] = new_value
+        else:
+            # type(kf) in (list, tuple)
+            for idx in kf:
+                filter_idxs[idx] = new_value
+
+    return filter_idxs
 
 def flatten(seq):
     result = []

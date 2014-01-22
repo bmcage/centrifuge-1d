@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 import numpy as np
 from collections import OrderedDict
-from ...shared import get_directories, flatten
+from ...shared import get_directories, flatten, filter_indices
 from os import makedirs, path
 from .functions import rpm2radps, radps2rpm, compare_data, \
     find_omega2g, find_omega2g_dec, find_omega2g_fh, \
@@ -622,27 +622,6 @@ def actual_smoothing(sm_alg, omega2g, value, sm_degree):
     # step 5: go back to actual weight measured
     return value[:] * omega2g[:]
 
-def _filter_indices(filter_idxs, pfilter, new_value):
-    """
-      Set the 'new_value on 'filter_idxs' indicated by 'pfilters'.
-
-    """
-    filter_idxs_len = np.alen(filter_idxs)
-
-    for kf in pfilter:
-        if callable(kf):
-            (rstart, rstop, rstep) = kf()
-            for idx in range(rstart, filter_idxs_len+rstop+1, rstep):
-                filter_idxs[idx] = new_value
-        elif np.isscalar(kf):
-            filter_idxs[kf] = new_value
-        else:
-            # type(kf) in (list, tuple)
-            for idx in kf:
-                filter_idxs[idx] = new_value
-
-    return filter_idxs
-
 def determine_filtering_indices(cfg, measurements_times, measurements,
                                 measurements_xvalues):
     """
@@ -684,13 +663,13 @@ def determine_filtering_indices(cfg, measurements_times, measurements,
             filter_idxs = np.zeros(measurements[name].shape, dtype=bool)
 
             # set 'filter_idxs' depending on the 'kfilters[name]' value
-            _filter_indices(filter_idxs, kfilters[name], True)
+            filter_indices(filter_idxs, kfilters[name], True)
         else:
             filter_idxs = np.ones(measurements[name].shape, dtype=bool)
 
         if name in rfilters:
             # set 'filter_idxs' depending on the 'rfilters[name]' value
-            _filter_indices(filter_idxs, rfilters[name], False)
+            filter_indices(filter_idxs, rfilters[name], False)
 
         filter_idxs = np.flatnonzero(filter_idxs)
 
