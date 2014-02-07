@@ -328,3 +328,79 @@ def smoothing_exp(vlist, smooth_fac=0.5):
     for i in range(1, len(vlist)):
         smoothed[i]=smooth_fac * smoothed[i-1] + (1-smooth_fac) * smoothed[i]
     return smoothed
+
+from scipy.interpolate import PchipInterpolator
+class MonoCubicInterp(PchipInterpolator):
+    """
+    extend pchip with fast inversion
+    """
+    def root(self, y):
+        """
+        Evaluate for which `x` we have `f(x) = y`.
+        As PchipInterpolator is monotonic, the solution is unique if the
+        Interpolator has been constructed with y[i+1] > y[i]
+
+        Parameters
+        ----------
+        y : array-like
+            Point or points at which to evaluate `f^{-1}(y)=x`
+
+        Returns
+        -------
+        d : ndarray
+            root interpolated at the y-points. 
+        """
+        # first determine the correct cubic polynomial
+        y, y_shape = self._prepare_x(y)
+        if _isscalar(y):
+            pos = np.clip(np.searchsorted(self.origyi, y) - 1, 0, self.n-2)
+            poly = self.polynomials[pos]
+            x = self._poly_inv(poly, y)
+        else:
+            m = len(y)
+            pos = np.clip(np.searchsorted(self.origyi, y) - 1, 0, self.n-2)
+            x = np.zeros((m, self.r), dtype=self.dtype)
+            if x.size > 0:
+                for i in xrange(self.n-1):
+                    c = pos == i
+                    if not any(c):
+                        continue
+                    poly  = self.polynomials[i]
+                    ress = self._poly_inv(poly, y[c])
+                    x[c] = ress[:, np.newaxis]
+        return self._finish_y(x, y_shape)
+       
+    @staticmethod
+    def _poly_inv(cubic, y):
+        """Given a cubic KroghInterpolator polynomial, 
+           we determine the root f(x) = y, where x must be
+           bounded by the edges of the Krogh polynomial
+        
+        Parameters
+        ----------
+        y : array-like
+            Point or points at which to evaluate `f^{-1}(y)=x`
+        Returns
+        -------
+        d : ndarray
+            root of the cubic polynomial interpolated at the y-points. 
+        """
+        from scipy.interpolate._ppoly import real_roots
+        x0 = cubic.xi[0]
+        x2 = cubic.xi[2]
+        if (cubic.yi[0][0] >= cubic.yi[2][0]):
+            raise ValueError("Not a strictly increasing monotone function")
+        #convert Krogh c structure to c structure of PPoly
+        ourc = np.empty((4,1), cubic.c.dtype)
+        ourc[0, 0] = cubic.c[3,0]
+        ourc[1, 0] = cubic.c[2,0]
+        ourc[2, 0] = cubic.c[1,0]
+        ourc[1,0] += cubic.c[3]*(x0-x2)
+        ourc = ourc.reshape(4,1,1)
+        y = np.asarray(y)
+        result = np.empty(y.shape, float)
+        for ind, yval in enumerate(y):
+            ourc[3, 0, 0] = cubic.c[0,0] - yval
+            roots = real_roots(ourc, np.array([x0,x2], float), 0, 0)
+            result[ind] = roots[0]
+        return result
