@@ -4,6 +4,7 @@ from __future__ import division
   This modules contains saturation curve object(s) for single flow
 """
 import numpy as np
+from functions import MonoCubicInterp
 
 __NR = 400
 P_DEFAULT = np.linspace(-1, 9, __NR)
@@ -112,6 +113,17 @@ class SC_base():
 ########################################################################
 
 class SC_vanGenuchten(SC_base):
+    """ van Genuchten model.
+    This is given by writing effective saturation u (=S_e) in terms of 
+    pressure head h, and relative permeability in terms of S_e using the same
+    parameters.
+    
+    We have
+    
+         S_e = u =  1 / (1 + (\gamma h)^n)^m,   m = 1 - 1/n
+         
+         k(u)  =  u^0.5 (1 - (1 - u^{1/m})^m )^2
+    """
     def __init__(self, n=None, gamma=None):
         self._n = n
         if n is None:
@@ -133,6 +145,11 @@ class SC_vanGenuchten(SC_base):
             self._gamma = params['gamma']
 
     def h2Kh(self, h, Ks, Kh = None):
+        """
+        For a given head h and saturated hydraulic conductivity Ks, what is
+        K(h) = Ks k(u(h)).
+        If Kh given, it is used to store the result
+        """
         tmp1 = np.power(self._gamma * h, self._n-1.)
         tmp2 = np.power(1 + self._gamma * h * tmp1, self._m/2.)
 
@@ -144,6 +161,10 @@ class SC_vanGenuchten(SC_base):
         return Kh
 
     def u2Ku(self, u, Ks, Ku = None):
+        """
+        For a given effective saturation u and saturated hydraulic conductivity
+        Ks, what is K(u) = Ks k(u)
+        """
         m = self._m
 
         if not Ku is None:
@@ -156,11 +177,15 @@ class SC_vanGenuchten(SC_base):
         return Ku
 
     def dudh(self, h, dudh = None):
+        """
+        Return value of du/dh in h
+        """
         n     = self._n
         gamma = self._gamma
+        m = self._m
 
         tmp1 = np.power(gamma*h, n-1)
-        tmp2 = np.power(1 + gamma*h * tmp1, self._m+1)
+        tmp2 = np.power(1 + gamma*h * tmp1, m+1)
 
         if not dudh is None:
             dudh[:] = - gamma*(n-1) * tmp1 / tmp2
@@ -169,7 +194,14 @@ class SC_vanGenuchten(SC_base):
 
         return dudh
 
-    def dhdu(self, u, n, m, gamma, dhdu = None):
+    def dhdu(self, u, dhdu = None):
+        """
+        Return value dh/du in terms of u for the given n, m and gamma
+        """
+        n     = self._n
+        gamma = self._gamma
+        m = self._m
+        
         tmp1 = np.power(u, 1./m)
         tmp2 = np.power(1 - tmp1, m)
 
@@ -178,9 +210,12 @@ class SC_vanGenuchten(SC_base):
         else:
             dhdu    = - 1./gamma/(n-1) / tmp1 / tmp2
 
-        return dudh
+        return dhdu
 
     def h2u(self, h, u = None):
+        """
+        Return the value of effective saturation u corresponding with h.
+        """
         if not u is None:
             u[:] = 1/np.power(1+ np.power(self._gamma * h, self._n), self._m)
         else:
@@ -188,20 +223,44 @@ class SC_vanGenuchten(SC_base):
 
         return u
 
-    def u2h(self, u, n, m, gamma, h = None):
+    def u2h(self, u, h = None):
+        """
+        Return the value of h for the given effective saturation u and 
+        parameters passed
+        """
+        n     = self._n
+        gamma = self._gamma
+        m = self._m
+    
         if not h is None:
-            h[:] =  (np.power(np.power(u, -1./self._m) - 1., 1./self._n)
-                     / self._gamma)
+            h[:] =  (np.power(np.power(u, -1./m) - 1., 1./n)
+                     / gamma)
         else:
-            h    =  (np.power(np.power(u, -1./self._m) - 1, 1/self._n)
-                     / self._gamma)
+            h    =  (np.power(np.power(u, -1./m) - 1, 1/n)
+                     / gamma)
 
         return h
 
     def get_dyn_h_init(self, c_gammah, h_init_max):
+        """
+        Setting h=0 to start can give problems. This function returns a scaled
+        h_init to use wich is scaled by the gamma value present
+        """
         return  min(c_gammah / self._gamma, h_init_max)
 
     def add_transformations_fns(self, transform, untransform, max_value):
+        """
+        The parameters stored can be used in an inverse method directly or 
+        in a transformation. 
+        This function adds to the config._transform and config._untransform 
+        which should be passed as transform and untransform the mapping to 
+        use for the parameters n and gamma stored here. 
+        
+        So: internally: n and gamma
+            inverse: convert them with transform['n']/['gamma'] before using
+            update SC: use untransform on inverse obtained values before 
+                       set_parameters method to update n and gamma
+        """
         transform['n']   = lambda n: max(np.log(n - 1.0), -max_value)
         untransform['n'] = lambda n_transf: 1+min(np.exp(n_transf), max_value)
 
@@ -212,5 +271,160 @@ class SC_vanGenuchten(SC_base):
 #                           Free-form  model                           #
 ########################################################################
 
+class SC_freeform(SC_base):
+    """
+    A freefrom description of the saturation curve. 
+    In this, a discrete version of h is used: {h_i}, with -inf < h_i < 0. 
+    For these gridpoints, the value of effective saturation is passed:
+        u_i = u(h_i)
+    and also the value of the relative permeability:
+        k_i = k(h_i)
+    
+    We then determine u(h) and k(h) as a monotone cubic interpolation spline 
+    of the given points {(h_i, u_i)} and {(h_i, k_i)}
+    From this cubic spline the derivatives can be extracted
+    """
+    def __init__(self, hi=None, ui=None, ki=None):
+        if hi is not None or ui is not None or ki is not None:
+            SC_freeform.check_params(hi, ui, ki)
+            self.__set_values(hi, ui, ki)
+        else:
+            self._hi = None
+            self._ui = None
+            self._ki = None
 
+    def __set_values(self, hi, ui, ki):
+        #are internal parameters are such that all is monotone increasing
+        # in terms of h
+        self._hi = hi
+        self._ui = ui
+        self._ki = ki
+        self._hnodes = np.empty(len(hi)+2, float)
+        self._uvals = np.empty(len(hi)+2, float)
+        self._kvals = np.empty(len(hi)+2, float)
+        #we use the log values  for head.
+        self._hnodes[1:-1] = -1*np.log(-hi[::-1])
+        self._hnodes[0] = -1*np.log(-hi[0]*1e3)
+        self._hnodes[-1] - -1*np.log(1e-28)
+        #with log for head, saturation is linear
+        self._uvals[1:-1] = ui[:]
+        self._uvals[0] = 0.
+        self._uvals[-1] = 1
+        #with log for head, also rel perm should be log values
+        self._kvals[1:-1] = np.log(ki[:])
+        self._kvals[0] = 0.
+        self._kvals[-1] = 1
+        
+        # we now construct two cubic monotone interpolations: U(H) and K(H)
+        self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
+        self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
+        
+    @staticmethod
+    def check_params(hi, ui, ki):
+        if not hi or not ui or not ki:
+            raise Exception, 'Some parameters are not given: '\
+                    'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki))
+        if not (len(hi)==len(ui)==len(ki)):
+            raise Exception, 'Parameters must have equal length'
+        #hi must be monotone ascending > 0, and ui, ki monotone decreasing
+        ho = hi[0]
+        uo = ui[0]
+        ko = ki[0]
+        for h,u,k in zip(hi[1:],ui[1:],ki[1:]):
+            if not h>ho or not h<0.:
+                raise Exception, 'Hydraulic head h must be negative and a '\
+                    'monotone ascending array, instead %s' % str(hi)
+            if not u>uo or not uo>0:
+                raise Exception, 'Effective saturation Se must be positive and a '\
+                    'monotone ascending array in terms of h, instead %s' % str(ui)
+            if not k<ko or not ko>0:
+                raise Exception, 'Relative permeability k must be positive and a '\
+                    'monotone ascending array in terms of h, instead %s' % str(ki)
 
+        #The edges of ui and ki are fixed and will not be optimized
+        if not (ui[0] >0) or not (ui[-1] < 1):
+            raise Exception, 'Effective saturation Se starts at 0, ends at 1, '\
+                    'only pass values between these extremes!'
+        if not (ki[0] > 0) or not (ki[-1] < 1):
+            raise Exception, 'Relative permeability k starts at 0, ends at 1, '\
+                    'only pass values between these extremes!'
+
+    def set_parameters(self, params):
+        """
+        Setting the parameters. Only ui and ki are parameters! 
+        """
+        if 'ui' in params:
+            ui = params['ui']
+        else:
+            ui = self._ui
+        if 'ki' in params:
+            ki = params['ki']
+        else:
+            ki = self._ki
+        SC_freeform.check_params(self._hi, ui, ki)
+        self.__set_values(self._hi, ui, ki)
+
+    def h2Kh(self, h, Ks, Kh = None):
+        """
+        For a given head h and saturated hydraulic conductivity Ks, what is
+        K(h) = Ks k(u(h)).
+        If Kh given, it is used to store the result
+        """
+        tmp1 = np.exp( self.logh2logk(-np.log(-h) ))
+
+        if not Kh is None:
+            Kh[:] = Ks * tmp1
+        else:
+            Kh    = Ks * tmp1
+        return Kh
+
+    def u2Ku(self, u, Ks, Ku = None):
+        """
+        For a given effective saturation u and saturated hydraulic conductivity
+        Ks, what is K(u) = Ks k(u)
+        """
+        h = self.u2h(u)
+        return self.h2Kh(h, Ks, Ku)
+
+    def h2u(self, h, u = None):
+        """
+        Return the value of effective saturation u corresponding with h.
+        """
+        tmp1 = np.exp( self.logh2u(-np.log(-h) ))
+        if not u is None:
+            u[:] = tmp1[:]
+        else:
+            u    = tmp1
+
+        return u
+
+    def u2h(self, u, h = None):
+        """
+        Return the value of h for the given effective saturation u and 
+        parameters passed
+        """
+        tmph = self.logh2u.root(u)
+        tmph = - np.exp(-tmph)
+        
+        if not h is None:
+            h[:] =  tmph[:]
+        else:
+            h    =  tmph
+
+        return h
+
+    def dudh(self, h, dudh = None):
+        """
+        Return value of du/dh in h
+        We have logh2u which is u(logh(h)) so
+        du/dh = d logh2u / dlogh .  dlogh/dh, with dlogh/dh = -1/h
+        """
+        logh = -np.log(-h)
+        tmp1 = self.logh2u.derivative(logh,der=1) * -1/h
+
+        if not dudh is None:
+            dudh[:] = tmp1[:]
+        else:
+            dudh    = tmp1
+
+        return dudh
