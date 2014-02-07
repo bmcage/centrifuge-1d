@@ -633,7 +633,7 @@ class ModelParameters:
 
         if hasattr(self, 'SC'):
             # set transformation fns in case we are unsaturated and use
-            #  parameterstrasformation
+            #  parameters transformation
             if hasattr(self, 'transform_params') and self.transform_params:
                 max_value = 1e150 # hack - see base_inverse.options.adjust_cfg()
                 self.SC.add_transformations_fns(self._transform,
