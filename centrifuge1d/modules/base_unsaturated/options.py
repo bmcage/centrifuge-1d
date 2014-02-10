@@ -14,7 +14,12 @@ def dtype_deps(cfg):
 
 PARENTAL_MODULES = ['base']
 
-CONFIG_OPTIONS = ['inner_points', 'dtype', 'n', 'gamma',
+CONFIG_OPTIONS = ['inner_points', 'dtype',
+                  ('SC_type', 1),
+                  (lambda cfg: cfg.get_value('SC_type') == 1,
+                   ['n', 'gamma']),
+                  (lambda cfg: cfg.get_value('SC_type') == 2,
+                   [('hi', None), ('ui', None), ('ki', None)]),
                   'porosity',
                   'estimate_zp0',
                   dtype_deps,
@@ -36,7 +41,15 @@ OPTIONS_ITERABLE_LISTS = ['porosity']
 
 def adjust_cfg(cfg):
     # Handle depending variables
-    SC = mSC.SC_vanGenuchten(cfg.get_value('n'), cfg.get_value('gamma'))
+    SC_type = cfg.get_value('SC_type')
+    if SC_type == 1:
+        SC = mSC.SC_vanGenuchten(cfg.get_value('n'), cfg.get_value('gamma'))
+    elif SC_type == 2:
+        SC = mSC.SC_freeform(cfg.get_value('hi'), cfg.get_value('ui'),
+                             cfg.get_value('ki'))
+    else:
+        print('Unknown value of ''SC_type'': ', SC_type)
+
     cfg.set_value('SC', SC)
 
     # Discretization
