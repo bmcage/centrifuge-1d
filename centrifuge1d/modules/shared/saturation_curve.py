@@ -78,8 +78,8 @@ class SC_base():
             u        - relative saturation
 
           Return values:
-            theta    - saturation corresponding to pressure p/relative saturation u/
-                       hydraulic head h
+            theta    - saturation corresponding to pressure p /
+                       relative saturation u / hydraulic head h
             K        - conductivity
         """
 
@@ -102,8 +102,8 @@ class SC_base():
 
     def conductivity_curve_u(self, Ks, theta_s, theta_r=0.0, u=None, p=None,
                            h=None, rho=None, g=None):
-        th, K = self.conductivity_curve(Ks, theta_s, theta_r, u, p,
-                                   h, rho, g)
+        (th, K) = self.conductivity_curve(Ks, theta_s, theta_r, u, p,
+                                          h, rho, g)
         u = (th-theta_r)/(theta_s - theta_r)
         return (u, K)
 

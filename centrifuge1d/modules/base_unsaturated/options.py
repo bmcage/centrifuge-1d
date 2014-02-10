@@ -41,6 +41,8 @@ OPTIONS_ITERABLE_LISTS = ['porosity']
 
 def adjust_cfg(cfg):
     # Handle depending variables
+
+    # Determine saturation curve model used
     SC_type = cfg.get_value('SC_type')
     if SC_type == 1:
         SC = mSC.SC_vanGenuchten(cfg.get_value('n'), cfg.get_value('gamma'))
