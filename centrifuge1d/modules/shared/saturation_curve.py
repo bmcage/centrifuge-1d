@@ -107,6 +107,16 @@ class SC_base():
         u = (th-theta_r)/(theta_s - theta_r)
         return (u, K)
 
+    def get_dyn_h_init(self, c_gammah, h_init_max):
+        """
+        Initial values of h~0 can cause troubles to the solver to start
+        depending on parameters of the SC class. To ensure "smooth" start
+        we compute a dynamically obtained 'h_init' value based on
+        actual values. This may be important in the parameters
+        optimization process.
+        """
+        pass
+
     def add_transformations_fns(self, transform, untransform, max_value):
         """
         When perfoming optimization problem over the SC parameters,
@@ -255,8 +265,7 @@ class SC_vanGenuchten(SC_base):
 
     def get_dyn_h_init(self, c_gammah, h_init_max):
         """
-        Setting h=0 to start can give problems. This function returns a scaled
-        h_init to use wich is scaled by the gamma value present
+        Dynamically set 'h_init' value based on the 'gamma' parameter.
         """
         return  min(c_gammah / self._gamma, h_init_max)
 
