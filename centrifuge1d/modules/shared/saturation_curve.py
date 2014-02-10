@@ -107,6 +107,18 @@ class SC_base():
         u = (th-theta_r)/(theta_s - theta_r)
         return (u, K)
 
+    def add_transformations_fns(self, transform, untransform, max_value):
+        """
+        When perfoming optimization problem over the SC parameters,
+        we can work directly with the parameters values or
+        some transformation of them (e.g. to ensure we keep the
+         searching interval bounded).
+        This parameters transformation is performed ONLY to determine
+        next value in the inverse optimization process, i.e.methods
+        using these parameters always obtain untransformed values.
+        """
+        pass
+
 
 ########################################################################
 #                       van Genuchten model                            #
@@ -250,16 +262,7 @@ class SC_vanGenuchten(SC_base):
 
     def add_transformations_fns(self, transform, untransform, max_value):
         """
-        The parameters stored can be used in an inverse method directly or
-        in a transformation.
-        This function adds to the config._transform and config._untransform
-        which should be passed as transform and untransform the mapping to
-        use for the parameters n and gamma stored here.
-
-        So: internally: n and gamma
-            inverse: convert them with transform['n']/['gamma'] before using
-            update SC: use untransform on inverse obtained values before
-                       set_parameters method to update n and gamma
+        Transform/untransform methods for 'n' and 'gamma' parameters
         """
         transform['n']   = lambda n: max(np.log(n - 1.0), -max_value)
         untransform['n'] = lambda n_transf: 1+min(np.exp(n_transf), max_value)

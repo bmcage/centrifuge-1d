@@ -71,6 +71,9 @@ def adjust_cfg(cfg):
 
         transform = {'ks': lambda ks: max(np.log(ks), -max_value)}
         untransform = {'ks': lambda ks_transf: min(np.exp(ks_transf), max_value)}
+
+        SC = cfg.get_value('SC')
+        SC.add_transformations_fns(transfrom, untransfom, max_value)
     else:
         transform = untransform = None
 
