@@ -1,7 +1,5 @@
 from __future__ import division
 
-import numpy as np
-
 from scikits.odes.sundials.ida import IDA_RhsFunction
 from ..shared.solver import simulate_direct
 
@@ -36,7 +34,6 @@ def on_measurement(t, z, model, measurements):
 
     if measurements.calc_measurement_p('gF_MT'):
         l0 = model.l0
-        rL = model.re - model.fl2
         r0 = model.re - model.fl2 - l0
         s1 = model.l0
         s2 = model.l0

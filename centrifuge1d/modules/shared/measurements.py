@@ -2,8 +2,7 @@ from __future__ import division, print_function
 
 import numpy as np
 from collections import OrderedDict
-from ...shared import get_directories, flatten, filter_indices
-from os import makedirs, path
+from ...shared import flatten, filter_indices
 from .functions import rpm2radps, radps2rpm, compare_data, \
     find_omega2g, find_omega2g_dec, find_omega2g_fh, \
     smoothing_gaussian, smoothing_triangle, smoothing_linear
@@ -1402,11 +1401,9 @@ class Measurements():
     def display_error(self, stream=None):
         self._get_measurements() # ensure all runtime data is set
 
-        status_items = []
         measurements_diff = self._measurements_diff
 
         computed = self._computed
-        measured = self._measurements
         indices  = self._measurements_indices
 
         for (name, measured_value) in self._measurements.items():

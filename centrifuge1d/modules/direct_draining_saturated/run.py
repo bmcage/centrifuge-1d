@@ -72,8 +72,6 @@ class centrifuge_residual(IDA_RhsFunction):
             + 2 / (dy[:-1] + dy[1:]) / ds * (q12[1:] - q12[:-1]))
 
         if rb_type == 3:
-            q_s2 = -Ks * (dhdy[-1]/ds - omega2g*(r0 + s2))
-
             rD = rE - model.dip_height
             rI = r0 + s2
 
@@ -168,7 +166,6 @@ def on_measurement(t, z, model, measurements):
 
     if measurements.calc_measurement_p('gF_MT'):
         l0 = model.l0
-        rL = model.re - model.fl2
         r0 = model.re - model.fl2 - l0
 
         measurements.store_calc_gf_mt(omega2g, u, model.y, model.dy, r0,
