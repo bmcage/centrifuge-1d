@@ -114,14 +114,14 @@ class SC_base():
 
 class SC_vanGenuchten(SC_base):
     """ van Genuchten model.
-    This is given by writing effective saturation u (=S_e) in terms of 
+    This is given by writing effective saturation u (=S_e) in terms of
     pressure head h, and relative permeability in terms of S_e using the same
     parameters.
-    
+
     We have
-    
+
          S_e = u =  1 / (1 + (\gamma h)^n)^m,   m = 1 - 1/n
-         
+
          k(u)  =  u^0.5 (1 - (1 - u^{1/m})^m )^2
     """
     def __init__(self, n=None, gamma=None):
@@ -201,7 +201,7 @@ class SC_vanGenuchten(SC_base):
         n     = self._n
         gamma = self._gamma
         m = self._m
-        
+
         tmp1 = np.power(u, 1./m)
         tmp2 = np.power(1 - tmp1, m)
 
@@ -225,13 +225,13 @@ class SC_vanGenuchten(SC_base):
 
     def u2h(self, u, h = None):
         """
-        Return the value of h for the given effective saturation u and 
+        Return the value of h for the given effective saturation u and
         parameters passed
         """
         n     = self._n
         gamma = self._gamma
         m = self._m
-    
+
         if not h is None:
             h[:] =  (np.power(np.power(u, -1./m) - 1., 1./n)
                      / gamma)
@@ -250,15 +250,15 @@ class SC_vanGenuchten(SC_base):
 
     def add_transformations_fns(self, transform, untransform, max_value):
         """
-        The parameters stored can be used in an inverse method directly or 
-        in a transformation. 
-        This function adds to the config._transform and config._untransform 
-        which should be passed as transform and untransform the mapping to 
-        use for the parameters n and gamma stored here. 
-        
+        The parameters stored can be used in an inverse method directly or
+        in a transformation.
+        This function adds to the config._transform and config._untransform
+        which should be passed as transform and untransform the mapping to
+        use for the parameters n and gamma stored here.
+
         So: internally: n and gamma
             inverse: convert them with transform['n']/['gamma'] before using
-            update SC: use untransform on inverse obtained values before 
+            update SC: use untransform on inverse obtained values before
                        set_parameters method to update n and gamma
         """
         transform['n']   = lambda n: max(np.log(n - 1.0), -max_value)
@@ -273,14 +273,14 @@ class SC_vanGenuchten(SC_base):
 
 class SC_freeform(SC_base):
     """
-    A freefrom description of the saturation curve. 
-    In this, a discrete version of h is used: {h_i}, with -inf < h_i < 0. 
+    A freefrom description of the saturation curve.
+    In this, a discrete version of h is used: {h_i}, with -inf < h_i < 0.
     For these gridpoints, the value of effective saturation is passed:
         u_i = u(h_i)
     and also the value of the relative permeability:
         k_i = k(h_i)
-    
-    We then determine u(h) and k(h) as a monotone cubic interpolation spline 
+
+    We then determine u(h) and k(h) as a monotone cubic interpolation spline
     of the given points {(h_i, u_i)} and {(h_i, k_i)}
     From this cubic spline the derivatives can be extracted
     """
@@ -314,11 +314,11 @@ class SC_freeform(SC_base):
         self._kvals[1:-1] = np.log(ki[:])
         self._kvals[0] = 0.
         self._kvals[-1] = 1
-        
+
         # we now construct two cubic monotone interpolations: U(H) and K(H)
         self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
         self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
-        
+
     @staticmethod
     def check_params(hi, ui, ki):
         if not hi or not ui or not ki:
@@ -351,7 +351,7 @@ class SC_freeform(SC_base):
 
     def set_parameters(self, params):
         """
-        Setting the parameters. Only ui and ki are parameters! 
+        Setting the parameters. Only ui and ki are parameters!
         """
         if 'ui' in params:
             ui = params['ui']
@@ -400,12 +400,12 @@ class SC_freeform(SC_base):
 
     def u2h(self, u, h = None):
         """
-        Return the value of h for the given effective saturation u and 
+        Return the value of h for the given effective saturation u and
         parameters passed
         """
         tmph = self.logh2u.root(u)
         tmph = - np.exp(-tmph)
-        
+
         if not h is None:
             h[:] =  tmph[:]
         else:
