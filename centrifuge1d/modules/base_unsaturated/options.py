@@ -71,7 +71,7 @@ def adjust_cfg(cfg):
             y[i] = y[i-1] + a
             a = a*k
     else:
-        print('Unsupported discretization type:', dtype)
+        print('Unsupported discretization type:', discretization_type)
         exit(1)
 
     cfg.set_value('y', y)

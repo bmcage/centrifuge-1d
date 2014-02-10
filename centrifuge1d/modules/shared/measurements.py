@@ -94,7 +94,7 @@ def determine_tara_calibration(cfg, measurements, measurements_times, omega2g,
                 # omega correspond to speed during phase
                 if not omega in calibration:
                     print("Value of omega=" + str(omega) + " not "
-                          "found in '" + name + "_tara' calibration"
+                          "found in '" + F_name + "_tara' calibration"
                           "curve. Cannot proceed, exiting.")
                     exit(1)
 
@@ -757,7 +757,7 @@ def apply_baseline_curve(cfg, measurements, phases_scans, omega_rpm):
 
         elif type(calibration_curve) in (list, tuple):
             if not (len(calibration_curve) == len(measurements[name])):
-                print("Force calibration curve '" + F_name + "_calibration_curve"
+                print("Force calibration curve '" + name + "_calibration_curve"
                       "' supplied as array has to be of the same length "
                       "as the measured force '"+ F + "'."
                       'Cannot continue, exiting...')
@@ -835,8 +835,8 @@ class Measurements():
         self._error_array        = None
 
         # Indices of used subset of measured and/or computed values
-        measurements_indices = {}
-        computed_indices     = {}
+        self.measurements_indices = {}
+        self.computed_indices     = {}
 
         # Do we run a direct or inverse problem?
         self._run_inverse_p = None

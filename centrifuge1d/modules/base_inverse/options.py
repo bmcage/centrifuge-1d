@@ -73,7 +73,7 @@ def adjust_cfg(cfg):
         untransform = {'ks': lambda ks_transf: min(np.exp(ks_transf), max_value)}
 
         SC = cfg.get_value('SC')
-        SC.add_transformations_fns(transfrom, untransfom, max_value)
+        SC.add_transformations_fns(transform, untransform, max_value)
     else:
         transform = untransform = None
 
