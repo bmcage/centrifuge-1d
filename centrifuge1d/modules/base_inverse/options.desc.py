@@ -40,6 +40,6 @@ CONFIG_OPTIONS = {
 
 INTERNAL_OPTIONS = {}
 
-PROVIDE_OPTIONS {
+PROVIDE_OPTIONS = {
     'inv_init_params': ("Optimized parameters are set by the inverse solver, "
                         "so none of them should be specified in the inifile.")}
