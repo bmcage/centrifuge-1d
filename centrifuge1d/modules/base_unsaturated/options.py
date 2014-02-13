@@ -15,10 +15,10 @@ def dtype_deps(cfg):
 PARENTAL_MODULES = ['base']
 
 CONFIG_OPTIONS = ['inner_points', 'dtype',
-                  ('SC_type', 1),
-                  (lambda cfg: cfg.get_value('SC_type') == 1,
+                  ('sc_type', 1),
+                  (lambda cfg: cfg.get_value('sc_type') == 1,
                    ['n', 'gamma']),
-                  (lambda cfg: cfg.get_value('SC_type') == 2,
+                  (lambda cfg: cfg.get_value('sc_type') == 2,
                    [('hi', None), ('ui', None), ('ki', None)]),
                   'porosity',
                   'estimate_zp0',
@@ -39,11 +39,10 @@ PROVIDE_OPTIONS = []
 
 OPTIONS_ITERABLE_LISTS = ['porosity']
 
-def adjust_cfg(cfg):
-    # Handle depending variables
 
+def adjust_cfg(cfg):
     # Determine saturation curve model used
-    SC_type = cfg.get_value('SC_type')
+    SC_type = cfg.get_value('sc_type')
     if SC_type == 1:
         SC = mSC.SC_vanGenuchten(cfg.get_value('n'), cfg.get_value('gamma'))
     elif SC_type == 2:
@@ -51,6 +50,7 @@ def adjust_cfg(cfg):
                              cfg.get_value('ki'))
     else:
         print('Unknown value of ''SC_type'': ', SC_type)
+        exit(1)
 
     cfg.set_value('SC', SC)
 

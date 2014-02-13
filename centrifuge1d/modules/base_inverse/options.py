@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 import numpy as np
 from collections import OrderedDict
 
@@ -64,6 +64,25 @@ def adjust_cfg(cfg):
     cfg.set_value('init_values', init_values)
     cfg.set_value('_lbounds', lbounds)
     cfg.set_value('_ubounds', ubounds)
+
+    SC_type = cfg.get_value('sc_type')
+    init_values = cfg.get_value('init_values')
+    if (SC_type == 1):
+        n = init_values.get('n') or cfg.get_value('n')
+        gamma = init_values.get('gamma') or cfg.get_value('gamma')
+        if not n or not gamma:
+            print("Option SC_type = 1 requires init 'n' and 'gamma'")
+            exit(1)
+    elif (SC_type == 2):
+        hi = init_values.get('hi') or cfg.get_value('hi')
+        ki = init_values.get('ki') or cfg.get_value('ki')
+        ui = init_values.get('ui') or cfg.get_value('ui')
+        if not hi or not ki or not ui:
+            print("Option SC_type = 2 requires init 'hi',  'ki' and 'ui'")
+            exit(1)
+        if not len(hi) == len(ki) == len(ui):
+            print ("Length of hi, ki and ui must be identical for SC_type = 2")
+            exit(1)
 
     # Process transformation of optimized parameters
     if cfg.get_value('transform_params'):

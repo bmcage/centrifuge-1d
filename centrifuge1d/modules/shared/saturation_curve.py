@@ -297,13 +297,13 @@ class SC_freeform(SC_base):
     From this cubic spline the derivatives can be extracted
     """
     def __init__(self, hi=None, ui=None, ki=None):
-        if hi is not None or ui is not None or ki is not None:
+        if hi is not None and ui is not None and ki is not None:
             SC_freeform.check_params(hi, ui, ki)
             self.__set_values(hi, ui, ki)
         else:
-            self._hi = None
-            self._ui = None
-            self._ki = None
+            self._hi = hi
+            self._ui = ui
+            self._ki = ki
 
     def __set_values(self, hi, ui, ki):
         #are internal parameters are such that all is monotone increasing
@@ -440,3 +440,13 @@ class SC_freeform(SC_base):
             dudh    = tmp1
 
         return dudh
+
+    def add_transformations_fns(self, transform, untransform, max_value):
+        """
+        Transform/untransform methods for 'ki' and 'ui' parameters
+        """
+        transform['ui']   = lambda ui: ui
+        untransform['ui'] = lambda ui_transf: ui_transf
+
+        transform['ki']   = lambda ki: ki
+        untransform['ki'] = lambda ki_transf: ki_transf
