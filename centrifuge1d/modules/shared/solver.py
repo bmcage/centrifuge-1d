@@ -320,15 +320,21 @@ def print_params(params):
         if name == 'ks':
             print('{:5}: {: .8g}'.format('Ks', value))
         else:
-            print('{:5}: {: .8g}'.format(name, value))
+            if np.iterable(value):
+                print('{0:5}: {1!s}'.format(name, value))
+            else:
+                print('{:5}: {: .8g}'.format(name, value))
 
-def untransform_dict(names, values, result, untransform):
+def untransform_dict(names, values, lengths, result, untransform):
+    inilen = 0
     if untransform:
-        for (name, value) in zip(names, values):
-            result[name] = untransform[name](value)
+        for (name, length) in zip(names, lengths):
+            result[name] = untransform[name](values[inilen:inilen+length])
+            inilen += length
     else:
-        for (name, value) in zip(names, values):
-            result[name] = value
+        for (name, length) in zip(names, lengths):
+            result[name] = values[inilen:inilen+length]
+            inilen += length
 
 def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
     """
@@ -392,7 +398,8 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
         print(15 * '*', ' Iteration: {:4d}'.format(ITERATION), ' ', 15 * '*')
         ITERATION += 1
 
-        untransform_dict(optim_names, optimargs, optim_params, untransform)
+        untransform_dict(optim_names, optimargs, optim_par_length,
+                         optim_params, untransform)
 
         if model.verbosity > 0: print_params(optim_params)
 
@@ -445,12 +452,23 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
         return result
 
     optim_names  = model.init_values.keys()   # it's an ordered dict
+    optim_par_length = [1] * len(optim_names)
+    for ind, val in enumerate(model.init_values.values()):
+        if np.iterable(val):
+            optim_par_length[ind] = len(val)
+
     transform = model._transform
+    init_values = []
     if transform:
-        init_values  = [transform[name](value)
+        vals  = [transform[name](value)
                         for (name, value) in model.init_values.items()]
     else:
-        init_values  = list(model.init_values.values())
+        vals  = list(model.init_values.values())
+    for val in vals:
+        if np.iterable(val):
+            init_values.extend(val)
+        else:
+            init_values.append(val)
 
     import scipy.optimize
 
@@ -507,7 +525,8 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                        disp=model.disp_inv_conv,
                        full_output=True, retall=False)
 
-        untransform_dict(optim_names, opt_params, optim_params, untransform)
+        untransform_dict(optim_names, opt_params, optim_par_length,
+                         optim_params, untransform)
 
     # run the direct once more to obtain correct covariance
     opt_error = optimfn_wrapper(opt_params)
