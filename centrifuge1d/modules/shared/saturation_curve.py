@@ -4,7 +4,7 @@ from __future__ import division
   This modules contains saturation curve object(s) for single flow
 """
 import numpy as np
-from functions import MonoCubicInterp
+from .functions import MonoCubicInterp
 
 __NR = 400
 P_DEFAULT = np.linspace(-1, 9, __NR)
@@ -334,32 +334,32 @@ class SC_freeform(SC_base):
     @staticmethod
     def check_params(hi, ui, ki):
         if not hi or not ui or not ki:
-            raise Exception, 'Some parameters are not given: '\
-                    'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki))
+            raise Exception ('Some parameters are not given: '
+                             'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
         if not (len(hi)==len(ui)==len(ki)):
-            raise Exception, 'Parameters must have equal length'
+            raise Exception('Parameters must have equal length')
         #hi must be monotone ascending > 0, and ui, ki monotone decreasing
         ho = hi[0]
         uo = ui[0]
         ko = ki[0]
         for h,u,k in zip(hi[1:],ui[1:],ki[1:]):
             if not h>ho or not h<0.:
-                raise Exception, 'Hydraulic head h must be negative and a '\
-                    'monotone ascending array, instead %s' % str(hi)
+                raise Exception('Hydraulic head h must be negative and a '
+                                'monotone ascending array, instead %s' % str(hi))
             if not u>uo or not uo>0:
-                raise Exception, 'Effective saturation Se must be positive and a '\
-                    'monotone ascending array in terms of h, instead %s' % str(ui)
+                raise Exception('Effective saturation Se must be positive and a '
+                                'monotone ascending array in terms of h, instead %s' % str(ui))
             if not k<ko or not ko>0:
-                raise Exception, 'Relative permeability k must be positive and a '\
-                    'monotone ascending array in terms of h, instead %s' % str(ki)
+                raise Exception('Relative permeability k must be positive and a '
+                                'monotone ascending array in terms of h, instead %s' % str(ki))
 
         #The edges of ui and ki are fixed and will not be optimized
         if not (ui[0] >0) or not (ui[-1] < 1):
-            raise Exception, 'Effective saturation Se starts at 0, ends at 1, '\
-                    'only pass values between these extremes!'
+            raise Exception('Effective saturation Se starts at 0, ends at 1, '
+                            'only pass values between these extremes!')
         if not (ki[0] > 0) or not (ki[-1] < 1):
-            raise Exception, 'Relative permeability k starts at 0, ends at 1, '\
-                    'only pass values between these extremes!'
+            raise Exception('Relative permeability k starts at 0, ends at 1, '
+                            'only pass values between these extremes!')
 
     def set_parameters(self, params):
         """
