@@ -330,6 +330,11 @@ def smoothing_exp(vlist, smooth_fac=0.5):
     return smoothed
 
 from scipy.interpolate import PchipInterpolator
+
+def _isscalar(x):
+    """Check whether x is if a scalar type, or 0-dim"""
+    return np.isscalar(x) or hasattr(x, 'shape') and x.shape == ()
+
 class MonoCubicInterp(PchipInterpolator):
     """
     extend pchip with fast inversion
@@ -365,7 +370,7 @@ class MonoCubicInterp(PchipInterpolator):
                     c = pos == i
                     if not any(c):
                         continue
-                    poly  = self.polynomials[i]
+                    poly = self.polynomials[i]
                     ress = self._poly_inv(poly, y[c])
                     x[c] = ress[:, np.newaxis]
         return self._finish_y(x, y_shape)
