@@ -115,7 +115,7 @@ class SC_base():
         actual values. This may be important in the parameters
         optimization process.
         """
-        pass
+        return  h_init_max
 
     def add_transformations_fns(self, transform, untransform, max_value):
         """
@@ -299,9 +299,12 @@ class SC_freeform(SC_base):
     def __init__(self, hi=None, ui=None, ki=None):
         if hi is not None and ui is not None and ki is not None:
             SC_freeform.check_params(hi, ui, ki)
-            self.__set_values(hi, ui, ki)
+            self.__set_values(np.array(hi, dtype=float), np.array(ui, dtype=float),
+                              np.array(ki, dtype=float))
         else:
             self._hi = hi
+            if np.iterable(hi):
+                self._hi = np.array(self._hi)
             self._ui = ui
             self._ki = ki
 
@@ -315,30 +318,38 @@ class SC_freeform(SC_base):
         self._uvals = np.empty(len(hi)+2, float)
         self._kvals = np.empty(len(hi)+2, float)
         #we use the log values  for head.
-        self._hnodes[1:-1] = -1*np.log(-hi[::-1])
+        self._hnodes[1:-1] = -1*np.log(-hi[:])
         self._hnodes[0] = -1*np.log(-hi[0]*1e3)
-        self._hnodes[-1] - -1*np.log(1e-28)
+        self._hnodes[-1] = max(-1*np.log(1e-28), -1*np.log(-hi[-2]*1e-3))
         #with log for head, saturation is linear
         self._uvals[1:-1] = ui[:]
         self._uvals[0] = 0.
         self._uvals[-1] = 1
         #with log for head, also rel perm should be log values
         self._kvals[1:-1] = np.log(ki[:])
-        self._kvals[0] = 0.
-        self._kvals[-1] = 1
+        self._kvals[0] = min(-50, self._kvals[1]-10 )
+        self._kvals[-1] = 0.
 
         # we now construct two cubic monotone interpolations: U(H) and K(H)
+#        print ('test mono')
+#        print ('hi', self._hi)
+#        print ('ui', self._ui)
+#        print ('ki', self._ki)
+#
+#        print ('hn', self._hnodes)
+#        print ('uv', self._uvals)
+#        print ('kv', self._kvals)
         self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
         self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
 
     @staticmethod
     def check_params(hi, ui, ki):
-        if not hi or not ui or not ki:
-            raise Exception ('Some parameters are not given: '
-                             'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
+        if not np.iterable(hi) or not np.iterable(ui) or not np.iterable(ki):
+            raise Exception ( 'Some parameters are not given: '\
+                    'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
         if not (len(hi)==len(ui)==len(ki)):
-            raise Exception('Parameters must have equal length')
-        #hi must be monotone ascending > 0, and ui, ki monotone decreasing
+            raise Exception ('Parameters must have equal length')
+        #hi must be monotone ascending > 0, and ui, ki monotone ascending
         ho = hi[0]
         uo = ui[0]
         ko = ki[0]
@@ -349,7 +360,7 @@ class SC_freeform(SC_base):
             if not u>uo or not uo>0:
                 raise Exception('Effective saturation Se must be positive and a '
                                 'monotone ascending array in terms of h, instead %s' % str(ui))
-            if not k<ko or not ko>0:
+            if not k>ko or not ko>0:
                 raise Exception('Relative permeability k must be positive and a '
                                 'monotone ascending array in terms of h, instead %s' % str(ki))
 
@@ -402,7 +413,7 @@ class SC_freeform(SC_base):
         """
         Return the value of effective saturation u corresponding with h.
         """
-        tmp1 = np.exp( self.logh2u(-np.log(-h) ))
+        tmp1 = self.logh2u(-np.log(-h) )
         if not u is None:
             u[:] = tmp1[:]
         else:
