@@ -459,5 +459,5 @@ class SC_freeform(SC_base):
         transform['ui']   = lambda ui: ui
         untransform['ui'] = lambda ui_transf: ui_transf
 
-        transform['ki']   = lambda ki: ki
-        untransform['ki'] = lambda ki_transf: ki_transf
+        transform['ki']   = lambda ki: np.log(ki)
+        untransform['ki'] = lambda ki_transf: np.exp(ki_transf)
