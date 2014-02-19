@@ -348,30 +348,35 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
     penalization = 0.0
 
     if when == 'out_of_bounds':
-        for (name, value) in parameters.items():
-            if lbounds[name] > value:
-                a = np.abs(value - lbounds[name])
-            elif ubounds[name] < value:
-                a = np.abs(value - ubounds[name])
-            else:
-                continue
+        tolerance = 0.05
+        a_max = 0.01
+        for (name, values) in parameters.items():
+            if not np.iterable(values):
+                values = [values]
+            for value in values:
+                if lbounds[name] > value:
+                    a = np.abs(value - lbounds[name])
+                elif ubounds[name] < value:
+                    a = np.abs(value - ubounds[name])
+                else:
+                    continue
 
-            tolerance = 0.05
-            a_max = 0.01
+                if a > a_max:
+                    penalty = np.exp(1/tolerance) + np.exp(10*(a - a_max))
+                else:
+                    penalty = np.exp(1/(a_max + tolerance - a))
 
-            if a > a_max:
-                penalty = np.exp(1/tolerance) + np.exp(10*(a - a_max))
-            else:
-                penalty = np.exp(1/(a_max + tolerance - a))
-
-            penalization += min(penalty, max_penalization)
+                penalization += min(penalty, max_penalization)
     else:
-        for (name, value) in parameters.items():
-            a = min(np.exp(value - lbounds[name]), max_penalization)
-            b = min(np.exp(value - ubounds[name]), max_penalization)
+        for (name, values) in parameters.items():
+            if not np.iterable(values):
+                values = [values]
+            for value in values:
+                a = min(np.exp(value - lbounds[name]), max_penalization)
+                b = min(np.exp(value - ubounds[name]), max_penalization)
 
-            penalization += 1e3*min(10 * (a + 1/a) + 10 * (b + 1/b),
-                                max_penalization)
+                penalization += 1e3*min(10 * (a + 1/a) + 10 * (b + 1/b),
+                                    max_penalization)
 
     return penalization
 
