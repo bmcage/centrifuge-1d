@@ -94,7 +94,6 @@ class SC_base():
                       "No conductivity curve is computed...")
                 return ([], [])
             u = self.h2u(-10.0* p /rho / g)
-
         theta = theta_r + (theta_s - theta_r) * u
         K     = self.u2Ku(u, Ks)
 
@@ -413,12 +412,16 @@ class SC_freeform(SC_base):
         """
         Return the value of effective saturation u corresponding with h.
         """
+        wherezero = (h >= 0)
+        wheresmall = (h < -np.exp(-self._hnodes[0]))
         tmp1 = self.logh2u(-np.log(-h) )
         if not u is None:
             u[:] = tmp1[:]
         else:
             u    = tmp1
-
+        u[wherezero] = 1.
+        #less than smallest in our approx, set u to zero
+        u[wheresmall] = 0.
         return u
 
     def u2h(self, u, h = None):
@@ -426,7 +429,10 @@ class SC_freeform(SC_base):
         Return the value of h for the given effective saturation u and
         parameters passed
         """
-        tmph = self.logh2u.root(u)
+        internal_u = u[:]
+        internal_u[ u<self._uvals[ 0] ] = self._uvals[ 0]        
+        internal_u[ u>self._uvals[-1] ] = self._uvals[-1]
+        tmph = self.logh2u.root(internal_u)
         tmph = - np.exp(-tmph)
 
         if not h is None:

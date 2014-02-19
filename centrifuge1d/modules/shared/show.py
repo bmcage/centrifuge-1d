@@ -204,15 +204,19 @@ class DataStorage():
                     data['relsat'] = (-rc_h, rc_u)
 
                 if hasattr(model, 'ks'):
-                    K = SC.conductivity_curve(model.ks, theta_s,
+                    try:
+                        K = SC.conductivity_curve(model.ks, theta_s,
                                               theta_r=theta_r, g=model.g,
                                               rho=model.density)
 
-                    K_u = SC.conductivity_curve_u(model.ks, theta_s,
+                        K_u = SC.conductivity_curve_u(model.ks, theta_s,
                                               theta_r=theta_r, g=model.g,
                                               rho=model.density)
-                    data['K'] = K
-                    data['K_u'] = K_u
+                        data['K'] = K
+                        data['K_u'] = K_u
+                    except:
+                        import traceback
+                        print (traceback.format_exc())
 
             self._data['lines'][ID] = data
             self.store('experiment_info', model.experiment_info)
@@ -377,7 +381,10 @@ def print_status(data, filename=None):
                 if name == 'ks':
                     print('  Ks [cm/s]: {: .8g}'.format(value), file=stream)
                 else:
-                    print('  {:9}: {: .8g}'.format(name, value), file=stream)
+                    if np.iterable(value):
+                        print('  {0:9}: {1!s}'.format(name, value), file=stream)
+                    else:
+                        print('  {:9}: {: .8g}'.format(name, value), file=stream)
 
     finally:
         if not filename is None: stream.close()
