@@ -238,6 +238,8 @@ class DataStorage():
 
         if model is None:
             model = load_model(self.get('experiment_info'), validate=True)
+            #set original parameters as the found inverse param
+            model.set_parameters(self.get('inv_params', {}))
 
         for ref_id in list(stored_references.keys()): # remove nonexisting refs
             if not ref_id in user_references:
@@ -260,6 +262,15 @@ class DataStorage():
                 continue
 
             backup_params = model.get_parameters(ref_params) # backup
+            if hasattr(model, 'SC'):
+                backup_SC = model.SC
+                backup_typeSC = model.SC.typeSC()
+                thekey = [key.lower() for key in ref_params.keys()]
+                if not 'sc_type' in thekey:
+                    print ('Referencing model does not contain "SC_type", cannot ' 
+                           'set parameters of the saturation curve.'
+                           '\nSkipping...')
+                           
             model.set_parameters(ref_params)
 
             flag = self.store_computation(model, model.measurements, ID=ref_id)
@@ -267,7 +278,11 @@ class DataStorage():
             if not flag:
                 print('Reference parameters: ', ref_params)
 
-            model.set_parameters(backup_params) # restore
+             # restore original SC
+            if hasattr(model, 'SC'):
+                if backup_typeSC !=  model.SC.typeSC():
+                    model.SC = backup_SC
+            model.set_parameters(backup_params)
 
         self.store('references', stored_references)
 
@@ -650,7 +665,7 @@ def mk_figures(data, styles):
             if ((fig_id in ['h', 'u']) and (len(line_value) > 2)
                 and has_data(line_value[2])):
                 line_style['label'] = line_value[2]
-                print(fig_id, xdata.shape, ydata.shape, line_value[2].shape)
+                #print(fig_id, xdata.shape, ydata.shape, line_value[2].shape)
 
 
             if ((not line_id in ('measured', 'original'))
@@ -676,8 +691,8 @@ def mk_figures(data, styles):
                     ydata = ydata[:, filter_idxs]
 
                     if type(line_style['label'] is np.ndarray):
-                        print('LV', line_value[2])
-                        print('LV', line_style['label'])
+                        #print('LV', line_value[2])
+                        #print('LV', line_style['label'])
                         line_style['label'] = line_style['label'][filter_idxs]
                 else:
                     xdata = xdata[filter_idxs]

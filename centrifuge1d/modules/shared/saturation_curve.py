@@ -12,6 +12,9 @@ P_DEFAULT = np.power(10* np.ones(__NR), P_DEFAULT)
 P_DEFAULT[0] = 0
 #P_DEFAULT = np.arange(0, 10000000, 100)
 
+SC_vG = 1
+SC_FF = 2
+
 ########################################################################
 #                             Common class                             #
 ########################################################################
@@ -128,6 +131,11 @@ class SC_base():
         """
         pass
 
+    def typeSC(self):
+        """
+        Indication of the compatible types of SC
+        """
+        raise NotImplementedError
 
 ########################################################################
 #                       van Genuchten model                            #
@@ -277,6 +285,12 @@ class SC_vanGenuchten(SC_base):
 
         transform['gamma']   = lambda gamma: max(np.log(-gamma), -max_value)
         untransform['gamma'] = lambda gamma_transf: -min(np.exp(gamma_transf), max_value)
+
+    def typeSC(self):
+        """
+        Indication of the compatible types of SC
+        """
+        return SC_vG
 
 ########################################################################
 #                           Free-form  model                           #
@@ -467,3 +481,9 @@ class SC_freeform(SC_base):
 
         transform['ki']   = lambda ki: np.log(ki)
         untransform['ki'] = lambda ki_transf: np.exp(ki_transf)
+
+    def typeSC(self):
+        """
+        Indication of the compatible types of SC
+        """
+        return SC_FF

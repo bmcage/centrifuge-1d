@@ -21,6 +21,8 @@ import importlib
 from sys import modules as sysmodules
 from types import MethodType
 from .modules.shared.measurements import Measurements
+from .modules.shared.saturation_curve import (SC_vanGenuchten, SC_freeform,
+                                              SC_vG, SC_FF)
 
 ##################################################################
 #                   ModulesManager class                         #
@@ -669,15 +671,21 @@ class ModelParameters:
         setattr(self, key, value)
 
     def set_parameters(self, parameters_dict):
+        thekey = {key.lower(): parameters_dict[key] for key in parameters_dict.keys()}
         if hasattr(self, 'SC'):
+            if 'sc_type' in thekey  and thekey ['sc_type'] != self.SC.typeSC():
+                if thekey ['sc_type'] == SC_vG:
+                    self.SC = SC_vanGenuchten()
+                elif thekey ['sc_type'] == SC_FF:
+                    self.SC = SC_freeform()
             self.SC.set_parameters(parameters_dict)
 
         for (key, value) in parameters_dict.items():
             if hasattr(self, key): setattr(self, key, value)
 
     def get_parameters(self, parameters):
-        return {key: getattr(self, key)
-                for key in parameters if hasattr(self, key) }
+        return {key.lower(): getattr(self, key.lower())
+                for key in parameters if hasattr(self, key.lower()) }
 
     def next_iteration(self):
         """
