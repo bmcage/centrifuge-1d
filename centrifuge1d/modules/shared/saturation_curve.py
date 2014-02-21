@@ -4,7 +4,7 @@ from __future__ import division
   This modules contains saturation curve object(s) for single flow
 """
 import numpy as np
-from .functions import MonoCubicInterp
+from .interpolate import MonoCubicInterp
 
 __NR = 400
 P_DEFAULT = np.linspace(-1, 9, __NR)
@@ -334,10 +334,11 @@ class SC_freeform(SC_base):
         self._hnodes[1:-1] = -1*np.log(-hi[:])
         self._hnodes[0] = -1*np.log(-hi[0]*1e3)
         self._hnodes[-1] = max(-1*np.log(1e-28), -1*np.log(-hi[-2]*1e-3))
+        self._hmax = -np.exp(-self._hnodes)
         #with log for head, saturation is linear
         self._uvals[1:-1] = ui[:]
         self._uvals[0] = 0.
-        self._uvals[-1] = 1
+        self._uvals[-1] = 1.
         #with log for head, also rel perm should be log values
         self._kvals[1:-1] = np.log(ki[:])
         self._kvals[0] = min(-50, self._kvals[1]-10 )
