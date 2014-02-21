@@ -371,14 +371,14 @@ class PiecewisePolynomial(_Interpolator1DWithDerivatives):
         """
         if self._y_axis == 0:
             # allow yi to be a ragged list
-            for i in xrange(len(xi)):
+            for i in range(len(xi)):
                 if orders is None or _isscalar(orders):
                     self.append(xi[i],yi[i],orders)
                 else:
                     self.append(xi[i],yi[i],orders[i])
         else:
             preslice = (slice(None,None,None),) * self._y_axis
-            for i in xrange(len(xi)):
+            for i in range(len(xi)):
                 if orders is None or _isscalar(orders):
                     self.append(xi[i],yi[preslice + (i,)],orders)
                 else:
@@ -393,7 +393,7 @@ class PiecewisePolynomial(_Interpolator1DWithDerivatives):
             pos = np.clip(np.searchsorted(self.xi, x) - 1, 0, self.n-2)
             y = np.zeros((m, self.r), dtype=self.dtype)
             if y.size > 0:
-                for i in xrange(self.n-1):
+                for i in range(self.n-1):
                     c = pos == i
                     y[c] = self.polynomials[i](x[c])
         return y
@@ -409,7 +409,7 @@ class PiecewisePolynomial(_Interpolator1DWithDerivatives):
             pos = np.clip(np.searchsorted(self.xi, x) - 1, 0, self.n-2)
             y = np.zeros((der,m,self.r), dtype=self.dtype)
             if y.size > 0:
-                for i in xrange(self.n-1):
+                for i in range(self.n-1):
                     c = pos == i
                     y[:,c] = self.polynomials[i].derivatives(x[c],der=der)
         return y
@@ -534,7 +534,7 @@ class PchipInterpolator(PiecewisePolynomial):
             pos = np.clip(np.searchsorted(self.origyi, y) - 1, 0, self.n-2)
             x = np.zeros((m, self.r), dtype=self.dtype)
             if x.size > 0:
-                for i in xrange(self.n-1):
+                for i in range(self.n-1):
                     c = pos == i
                     if not any(c):
                         continue
@@ -610,7 +610,7 @@ class MonoCubicInterp(PchipInterpolator):
             pos = np.clip(np.searchsorted(self.origyi, y) - 1, 0, self.n-2)
             x = np.zeros((m, self.r), dtype=self.dtype)
             if x.size > 0:
-                for i in xrange(self.n-1):
+                for i in range(self.n-1):
                     c = pos == i
                     if not any(c):
                         continue
