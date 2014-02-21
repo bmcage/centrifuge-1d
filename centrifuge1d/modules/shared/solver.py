@@ -495,17 +495,39 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
             optim_par_length[ind] = len(val)
 
     transform = model._transform
-    init_values = []
-    if transform:
-        vals  = [transform[name](value)
-                        for (name, value) in model.init_values.items()]
+
+    if bool(transform is None) == bool(untransform is None):
+        if not transform is None:
+            from .saturation_curve import default_transformation
+
+            for name in optim_names:
+                # Add missing [un]transform functions
+                if bool(name in transform) == bool(name in untransform):
+                    if not name in transform:
+                        (transform[name], untransform[name]) = \
+                          default_transformation(-np.inf, np.inf)
+                else:
+                    error('Name ''', name, ' '' is specified in one of '
+                        '[un]transform but not in the other:\n'
+                        'Transform:   ', transform,
+                        '\nUntransform: ', untransform)
     else:
-        vals  = list(model.init_values.values())
-    for val in vals:
-        if np.iterable(val):
-            init_values.extend(val)
-        else:
-            init_values.append(val)
+        error('One of transform/untransform is ''None'' while the other not.')
+
+    init_values = np.empty((np.sum(optim_par_length), ), dtype=float)
+    iv_ind = 0
+
+    for (ind, name) in enumerate(optim_names):
+        # Add missing [un]transform functions
+        if not name in transform:
+            transform[name]   = no_transform_fn
+            untransform[name] = no_transform_fn
+
+        # Update init_values
+        iv_ind_next = iv_ind + optim_par_length[ind]
+        init_values[iv_ind:iv_ind_next] = \
+          transform[name](np.asarray(model.init_values[name]))
+        iv_ind = iv_ind_next
 
     import scipy.optimize
 
