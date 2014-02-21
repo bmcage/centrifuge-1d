@@ -181,9 +181,9 @@ def parse_string(str_value):
     elif raw_value == 'None':
         return None
     elif raw_value == 'inf':
-        return inf
+        return np.inf
     elif raw_value == '-inf':
-        return -inf
+        return -np.inf
     elif '*' in raw_value:
         [raw_mul, raw_val] = raw_value.split("*")
         mul = parse_string(raw_mul)
