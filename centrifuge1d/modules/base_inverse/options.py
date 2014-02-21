@@ -97,14 +97,15 @@ def adjust_cfg(cfg):
 
     # Process transformation of optimized parameters
     if cfg.get_value('transform_params'):
-        max_value = 1e150
+        from ..shared.saturation_curve import TRANSFORM_MAX_VALUE as max_value
 
         transform = {'ks': lambda ks: max(np.log(ks), -max_value)}
         untransform = {'ks': lambda ks_transf: min(np.exp(ks_transf), max_value)}
 
         SC = cfg.get_value('SC')
         if SC:
-            SC.add_transformations_fns(transform, untransform, max_value)
+            SC.add_transformations_fns(transform, untransform,
+                                       lbounds, ubounds)
     else:
         transform = untransform = None
 

@@ -16,6 +16,11 @@ SC_vG = 1
 SC_FF = 2
 
 ########################################################################
+
+# Maximal value we allow to reach when optimizing unconstrained variable
+TRANSFORM_MAX_VALUE = 1e50
+
+########################################################################
 #                             Common class                             #
 ########################################################################
 
@@ -119,7 +124,8 @@ class SC_base():
         """
         return  h_init_max
 
-    def add_transformations_fns(self, transform, untransform, max_value):
+    def add_transformations_fns(self, transform, untransform,
+                                lbounds, ubounds):
         """
         When perfoming optimization problem over the SC parameters,
         we can work directly with the parameters values or
@@ -276,10 +282,13 @@ class SC_vanGenuchten(SC_base):
         """
         return  min(c_gammah / self._gamma, h_init_max)
 
-    def add_transformations_fns(self, transform, untransform, max_value):
+    def add_transformations_fns(self, transform, untransform,
+                                lbounds, ubounds):
         """
         Transform/untransform methods for 'n' and 'gamma' parameters
         """
+        max_value = TRANSFORM_MAX_VALUE
+
         transform['n']   = lambda n: max(np.log(n - 1.0), -max_value)
         untransform['n'] = lambda n_transf: 1+min(np.exp(n_transf), max_value)
 
@@ -473,7 +482,8 @@ class SC_freeform(SC_base):
 
         return dudh
 
-    def add_transformations_fns(self, transform, untransform, max_value):
+    def add_transformations_fns(self, transform, untransform,
+                                lbounds, ubounds):
         """
         Transform/untransform methods for 'ki' and 'ui' parameters
         """
