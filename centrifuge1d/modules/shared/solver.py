@@ -381,7 +381,7 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
     return penalization
 
 def penalize_cond(parameters, conditions):
-    
+
     max_penalization = 1e50
     tolerance = 0.05
 
@@ -440,7 +440,7 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                                 when='out_of_bounds')
         if penalization == 0.0:
             penalization = penalize_cond(optim_params, conditions)
-            
+
         if penalization > 0.0:
             if model.verbosity > 1:
                 print('Optimized arguments are out of bounds... Penalizing by ',

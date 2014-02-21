@@ -532,7 +532,7 @@ def apply_smoothing(cfg, measurements, omega2g, times):
 #    #don't do ion, as this is a process, so not blocking would make the process
 #    # just finish and not show anything!
 #    plt.show()
-    
+
 def actual_smoothing(sm_alg, omega2g, value, sm_degree):
     """
     Smooth time series experiment of weight as done in the centrifuge
@@ -596,7 +596,7 @@ def actual_smoothing(sm_alg, omega2g, value, sm_degree):
         for ind in ind_outliers:
             print ("  index:", ind, 'values:', value[ind-1],
                     value[ind] , value[ind+1] )
-        #our smoothing should skip the outliers. We do this by replacing outlier with 
+        #our smoothing should skip the outliers. We do this by replacing outlier with
         #previous value in the array for now.
         ##TODO: improve following
         for ind in ind_outliers:
@@ -1425,7 +1425,7 @@ class Measurements():
         scale   = self._get_scales()
         weights = self._get_weights()
         if self._measurements_array is None:
-            print('ERROR: Cannot determine penalization if measurements'
+            print('ERROR: Cannot determine penalization if measurements '
                   'are not specified. Exiting.')
             exit(1)
         elif scalar:

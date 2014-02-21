@@ -445,7 +445,7 @@ class SC_freeform(SC_base):
         parameters passed
         """
         internal_u = u[:]
-        internal_u[ u<self._uvals[ 0] ] = self._uvals[ 0]        
+        internal_u[ u<self._uvals[ 0] ] = self._uvals[ 0]
         internal_u[ u>self._uvals[-1] ] = self._uvals[-1]
         tmph = self.logh2u.root(internal_u)
         tmph = - np.exp(-tmph)
