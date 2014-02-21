@@ -16,10 +16,111 @@ SC_vG = 1
 SC_FF = 2
 
 ########################################################################
+#              General (default) transformation functions              #
+########################################################################
 
 # Maximal value we allow to reach when optimizing unconstrained variable
 TRANSFORM_MAX_VALUE = 1e50
 
+def default_transformation(lbound, ubound, max_value = TRANSFORM_MAX_VALUE):
+    """
+        Transforms parameters on specified interval <ubound, lbound>
+        and infinity values are replaces with 'max_value'.
+        Transformation functions are chosen in such way that
+        We consider 3 intervals:
+        X1 = <lbound,   lbound+1>       Y1 = <-inf,     lbound+1>
+        X2 = <lbound+1, ubound-1>       Y2 = <lbound+1, ubound-1>
+        X3 = <ubound-1, ubound>         Y3 = <ubound-1, inf>
+
+        We want function T(x), U(y) such that:
+        T(X1) = Y1         U(Y1) = X1
+        T(X2) = Y2         U(Y2) = X2
+        T(X3) = Y3         U(Y3) = X3
+
+             /-  lbound+1 + ln(x-lbound), x in X1
+        T(x)=|-  x,                       x in X2
+             \-  ubound-1 - ln(ubound-x), x in X3
+
+             /-  lbound + e^(y-lbound-1), y in Y1
+        U(y)=|-  y,                       y in Y2
+             \-  ubound - e^(ubound-1-y), y in Y3
+
+    """
+    def transform_lb(x, lb):
+        """ T(X1) """
+
+        assert np.all(x > lb), \
+            'Assertion x>lb failed.\nlb={}\nx={}'.format(lb, x)
+
+        lb1 = lb + 1
+        if np.isscalar(x):
+            if x < lb1:
+                x = lb1 + np.log(x - lb)
+        else:
+            for i in range(np.alen(x)):
+                if x[i] < lb1:
+                    x[i] = lb1 + np.log(x[i] - lb)
+
+        return x
+
+    def untransform_lb(y, lb):
+        """ U(Y1) """
+
+        lb1 = lb + 1;
+        if np.isscalar(y):
+            if y < lb1:
+                y = lb + np.exp(y - lb1)
+        else:
+            for i in range(np.alen(y)):
+                if y[i] < lb1:
+                    y[i] = lb + np.exp(y[i] - lb1)
+
+        return y
+
+    def transform_rb(x, rb):
+        """ T(X3) """
+
+        assert np.all(x < rb), \
+          'Assertion x<rb failed.\nrb={}\nx={}'.format(rb, x)
+
+        rb1 = rb - 1
+        if np.isscalar(x):
+            if x > rb1:
+                x = rb1 - np.log(rb - x)
+        else:
+            for i in range(np.alen(x)):
+                if x[i] > rb1:
+                    x[i] = rb1 - np.log(rb - x[i])
+
+        return x
+
+    def untransform_rb(y, rb):
+        """ U(Y3) """
+        rb1 = rb - 1;
+        if np.isscalar(y):
+            if y > rb1:
+                y = rb - np.exp(rb1 - y)
+        else:
+            for i in range(np.alen(y)):
+                if y[i] > rb1:
+                    y[i] = rb - np.exp(rb1 - y[i])
+
+        return y
+
+    if (lbound == -np.inf) or (ubound == np.inf):
+        lbound = max(lbound, -max_value)
+        ubound = min(ubound, max_value)
+
+        tr_fn = lambda x: transform_lb(transform_rb(x, ubound), lbound)
+        un_fn = lambda y: untransform_lb(untransform_rb(y, ubound), lbound)
+    else:
+        I_half = (lbound + ubound)/2
+        I_r    = (ubound-lbound)/np.pi
+
+        tr_fn = lambda x: np.tan((x - I_half)/I_r)
+        un_fn = lambda y: I_r * np.arctan(y) + I_half
+
+    return (tr_fn, un_fn)
 ########################################################################
 #                             Common class                             #
 ########################################################################
