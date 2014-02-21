@@ -380,6 +380,33 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
 
     return penalization
 
+def penalize_cond(parameters, conditions):
+    
+    max_penalization = 1e50
+    tolerance = 0.05
+
+    penalization = 0.0
+    for (name, values) in parameters.items():
+        if not np.iterable(values):
+            values = [values]
+        for cond in conditions[name]:
+            if cond == '':
+                continue
+            if cond.lower() in ['ascending', 'asc']:
+                #parameters must be ascending
+                prevval = values[0]
+                for value in values[1:]:
+                    if value < prevval:
+                        a = prevval - value
+                    else:
+                        prevval = value
+                        continue
+                    penalty = np.exp(1/(tolerance)) + np.exp(10*a)
+                    penalization += min(penalty, max_penalization)
+            else:
+                raise Exception('Condition on parameters not recoginized: %s' % cond)
+    return penalization
+
 def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
@@ -392,6 +419,7 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
     untransform  = model._untransform
     lbounds      = model._lbounds
     ubounds      = model._ubounds
+    conditions   = model._conditions
     optim_params = {}
 
     global ITERATION # Python 2.7 hack (no support for nonlocal variables)
@@ -410,7 +438,9 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 
         penalization = penalize(optim_params, lbounds, ubounds,
                                 when='out_of_bounds')
-
+        if penalization == 0.0:
+            penalization = penalize_cond(optim_params, conditions)
+            
         if penalization > 0.0:
             if model.verbosity > 1:
                 print('Optimized arguments are out of bounds... Penalizing by ',

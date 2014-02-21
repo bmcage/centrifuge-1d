@@ -19,7 +19,7 @@ CONFIG_OPTIONS = ['inv_init_params', ('optimfn', 'leastsq'),
                      ('disp_inv_conv', True)])]
 
 INTERNAL_OPTIONS = ['_transform', '_untransform', 'init_values',
-                    '_lbounds', '_ubounds']
+                    '_lbounds', '_ubounds', '_conditions']
 
 EXCLUDE_FROM_MODEL = ['inv_init_params']
 
@@ -51,19 +51,25 @@ def adjust_cfg(cfg):
     init_values = OrderedDict()
     lbounds     = {}
     ubounds     = {}
+    conditions  = {}
 
     for (name, value) in cfg.get_value('inv_init_params').items():
         if value is None: continue
-
-        (init_value, (lbound, ubound)) = value
+        cond = ''
+        if len(value) == 2:
+            (init_value, (lbound, ubound)) = value
+        elif len(value) == 3:
+            (init_value, (lbound, ubound), cond) = value
         lbounds[name] = lbound
         ubounds[name] = ubound
+        conditions[name] = cond
 
         init_values[name] = init_value
 
     cfg.set_value('init_values', init_values)
     cfg.set_value('_lbounds', lbounds)
     cfg.set_value('_ubounds', ubounds)
+    cfg.set_value('_conditions', conditions)
 
     SC_type = cfg.get_value('sc_type')
     init_values = cfg.get_value('init_values')
