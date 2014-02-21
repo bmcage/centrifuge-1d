@@ -486,6 +486,12 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                                                 scalar=(optimfn != 'leastsq'))
         return result
 
+    # Further it is assumed that we are using OrderedDict so that the
+    # order of values is stable
+    from collections import OrderedDict
+    assert type(model.init_values) is OrderedDict, \
+        'The type of ''model.init_values'' is not OrderedDict.'
+
     optim_names  = model.init_values.keys()   # it's an ordered dict
     optim_par_length = np.ones((len(optim_names), ), dtype=int)
 
