@@ -1424,14 +1424,17 @@ class Measurements():
         """
         scale   = self._get_scales()
         weights = self._get_weights()
-        if self._measurements_array is None:
-            print('ERROR: Cannot determine penalization if measurements '
-                  'are not specified. Exiting.')
+        measurements = self._measurements_array
+        if measurements is None:
+            print('ERROR: Cannot determine penalization - no measurements '
+                  'are specified.\nNote: If this happened during the first '
+                  'iteration, then the initial value is probably not allowed.'
+                  '\nExiting.')
             exit(1)
         elif scalar:
-            return penalization * np.alen(self._measurements_array)
+            return penalization * np.alen(measurements)
         else:
-            error =  (penalization + self._measurements_array)
+            error =  (penalization + measurements)
             error[:] *= scale
             if not np.isscalar(weights):
                 error[:] *= weights

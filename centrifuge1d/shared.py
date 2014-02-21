@@ -200,7 +200,7 @@ def parse_value(str_value, raise_error=False):
     try:
         return parse_string(str_value)
     except:
-        print('Error:Could not parse value: ', str_value)
+        print('Error: Could not parse value: ', str_value)
         if raise_error:
             raise ValueError()
         else:
