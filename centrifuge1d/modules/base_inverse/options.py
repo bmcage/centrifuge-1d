@@ -55,11 +55,17 @@ def adjust_cfg(cfg):
 
     for (name, value) in cfg.get_value('inv_init_params').items():
         if value is None: continue
+
         cond = ''
-        if len(value) == 2:
+        if len(value) == 1:
+            init_value = value
+            lbound = -np.inf
+            ubound = np.inf
+        elif len(value) == 2:
             (init_value, (lbound, ubound)) = value
         elif len(value) == 3:
             (init_value, (lbound, ubound), cond) = value
+
         lbounds[name] = lbound
         ubounds[name] = ubound
         conditions[name] = cond
@@ -72,7 +78,6 @@ def adjust_cfg(cfg):
     cfg.set_value('_conditions', conditions)
 
     SC_type = cfg.get_value('sc_type')
-    init_values = cfg.get_value('init_values')
     if (SC_type == 1):
         n = init_values.get('n') or cfg.get_value('n')
         gamma = init_values.get('gamma') or cfg.get_value('gamma')
