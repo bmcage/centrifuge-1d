@@ -588,11 +588,18 @@ class SC_freeform(SC_base):
         """
         Transform/untransform methods for 'ki' and 'ui' parameters
         """
-        transform['ui']   = lambda ui: ui
-        untransform['ui'] = lambda ui_transf: ui_transf
+        # ui, ki are on <0, 1>
+        (transform['ki'], untransform['ki']) = \
+          default_transformation(lbounds['ki'], ubounds['ki'])
 
-        transform['ki']   = lambda ki: np.log(ki)
-        untransform['ki'] = lambda ki_transf: np.exp(ki_transf)
+        (transform['ui'], untransform['ui']) = \
+          default_transformation(lbounds['ui'], ubounds['ui'])
+
+        #transform['ui']   = lambda ui: ui
+        #untransform['ui'] = lambda ui_transf: ui_transf
+
+        #transform['ki']   = lambda ki: np.log(ki)
+        #untransform['ki'] = lambda ki_transf: np.exp(ki_transf)
 
     def typeSC(self):
         """
