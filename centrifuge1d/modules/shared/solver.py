@@ -488,7 +488,8 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 
     optim_names  = model.init_values.keys()   # it's an ordered dict
     optim_par_length = [1] * len(optim_names)
-    for ind, val in enumerate(model.init_values.values()):
+    # Determine lengths of each parameter (in case value is an array)
+    for (ind, val) in enumerate(model.init_values.values()):
         if np.iterable(val):
             optim_par_length[ind] = len(val)
 
