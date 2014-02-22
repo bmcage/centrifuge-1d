@@ -209,8 +209,9 @@ class DataStorage():
                                               theta_r=theta_r, g=model.g,
                                               rho=model.density, rtype='theta')
 
-                        uK = SC.conductivity_curve_u(model.ks, theta_s,
+                        uK = SC.conductivity_curve(model.ks, theta_s,
                                               theta_r=theta_r, g=model.g,
+                                              rho=model.density, rtype='u')
                         data['thK'] = thK
                         data['uK']  = uK
                     except:
