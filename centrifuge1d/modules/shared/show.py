@@ -58,12 +58,12 @@ DG_AXES_LABELS = \
                'relsat': (("Effective saturation $S_e${}",
                            "Negative hydraulic head $h$ [{}]"),
                           ('none', 'length')),
-               'K':  (("Water content $\\theta${}",
-                       "Hydraulic conductivity $K(\\theta)$ [{}]"),
-                      ('none', 'velocity')),
-               'K_u':  (("Effective saturation $S_e${}",
-                       "Hydraulic conductivity $K(S_e)$ [{}]"),
-                      ('none', 'velocity')),
+               'thK': (("Water content $\\theta${}",
+                         "Hydraulic conductivity $K(\\theta)$ [{}]"),
+                       ('none', 'velocity')),
+               'uK':  (("Effective saturation $S_e${}",
+                        "Hydraulic conductivity $K(S_e)$ [{}]"),
+                       ('none', 'velocity')),
                'gF_MO': ((dg_label_time, "Force of expelled water [{}]"),
                          ('time', 'force_kgp')),
                'gF_MT': ((dg_label_time, "Force of water in tube [{}]"),
@@ -76,7 +76,7 @@ DG_AXES_LABELS = \
                          ('time', 'rotational_speed'))})
 
 DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
-            ('dgF_MT', 'dgF_MO'), ('s1', 's2'), ('theta', 'relsat'), ('K', 'K_u'))
+            ('dgF_MT', 'dgF_MO'), ('s1', 's2'), ('theta', 'relsat'), ('thK', 'hK'))
 
 FIGURES_IDS = list(DG_AXES_LABELS.keys())
 
@@ -205,15 +205,14 @@ class DataStorage():
 
                 if hasattr(model, 'ks'):
                     try:
-                        K = SC.conductivity_curve(model.ks, theta_s,
+                        thK = SC.conductivity_curve(model.ks, theta_s,
                                               theta_r=theta_r, g=model.g,
-                                              rho=model.density)
+                                              rho=model.density, rtype='theta')
 
-                        K_u = SC.conductivity_curve_u(model.ks, theta_s,
+                        uK = SC.conductivity_curve_u(model.ks, theta_s,
                                               theta_r=theta_r, g=model.g,
-                                              rho=model.density)
-                        data['K'] = K
-                        data['K_u'] = K_u
+                        data['thK'] = thK
+                        data['uK']  = uK
                     except:
                         import traceback
                         print (traceback.format_exc())
@@ -496,7 +495,7 @@ def mk_figurestyles(fig_id):
         figure_styles['yscale'] = 'log'
         figure_styles['legend_loc'] = 1
 
-    elif fig_id in ['K', 'K_u']:
+    elif fig_id in ['thK', 'uK']:
         figure_styles['yscale'] = 'log'
 
     return figure_styles

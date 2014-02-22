@@ -171,7 +171,7 @@ class SC_base():
         return (h, self.h2u(h))
 
     def conductivity_curve(self, Ks, theta_s, theta_r=0.0, u=None, p=None,
-                           h=None, rho=None, g=None):
+                           h=None, rho=None, g=None, rtype='theta'):
         """
           Determine the conductivity curve.
 
@@ -185,6 +185,7 @@ class SC_base():
             p        - fluid pressure
             h        - pressure head
             u        - relative saturation
+            rtype    - return value type: 'theta', 'u', 'h', p
 
           Return values:
             theta    - saturation corresponding to pressure p /
@@ -202,18 +203,29 @@ class SC_base():
                 print("Conductivity curve: neither 'rho' nor 'g' can be 'None' !"
                       "No conductivity curve is computed...")
                 return ([], [])
-            u = self.h2u(-10.0* p /rho / g)
-        theta = theta_r + (theta_s - theta_r) * u
+            h = -10.0* p /rho / g
+            u = self.h2u(h)
+
         K     = self.u2Ku(u, Ks)
 
-        return (theta, K)
+        if rtype == 'theta':
+            xvalue = theta_r + (theta_s - theta_r) * u
+        elif rtype == 'u':
+            xvalue = u
+        elif rtype in ('h', 'p'):
+            if u is not None:
+                h = self.u2h(u)
 
-    def conductivity_curve_u(self, Ks, theta_s, theta_r=0.0, u=None, p=None,
-                           h=None, rho=None, g=None):
-        (th, K) = self.conductivity_curve(Ks, theta_s, theta_r, u, p,
-                                          h, rho, g)
-        u = (th-theta_r)/(theta_s - theta_r)
-        return (u, K)
+            if rtype == 'h':
+                xvalue = h
+            elif p is None:
+                xvalue = - h * rho *g / 10 # p
+            else:
+                xvalue = p
+        else:
+            raise Exception('Unknown rtype: ', rtype)
+
+        return (xvalue, K)
 
     def get_dyn_h_init(self, c_gammah, h_init_max):
         """
