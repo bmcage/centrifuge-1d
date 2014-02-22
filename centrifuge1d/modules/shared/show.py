@@ -266,10 +266,10 @@ class DataStorage():
                 backup_typeSC = model.SC.typeSC()
                 thekey = [key.lower() for key in ref_params.keys()]
                 if not 'sc_type' in thekey:
-                    print ('Referencing model does not contain "SC_type", cannot ' 
+                    print ('Referencing model does not contain "SC_type", cannot '
                            'set parameters of the saturation curve.'
                            '\nSkipping...')
-                           
+
             model.set_parameters(ref_params)
 
             flag = self.store_computation(model, model.measurements, ID=ref_id)
