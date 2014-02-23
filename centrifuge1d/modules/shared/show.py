@@ -837,6 +837,9 @@ class DPlots():
         if not ordered_figures:
             return
 
+        lines_styles = styles['lines']
+        lines_ids = styles['lines_order']
+
         assign_data(styles, ordered_figures, data)
 
         print_status(data)
@@ -863,9 +866,66 @@ class DPlots():
         fignum -= 1
         img_num = 2^20 # high initialization, so that first fig is created
 
-        for figure in dplots:
-            if not figure['data']: continue
-            fig_id = figure['id']
+        for fig_id in ordered_figures:
+
+            # plot the lines
+            legend_labels = []
+
+            xunit = get_figure_option(figs_styles, fig_id, 'xunit')
+            yunit = get_figure_option(figs_styles, fig_id, 'yunit')
+
+            is_fig_empty = True
+
+            for line_id in lines_ids:
+                print('Line:', line_id, repr(fig_id))
+                xdata = get_line_option(lines_styles, line_id, 'xdata', fig_id)
+                ydata = get_line_option(lines_styles, line_id, 'ydata', fig_id)
+
+                if (xdata is None) or (ydata is None):
+                    continue
+
+                is_fig_empty = False
+                plot_style = get_line_option(lines_styles, line_id, 'lineopt',
+                                             fig_id)
+                width = get_line_option(lines_styles, line_id, 'width', fig_id)
+                symbolsize = get_line_option(lines_styles, line_id,
+                                             'symbolsize', fig_id)
+                xcoef = get_unit_coef(xunit)
+                ycoef = get_unit_coef(yunit)
+                if not xcoef == 1.0:
+                    xdata = xcoef * np.asarray(xdata, dtype=float)
+                if not ycoef == 1.0:
+                    xdata = ycoef * np.asarray(ydata, dtype=float)
+                ls = get_line_option(lines_styles, line_id, 'ls', fig_id)
+                if ls and len(xdata.shape) > 1:
+                    for ind in range(len(xdata[0])):
+                        entryx = xdata[:, ind]
+                        entryy = ydata[:, ind]
+                        if symbolsize:
+                            plt.plot(entryx, entryy, ls[ind%len(ls)],
+                             linewidth=width, markersize=symbolsize)
+                        else:
+                            plt.plot(entryx, entryy, ls[ind%len(ls)],
+                             linewidth=width)
+                else:
+                    if symbolsize:
+                        plt.plot(xdata, ydata, plot_style, linewidth=width,
+                                 markersize=symbolsize)
+                    else:
+                        plt.plot(xdata, ydata, plot_style, linewidth=width)
+
+                # Extend the legend labels
+                legend_label = get_line_option(lines_styles, line_id,
+                                               'legend_label', fig_id)
+                if legend_label is None:
+                    legend_label =  get_line_option(lines_styles, line_id,
+                                                    'label', fig_id, line_id)
+                if np.isscalar(legend_label):
+                    legend_labels.append(legend_label)
+                else:
+                    legend_labels.extend(legend_label)
+
+            if is_fig_empty: continue
 
             # resolve figure and subplot
             if img_num > images_per_figure:
@@ -881,78 +941,35 @@ class DPlots():
             if not separate_figures:
                 plt.subplot(3, 2, img_num)
 
-            # plot the supplied data
-            figure_styles = figure['styles']
-            (xunit, yunit) = (figure_styles['xunit'], figure_styles['yunit'])
 
-            plot_labels = []
-            for figure_data in figure['data']:
-                xdata = figure_data['xdata']
-                ydata = figure_data['ydata']
-                line_label = figure_data['label']
-                plot_style = figure_data['lineopt']
-                width = figure_data['width']
-                symbolsize = figure_data['symbolsize']
-
-                xcoef = get_unit_coef(xunit)
-                ycoef = get_unit_coef(yunit)
-                if not xcoef == 1.0:
-                    xdata = xcoef * np.asarray(xdata, dtype=float)
-                if not ycoef == 1.0:
-                    xdata = ycoef * np.asarray(ydata, dtype=float)
-                if figure_styles['ls'] and len(xdata.shape) > 1:
-                    for ind in range(len(xdata[0])):
-                        entryx = xdata[:, ind]
-                        entryy = ydata[:, ind]
-                        if symbolsize:
-                            plt.plot(entryx, entryy,
-                             figure_styles['ls'][ind%len(figure_styles['ls'])],
-                             linewidth=width, markersize=symbolsize)
-                        else:
-                            plt.plot(entryx, entryy,
-                             figure_styles['ls'][ind%len(figure_styles['ls'])],
-                             linewidth=width)
-                else:
-                    if symbolsize:
-                        plt.plot(xdata, ydata, plot_style, linewidth=width,
-                                 markersize=symbolsize)
-                    else:
-                        plt.plot(xdata, ydata, plot_style, linewidth=width)
-
-                if type(line_label) == str:
-                    plot_labels.append(line_label)
-                else:
-                    plot_labels.extend(line_label)
-
-            xlabel = figure_styles['xlabel']
-            ylabel = figure_styles['ylabel']
+            xlabel = get_figure_option(figs_styles, fig_id, 'xlabel')
+            ylabel = get_figure_option(figs_styles, fig_id, 'ylabel')
 
             plt.xlabel(xlabel.format(xunit))
             plt.ylabel(ylabel.format(yunit))
-            if figure_styles['xscale']:
-                plt.xscale(figure_styles['xscale'])
-            if figure_styles['yscale']:
-                plt.yscale(figure_styles['yscale'])
 
-            if np.isscalar(figure_styles['xmin']):
-                plt.xlim(xmin=figure_styles['xmin'])
-            if np.isscalar(figure_styles['xmax']):
-                plt.xlim(xmax=figure_styles['xmax'])
-            if np.isscalar(figure_styles['ymin']):
-                plt.ylim(ymin=figure_styles['ymin'])
-            if np.isscalar(figure_styles['ymax']):
-                plt.ylim(ymax=figure_styles['ymax'])
+            xscale = get_figure_option(figs_styles, fig_id, 'xscale')
+            yscale = get_figure_option(figs_styles, fig_id, 'yscale')
+            if xscale: plt.xscale(xscale)
+            if yscale: plt.yscale(yscale)
 
-            show_legend = figure_styles['show_legend']
-            if show_legend is None:
-                if (len(figure['data']) > 1) or (np.ndim(ydata) > 1):
-                    show_legend = True
+            xmin = get_figure_option(figs_styles, fig_id, 'xmin')
+            ymin = get_figure_option(figs_styles, fig_id, 'ymin')
+            xmax = get_figure_option(figs_styles, fig_id, 'xmax')
+            ymax = get_figure_option(figs_styles, fig_id, 'ymax')
+            if np.isscalar(xmin): plt.xlim(xmin=xmin)
+            if np.isscalar(xmax): plt.xlim(xmax=xmax)
+            if np.isscalar(ymin): plt.ylim(ymin=ymin)
+            if np.isscalar(ymax): plt.ylim(ymax=ymax)
+
+            show_legend = get_figure_option(figs_styles, fig_id, 'show_legend')
             if show_legend:
-                plt.legend(plot_labels, borderaxespad=0.0,
-                           prop={'family': 'monospace'},
-                           loc=figure_styles['legend_loc'],
-                           title=figure_styles['legend_title'],
-                           bbox_to_anchor=figure_styles['legend_bbox'])
+                legend_loc   = get_figure_option(figs_styles, fig_id, 'legend_loc')
+                legend_title = get_figure_option(figs_styles, fig_id, 'legend_title')
+                legend_bbox  = get_figure_option(figs_styles, fig_id, 'legend_bbox')
+                plt.legend(legend_labels, borderaxespad=0.0,
+                           prop={'family': 'monospace'}, loc=legend_loc,
+                           title=legend_title, bbox_to_anchor=legend_bbox)
 
             if save_figures and (img_num == images_per_figure):
                 if separate_figures: img_suffix = fig_id
