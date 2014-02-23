@@ -38,7 +38,7 @@ DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
 #        'xdata', 'ydata', 'label', 'legend_data', 'order',
 #    Assigned anywhere:
 #        'width', 'symbolsize', 'lineopt', 'ls'
-LINESTYLES_DEFAULT = {'_default_': {'_base_': {'width': 1, 'symbolsize': None,
+LINESTYLES_DEFAULT = {'_default_': {'_base_': {'width': 1, 'symbolsize': 6,
                                                'lineopt': '.', 'order': 999},
                                     'h':      {'lineopt': '-'},
                                     'u':      {'lineopt': '-'},
@@ -929,18 +929,12 @@ class DPlots():
                     for ind in range(len(xdata[0])):
                         entryx = xdata[:, ind]
                         entryy = ydata[:, ind]
-                        if symbolsize:
-                            plt.plot(entryx, entryy, ls[ind%len(ls)],
-                             linewidth=width, markersize=symbolsize)
-                        else:
-                            plt.plot(entryx, entryy, ls[ind%len(ls)],
-                             linewidth=width)
+
+                        plt.plot(entryx, entryy, ls[ind%len(ls)],
+                                 linewidth=width, markersize=symbolsize)
                 else:
-                    if symbolsize:
-                        plt.plot(xdata, ydata, plot_style, linewidth=width,
-                                 markersize=symbolsize)
-                    else:
-                        plt.plot(xdata, ydata, plot_style, linewidth=width)
+                    plt.plot(xdata, ydata, plot_style, linewidth=width,
+                             markersize=symbolsize)
 
                 # Extend the legend labels
                 legend_label = get_line_option(lines_styles, line_id,
