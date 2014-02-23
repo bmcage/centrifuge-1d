@@ -663,18 +663,19 @@ def update_styles(styles, user_styles):
 
     return styles
 
-
-
-def order_figures(figures_styles):
+def order_figures(figures_styles, figs_ids):
     """
-      Sort figures according to prefered order. Pairs defined by
-      FIGURES_PAIRS take precedence.
+      Sort figures identified by 'figs_ids' according to their 'order'
+      value. Pairs defined by FIGURES_PAIRS take precedence.
     """
-
-    figs_order = {fig_id: get_figure_option(figures_styles, fig_id, 'order')
-                   for fig_id in show_figs}
 
     ordered_figures = []
+
+    if not figs_ids:
+        return ordered_figures
+
+    figs_order = {fig_id: get_figure_option(figures_styles, fig_id, 'order')
+                   for fig_id in figs_ids}
 
     for (id1, id2) in FIGURES_PAIRS:
         if (id1 in figs_order) and (id2 in figs_order):
