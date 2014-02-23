@@ -846,15 +846,15 @@ class DPlots():
             return
 
         figs_styles = styles['figures']
-        ordered_figures = order_figures(figs_styles)
+        figs_ids = assign_data(styles, get_shown_figs_ids(figs_styles), data)
 
-        if not ordered_figures:
+        if not figs_ids:
             return
+
+        figs_ids = order_figures(figs_styles, figs_ids)
 
         lines_styles = styles['lines']
         lines_ids = styles['lines_order']
-
-        assign_data(styles, ordered_figures, data)
 
         print_status(data)
 
@@ -880,7 +880,7 @@ class DPlots():
         fignum -= 1
         img_num = 2^20 # high initialization, so that first fig is created
 
-        for fig_id in ordered_figures:
+        for fig_id in figs_ids:
             # resolve figure and subplot
             if img_num > images_per_figure:
                 img_num = 1
