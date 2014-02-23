@@ -613,137 +613,56 @@ def read_plotstyles_file(filename):
 
     return result
 
-def mk_figurestyles(fig_id):
-    """ Add default styles for figure with given 'fig_id' """
-
-    figure_styles = dict.fromkeys(('xlabel', 'ylabel',
-                                   'xscale', 'yscale', 'xunit', 'yunit',
-                                   'xmin', 'ymin', 'xmax', 'ymax',
-                                   'show', 'ls', 'show_legend',
-                                   'legend_title', 'legend_bbox', 'legend_loc'))
-
-    # Default values
-    if fig_id in DG_AXES_LABELS:
-        figure_styles['xlabel'] = DG_AXES_LABELS[fig_id][0][0]
-        figure_styles['ylabel'] = DG_AXES_LABELS[fig_id][0][1]
-
-        unit_type = DG_AXES_LABELS[fig_id][1][0]
-        figure_styles['xunit'] = DEFAULT_UNITS[unit_type]
-
-        unit_type = DG_AXES_LABELS[fig_id][1][1]
-        figure_styles['yunit'] = DEFAULT_UNITS[unit_type]
-
-        figure_styles['legend_loc'] = 4
-
-
-    if fig_id in ['h', 'u']:
-        figure_styles['legend_title'] = 'Time [min]'
-
-    elif fig_id in ['theta', 'relsat']:
-        figure_styles['yscale'] = 'log'
-        figure_styles['legend_loc'] = 1
-
-    elif fig_id in ['thK', 'uK']:
-        figure_styles['yscale'] = 'log'
-
-    return figure_styles
-
-def figures_styles_post_update(figures_styles, display_options):
+def update_styles(styles, user_styles):
     """
-      This function is called after merging the default plotting styles
-      with styles from plotstyles inifiles. Styles can be adapted based
-      on the information in the inifiles.
+      Update the styles from user plotstyles.ini file.
+      Perform also any necessary conversion to the internal format.
     """
 
-    h_styles = figures_styles['h']
-
-    if ((h_styles['show_legend'] is None)
-        and (not display_options['separate_figures'])):
-        h_styles['show_legend'] = False
-    elif (h_styles['legend_loc'] is None) and (h_styles['legend_bbox']):
-        h_styles['legend_bbox'] = (1.01, 1.)
-        h_styles['legend_loc'] = 2
-
-    u_styles = figures_styles['u']
-    if (u_styles['legend_loc'] is None) and (u_styles['legend_bbox']):
-        u_styles['legend_bbox'] = (1.01, 1.)
-        u_styles['legend_loc'] = 2
-
-def linestyles_post_update(styles):
-    """
-      Lines are specified in 'params_ref' variable of the plotstyles
-      inifiles, hence as we don't know them apriori (of course except for
-      lines 'measured and 'computed') and hence only post-update method is
-      available - all the default values for all lines are therefore specified
-      here.
-      The values are returned in the final (correct) format (which may be
-      different from the values read from the inifiles).
-      Correct lines order based on the 'order' option for the line is
-      determined here too.
-    """
-
-    lines_ids = (['original', 'measured', 'computed']
-                 + list(styles['params_ref'].keys()))
+    # process 'lines' separately - just put missing values into
+    # the default lines object
+    user_lines_styles = user_styles['lines']
     lines_styles = styles['lines']
-    lines_order  = {}
 
-    for line_id in lines_ids:
-        # Determine user supplied line styles
+    for (line_id, data) in user_lines_styles.items():
         if not line_id in lines_styles:
             lines_styles[line_id] = {}
 
-        line_styles = lines_styles[line_id]
+        line_style = lines_styles[line_id]
+        if not '_base_' in line_style:
+            line_style['_base_'] = {}
 
-        # Process line label
-        if 'label' in line_styles:
-            label = line_styles['label']
-            del line_styles['label']
-        else:
-            label = line_id
+        for (name, value) in data.items():
+            if name in FIGURES_IDS:
+                # value is lineopt
+                if not name in line_style:
+                    line_style[name] = {}
 
-        # Process line width
-        if 'width' in line_styles:
-            width = line_styles['width']
-        else:
-            width = 1
-
-        if 'symbolsize' in line_styles:
-            symbolsize = line_styles['symbolsize']
-        else:
-            symbolsize = None
-
-        # Process line order
-        if 'order' in line_styles:
-            lines_order[line_id] = line_styles['order']
-            del line_styles['order']
-        else:
-            lines_order[line_id] = 999
-
-        # Default lineopt
-        if line_id == 'measured':
-            default_lineopt = 'x'
-        elif line_id == 'original':
-            default_lineopt = '-'
-        else:
-            default_lineopt = '.'
-
-        # Set correct format for line_styles and supply (default) missing values
-        for fig_id in FIGURES_IDS:
-            if fig_id in line_styles:
-                lineopt = line_styles[fig_id]
-            elif fig_id in ('h', 'u'):
-                lineopt = '-'
-            elif ((fig_id in ['theta', 'relsat'])
-                  and (not line_id == 'measured')):
-                lineopt = '-'
+                line_style[name]['lineopt'] = value
             else:
-                lineopt = default_lineopt
+                # value is something specific to whole line, e.g. label
+                line_style['_base_'][name] = value
 
-            line_styles[fig_id] = {'lineopt': lineopt, 'label': label,
-                                   'width': width, 'symbolsize': symbolsize}
+    # Don't update with the remaining values
+    del user_styles['lines']
 
-    ordered_lines = list(sorted(lines_order, key=lines_order.__getitem__))
-    styles['lines_order'] = ordered_lines
+    # Update all the rest
+    styles = deep_dictupdate(styles, user_styles)
+
+    # Display legend only on 'u' if 'u' and 'h' are on the same window
+    styles['figures']['h']['show_legend'] = \
+      styles['options']['separate_figures']
+
+    # Order lines
+    lines_ids = (['original', 'measured', 'computed']
+                 + list(styles['params_ref'].keys()))
+    lines_order = {line_id: get_line_option(lines_styles, line_id, 'order')
+                   for line_id in lines_ids}
+    styles['lines_order'] = \
+      list(sorted(lines_order, key=lines_order.__getitem__))
+
+    return styles
+
 
 def order_figures(figures):
     """
@@ -876,14 +795,15 @@ class DPlots():
                   'plots_keep': {}, 'plots_remove': {}, 'params_ref': {},
                   'lines_order': ()}
 
+        # Read user plotysles inifiles
         plotstyles_filenames = get_filenames(experiment_info)
 
+        user_styles = {}
         if plotstyles_filenames:
             for fname in plotstyles_filenames:
-                deep_dictupdate(styles, read_plotstyles_file(fname))
+                deep_dictupdate(user_styles, read_plotstyles_file(fname))
 
-        figures_styles_post_update(figures_styles, display_options)
-        linestyles_post_update(styles)
+        update_styles(styles, user_styles)
 
         self._styles    = styles
 
