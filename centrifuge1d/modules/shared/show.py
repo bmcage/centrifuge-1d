@@ -671,9 +671,6 @@ def order_figures(figures_styles):
       FIGURES_PAIRS take precedence.
     """
 
-    # Keep only figures with 'show' == True
-    show_figs = [fig_id for fig_id in figures_styles.keys()
-                    if get_figure_option(figures_styles, fig_id, 'show')]
     figs_order = {fig_id: get_figure_option(figures_styles, fig_id, 'order')
                    for fig_id in show_figs}
 
@@ -789,6 +786,12 @@ def assign_data(styles, displayed_figs, data):
 
     return nonempty_figs
 
+def get_shown_figs_ids(figures_styles):
+    # Keep only figures with 'show' == True
+    figs_ids = [fig_id for fig_id in figures_styles.keys()
+                  if get_figure_option(figures_styles, fig_id, 'show')]
+
+    return figs_ids
 
 class DPlots():
     """ Class for displaying data. User styles are applied. """
