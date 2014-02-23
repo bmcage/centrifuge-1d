@@ -29,6 +29,22 @@ DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
                  'force_kgp': 'gf', 'weight': 'g', 'velocity': 'cm/s',
                  'rotational_speed': 'rpm', 'none': ''}
 
+# Linestyle is searched in order:
+#   1. Exists 'lineid' and there for 'fig_id' specific option
+#   2. If not, search '_default_' for 'fig_id'
+#   3. If not, use option in the '_base_' of the '_default_'
+LINESTYLES_DEFAULT = {'_default_': {'_base_': {'width': 1, 'symbolsize': None,
+                                               'lineopt': '.', 'order': 999},
+                                    'h':      {'lineopt': '-'},
+                                    'u':      {'lineopt': '-'},
+                                    'theta':  {'lineopt': '-'},
+                                    'relsat': {'lineopt': '-'}},
+                      'measured':  {'_base_': {'lineopt': 'x'},
+                                    'theta':  {'lineopt': '.'},
+                                    'relsat': {'lineopt': '.'}},
+                      'original':  {'_base_': {'lineopt': '-'}}
+                     }
+
 dg_label_time = "Time [{}]"
 dg_label_length = "Sample length $L$ [{}]"
 dg_unit_time_length = ('time', 'length')
