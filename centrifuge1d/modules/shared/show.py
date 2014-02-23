@@ -89,9 +89,9 @@ FIGURES_DEFAULTS = \
                       'xlabel': (dg_label_time, "Inflow water [{}]"),
                       'xtype':  'time',
                       'ytype':  'length'},
-               'GC': {'title':  'Gravitations centre',
+               'GC': {'title':  'Gravitational centre',
                       'xlabel': dg_label_time,
-                      'ylabel': "Gravitational center [{}]",
+                      'ylabel': "Gravitational centre [{}]",
                       'xtype':  'time',
                       'ytype':  'length'},
                'RM': {'title':  'Rotational momentum',
@@ -907,7 +907,6 @@ class DPlots():
             yunit = get_figure_option(figs_styles, fig_id, 'yunit')
 
             for line_id in lines_ids:
-                print('Line:', line_id, repr(fig_id))
                 xdata = get_line_option(lines_styles, line_id, 'xdata', fig_id)
                 ydata = get_line_option(lines_styles, line_id, 'ydata', fig_id)
 
