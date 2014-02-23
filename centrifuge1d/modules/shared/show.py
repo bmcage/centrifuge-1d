@@ -106,6 +106,13 @@ DG_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('gF_MT', 'gF_MO'),
 
 FIGURES_IDS = list(DG_AXES_LABELS.keys())
 
+def set_default_units(figures_styles):
+    for (fig_id, fig_style) in figures_styles.items():
+        fig_style['xunit'] = DEFAULT_UNITS[fig_style['xtype']]
+        fig_style['yunit'] = DEFAULT_UNITS[fig_style['ytype']]
+
+    return figures_styles
+
 def get_unit_coef(unit_base):
     """
       Return the coeficient for the new unit type to be used, so that
@@ -127,6 +134,51 @@ def get_unit_coef(unit_base):
         print('Unknown unit:', unit_base, '\nKnown units are only:', DATA_UNITS)
         exit(1)
     return coef
+
+################################################################################
+#                   Methods for handling default values                        #
+################################################################################
+
+def get_line_option(linestyles, line_id, name, fig_id=None, not_found=None):
+    if fig_id is None:
+        # we search only values in '_base_'
+        if (line_id in linestyles) and (name in linestyles[line_id]['_base_']):
+            value = linestyles[line_id]['_base_'][name]
+        elif name in linestyles['_default_']['_base_']:
+            value = linestyles['_default_']['_base_'][name]
+        else:
+            value = not_found
+
+        return value
+
+    # search for most specific to least specific
+    for line_name in (line_id, '_default_'):
+        if not line_name in linestyles:
+            continue
+
+        line_style = linestyles[line_name]
+
+        if (fig_id in line_style) and (name in line_style[fig_id]):
+            value = line_style[fig_id][name]
+            return value
+
+        elif name in line_style['_base_']:
+            value = line_style['_base_'][name]
+            return value
+
+    return not_found
+
+def get_figure_option(figstyles, fig_id, name, not_found = None):
+    fig_style = figstyles[fig_id]
+
+    if name in fig_style:
+        value = fig_style[name]
+    elif name in FIG_OPTIONS_DEFAULTS:
+        value = FIG_OPTIONS_DEFAULTS[name]
+    else:
+        value = not_found
+
+    return value
 
 ################################################################################
 #                                Data storage                                  #
