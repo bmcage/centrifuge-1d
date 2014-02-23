@@ -33,6 +33,11 @@ DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
 #   1. Exists 'lineid' and there for 'fig_id' specific option
 #   2. If not, search '_default_' for 'fig_id'
 #   3. If not, use option in the '_base_' of the '_default_'
+# Linestyle options:
+#    Assigned only to '_base_' of line_id:
+#        'xdata', 'ydata', 'label', 'legend_data', 'order',
+#    Assigned anywhere:
+#        'width', 'symbolsize', 'lineopt', 'ls'
 LINESTYLES_DEFAULT = {'_default_': {'_base_': {'width': 1, 'symbolsize': None,
                                                'lineopt': '.', 'order': 999},
                                     'h':      {'lineopt': '-'},
