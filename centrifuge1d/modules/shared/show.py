@@ -945,7 +945,7 @@ class DPlots():
 
                 # Extend the legend labels
                 legend_label = get_line_option(lines_styles, line_id,
-                                               'legend_label', fig_id)
+                                               'legend_data', fig_id)
                 if legend_label is None:
                     legend_label =  get_line_option(lines_styles, line_id,
                                                     'label', fig_id, line_id)
