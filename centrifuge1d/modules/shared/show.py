@@ -897,8 +897,6 @@ class DPlots():
             xunit = get_figure_option(figs_styles, fig_id, 'xunit')
             yunit = get_figure_option(figs_styles, fig_id, 'yunit')
 
-            is_fig_empty = True
-
             for line_id in lines_ids:
                 print('Line:', line_id, repr(fig_id))
                 xdata = get_line_option(lines_styles, line_id, 'xdata', fig_id)
@@ -907,7 +905,6 @@ class DPlots():
                 if (xdata is None) or (ydata is None):
                     continue
 
-                is_fig_empty = False
                 plot_style = get_line_option(lines_styles, line_id, 'lineopt',
                                              fig_id)
                 width = get_line_option(lines_styles, line_id, 'width', fig_id)
