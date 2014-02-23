@@ -48,6 +48,16 @@ LINESTYLES_DEFAULT = {'_default_': {'_base_': {'width': 1, 'symbolsize': None,
 dg_label_time = "Time [{}]"
 dg_label_length = "Sample length $L$ [{}]"
 dg_unit_time_length = ('time', 'length')
+
+# Figures options:
+#    'order', 'xlabel', 'ylabel',
+#    'xscale', 'yscale', 'xunit', 'yunit', 'xmin', 'ymin', 'xmax', 'ymax',
+#    'show', 'ls', 'show_legend', 'legend_title', 'legend_bbox', 'legend_loc'
+
+FIG_OPTIONS_DEFAULTS = {'show': True, 'legend_loc': 4, 'order': 999,
+                        'show_legend': True}
+
+
 DG_AXES_LABELS = \
   OrderedDict({'h': ((dg_label_length, "Piezometric head $h$ [{}]"),
                      ('length', 'length')),
