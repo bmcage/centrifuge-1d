@@ -692,11 +692,18 @@ def order_figures(figures_styles):
     return ordered_figures
 
 def assign_data(styles, displayed_figs, data):
-    """ Add 'xdata', 'ydata' and 'legend_data' to 'lines_styles' """
+    """
+       Add 'xdata', 'ydata' and 'legend_data' to 'lines_styles'
+       and return 'figs_ids' of figures that do not contain
+       and data.
+     """
+
+    # build a list of figs that actually contain some data
+    nonempty_figs = []
 
     if not data.has_data('lines'):
         print('No data is provided. Nothing to display.')
-        return None
+        return nonempty_figs
 
     lines_ids = styles['lines_order']
     plots_keep = styles['plots_keep']
@@ -722,9 +729,11 @@ def assign_data(styles, displayed_figs, data):
 
             (xdata, ydata) = (line_value[0], line_value[1])
 
-            # TODO: this SHOULD NOT happen as nonexistend data should
-            #       be already filtered out when creating data structure
             if (not has_data(xdata)) or (not has_data(ydata)): continue
+
+            # This fig surely will have some data
+            if not fig_id in nonempty_figs:
+                nonempty_figs.append(fig_id)
 
             if not fig_id in line_style:
                 line_style[fig_id] = {}
@@ -778,7 +787,8 @@ def assign_data(styles, displayed_figs, data):
             line_fig_style['xdata'] = xdata
             line_fig_style['ydata'] = ydata
 
-    return lines_styles
+    return nonempty_figs
+
 
 class DPlots():
     """ Class for displaying data. User styles are applied. """
