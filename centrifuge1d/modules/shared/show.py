@@ -664,33 +664,30 @@ def update_styles(styles, user_styles):
     return styles
 
 
-def order_figures(figures):
+
+def order_figures(figures_styles):
     """
-      Sort figures according to prefered order. Some figures are prefered
-      to be next to each other (see DG_PAIRS variable).
+      Sort figures according to prefered order. Pairs defined by
+      FIGURES_PAIRS take precedence.
     """
 
-    # Remove figures with no data and not displayed
-    for fig_id in list(figures.keys()):
-        if ((not has_data(figures[fig_id]['data']))
-            or (figures[fig_id]['styles']['show'] == False)):
-            del figures[fig_id]
+    # Keep only figures with 'show' == True
+    show_figs = [fig_id for fig_id in figures_styles.keys()
+                    if get_figure_option(figures_styles, fig_id, 'show')]
+    figs_order = {fig_id: get_figure_option(figures_styles, fig_id, 'order')
+                   for fig_id in show_figs}
 
-    # Order remaining figures
     ordered_figures = []
 
-    # first order pairs (and queue singles from pairs)
-    for (i1_id, i2_id) in DG_PAIRS:
-        if (i1_id in figures) and (i2_id in figures):
-            ordered_figures.append(figures[i1_id])
-            ordered_figures.append(figures[i2_id])
+    for (id1, id2) in FIGURES_PAIRS:
+        if (id1 in figs_order) and (id2 in figs_order):
+            ordered_figures.append(id1)
+            ordered_figures.append(id2)
 
-            del figures[i1_id]
-            del figures[i2_id]
+            del figs_order[id1]
+            del figs_order[id2]
 
-    for fig_id in FIGURES_IDS:
-        if fig_id in figures:
-            ordered_figures.append(figures[fig_id])
+    ordered_figures.extend(list(sorted(figs_order, key=figs_order.__getitem__)))
 
     return ordered_figures
 
@@ -778,7 +775,6 @@ def mk_figures(data, styles):
 
             figures[fig_id]['data'].append(item)
 
-    return order_figures(figures)
 
 class DPlots():
     """ Class for displaying data. User styles are applied. """
@@ -807,8 +803,7 @@ class DPlots():
 
         self._styles    = styles
 
-        # Global displaying options
-        self._display_options = display_options
+        display_options = styles['options']
 
         if 'matplotlib_backend' in display_options:
             matplotlib_backend = display_options['matplotlib_backend']
@@ -821,7 +816,9 @@ class DPlots():
     def display(self, data, fignum=1):
         """ Display the figures and/or write them to files. """
 
-        display_options = self._display_options
+        styles = self._styles
+
+        display_options = styles['options']
 
         show_figures     = display_options['show_figures']
         save_figures     = display_options['save_figures']
@@ -831,8 +828,9 @@ class DPlots():
             return
 
         dplots = mk_figures(data, self._styles)
+        ordered_figures = order_figures(figs_styles)
 
-        if not dplots:
+        if not ordered_figures:
             return
 
         print_status(data)
