@@ -691,45 +691,54 @@ def order_figures(figures_styles):
 
     return ordered_figures
 
-def mk_figures(data, styles):
-    """ Create figures based on the supplied data and styles information. """
+def assign_data(styles, displayed_figs, data):
+    """ Add 'xdata', 'ydata' and 'legend_data' to 'lines_styles' """
 
     if not data.has_data('lines'):
         print('No data is provided. Nothing to display.')
         return None
 
-    figures = {fig_id: {'id': fig_id, 'data': [],
-                        'styles': styles['figures'][fig_id]}
-                for fig_id in FIGURES_IDS}
-
     lines_ids = styles['lines_order']
     plots_keep = styles['plots_keep']
     plots_remove = styles['plots_remove']
+    lines_styles = styles['lines']
 
     for line_id in lines_ids:
+
         line_data = data.get_linedata(line_id, not_found={})
-        lines_styles = styles['lines'][line_id]
 
-        for (fig_id, line_value) in line_data.items():
-            # Filter out supplied data not recognized as valid
-            if (not fig_id in FIGURES_IDS) or (not has_data(line_data)):
-                continue
+        if not has_data(line_data): continue
 
+        line_style = lines_styles[line_id]
+
+        for fig_id in displayed_figs:
             # we skip other 'h' and 'u' data, as it would be mess
             if (fig_id in ['h', 'u']) and (not line_id == 'computed'):
                 continue
 
+            if not fig_id in line_data: continue
+
+            line_value = line_data[fig_id]
+
             (xdata, ydata) = (line_value[0], line_value[1])
 
-            if not (has_data(xdata) and has_data(ydata)): continue
+            # TODO: this SHOULD NOT happen as nonexistend data should
+            #       be already filtered out when creating data structure
+            if (not has_data(xdata)) or (not has_data(ydata)): continue
 
-            line_style = lines_styles[fig_id]
+            if not fig_id in line_style:
+                line_style[fig_id] = {}
 
-            if ((fig_id in ['h', 'u']) and (len(line_value) > 2)
-                and has_data(line_value[2])):
-                line_style['label'] = line_value[2]
-                #print(fig_id, xdata.shape, ydata.shape, line_value[2].shape)
+            line_fig_style = line_style[fig_id]
 
+            # Process special 'legend_data' (e.g. for 'h' and 'u' it's times)
+            # as it needs to be converted and filtered
+            if len(line_value) > 2:
+                legend_data = line_value[2]
+                if (type(legend_data) is np.ndarray):
+                    legend_data = ['% 6.1f' % (ti/60.) for ti in legend_data]
+            else:
+                legend_data = None
 
             if ((not line_id in ('measured', 'original'))
                 and ((fig_id in plots_keep) or (fig_id in plots_remove))):
@@ -752,29 +761,24 @@ def mk_figures(data, styles):
                 if fig_id in ('h', 'u'):
                     xdata = xdata[:, filter_idxs]
                     ydata = ydata[:, filter_idxs]
-
-                    if type(line_style['label'] is np.ndarray):
-                        #print('LV', line_value[2])
-                        #print('LV', line_style['label'])
-                        line_style['label'] = line_style['label'][filter_idxs]
                 else:
                     xdata = xdata[filter_idxs]
                     ydata = ydata[filter_idxs]
 
-            if ((fig_id in ('h', 'u'))
-                and (type(line_style['label'] is np.ndarray))):
-                line_style['label'] = \
-                  ['% 6.1f' % (ti/60.) for ti in line_style['label']]
+                if not legend_data is None:
+                    if type(legend_data) is np.ndarray:
+                        legend_data = legend_data[filter_idxs]
 
-            if fig_id in ['theta', 'relsat']:
-                item = {'xdata': ydata, 'ydata': xdata}
-            else:
-                item = {'xdata': xdata, 'ydata': ydata}
+                    line_fig_style['legend_data'] = legend_data
 
-            item.update(line_style)
+                if fig_id in ('theta', 'relsat'):
+                    # swtich xdata <-> ydata
+                    tmp = xdata; xdata = ydata; ydata = tmp
 
-            figures[fig_id]['data'].append(item)
+            line_fig_style['xdata'] = xdata
+            line_fig_style['ydata'] = ydata
 
+    return lines_styles
 
 class DPlots():
     """ Class for displaying data. User styles are applied. """
@@ -827,11 +831,13 @@ class DPlots():
         if not (save_figures or show_figures):
             return
 
-        dplots = mk_figures(data, self._styles)
+        figs_styles = styles['figures']
         ordered_figures = order_figures(figs_styles)
 
         if not ordered_figures:
             return
+
+        assign_data(styles, ordered_figures, data)
 
         print_status(data)
 
