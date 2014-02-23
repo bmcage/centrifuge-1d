@@ -867,15 +867,14 @@ class DPlots():
     def __init__(self, experiment_info):
         self._experiment_info = experiment_info
 
-        # User styles (read from plotstyles inifiles)
+        # Default values (merged with plotstyles inifiles)
         display_options = {'separate_figures': False, 'show_figures': True,
                            'save_figures': True, 'matplotlib_backend': None}
-        figures_styles = {fig_id: mk_figurestyles(fig_id)
-                          for fig_id in FIGURES_IDS}
 
-        styles = {'options': display_options, 'figures': figures_styles,
-                  'lines': {}, 'params_ref': {}, 'lines_order': (),
-                  'plots_keep': {}, 'plots_remove': {}}
+        styles = {'options': DISPLAY_OPTIONS, 'lines': LINESTYLES_DEFAULT,
+                  'figures': set_default_units(FIGURES_DEFAULTS),
+                  'plots_keep': {}, 'plots_remove': {}, 'params_ref': {},
+                  'lines_order': ()}
 
         plotstyles_filenames = get_filenames(experiment_info)
 
