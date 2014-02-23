@@ -877,6 +877,19 @@ class DPlots():
         img_num = 2^20 # high initialization, so that first fig is created
 
         for fig_id in ordered_figures:
+            # resolve figure and subplot
+            if img_num > images_per_figure:
+                img_num = 1
+                fignum += 1
+
+                if separate_figures:
+                    plt.figure(fignum)
+                else:
+                    plt.figure(fignum, figsize=(16, 8.5))
+                    plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
+
+            if not separate_figures:
+                plt.subplot(3, 2, img_num)
 
             # plot the lines
             legend_labels = []
@@ -934,23 +947,6 @@ class DPlots():
                     legend_labels.append(legend_label)
                 else:
                     legend_labels.extend(legend_label)
-
-            if is_fig_empty: continue
-
-            # resolve figure and subplot
-            if img_num > images_per_figure:
-                img_num = 1
-                fignum += 1
-
-                if separate_figures:
-                    plt.figure(fignum)
-                else:
-                    plt.figure(fignum, figsize=(16, 8.5))
-                    plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
-
-            if not separate_figures:
-                plt.subplot(3, 2, img_num)
-
 
             xlabel = get_figure_option(figs_styles, fig_id, 'xlabel')
             ylabel = get_figure_option(figs_styles, fig_id, 'ylabel')
