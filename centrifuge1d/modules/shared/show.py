@@ -256,248 +256,6 @@ def get_figure_option(figstyles, fig_id, name, not_found = None):
     return value
 
 ################################################################################
-#                                Data storage                                  #
-################################################################################
-
-class DataStorage():
-    """
-      Object for holding computed, measured data and additional data.
-    """
-
-    def __init__(self, experiment_info):
-        self._data = {'lines': {},
-                      'experiment_info': experiment_info}
-        self._modman = None
-
-    def has_data(self, data_type):
-        """ Return true if data 'data_type' is present in stored data. """
-
-        return ((data_type in self._data)
-                and (not self._data[data_type] is None))
-
-    def store(self, name, value):
-        """ Store the value under supplied name. """
-        self._data[name] = value
-
-    def get(self, key, not_found=None):
-        """ Get the value corresponding to supplied name. """
-        if key in self._data:
-            return self._data[key]
-        else:
-            return not_found
-
-    def store_computation(self, model, measurements, ID='computed'):
-        """ Store computed values with ID """
-        if self._modman is None:
-            self._modman = ModulesManager()
-
-        solver_module = self._modman.find_module(model.exp_type, submodule='run')
-        if not hasattr(solver_module, 'solve_direct'):
-            print("WARNING: Module for type '" + model.exp_type + "' does not "
-                  "specify a 'solve_direct' variable. Function 'solve()' will "
-                  "be used instead.")
-            flag = solver_module.solve(model, measurements)
-        else:
-            flag = solver_module.solve_direct(model, measurements)
-
-        if not flag:
-            print("Computation of reference with ID '" + ID + "' was not "
-                  "successfull. Data will not be saved.")
-        else:
-            data = {}
-
-            # Store all computed data
-            for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
-                if xvalue is None or yvalue is None:
-                    continue
-                # make a local copy as array may be overwritten
-                xvalue = xvalue.copy()
-                yvalue = yvalue.copy()
-
-                if name in ('h', 'u'):
-                    t = measurements.get_times()
-                    data[name] = (xvalue.transpose(), yvalue.transpose(), t)
-                else:
-                    data[name] = (xvalue, yvalue)
-
-            # Store extra data
-            # a) Retention curve based on theta
-            if hasattr(model, 'SC'):
-
-                SC = model.SC
-
-                if hasattr(model, 'theta_s'): theta_s = model.theta_s
-                else: theta_s = model.porosity
-
-                if hasattr(model, 'theta_r'): theta_r = model.theta_r
-                else: theta_r = 0.0
-
-                (p, theta) = SC.retention_curve(theta_s, model.density, model.g,
-                                                theta_r=theta_r)
-                (rc_h, rc_u) = SC.retention_curve_u(g=model.g,
-                                                    rho=model.density)
-
-                if hasattr(model, 'p') or hasattr(model, 'pc'):
-                    if hasattr(model, 'p'):
-                        p_meas = np.asarray(model.p)
-                    else:
-                        p_meas = np.asarray(model.pc)
-
-                    (p_user, theta_user) = \
-                      SC.retention_curve(theta_s, model.density, model.g,
-                                         theta_r=theta_r, p=p_meas)
-                    (rc_h_user, rc_u_user) = \
-                      SC.retention_curve_u(g=model.g, rho=model.density,
-                                           p=p_meas)
-
-                    data['theta']  = (p, theta, p_user, theta_user)
-                    data['relsat'] = (-rc_h, rc_u, -rc_h_user, rc_u_user)
-                else:
-                    data['theta']  = (p, theta)
-                    data['relsat'] = (-rc_h, rc_u)
-
-                if hasattr(model, 'ks'):
-                    try:
-                        thK = SC.conductivity_curve(model.ks, theta_s,
-                                              theta_r=theta_r, g=model.g,
-                                              rho=model.density, rtype='theta')
-
-                        uK = SC.conductivity_curve(model.ks, theta_s,
-                                              theta_r=theta_r, g=model.g,
-                                              rho=model.density, rtype='u')
-                        data['thK'] = thK
-                        data['uK']  = uK
-                    except:
-                        import traceback
-                        print (traceback.format_exc())
-
-            self._data['lines'][ID] = data
-            self.store('experiment_info', model.experiment_info)
-
-        return flag
-
-    def store_references(self, user_references, model=None):
-        """ Store computations corresponding to referenced parameters. """
-
-        stored_references = self.get('references', not_found={})
-
-        if type(user_references) in (list, tuple):
-            print("DEPRECATION ERROR: format of 'params_ref' has been changed."
-                  "Please update to new format.")
-            return False
-
-        if user_references == stored_references:
-            return False   # nothing needs to be re-computed
-
-        if model is None:
-            model = load_model(self.get('experiment_info'), validate=True)
-            #set original parameters as the found inverse param
-            model.set_parameters(self.get('inv_params', {}))
-
-        for ref_id in list(stored_references.keys()): # remove nonexisting refs
-            if not ref_id in user_references:
-                del stored_references[ref_id]
-
-        iterable_params =  model._iterable_parameters
-        for (ref_id, ref_params) in user_references.items():
-            if ((ref_id in stored_references) # stored value is the same
-                and (stored_references[ref_id] == ref_params)):
-                continue
-
-            ref_params = ref_params.copy() # work with backup
-            stored_references[ref_id] = ref_params
-
-            iters = [val for val in ref_params if val in iterable_params]
-            if iters:
-                print('Referencing model cannot set iterable '
-                      'parameters of original model:', iters,
-                      '\nSkipping...')
-                continue
-
-            backup_params = model.get_parameters(ref_params) # backup
-            if hasattr(model, 'SC'):
-                backup_SC = model.SC
-                backup_typeSC = model.SC.typeSC()
-                thekey = [key.lower() for key in ref_params.keys()]
-                if not 'sc_type' in thekey:
-                    print ('Referencing model does not contain "SC_type", cannot '
-                           'set parameters of the saturation curve.'
-                           '\nSkipping...')
-
-            model.set_parameters(ref_params)
-
-            flag = self.store_computation(model, model.measurements, ID=ref_id)
-
-            if not flag:
-                print('Reference parameters: ', ref_params)
-
-             # restore original SC
-            if hasattr(model, 'SC'):
-                if backup_typeSC !=  model.SC.typeSC():
-                    model.SC = backup_SC
-            model.set_parameters(backup_params)
-
-        self.store('references', stored_references)
-
-        return True
-
-    def store_measurements(self, measurements, model=None):
-        """ Store measured (supplied) data. """
-
-        for mtype in ('original', 'measured'):
-            m = {}
-
-            untransformed = (mtype == 'original')
-            for (name, xvalue, yvalue) \
-                in measurements.iterate_meas_measurements(untransformed, model):
-
-                m[name] = (xvalue, yvalue)
-
-                self._data['lines'][mtype] = m
-
-    def get_linedata(self, line_id, not_found=None):
-        """ Get data for specified line. """
-
-        data = self._data['lines']
-
-        if line_id in data:
-            return data[line_id]
-        else:
-            return not_found
-
-    def save(self):
-        """ Save all stored data to a file. """
-
-        if not self._data:
-            print('No data was stored. Nothing to be saved. Skipping saving...')
-            return
-
-        savedir = get_directories('figs', 'mask', self.get('experiment_info'))
-        if not path.exists(savedir):
-            makedirs(savedir)
-
-        with open(savedir + DUMP_DATA_FILENAME, 'wb') as fout:
-            pickle.dump(self._data, fout, DUMP_DATA_VERSION)
-
-    def load(self):
-        """ Load data stored in a file. """
-
-        pathdir = get_directories('figs', 'mask', self.get('experiment_info'))
-        filename = pathdir + DUMP_DATA_FILENAME
-        if not path.exists(filename):
-            print('INFO: File with computation results does not exist:',
-                  filename)
-            return False
-
-        with open(filename, 'rb') as fout:
-            self._data = pickle.load(fout)
-            # Old compatibility
-            if 'ResultsData' in self._data:
-                self._data = self._data['ResultsData']
-
-        return True
-
-################################################################################
 #          Reading display configuration files and data displaying             #
 ################################################################################
 
@@ -799,6 +557,248 @@ def get_shown_figs_ids(figures_styles):
                   if get_figure_option(figures_styles, fig_id, 'show')]
 
     return figs_ids
+
+################################################################################
+#                                Data storage                                  #
+################################################################################
+
+class DataStorage():
+    """
+      Object for holding computed, measured data and additional data.
+    """
+
+    def __init__(self, experiment_info):
+        self._data = {'lines': {},
+                      'experiment_info': experiment_info}
+        self._modman = None
+
+    def has_data(self, data_type):
+        """ Return true if data 'data_type' is present in stored data. """
+
+        return ((data_type in self._data)
+                and (not self._data[data_type] is None))
+
+    def store(self, name, value):
+        """ Store the value under supplied name. """
+        self._data[name] = value
+
+    def get(self, key, not_found=None):
+        """ Get the value corresponding to supplied name. """
+        if key in self._data:
+            return self._data[key]
+        else:
+            return not_found
+
+    def store_computation(self, model, measurements, ID='computed'):
+        """ Store computed values with ID """
+        if self._modman is None:
+            self._modman = ModulesManager()
+
+        solver_module = self._modman.find_module(model.exp_type, submodule='run')
+        if not hasattr(solver_module, 'solve_direct'):
+            print("WARNING: Module for type '" + model.exp_type + "' does not "
+                  "specify a 'solve_direct' variable. Function 'solve()' will "
+                  "be used instead.")
+            flag = solver_module.solve(model, measurements)
+        else:
+            flag = solver_module.solve_direct(model, measurements)
+
+        if not flag:
+            print("Computation of reference with ID '" + ID + "' was not "
+                  "successfull. Data will not be saved.")
+        else:
+            data = {}
+
+            # Store all computed data
+            for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
+                if xvalue is None or yvalue is None:
+                    continue
+                # make a local copy as array may be overwritten
+                xvalue = xvalue.copy()
+                yvalue = yvalue.copy()
+
+                if name in ('h', 'u'):
+                    t = measurements.get_times()
+                    data[name] = (xvalue.transpose(), yvalue.transpose(), t)
+                else:
+                    data[name] = (xvalue, yvalue)
+
+            # Store extra data
+            # a) Retention curve based on theta
+            if hasattr(model, 'SC'):
+
+                SC = model.SC
+
+                if hasattr(model, 'theta_s'): theta_s = model.theta_s
+                else: theta_s = model.porosity
+
+                if hasattr(model, 'theta_r'): theta_r = model.theta_r
+                else: theta_r = 0.0
+
+                (p, theta) = SC.retention_curve(theta_s, model.density, model.g,
+                                                theta_r=theta_r)
+                (rc_h, rc_u) = SC.retention_curve_u(g=model.g,
+                                                    rho=model.density)
+
+                if hasattr(model, 'p') or hasattr(model, 'pc'):
+                    if hasattr(model, 'p'):
+                        p_meas = np.asarray(model.p)
+                    else:
+                        p_meas = np.asarray(model.pc)
+
+                    (p_user, theta_user) = \
+                      SC.retention_curve(theta_s, model.density, model.g,
+                                         theta_r=theta_r, p=p_meas)
+                    (rc_h_user, rc_u_user) = \
+                      SC.retention_curve_u(g=model.g, rho=model.density,
+                                           p=p_meas)
+
+                    data['theta']  = (p, theta, p_user, theta_user)
+                    data['relsat'] = (-rc_h, rc_u, -rc_h_user, rc_u_user)
+                else:
+                    data['theta']  = (p, theta)
+                    data['relsat'] = (-rc_h, rc_u)
+
+                if hasattr(model, 'ks'):
+                    try:
+                        thK = SC.conductivity_curve(model.ks, theta_s,
+                                              theta_r=theta_r, g=model.g,
+                                              rho=model.density, rtype='theta')
+
+                        uK = SC.conductivity_curve(model.ks, theta_s,
+                                              theta_r=theta_r, g=model.g,
+                                              rho=model.density, rtype='u')
+                        data['thK'] = thK
+                        data['uK']  = uK
+                    except:
+                        import traceback
+                        print (traceback.format_exc())
+
+            self._data['lines'][ID] = data
+            self.store('experiment_info', model.experiment_info)
+
+        return flag
+
+    def store_references(self, user_references, model=None):
+        """ Store computations corresponding to referenced parameters. """
+
+        stored_references = self.get('references', not_found={})
+
+        if type(user_references) in (list, tuple):
+            print("DEPRECATION ERROR: format of 'params_ref' has been changed."
+                  "Please update to new format.")
+            return False
+
+        if user_references == stored_references:
+            return False   # nothing needs to be re-computed
+
+        if model is None:
+            model = load_model(self.get('experiment_info'), validate=True)
+            #set original parameters as the found inverse param
+            model.set_parameters(self.get('inv_params', {}))
+
+        for ref_id in list(stored_references.keys()): # remove nonexisting refs
+            if not ref_id in user_references:
+                del stored_references[ref_id]
+
+        iterable_params =  model._iterable_parameters
+        for (ref_id, ref_params) in user_references.items():
+            if ((ref_id in stored_references) # stored value is the same
+                and (stored_references[ref_id] == ref_params)):
+                continue
+
+            ref_params = ref_params.copy() # work with backup
+            stored_references[ref_id] = ref_params
+
+            iters = [val for val in ref_params if val in iterable_params]
+            if iters:
+                print('Referencing model cannot set iterable '
+                      'parameters of original model:', iters,
+                      '\nSkipping...')
+                continue
+
+            backup_params = model.get_parameters(ref_params) # backup
+            if hasattr(model, 'SC'):
+                backup_SC = model.SC
+                backup_typeSC = model.SC.typeSC()
+                thekey = [key.lower() for key in ref_params.keys()]
+                if not 'sc_type' in thekey:
+                    print ('Referencing model does not contain "SC_type", cannot '
+                           'set parameters of the saturation curve.'
+                           '\nSkipping...')
+
+            model.set_parameters(ref_params)
+
+            flag = self.store_computation(model, model.measurements, ID=ref_id)
+
+            if not flag:
+                print('Reference parameters: ', ref_params)
+
+             # restore original SC
+            if hasattr(model, 'SC'):
+                if backup_typeSC !=  model.SC.typeSC():
+                    model.SC = backup_SC
+            model.set_parameters(backup_params)
+
+        self.store('references', stored_references)
+
+        return True
+
+    def store_measurements(self, measurements, model=None):
+        """ Store measured (supplied) data. """
+
+        for mtype in ('original', 'measured'):
+            m = {}
+
+            untransformed = (mtype == 'original')
+            for (name, xvalue, yvalue) \
+                in measurements.iterate_meas_measurements(untransformed, model):
+
+                m[name] = (xvalue, yvalue)
+
+                self._data['lines'][mtype] = m
+
+    def get_linedata(self, line_id, not_found=None):
+        """ Get data for specified line. """
+
+        data = self._data['lines']
+
+        if line_id in data:
+            return data[line_id]
+        else:
+            return not_found
+
+    def save(self):
+        """ Save all stored data to a file. """
+
+        if not self._data:
+            print('No data was stored. Nothing to be saved. Skipping saving...')
+            return
+
+        savedir = get_directories('figs', 'mask', self.get('experiment_info'))
+        if not path.exists(savedir):
+            makedirs(savedir)
+
+        with open(savedir + DUMP_DATA_FILENAME, 'wb') as fout:
+            pickle.dump(self._data, fout, DUMP_DATA_VERSION)
+
+    def load(self):
+        """ Load data stored in a file. """
+
+        pathdir = get_directories('figs', 'mask', self.get('experiment_info'))
+        filename = pathdir + DUMP_DATA_FILENAME
+        if not path.exists(filename):
+            print('INFO: File with computation results does not exist:',
+                  filename)
+            return False
+
+        with open(filename, 'rb') as fout:
+            self._data = pickle.load(fout)
+            # Old compatibility
+            if 'ResultsData' in self._data:
+                self._data = self._data['ResultsData']
+
+        return True
 
 class DPlots():
     """ Class for displaying data. User styles are applied. """
