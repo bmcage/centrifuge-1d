@@ -542,8 +542,8 @@ def assign_data(styles, displayed_figs, data):
                     line_fig_style['legend_data'] = legend_data
 
             if fig_id in ('theta', 'relsat'):
-                # swtich xdata <-> ydata
-                tmp = xdata; xdata = ydata; ydata = tmp
+                # switch xdata <-> ydata
+                (xdata, ydata) = (ydata, xdata)
 
             line_fig_style['xdata'] = xdata
             line_fig_style['ydata'] = ydata
