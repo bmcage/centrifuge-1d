@@ -178,7 +178,8 @@ FIGURES_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('thK', 'uK'),
 FIGURES_IDS = list(FIGURES_DEFAULTS.keys())
 
 DISPLAY_OPTIONS = {'separate_figures': False, 'show_figures': True,
-                   'save_figures': True, 'matplotlib_backend': None}
+                   'save_figures': True, 'matplotlib_backend': None,
+                   'show_figures_titles': None}
 
 def set_default_units(figures_styles):
     for (fig_id, fig_style) in figures_styles.items():
@@ -846,9 +847,15 @@ class DPlots():
         show_figures     = display_options['show_figures']
         save_figures     = display_options['save_figures']
         separate_figures = display_options['separate_figures']
+        show_titles      = display_options['show_figures_titles']
 
         if not (save_figures or show_figures):
             return
+
+        if show_titles is None:
+            show_titles = separate_figures
+        else:
+            show_titles = False           # make sure user did not pass True
 
         figs_styles = styles['figures']
         figs_ids = assign_data(styles, get_shown_figs_ids(figs_styles), data)
@@ -967,6 +974,9 @@ class DPlots():
             if np.isscalar(xmax): plt.xlim(xmax=xmax)
             if np.isscalar(ymin): plt.ylim(ymin=ymin)
             if np.isscalar(ymax): plt.ylim(ymax=ymax)
+
+            if show_titles:
+                plt.suptitle(get_figure_option(figs_styles, fig_id, 'title'))
 
             show_legend = get_figure_option(figs_styles, fig_id, 'show_legend')
             if show_legend:

@@ -165,6 +165,10 @@
 # 'show_figures'       - Determines the displaying of figures (useful e.g. when
 #                        we know they are good, we just need to save them with
 #                        different backend); value: True (default)/False
+# 'show_figures_titles'- Display titles of the figures
+#                      - Value: False/None (default)
+#                      - If value is None, then titles are displayed only when
+#                        'separate_figures' is True
 # 'save_figures'       - automatically save figures after computation
 #                      - value: True (default) /False
 # 'matplotlib_backend' - Use different backend for matplotlib. If value is None,
@@ -178,4 +182,5 @@
 #options = {'separate_figures': False,
 #           'show_figures': True,
 #           'save_figures': True,
+#           'show_figures_titles',
 #           'matplotlib_backend': None}
