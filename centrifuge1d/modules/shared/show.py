@@ -463,8 +463,7 @@ def assign_data(styles, displayed_figs, data):
     # build a list of figs that actually contain some data
     nonempty_figs = []
 
-    if not data.has_data('lines'):
-        print('No data is provided. Nothing to display.')
+    if not displayed_figs:
         return nonempty_figs
 
     lines_ids = styles['lines_order']
@@ -564,19 +563,42 @@ def get_shown_figs_ids(figures_styles):
 
 class DataStorage():
     """
-      Object for holding computed, measured data and additional data.
+      Object for holding computed, measured data and additional data
+      and displays them applying user styles.
     """
 
     def __init__(self, experiment_info):
-        self._data = {'lines': {},
-                      'experiment_info': experiment_info}
+        self._experiment_info = experiment_info
         self._modman = None
+        self._data = {'lines': {}}                   # stored data
 
-    def has_data(self, data_type):
-        """ Return true if data 'data_type' is present in stored data. """
+        # Default values (merged with plotstyles inifiles)
+        display_options = {'separate_figures': False, 'show_figures': True,
+                           'save_figures': True, 'matplotlib_backend': None}
 
-        return ((data_type in self._data)
-                and (not self._data[data_type] is None))
+        styles = {'options': DISPLAY_OPTIONS, 'lines': LINESTYLES_DEFAULT,
+                  'figures': set_default_units(FIGURES_DEFAULTS),
+                  'plots_keep': {}, 'plots_remove': {}, 'params_ref': {},
+                  'lines_order': ()}
+
+        # Read user plotysles inifiles
+        plotstyles_filenames = get_filenames(experiment_info)
+
+        user_styles = {}
+        if plotstyles_filenames:
+            for fname in plotstyles_filenames:
+                deep_dictupdate(user_styles, read_plotstyles_file(fname))
+
+        update_styles(styles, user_styles)
+
+        self._styles    = styles
+
+        display_options = styles['options']
+
+        if 'matplotlib_backend' in display_options:
+            matplotlib_backend = display_options['matplotlib_backend']
+        if matplotlib_backend: # chosen other backend than the default one
+            matplotlib.use(matplotlib_backend)
 
     def store(self, name, value):
         """ Store the value under supplied name. """
@@ -607,6 +629,7 @@ class DataStorage():
             print("Computation of reference with ID '" + ID + "' was not "
                   "successfull. Data will not be saved.")
         else:
+            line_style = self._styles['lines'][ID]
             data = {}
 
             # Store all computed data
@@ -619,9 +642,14 @@ class DataStorage():
 
                 if name in ('h', 'u'):
                     t = measurements.get_times()
-                    data[name] = (xvalue.transpose(), yvalue.transpose(), t)
+                    xvalue = xvalue.transpose()
+                    yvalue = yvalue.transpose()
+                    data[name] = (xvalue, yvalue, t)
                 else:
                     data[name] = (xvalue, yvalue)
+
+                line_style['xdata'] = xvalue
+                line_style['ydata'] = yvalue
 
             # Store extra data
             # a) Retention curve based on theta
@@ -679,10 +707,11 @@ class DataStorage():
 
         return flag
 
-    def store_references(self, user_references, model=None):
+    def store_references(self, model=None):
         """ Store computations corresponding to referenced parameters. """
 
         stored_references = self.get('references', not_found={})
+        user_references = self._styles['params_ref']
 
         if type(user_references) in (list, tuple):
             print("DEPRECATION ERROR: format of 'params_ref' has been changed."
@@ -785,7 +814,7 @@ class DataStorage():
     def load(self):
         """ Load data stored in a file. """
 
-        pathdir = get_directories('figs', 'mask', self.get('experiment_info'))
+        pathdir = get_directories('figs', 'mask', self._experiment_info)
         filename = pathdir + DUMP_DATA_FILENAME
         if not path.exists(filename):
             print('INFO: File with computation results does not exist:',
@@ -800,44 +829,7 @@ class DataStorage():
 
         return True
 
-class DPlots():
-    """ Class for displaying data. User styles are applied. """
-
-    def __init__(self, experiment_info):
-        self._experiment_info = experiment_info
-
-        # Default values (merged with plotstyles inifiles)
-        display_options = {'separate_figures': False, 'show_figures': True,
-                           'save_figures': True, 'matplotlib_backend': None}
-
-        styles = {'options': DISPLAY_OPTIONS, 'lines': LINESTYLES_DEFAULT,
-                  'figures': set_default_units(FIGURES_DEFAULTS),
-                  'plots_keep': {}, 'plots_remove': {}, 'params_ref': {},
-                  'lines_order': ()}
-
-        # Read user plotysles inifiles
-        plotstyles_filenames = get_filenames(experiment_info)
-
-        user_styles = {}
-        if plotstyles_filenames:
-            for fname in plotstyles_filenames:
-                deep_dictupdate(user_styles, read_plotstyles_file(fname))
-
-        update_styles(styles, user_styles)
-
-        self._styles    = styles
-
-        display_options = styles['options']
-
-        if 'matplotlib_backend' in display_options:
-            matplotlib_backend = display_options['matplotlib_backend']
-        if matplotlib_backend: # chosen other backend than the default one
-            matplotlib.use(matplotlib_backend)
-
-    def get_references(self):
-        return self._styles['params_ref']
-
-    def display(self, data, fignum=1):
+    def display(self, fignum=1):
         """ Display the figures and/or write them to files. """
 
         styles = self._styles
@@ -858,7 +850,7 @@ class DPlots():
             show_titles = False           # make sure user did not pass True
 
         figs_styles = styles['figures']
-        figs_ids = assign_data(styles, get_shown_figs_ids(figs_styles), data)
+        figs_ids = assign_data(styles, get_shown_figs_ids(figs_styles), self)
 
         if not figs_ids:
             return
@@ -868,7 +860,7 @@ class DPlots():
         lines_styles = styles['lines']
         lines_ids = styles['lines_order']
 
-        print_status(data)
+        print_status(self)
 
         print('\nGenerating figures... ', end='')
 
@@ -1064,12 +1056,10 @@ def show_results(experiment_info,
 
         save_data = True
 
-    dplots = DPlots(experiment_info)
-
-    if data.store_references(dplots.get_references(), model) or save_data:
+    if data.store_references(model) or save_data:
         data.save()
 
-    dplots.display(data)
+    data.display()
 
 ################################################################################
 #                              Unused functions                                #
