@@ -60,7 +60,7 @@ dg_unit_time_length = ('time', 'length')
 #    'show', 'show_legend', 'legend_title', 'legend_bbox', 'legend_loc'
 
 FIG_OPTIONS_DEFAULTS = {'show': True, 'legend_loc': 4, 'order': 999,
-                        'show_legend': True}
+                        'show_legend': True, 'figures_dpi': 92}
 
 
 FIGURES_DEFAULTS = \
@@ -1008,8 +1008,9 @@ class DPlots():
 
         if save_figures:
             print('Saving figures... ', end='')
+            figures_dpi = display_options['figures_dpi']
             for (fig, img_suffix) in save_figs_list:
-                plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
+                plt.savefig(save_dir + 'image-' + img_suffix, dpi=figures_dpi)
 
         print('Done.')              # Generating/displaying/saving figures
 
