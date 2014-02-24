@@ -37,7 +37,7 @@ DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
 #    Assigned only to '_base_' of line_id:
 #        'xdata', 'ydata', 'label', 'legend_data', 'order',
 #    Assigned anywhere:
-#        'width', 'symbolsize', 'lineopt', 'ls'
+#        'width', 'symbolsize', 'lineopt'
 LINESTYLES_DEFAULT = {'_default_': {'_base_': {'width': 1, 'symbolsize': 6,
                                                'lineopt': '.', 'order': 999},
                                     'h':      {'lineopt': '-'},
@@ -57,7 +57,7 @@ dg_unit_time_length = ('time', 'length')
 # Figures options:
 #    'order', 'xlabel', 'ylabel',
 #    'xscale', 'yscale', 'xunit', 'yunit', 'xmin', 'ymin', 'xmax', 'ymax',
-#    'show', 'ls', 'show_legend', 'legend_title', 'legend_bbox', 'legend_loc'
+#    'show', 'show_legend', 'legend_title', 'legend_bbox', 'legend_loc'
 
 FIG_OPTIONS_DEFAULTS = {'show': True, 'legend_loc': 4, 'order': 999,
                         'show_legend': True}
@@ -913,8 +913,6 @@ class DPlots():
                 if (xdata is None) or (ydata is None):
                     continue
 
-                plot_style = get_line_option(lines_styles, line_id, 'lineopt',
-                                             fig_id)
                 width = get_line_option(lines_styles, line_id, 'width', fig_id)
                 symbolsize = get_line_option(lines_styles, line_id,
                                              'symbolsize', fig_id)
@@ -924,13 +922,16 @@ class DPlots():
                     xdata = xcoef * np.asarray(xdata, dtype=float)
                 if not ycoef == 1.0:
                     xdata = ycoef * np.asarray(ydata, dtype=float)
-                ls = get_line_option(lines_styles, line_id, 'ls', fig_id)
-                if ls and len(xdata.shape) > 1:
+
+                plot_style = get_line_option(lines_styles, line_id, 'lineopt',
+                                             fig_id)
+                if (len(xdata.shape) > 1) and np.iterable(plot_style):
+                    max_styles = len(plot_style)
                     for ind in range(len(xdata[0])):
                         entryx = xdata[:, ind]
                         entryy = ydata[:, ind]
 
-                        plt.plot(entryx, entryy, ls[ind%len(ls)],
+                        plt.plot(entryx, entryy, plot_style[ind%max_styles],
                                  linewidth=width, markersize=symbolsize)
                 else:
                     plt.plot(xdata, ydata, plot_style, linewidth=width,
