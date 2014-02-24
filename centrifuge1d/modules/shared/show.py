@@ -870,6 +870,8 @@ class DPlots():
 
         print_status(data)
 
+        print('\nGenerating figures... ', end='')
+
         import matplotlib.pyplot as plt
 
         if save_figures:
@@ -883,6 +885,8 @@ class DPlots():
 
             if not path.exists(save_dir):
                 makedirs(save_dir)
+
+            save_figs_list = []
 
         if separate_figures:
             images_per_figure = 1
@@ -899,10 +903,15 @@ class DPlots():
                 fignum += 1
 
                 if separate_figures:
-                    plt.figure(fignum)
+                    fig = plt.figure(fignum)
+                    img_suffix = fig_id
                 else:
-                    plt.figure(fignum, figsize=(16, 8.5))
+                    fig = plt.figure(fignum, figsize=(16, 8.5))
                     plt.subplots_adjust(wspace=0.15, left=0.06, right=0.85)
+                    img_suffix = str(fignum)
+
+                if save_figures:
+                    save_figs_list.append((fig, img_suffix))
 
             if not separate_figures:
                 plt.subplot(3, 2, img_num)
@@ -987,29 +996,29 @@ class DPlots():
                            prop={'family': 'monospace'}, loc=legend_loc,
                            title=legend_title, bbox_to_anchor=legend_bbox)
 
-            if save_figures and (img_num == images_per_figure):
-                if separate_figures: img_suffix = fig_id
-                else: img_suffix = str(fignum)
-
-                plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
-
             img_num += 1
 
-        if save_figures and (img_num < images_per_figure):
-            plt.savefig(save_dir + 'image-' + str(fignum), dpi=300)
-
         if show_figures:
+            print('Displaying figures... ', end='')
             try:
                 plt.show(block=False)
             except: # Older matplotlib compatibility
                 plt.ion()
                 plt.show()
 
+        if save_figures:
+            print('Saving figures... ', end='')
+            for (fig, img_suffix) in save_figs_list:
+                plt.savefig(save_dir + 'image-' + img_suffix, dpi=300)
+
+        print('Done.')              # Generating/displaying/saving figures
+
+        if show_figures:
             if sys.version_info[0] == 2:
                 #python 2.7
-                raw_input('Press ENTER to continue...')
+                raw_input('\nPress ENTER to continue...')
             else:
-                input('Press ENTER to continue...')
+                input('\nPress ENTER to continue...')
 
             plt.close('all')
 
