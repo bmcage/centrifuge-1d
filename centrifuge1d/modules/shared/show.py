@@ -640,9 +640,6 @@ class DataStorage:
         self._data = {'lines': {}}                   # stored data
 
         # Default values (merged with plotstyles inifiles)
-        display_options = {'separate_figures': False, 'show_figures': True,
-                           'save_figures': True, 'matplotlib_backend': None}
-
         styles = {'options': DISPLAY_OPTIONS, 'lines': LINESTYLES_DEFAULT,
                   'figures': set_default_units(FIGURES_DEFAULTS),
                   'plots_keep': {}, 'plots_remove': {}, 'params_ref': {},
