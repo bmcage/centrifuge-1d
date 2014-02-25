@@ -182,7 +182,7 @@ DISPLAY_OPTIONS = {'separate_figures': False, 'show_figures': True,
                    'show_figures_titles': None}
 
 def set_default_units(figures_styles):
-    for (fig_id, fig_style) in figures_styles.items():
+    for fig_style in figures_styles.values():
         fig_style['xunit'] = DEFAULT_UNITS[fig_style['xtype']]
         fig_style['yunit'] = DEFAULT_UNITS[fig_style['ytype']]
 
@@ -198,7 +198,7 @@ def get_unit_coef(unit_base):
     # units used for computation are: cm, s, pa, gf and "no units"
     if unit in ['cm', 's', 'pa', 'g', 'gf', 'cm/s', 'rpm', '']: coef = 1.0
     elif unit == 'mm': coef = 10.
-    elif unit in ('min'): coef = 1./60.
+    elif unit in 'min': coef = 1./60.
     elif unit == 'h': coef = 1./3600.
     elif unit in ('m', 'm/s'): coef = 0.01
     elif unit in ['kpa', 'kg', 'kgp']: coef = 0.001
@@ -243,7 +243,7 @@ def get_line_option(linestyles, line_id, name, fig_id=None, not_found=None):
 
     return not_found
 
-def get_figure_option(figstyles, fig_id, name, not_found = None):
+def get_figure_option(figstyles, fig_id, name, not_found=None):
     fig_style = figstyles[fig_id]
 
     if name in fig_style:
@@ -507,7 +507,7 @@ def assign_data(styles, displayed_figs, data):
             # as it needs to be converted and filtered
             if len(line_value) > 2:
                 legend_data = line_value[2]
-                if (type(legend_data) is np.ndarray):
+                if type(legend_data) is np.ndarray:
                     legend_data = ['% 6.1f' % (ti/60.) for ti in legend_data]
             else:
                 legend_data = None
@@ -525,7 +525,7 @@ def assign_data(styles, displayed_figs, data):
                     filter_idxs = np.zeros((filter_size, ), dtype=bool)
                     filter_indices(filter_idxs, plots_keep[fig_id], True)
                 else:
-                    filter_ones = np.zeros((filter_size, ), dtype=bool)
+                    filter_idxs = np.zeros((filter_size, ), dtype=bool)
 
                 if fig_id in plots_remove:
                     filter_indices(filter_idxs, plots_remove[fig_id], False)
@@ -563,7 +563,7 @@ def get_shown_figs_ids(figures_styles):
 #                                Data storage                                  #
 ################################################################################
 
-class DataStorage():
+class DataStorage:
     """
       Object for holding computed, measured data and additional data
       and displays them applying user styles.
@@ -593,7 +593,7 @@ class DataStorage():
 
         update_styles(styles, user_styles)
 
-        self._styles    = styles
+        self._styles = styles
 
         display_options = styles['options']
 
@@ -702,7 +702,7 @@ class DataStorage():
                         data['uK']  = uK
                     except:
                         import traceback
-                        print (traceback.format_exc())
+                        print(traceback.format_exc())
 
             self._data['lines'][ID] = data
             self.store('experiment_info', model.experiment_info)
@@ -732,7 +732,7 @@ class DataStorage():
             if not ref_id in user_references:
                 del stored_references[ref_id]
 
-        iterable_params =  model._iterable_parameters
+        iterable_params = model._iterable_parameters
         for (ref_id, ref_params) in user_references.items():
             if ((ref_id in stored_references) # stored value is the same
                 and (stored_references[ref_id] == ref_params)):
@@ -754,9 +754,9 @@ class DataStorage():
                 backup_typeSC = model.SC.typeSC()
                 thekey = [key.lower() for key in ref_params.keys()]
                 if not 'sc_type' in thekey:
-                    print ('Referencing model does not contain "SC_type", cannot '
-                           'set parameters of the saturation curve.'
-                           '\nSkipping...')
+                    print('Referencing model does not contain "SC_type", '
+                          'cannot set parameters of the saturation curve.'
+                          '\nSkipping...')
 
             model.set_parameters(ref_params)
 
@@ -767,7 +767,7 @@ class DataStorage():
 
              # restore original SC
             if hasattr(model, 'SC'):
-                if backup_typeSC !=  model.SC.typeSC():
+                if backup_typeSC != model.SC.typeSC():
                     model.SC = backup_SC
             model.set_parameters(backup_params)
 
@@ -951,8 +951,8 @@ class DataStorage():
                 legend_label = get_line_option(lines_styles, line_id,
                                                'legend_data', fig_id)
                 if legend_label is None:
-                    legend_label =  get_line_option(lines_styles, line_id,
-                                                    'label', fig_id, line_id)
+                    legend_label = get_line_option(lines_styles, line_id,
+                                                   'label', fig_id, line_id)
                 if np.isscalar(legend_label):
                     legend_labels.append(legend_label)
                 else:
@@ -1105,7 +1105,7 @@ def display_table(t_measured=None, t_computed=None,
 
     subplt_num = 1
 
-    for (disp, label) in zip (disp_p, disp_labels):
+    for (disp, label) in zip(disp_p, disp_labels):
         if not disp: continue
 
         data = []
