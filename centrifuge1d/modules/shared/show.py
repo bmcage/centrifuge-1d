@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import numpy as np, matplotlib, pickle
+import matplotlib.pyplot as plt
 import sys
 from ...const import PLOTSTYLE_ININAME, DUMP_DATA_VERSION, DUMP_DATA_FILENAME
 from os import makedirs, path
@@ -539,6 +540,90 @@ def get_shown_figs_ids(figures_styles):
 
     return figs_ids
 
+def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
+                show_titles):
+
+     # plot the lines
+    legend_labels = []
+
+    xunit = get_figure_option(figs_styles, fig_id, 'xunit')
+    yunit = get_figure_option(figs_styles, fig_id, 'yunit')
+
+    for line_id in lines_ids:
+        xdata = get_line_option(lines_styles, line_id, 'xdata', fig_id)
+        ydata = get_line_option(lines_styles, line_id, 'ydata', fig_id)
+
+        if (xdata is None) or (ydata is None):
+            continue
+
+        width = get_line_option(lines_styles, line_id, 'width', fig_id)
+        symbolsize = get_line_option(lines_styles, line_id,
+                                             'symbolsize', fig_id)
+        xcoef = get_unit_coef(xunit)
+        ycoef = get_unit_coef(yunit)
+        if not xcoef == 1.0:
+            xdata = xcoef * np.asarray(xdata, dtype=float)
+        if not ycoef == 1.0:
+            ydata = ycoef * np.asarray(ydata, dtype=float)
+
+        plot_style = get_line_option(lines_styles, line_id, 'lineopt',
+                                             fig_id)
+        if (len(xdata.shape) > 1) and np.iterable(plot_style):
+            max_styles = len(plot_style)
+            for ind in range(len(xdata[0])):
+                entryx = xdata[:, ind]
+                entryy = ydata[:, ind]
+
+                plt.plot(entryx, entryy, plot_style[ind%max_styles],
+                         linewidth=width, markersize=symbolsize)
+        else:
+                plt.plot(xdata, ydata, plot_style, linewidth=width,
+                         markersize=symbolsize)
+
+        # Extend the legend labels
+        legend_label = get_line_option(lines_styles, line_id,
+                                       'legend_data', fig_id)
+        if legend_label is None:
+            legend_label = get_line_option(lines_styles, line_id,
+                                           'label', fig_id, line_id)
+        if np.isscalar(legend_label):
+            legend_labels.append(legend_label)
+        else:
+            legend_labels.extend(legend_label)
+
+    xlabel = get_figure_option(figs_styles, fig_id, 'xlabel')
+    ylabel = get_figure_option(figs_styles, fig_id, 'ylabel')
+
+    plt.xlabel(xlabel.format(xunit))
+    plt.ylabel(ylabel.format(yunit))
+
+    xscale = get_figure_option(figs_styles, fig_id, 'xscale')
+    yscale = get_figure_option(figs_styles, fig_id, 'yscale')
+    if xscale: plt.xscale(xscale)
+    if yscale: plt.yscale(yscale)
+
+    xmin = get_figure_option(figs_styles, fig_id, 'xmin')
+    ymin = get_figure_option(figs_styles, fig_id, 'ymin')
+    xmax = get_figure_option(figs_styles, fig_id, 'xmax')
+    ymax = get_figure_option(figs_styles, fig_id, 'ymax')
+    if np.isscalar(xmin): plt.xlim(xmin=xmin)
+    if np.isscalar(xmax): plt.xlim(xmax=xmax)
+    if np.isscalar(ymin): plt.ylim(ymin=ymin)
+    if np.isscalar(ymax): plt.ylim(ymax=ymax)
+
+    if show_titles:
+        plt.suptitle(get_figure_option(figs_styles, fig_id, 'title'))
+
+    show_legend = get_figure_option(figs_styles, fig_id, 'show_legend')
+    if show_legend:
+        legend_loc   = get_figure_option(figs_styles, fig_id, 'legend_loc')
+        legend_title = get_figure_option(figs_styles, fig_id, 'legend_title')
+        legend_bbox  = get_figure_option(figs_styles, fig_id, 'legend_bbox')
+        plt.legend(legend_labels, borderaxespad=0.0, title=legend_title,
+                   prop={'family': 'monospace'}, loc=legend_loc,
+                   bbox_to_anchor=legend_bbox)
+
+
 ################################################################################
 #                                Data storage                                  #
 ################################################################################
@@ -844,8 +929,6 @@ class DataStorage:
 
         print('\nGenerating figures... ', end='')
 
-        import matplotlib.pyplot as plt
-
         if save_figures:
             experiment_info = self._experiment_info
             if experiment_info['mask']:
@@ -888,85 +971,8 @@ class DataStorage:
             if not separate_figures:
                 plt.subplot(3, 2, img_num)
 
-            # plot the lines
-            legend_labels = []
-
-            xunit = get_figure_option(figs_styles, fig_id, 'xunit')
-            yunit = get_figure_option(figs_styles, fig_id, 'yunit')
-
-            for line_id in lines_ids:
-                xdata = get_line_option(lines_styles, line_id, 'xdata', fig_id)
-                ydata = get_line_option(lines_styles, line_id, 'ydata', fig_id)
-
-                if (xdata is None) or (ydata is None):
-                    continue
-
-                width = get_line_option(lines_styles, line_id, 'width', fig_id)
-                symbolsize = get_line_option(lines_styles, line_id,
-                                             'symbolsize', fig_id)
-                xcoef = get_unit_coef(xunit)
-                ycoef = get_unit_coef(yunit)
-                if not xcoef == 1.0:
-                    xdata = xcoef * np.asarray(xdata, dtype=float)
-                if not ycoef == 1.0:
-                    ydata = ycoef * np.asarray(ydata, dtype=float)
-
-                plot_style = get_line_option(lines_styles, line_id, 'lineopt',
-                                             fig_id)
-                if (len(xdata.shape) > 1) and np.iterable(plot_style):
-                    max_styles = len(plot_style)
-                    for ind in range(len(xdata[0])):
-                        entryx = xdata[:, ind]
-                        entryy = ydata[:, ind]
-
-                        plt.plot(entryx, entryy, plot_style[ind%max_styles],
-                                 linewidth=width, markersize=symbolsize)
-                else:
-                    plt.plot(xdata, ydata, plot_style, linewidth=width,
-                             markersize=symbolsize)
-
-                # Extend the legend labels
-                legend_label = get_line_option(lines_styles, line_id,
-                                               'legend_data', fig_id)
-                if legend_label is None:
-                    legend_label = get_line_option(lines_styles, line_id,
-                                                   'label', fig_id, line_id)
-                if np.isscalar(legend_label):
-                    legend_labels.append(legend_label)
-                else:
-                    legend_labels.extend(legend_label)
-
-            xlabel = get_figure_option(figs_styles, fig_id, 'xlabel')
-            ylabel = get_figure_option(figs_styles, fig_id, 'ylabel')
-
-            plt.xlabel(xlabel.format(xunit))
-            plt.ylabel(ylabel.format(yunit))
-
-            xscale = get_figure_option(figs_styles, fig_id, 'xscale')
-            yscale = get_figure_option(figs_styles, fig_id, 'yscale')
-            if xscale: plt.xscale(xscale)
-            if yscale: plt.yscale(yscale)
-
-            xmin = get_figure_option(figs_styles, fig_id, 'xmin')
-            ymin = get_figure_option(figs_styles, fig_id, 'ymin')
-            xmax = get_figure_option(figs_styles, fig_id, 'xmax')
-            ymax = get_figure_option(figs_styles, fig_id, 'ymax')
-            if np.isscalar(xmin): plt.xlim(xmin=xmin)
-            if np.isscalar(xmax): plt.xlim(xmax=xmax)
-            if np.isscalar(ymin): plt.ylim(ymin=ymin)
-            if np.isscalar(ymax): plt.ylim(ymax=ymax)
-
-            if show_titles:
-                plt.suptitle(get_figure_option(figs_styles, fig_id, 'title'))
-
-            show_legend = get_figure_option(figs_styles, fig_id, 'show_legend')
-            if show_legend:
-                legend_loc   = get_figure_option(figs_styles, fig_id, 'legend_loc')
-                legend_title = get_figure_option(figs_styles, fig_id, 'legend_title')
-                legend_bbox  = get_figure_option(figs_styles, fig_id, 'legend_bbox')
-                plt.legend(legend_labels, borderaxespad=0.0,
-                           prop={'family': 'monospace'}, loc=legend_loc,
-                           title=legend_title, bbox_to_anchor=legend_bbox)
+            draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
+                        show_titles)
 
             img_num += 1
 
@@ -1052,7 +1058,7 @@ def display_table(t_measured=None, t_computed=None,
                   rm1_measured=None, rm1_computed=None,
                   l0_measured=None, l1_measured=None, l1_computed=None,
                   fignum=10):
-    import matplotlib.pyplot as plt
+
     min_value = 1.0e-10
     assure = lambda v: max(v, min_value)
     format_row = (lambda format_str, data_row:
