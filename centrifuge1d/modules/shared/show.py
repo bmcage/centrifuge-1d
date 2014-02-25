@@ -8,9 +8,12 @@ from ...shared import get_directories, parse_value, yn_prompt, filter_indices
 from ...config import ModulesManager, load_model
 from collections import OrderedDict, defaultdict
 from .functions import has_data, compare_data
-try:
+
+if sys.version_info[0] == 2:
+    #python 2.7
     import ConfigParser as configparser
-except:
+    input = raw_input
+else:
     import configparser
 
 ################################################################################
@@ -215,31 +218,15 @@ def get_unit_coef(unit_base):
 ################################################################################
 
 def get_line_option(linestyles, line_id, name, fig_id=None, not_found=None):
-    if fig_id is None:
-        # we search only values in '_base_'
-        if (line_id in linestyles) and (name in linestyles[line_id]['_base_']):
-            value = linestyles[line_id]['_base_'][name]
-        elif name in linestyles['_default_']['_base_']:
-            value = linestyles['_default_']['_base_'][name]
-        else:
-            value = not_found
+    line_ids = (line_id, '_default_')
+    fig_ids = (fig_id, '_base_') if fig_id is not None else ('_base_', )
 
-        return value
-
-    # search for most specific to least specific
-    for line_name in (line_id, '_default_'):
-        if not line_name in linestyles:
-            continue
-
-        line_style = linestyles[line_name]
-
-        if (fig_id in line_style) and (name in line_style[fig_id]):
-            value = line_style[fig_id][name]
-            return value
-
-        elif name in line_style['_base_']:
-            value = line_style['_base_'][name]
-            return value
+    for line_name in line_ids:
+        for fig_name in fig_ids:
+            if ((line_name in linestyles)
+                 and (fig_name  in linestyles[line_name])
+                 and (name in linestyles[line_name][fig_name])):
+                return linestyles[line_name][fig_name][name]
 
     return not_found
 
@@ -268,28 +255,22 @@ def print_status(data, filename=None):
     computed     = data.get_linedata('computed')
     measurements = data.get_linedata('measured')
 
-    if not computed: return
+    if (not computed) or (not measurements):
+        return
 
-    if filename is None:
-        stream = None
-    else:
-        stream = open(filename, 'w')
-
-    if not measurements: return
+    stream = None if filename is None else open(filename, 'w')
 
     try:
         # compare measured vs. computed data
         for (key, m_data) in measurements.items():
-            if m_data[1] is None: continue
+            if (m_data[1] is None) or (not key in computed):
+                 continue
 
-            if key in computed:
-                if key == 'theta':
-                    c_value = computed[key][3]
-                else:
-                    c_value = computed[key][1]
-                m_value = m_data[1]
+            if key == 'theta':
+                c_value = computed[key][3]
             else:
-                continue
+                c_value = computed[key][1]
+            m_value = m_data[1]
 
             if c_value is not None:
                 compare_data(key, c_value, m_value, stream)
@@ -306,11 +287,10 @@ def print_status(data, filename=None):
             for (name, value) in params.items():
                 if name == 'ks':
                     print('  Ks [cm/s]: {: .8g}'.format(value), file=stream)
+                elif np.iterable(value):
+                    print('  {0:9}: {1!s}'.format(name, value), file=stream)
                 else:
-                    if np.iterable(value):
-                        print('  {0:9}: {1!s}'.format(name, value), file=stream)
-                    else:
-                        print('  {:9}: {: .8g}'.format(name, value), file=stream)
+                    print('  {:9}: {: .8g}'.format(name, value), file=stream)
 
     finally:
         if not filename is None: stream.close()
@@ -846,10 +826,8 @@ class DataStorage:
         if not (save_figures or show_figures):
             return
 
-        if show_titles is None:
-            show_titles = separate_figures
-        else:
-            show_titles = False           # make sure user did not pass True
+        # make sure user did not pass True
+        show_titles = separate_figures if (show_titles is None) else False
 
         figs_styles = styles['figures']
         figs_ids = assign_data(styles, get_shown_figs_ids(figs_styles), self)
@@ -1009,12 +987,7 @@ class DataStorage:
         print('Done.')              # Generating/displaying/saving figures
 
         if show_figures:
-            if sys.version_info[0] == 2:
-                #python 2.7
-                raw_input('\nPress ENTER to continue...')
-            else:
-                input('\nPress ENTER to continue...')
-
+            input('\nPress ENTER to continue...')
             plt.close('all')
 
 ################################################################################
