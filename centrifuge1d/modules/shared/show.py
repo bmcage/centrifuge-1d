@@ -6,7 +6,7 @@ from ...const import PLOTSTYLE_ININAME, DUMP_DATA_VERSION, DUMP_DATA_FILENAME
 from os import makedirs, path
 from ...shared import get_directories, parse_value, yn_prompt, filter_indices
 from ...config import ModulesManager, load_model
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from .functions import has_data, compare_data
 try:
     import ConfigParser as configparser
@@ -331,12 +331,14 @@ def get_filenames(experiment_info):
 
     return plotstyles_files
 
+def is_dict_p(value):
+    return type(value) in (dict, OrderedDict, defaultdict)
+
 def deep_dictupdate(d1, d2):
     """ Recursively update dictionary d1 with values of dictionary d2. """
 
     for (vkey, vvalue) in d2.items():
-        if ((vkey in d1) and (type(d1[vkey]) == dict)
-            and (type(vvalue) == dict)):
+        if (vkey in d1) and is_dict_p(d1[vkey]) and is_dict_p(vvalue):
             deep_dictupdate(d1[vkey], vvalue)
         else:
             d1[vkey] = vvalue
