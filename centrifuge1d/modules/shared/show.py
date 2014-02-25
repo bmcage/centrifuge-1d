@@ -931,7 +931,7 @@ class DataStorage:
                 if not xcoef == 1.0:
                     xdata = xcoef * np.asarray(xdata, dtype=float)
                 if not ycoef == 1.0:
-                    xdata = ycoef * np.asarray(ydata, dtype=float)
+                    ydata = ycoef * np.asarray(ydata, dtype=float)
 
                 plot_style = get_line_option(lines_styles, line_id, 'lineopt',
                                              fig_id)
