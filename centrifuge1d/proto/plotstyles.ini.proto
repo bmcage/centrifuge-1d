@@ -171,6 +171,8 @@
 #                        'separate_figures' is True
 # 'save_figures'       - automatically save figures after computation
 #                      - value: True (default) /False
+# 'comparison_table'   - display comparison of computed vs. measured values in
+#                        a table
 # 'figures_dpi'	       - set the dpi of the saved figure. Default is 92.
 # 'matplotlib_backend' - Use different backend for matplotlib. If value is None,
 #                        the default one for matplotlib is used. Note: given
@@ -185,4 +187,5 @@
 #           'save_figures': True,
 #           'figures_dpi': 92,
 #           'show_figures_titles',
+#           'comparison_table': False,
 #           'matplotlib_backend': None}

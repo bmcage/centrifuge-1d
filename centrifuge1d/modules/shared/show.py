@@ -183,7 +183,7 @@ FIGURES_IDS = list(FIGURES_DEFAULTS.keys())
 
 DISPLAY_OPTIONS = {'separate_figures': False, 'show_figures': True,
                    'save_figures': True, 'matplotlib_backend': None,
-                   'show_figures_titles': None}
+                   'show_figures_titles': None, 'comparison_table': False}
 
 def set_default_units(figures_styles):
     for fig_style in figures_styles.values():
@@ -955,6 +955,9 @@ class DataStorage:
 
             img_num += 1
 
+        if display_options['comparison_table']:
+            display_table(self, fignum+1)
+
         if show_figures:
             print('Displaying figures... ', end='')
             try:
@@ -1021,96 +1024,88 @@ def show_results(experiment_info,
 
     data.display()
 
-################################################################################
-#                              Unused functions                                #
-################################################################################
+def display_table(data, fignum=None):
+    """ Display comparison table of measured vs. computed results. """
 
-def nd2strlist(nd):
-    result = []
-    for value in nd:
-        result.append(str(value))
-    return result
+    from matplotlib.ticker import NullLocator
 
-def display_table(t_measured=None, t_computed=None,
-                  wl_out1_measured=None, wl_out1_computed=None,
-                  gc1_measured=None, gc1_computed=None,
-                  rm1_measured=None, rm1_computed=None,
-                  l0_measured=None, l1_measured=None, l1_computed=None,
-                  fignum=10):
+    majorLocator = NullLocator()
 
-    min_value = 1.0e-10
-    assure = lambda v: max(v, min_value)
-    format_row = (lambda format_str, data_row:
-                  [format_str % assure(value) for value in data_row])
+    AXESPAD = 0.02  # default (unexported) value in matplotlib.table
+    NAMECELL_WIDTH = 0.1 # width of first col (containing name)
 
-    disp_t      = (not t_measured is None) and (not t_computed is None)
-    disp_wl_out = ((not wl_out1_measured is None)
-                   and (not wl_out1_computed is None))
-    disp_gc     = (not gc1_measured is None) and (not gc1_computed is None)
-    disp_rm     = (not rm1_measured is None) and (not rm1_computed is None)
-    disp_l      = (not l1_measured is None) and (not l1_computed is None)
+    fig = plt.figure(fignum)
+    ax = fig.add_axes((0,0,1,1))
+    ax.xaxis.set_major_locator(majorLocator)
+    ax.yaxis.set_major_locator(majorLocator)
 
-    disp_p = (disp_t, disp_wl_out, disp_gc, disp_rm, disp_l)
-    disp_labels = ('t', 'wl_out', 'gc', 'rm', 'l')
+    colsnum = 10
 
-    subplots = sum([int(value) for value in disp_p])
-    print('sb', subplots)
+    cols_widths = ([NAMECELL_WIDTH]
+                   + [(1-NAMECELL_WIDTH-2*AXESPAD)/colsnum] *colsnum)
 
-    colLabels = ['#%i' % (i+1) for i in range(len(t_measured))]
-    print(wl_out1_measured, wl_out1_computed, colLabels)
+    computed     = data.get_linedata('computed')
+    measurements = data.get_linedata('measured')
 
-    plt.figure(fignum, figsize=(16, 8.5))
+    rows = []
+    for (key, m_data) in measurements.items():
+        if (m_data[1] is None) or (not key in computed):
+            continue
 
-    subplt_num = 1
 
-    for (disp, label) in zip(disp_p, disp_labels):
-        if not disp: continue
+        c_value = computed[key][3] if key == 'theta' else computed[key][1]
+        m_value = m_data[1]
 
-        data = []
+        if c_value is None:
+            continue
 
-        if label == 't':
-            rowLabels = ['Duration measured', 'Duration computed', 'Error (%)']
-            data_measured = t_measured
-            data_computed = t_computed
-        elif label == 'wl_out':
-            rowLabels = ['Outflow measured', 'Outflow computed', 'Error (%)']
-            data_measured = wl_out1_measured
-            data_computed = wl_out1_computed
-        elif label == 'gc':
-            rowLabels = ['GC measured', 'GC computed', 'Error (%)']
-            data_measured = gc1_measured
-            data_computed = gc1_computed
-        elif label == 'rm':
-            rowLabels = ['RM measured', 'RM computed', 'Error (%)']
-            data_measured = rm1_measured
-            data_computed = rm1_computed
-        elif label == 'l':
-            rowLabels = ['L1 measured', 'L1 computed', 'Error (%)']
-            if not l0_measured is None:
-                rowLabels.insert(0, 'L0 initial')
-            data_measured = l1_measured
-            data_computed = l1_computed
+        compare_results(key, c_value, m_value, colsnum, rows.append)
 
-        plt.subplot(subplots, 1, subplt_num)
-        #plt.axes(frameon=False)
-        plt.axis('off')
+    plt.table(cellText=rows, colLabels=None, rowLabels=None, lod=False,
+              colWidths=cols_widths, loc=2);
 
-        data.append(format_row('% 9.6f', data_measured))
-        data.append(format_row('% 9.6f', data_computed))
-        data.append(format_row('% 5.2f',
-                               [((wo_m - wo_c) / wo_m * 100) for (wo_m, wo_c)
-                                in zip(data_measured, data_computed)]))
+def compare_results(name, c_value, m_value, colsnum, apply_row_fn,
+                    padding=True):
+    """
+        Perform comparison of two arrays - 'c_value' and 'm_value'. Apply the
+        'apply_row_fn' on one row of the comparison. Number of rows is
+        determined by the length of the input arrays and number of columns
+        'colsnum'. If 'padding' is True empty strings are appended to fill data
+        to 'colsnum'.
+        Rows 1-4 are repeated untill the end of c_value and m_value is reached:
+        1.row: [name, colsnum * measured_data]
+        2.row: [name, colsnum * computed_data]
+        3.row: [AbsError, colsnum * abserror_data]
+        4.row: [RelError, colsnum * relerror_data]
 
-        subplt_num = subplt_num + 1
-        print(data)
+        Lastly, row with LSQ error is added (and empty row afterwards)
+    """
 
-        plt.table(cellText=data,
-                  rowLabels=rowLabels,
-                  colLabels=colLabels,
-                  loc='top')
-    try:
-        plt.show(block=False)
-    except:
-        plt.ion()
-        plt.show()
-    input('Press ENTER to continue...')
+    error = c_value - m_value
+    abs_error = np.abs(error)
+    m_norm = np.max(np.abs(m_value), 1e-60)
+    rel_error = abs_error / m_norm * 100
+    rel_error[rel_error > 1e50] = np.inf
+    rel_error = np.sign(error) * rel_error
+
+    float_display_length = 12
+    fstr = '{: ' + str(float_display_length) + '.6f}' # '{ 12.6f}}'
+
+    rows_names = ('{} measured'.format(name), '{} computed'.format(name),
+                  'AbsError: ', 'Error (%):')
+    rows_values = (m_value, c_value, abs_error, rel_error)
+
+    items_count = np.alen(c_value)
+    i0 = 0
+    while i0 < items_count:
+        i1 = min(i0 + colsnum, items_count)
+        for (row_name, row_value) in zip(rows_names, rows_values):
+            apply_row_fn([row_name] +
+                         [fstr.format(val) for val in row_value[i0:i1]]
+                         + ['']*(i0+colsnum-i1)*bool(padding))
+
+        apply_row_fn(['LSQ error ', "'" + name + "': ",
+                      fstr.format(np.sum(np.power(error, 2)))]
+                       + ['']*(colsnum - 2)*bool(padding))
+        apply_row_fn(['']*(colsnum + 1)*bool(padding))
+        i0 = i1
