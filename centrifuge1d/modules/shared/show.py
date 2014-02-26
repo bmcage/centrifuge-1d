@@ -265,7 +265,7 @@ def print_status(data, filename=None):
         # compare measured vs. computed data
         for (key, m_data) in measurements.items():
             if (m_data[1] is None) or (not key in computed):
-                 continue
+                continue
 
             if key == 'theta':
                 c_value = computed[key][3]
@@ -464,13 +464,14 @@ def assign_data(styles, displayed_figs, data):
 
         for fig_id in displayed_figs:
             # we skip other 'h' and 'u' data, as it would be mess
-            if (fig_id in ['h', 'u']) and (not line_id == 'computed'):
+            if ((not fig_id in line_data)
+                 or (fig_id in ['h', 'u']) and (not line_id == 'computed')):
                 continue
-
-            if not fig_id in line_data: continue
 
             line_value = line_data[fig_id]
 
+            if len(line_value) > 2:
+                (xdata, ydata, legend_data)
             (xdata, ydata) = (line_value[0], line_value[1])
 
             if (not has_data(xdata)) or (not has_data(ydata)): continue
@@ -577,8 +578,8 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
                 plt.plot(entryx, entryy, plot_style[ind%max_styles],
                          linewidth=width, markersize=symbolsize)
         else:
-                plt.plot(xdata, ydata, plot_style, linewidth=width,
-                         markersize=symbolsize)
+            plt.plot(xdata, ydata, plot_style, linewidth=width,
+                     markersize=symbolsize)
 
         # Extend the legend labels
         legend_label = get_line_option(lines_styles, line_id,
@@ -680,7 +681,8 @@ class DataStorage:
         if self._modman is None:
             self._modman = ModulesManager()
 
-        solver_module = self._modman.find_module(model.exp_type, submodule='run')
+        solver_module = self._modman.find_module(model.exp_type,
+                                                 submodule='run')
         if not hasattr(solver_module, 'solve_direct'):
             print("WARNING: Module for type '" + model.exp_type + "' does not "
                   "specify a 'solve_direct' variable. Function 'solve()' will "
@@ -841,25 +843,15 @@ class DataStorage:
         """ Store measured (supplied) data. """
 
         for mtype in ('original', 'measured'):
-            m = {}
+            m = {name: (xvalue, yvalue) for (name, xvalue, yvalue)
+                 in measurements.iterate_meas_measurements(mtype == 'original',
+                                                           model)}
 
-            untransformed = (mtype == 'original')
-            for (name, xvalue, yvalue) \
-                in measurements.iterate_meas_measurements(untransformed, model):
-
-                m[name] = (xvalue, yvalue)
-
-                self._data['lines'][mtype] = m
+            self._data['lines'][mtype] = m
 
     def get_linedata(self, line_id, not_found=None):
         """ Get data for specified line. """
-
-        data = self._data['lines']
-
-        if line_id in data:
-            return data[line_id]
-        else:
-            return not_found
+        return self._data['lines'].get(line_id, not_found)
 
     def save(self):
         """ Save all stored data to a file. """
@@ -928,10 +920,7 @@ class DataStorage:
 
         if save_figures:
             experiment_info = self._experiment_info
-            if experiment_info['mask']:
-                figs_dir_type = 'mask'
-            else:
-                figs_dir_type = 'data'
+            figs_dir_type = 'mask' if experiment_info['mask'] else 'data'
 
             save_dir = get_directories('figs', figs_dir_type, experiment_info)
 
@@ -940,10 +929,7 @@ class DataStorage:
 
             save_figs_list = []
 
-        if separate_figures:
-            images_per_figure = 1
-        else:
-            images_per_figure = 6
+        images_per_figure = 1 if separate_figures else 6
 
         fignum -= 1
         img_num = 2^20 # high initialization, so that first fig is created
