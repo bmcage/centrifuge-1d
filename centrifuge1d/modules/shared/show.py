@@ -723,11 +723,9 @@ class DataStorage:
 
                 SC = model.SC
 
-                if hasattr(model, 'theta_s'): theta_s = model.theta_s
-                else: theta_s = model.porosity
-
-                if hasattr(model, 'theta_r'): theta_r = model.theta_r
-                else: theta_r = 0.0
+                theta_s = (model.theta_s if hasattr(model, 'theta_s')
+                            else  model.porosity)
+                theta_r = model.theta_r if hasattr(model, 'theta_r') else 0.0
 
                 (p, theta) = SC.retention_curve(theta_s, model.density, model.g,
                                                 theta_r=theta_r)
@@ -735,10 +733,8 @@ class DataStorage:
                                                     rho=model.density)
 
                 if hasattr(model, 'p') or hasattr(model, 'pc'):
-                    if hasattr(model, 'p'):
-                        p_meas = np.asarray(model.p)
-                    else:
-                        p_meas = np.asarray(model.pc)
+                    p_meas = np.asarray(model.p if hasattr(model, 'p')
+                                        else model.pc, dtype=float)
 
                     (p_user, theta_user) = \
                       SC.retention_curve(theta_s, model.density, model.g,
