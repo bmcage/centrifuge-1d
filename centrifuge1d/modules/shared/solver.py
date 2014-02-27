@@ -401,7 +401,7 @@ def penalize_cond(parameters, conditions):
                     else:
                         prevval = value
                         continue
-                    penalty = np.exp(1/(tolerance)) + np.exp(10*a)
+                    penalty = np.exp(1/(tolerance)) + np.exp(50*a)
                     penalization += min(penalty, max_penalization)
             else:
                 raise Exception('Condition on parameters not recoginized: %s' % cond)
