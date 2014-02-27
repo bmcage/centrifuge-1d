@@ -642,13 +642,11 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
         #following should be done nicer ...
         if fig_id in ['relsat', 'K_u']:
             ax = plt.gca()
-            print (overlays[fig_id], ymin or overlays[fig_id].get('miny'), ymax or overlays[fig_id].get('maxy'))
-            #exit(0)
             minu = overlays[fig_id]['minu']
             maxu = overlays[fig_id]['maxu']
             ax.fill_between(np.array([minu, maxu],float),
-                            ymin or overlays[fig_id].get('miny') or 0, 
-                            ymax or overlays[fig_id].get('maxy') or 1e10, 
+                            ymin or overlays[fig_id].get('miny') or 0,
+                            ymax or overlays[fig_id].get('maxy') or 1e10,
                             facecolor=overlays[fig_id]['facecolor'],
                             alpha=overlays[fig_id]['alpha'])
 
