@@ -245,9 +245,10 @@ def compare_data(name, value_computed, value_measured = None,
         print((16 + float_disp_size*in_row) * '-', file=stream)
         i0 = i0 + in_row
 
-    print('LSQ error ' + "'" + name + "':",
-          np.sum(np.power(data_computed - data_measured, 2)),
-          file=stream)
+    LSQ_error = np.sum(np.power(data_computed - data_measured, 2))
+    print('LSQ error ' + "'" + name + "':", LSQ_error, file=stream)
+
+    return LSQ_error
 
 #*******************************************************
 #
