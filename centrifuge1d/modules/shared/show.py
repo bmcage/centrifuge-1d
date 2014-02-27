@@ -444,10 +444,31 @@ def order_figures(figures_styles, figs_ids):
 
 def assign_data(styles, displayed_figs, data):
     """
-       Add 'xdata', 'ydata' and 'legend_data' to 'lines_styles'
+       Add 'xdata', 'ydata', 'overlay' and 'legend_data' to 'lines_styles'
        and return 'figs_ids' of figures that do not contain
-       and data.
+       any data.
      """
+    #start by determining min and max h/u reached in computation
+    comp = data.get_linedata('computed')
+    minu=None
+    maxu=None
+    minth=None
+    maxth=None
+    if comp and 'u' in comp:
+        minu = np.min(comp['u'][1])
+        maxu = np.max(comp['u'][1])
+        #TODO how to get theta_s, theta_r to compute mintheta and max??
+    #set overlay
+    for line_id in styles['overlays']:
+        overlaydata = styles['overlays'][line_id]
+        if not 'facecolor' in overlaydata:
+            overlaydata['facecolor'] = 'blue'
+        if not 'alpha' in overlaydata:
+            overlaydata['alpha'] = 0.4
+        overlaydata['minu'] = minu
+        overlaydata['maxu'] = maxu
+        overlaydata['minth'] = minth
+        overlaydata['maxth'] = maxth
 
     # build a list of figs that actually contain some data
     nonempty_figs = []
@@ -544,7 +565,7 @@ def get_shown_figs_ids(figures_styles):
     return figs_ids
 
 def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
-                show_titles):
+                overlays, show_titles):
 
      # plot the lines
     legend_labels = []
@@ -612,7 +633,24 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
     if np.isscalar(xmin): plt.xlim(xmin=xmin)
     if np.isscalar(xmax): plt.xlim(xmax=xmax)
     if np.isscalar(ymin): plt.ylim(ymin=ymin)
+    else: ymin = None
     if np.isscalar(ymax): plt.ylim(ymax=ymax)
+    else: ymax = None
+
+    #handle overlays
+    if fig_id in overlays:
+        #following should be done nicer ...
+        if fig_id in ['relsat', 'K_u']:
+            ax = plt.gca()
+            print (overlays[fig_id], ymin or overlays[fig_id].get('miny'), ymax or overlays[fig_id].get('maxy'))
+            #exit(0)
+            minu = overlays[fig_id]['minu']
+            maxu = overlays[fig_id]['maxu']
+            ax.fill_between(np.array([minu, maxu],float),
+                            ymin or overlays[fig_id].get('miny') or 0, 
+                            ymax or overlays[fig_id].get('maxy') or 1e10, 
+                            facecolor=overlays[fig_id]['facecolor'],
+                            alpha=overlays[fig_id]['alpha'])
 
     if show_titles:
         plt.suptitle(get_figure_option(figs_styles, fig_id, 'title'))
@@ -646,7 +684,9 @@ class DataStorage:
         styles = {'options': DISPLAY_OPTIONS, 'lines': LINESTYLES_DEFAULT,
                   'figures': set_default_units(FIGURES_DEFAULTS),
                   'plots_keep': {}, 'plots_remove': {}, 'params_ref': {},
-                  'lines_order': ()}
+                  'lines_order': (),
+                  'overlays': {},
+                 }
 
         # Read user plotysles inifiles
         plotstyles_filenames = get_filenames(experiment_info)
@@ -911,6 +951,7 @@ class DataStorage:
 
         lines_styles = styles['lines']
         lines_ids = styles['lines_order']
+        overlays = styles['overlays']
 
         print_status(self)
 
@@ -931,7 +972,6 @@ class DataStorage:
 
         fignum -= 1
         img_num = 2^20 # high initialization, so that first fig is created
-
         for fig_id in figs_ids:
             # resolve figure and subplot
             if img_num > images_per_figure:
@@ -953,7 +993,7 @@ class DataStorage:
                 plt.subplot(3, 2, img_num)
 
             draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
-                        show_titles)
+                        overlays, show_titles)
 
             img_num += 1
 
