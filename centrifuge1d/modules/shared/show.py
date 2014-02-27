@@ -476,9 +476,14 @@ def assign_data(styles, displayed_figs, data):
 
             line_value = line_data[fig_id]
 
+            # Process also special 'legend_data' (e.g. for 'h' and 'u' it's times)
             if len(line_value) > 2:
-                (xdata, ydata, legend_data)
-            (xdata, ydata) = (line_value[0], line_value[1])
+                (xdata, ydata, legend_data) = line_value
+                if type(legend_data) is np.ndarray:
+                    legend_data = ['% 6.1f' % (ti/60.) for ti in legend_data]
+            else:
+                (xdata, ydata) = line_value
+                legend_data = None
 
             if (not has_data(xdata)) or (not has_data(ydata)): continue
 
@@ -490,15 +495,6 @@ def assign_data(styles, displayed_figs, data):
                 line_style[fig_id] = {}
 
             line_fig_style = line_style[fig_id]
-
-            # Process special 'legend_data' (e.g. for 'h' and 'u' it's times)
-            # as it needs to be converted and filtered
-            if len(line_value) > 2:
-                legend_data = line_value[2]
-                if type(legend_data) is np.ndarray:
-                    legend_data = ['% 6.1f' % (ti/60.) for ti in legend_data]
-            else:
-                legend_data = None
 
             if ((not line_id in ('measured', 'original'))
                 and ((fig_id in plots_keep) or (fig_id in plots_remove))):
