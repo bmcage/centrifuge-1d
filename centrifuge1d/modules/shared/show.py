@@ -64,8 +64,7 @@ dg_unit_time_length = ('time', 'length')
 #    'show', 'show_legend', 'legend_title', 'legend_bbox', 'legend_loc'
 
 FIG_OPTIONS_DEFAULTS = {'show': True, 'legend_loc': 4, 'order': 999,
-                        'show_legend': True, 'figures_dpi': 92}
-
+                        'show_legend': True}
 
 FIGURES_DEFAULTS = \
               {'h':  {'title':  'Hydraulic head',
@@ -183,7 +182,8 @@ FIGURES_IDS = list(FIGURES_DEFAULTS.keys())
 
 DISPLAY_OPTIONS = {'separate_figures': False, 'show_figures': True,
                    'save_figures': True, 'matplotlib_backend': None,
-                   'show_figures_titles': None, 'comparison_table': False}
+                   'show_figures_titles': None, 'comparison_table': False,
+                   'figures_dpi': 92}
 
 def set_default_units(figures_styles):
     for fig_style in figures_styles.values():
