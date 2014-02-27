@@ -176,7 +176,7 @@ FIGURES_DEFAULTS = \
                              'ytype':   'rotational_speed'}
                       }
 
-FIGURES_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('thK', 'uK'),
+FIGURES_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('K', 'K_u'),
                  ('gF_MT', 'gF_MO'), ('dgF_MT', 'dgF_MO'), ('s1', 's2'),
                  ('theta', 'relsat'))
 
@@ -760,8 +760,8 @@ class DataStorage:
                         uK = SC.conductivity_curve(model.ks, theta_s,
                                               theta_r=theta_r, g=model.g,
                                               rho=model.density, rtype='u')
-                        data['thK'] = thK
-                        data['uK']  = uK
+                        data['K'] = thK
+                        data['K_u']  = uK
                     except:
                         import traceback
                         print(traceback.format_exc())
