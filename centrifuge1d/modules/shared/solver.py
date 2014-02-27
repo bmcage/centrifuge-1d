@@ -438,11 +438,12 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 
         penalization = penalize(optim_params, lbounds, ubounds,
                                 when='out_of_bounds')
-        if penalization == 0.0:
-            penalization = penalize_cond(optim_params, conditions)
+        penalization += penalize_cond(optim_params, conditions)
+        if penalization > 0:
+            print ('not ascending par', penalization)
 
         if penalization > 0.0:
-            if model.verbosity > 1:
+            if model.verbosity > 0:
                 print('Optimized arguments are out of bounds... Penalizing by ',
                       penalization)
 
