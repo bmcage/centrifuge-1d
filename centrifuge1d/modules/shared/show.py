@@ -264,6 +264,7 @@ def print_status(data, filename=None):
     stream = None if filename is None else open(filename, 'w')
 
     try:
+        total_LSQ_error = 0.0
         # compare measured vs. computed data
         for (key, m_data) in measurements.items():
             if (m_data[1] is None) or (not key in computed):
@@ -276,7 +277,10 @@ def print_status(data, filename=None):
             m_value = m_data[1]
 
             if c_value is not None:
-                compare_data(key, c_value, m_value, stream)
+                LSQ_error = compare_data(key, c_value, m_value, stream)
+                total_LSQ_error += LSQ_error
+
+        print('\nTotal LSQ error: ', total_LSQ_error, file=stream)
 
         # display additional data
         cov = data.get('cov')
