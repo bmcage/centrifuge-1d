@@ -461,6 +461,8 @@ def assign_data(styles, displayed_figs, data):
     # Resolve 'overlay_x' and 'overlay_y'
     figures_styles = styles['figures']
     line_data = data.get_linedata('computed')
+    u_min = np.min(line_data['u'][1])
+    u_max = np.max(line_data['u'][1])
     for fig_id in displayed_figs:
         overlay_x = get_figure_option(figures_styles, fig_id, 'overlay_x')
         overlay_y = get_figure_option(figures_styles, fig_id, 'overlay_y')
@@ -472,12 +474,14 @@ def assign_data(styles, displayed_figs, data):
         (oy0, oy1) = (None, None) if overlay_y is None else overlay_y
 
         if fig_id in ('K_u', 'relsat'):
-            xvalue = line_data['u'][1]
-            ox0 = np.min(xvalue) if ox0 is None else ox0
-            ox1 = np.max(xvalue) if ox1 is None else ox1
+            ox0 = u_min if ox0 is None else ox0
+            ox1 = u_max if ox1 is None else ox1
         elif fig_id in ('K', 'theta'):
-            # TODO: we need theta_r, theta_s or theta itself
-            pass
+            theta_s = line_data['theta'][1][0] # = theta at full saturation
+            # normally theta_r << 1 hence it won't be visible in the figure
+            # if we consider theta_r == 0
+            ox0 = theta_s*u_min if ox0 is None else ox0
+            ox1 = theta_s*u_max if ox1 is None else ox1
 
         figures_styles[fig_id]['overlay_x'] = (ox0, ox1)
         figures_styles[fig_id]['overlay_y'] = (oy0, oy1)
