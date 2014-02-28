@@ -135,14 +135,16 @@ FIGURES_DEFAULTS = \
                            'xtype':  'none',
                            'ytype':  'pressure',
                            'yscale': 'log',
-                           'legend_loc': 1},
+                           'legend_loc': 1,
+                           'overlay_x': (None, None)},
                'relsat':  {'title':  'Negative hydraulic head $h$',
                            'xlabel': "Effective saturation $S_e$ [{}]",
                            'ylabel': "Negative hydraulic head $h$ [{}]",
                            'xtype':  'none',
                            'ytype':  'length',
                            'yscale': 'log',
-                           'legend_loc': 1},
+                           'legend_loc': 1,
+                           'overlay_x': (None, None)},
                'K':       {'title':  'Hydraulic conductivity $K(\\theta)$',
                            'xlabel': "Water content $\\theta${}",
                            'ylabel': "Hydraulic conductivity $K(\\theta)$ [{}]",
@@ -469,11 +471,11 @@ def assign_data(styles, displayed_figs, data):
         (ox0, ox1) = (None, None) if overlay_x is None else overlay_x
         (oy0, oy1) = (None, None) if overlay_y is None else overlay_y
 
-        if fig_id == 'K_u':
+        if fig_id in ('K_u', 'relsat'):
             xvalue = line_data['u'][1]
             ox0 = np.min(xvalue) if ox0 is None else ox0
             ox1 = np.min(xvalue) if ox0 is None else ox1
-        elif fig_id is 'K':
+        elif fig_id in ('K', 'theta'):
             # TODO: we need theta_r, theta_s or theta itself
             pass
 
