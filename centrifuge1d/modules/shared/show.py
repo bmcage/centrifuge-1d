@@ -61,10 +61,16 @@ dg_unit_time_length = ('time', 'length')
 # Figures options:
 #    'order', 'xlabel', 'ylabel',
 #    'xscale', 'yscale', 'xunit', 'yunit', 'xmin', 'ymin', 'xmax', 'ymax',
-#    'show', 'show_legend', 'legend_title', 'legend_bbox', 'legend_loc'
+#    'show', 'show_legend', 'legend_title', 'legend_bbox', 'legend_loc',
+#    'overlay_alpha', 'overlay_color',
+#    'overlay_x' = None or (x0, x1), overlay_y = None or (y0, y1))
+#        - if both are None, no overlay is displayed
+#        - x0, x1, y0, y1 are float or None (= use default value)
 
 FIG_OPTIONS_DEFAULTS = {'show': True, 'legend_loc': 4, 'order': 999,
-                        'show_legend': True}
+                        'show_legend': True, 'overlay_color': 'blue',
+                        'overlay_x': None, 'overlay_y': None,
+                        'overlay_alpha': 0.2}
 
 FIGURES_DEFAULTS = \
               {'h':  {'title':  'Hydraulic head',
@@ -142,13 +148,15 @@ FIGURES_DEFAULTS = \
                            'ylabel': "Hydraulic conductivity $K(\\theta)$ [{}]",
                            'xtype':  'none',
                            'ytype':  'velocity',
-                           'yscale': 'log'},
+                           'yscale': 'log',
+                           'overlay_x': (None, None)},
                'K_u':     {'title':  'Hydraulic conductivity $K(S_e)$',
                            'xlabel': "Effective saturation $S_e${}",
                            'ylabel': "Hydraulic conductivity $K(S_e)$ [{}]",
                            'xtype':  'none',
                            'ytype':  'velocity',
-                           'yscale': 'log'},
+                           'yscale': 'log',
+                           'overlay_x': (None, None)},
                'gF_MO':   {'title':  'Force of expelled water',
                            'xlabel': dg_label_time,
                            'ylabel':  "Force of expelled water [{}]",
@@ -444,31 +452,33 @@ def order_figures(figures_styles, figs_ids):
 
 def assign_data(styles, displayed_figs, data):
     """
-       Add 'xdata', 'ydata', 'overlay' and 'legend_data' to 'lines_styles'
+       Add 'xdata', 'ydata' and 'legend_data' to 'lines_styles'
        and return 'figs_ids' of figures that do not contain
-       any data.
+       any data. Transform 'overlay_x' and 'overlay_y' if needed.
      """
-    #start by determining min and max h/u reached in computation
-    comp = data.get_linedata('computed')
-    minu=None
-    maxu=None
-    minth=None
-    maxth=None
-    if comp and 'u' in comp:
-        minu = np.min(comp['u'][1])
-        maxu = np.max(comp['u'][1])
-        #TODO how to get theta_s, theta_r to compute mintheta and max??
-    #set overlay
-    for line_id in styles['overlays']:
-        overlaydata = styles['overlays'][line_id]
-        if not 'facecolor' in overlaydata:
-            overlaydata['facecolor'] = 'blue'
-        if not 'alpha' in overlaydata:
-            overlaydata['alpha'] = 0.4
-        overlaydata['minu'] = minu
-        overlaydata['maxu'] = maxu
-        overlaydata['minth'] = minth
-        overlaydata['maxth'] = maxth
+    # Resolve 'overlay_x' and 'overlay_y'
+    figures_styles = styles['figures']
+    line_data = data.get_linedata('computed')
+    for fig_id in displayed_figs:
+        overlay_x = get_figure_option(figures_styles, fig_id, 'overlay_x')
+        overlay_y = get_figure_option(figures_styles, fig_id, 'overlay_y')
+
+        if (overlay_x is None) and (overlay_y is None):
+            continue
+
+        (ox0, ox1) = (None, None) if overlay_x is None else overlay_x
+        (oy0, oy1) = (None, None) if overlay_y is None else overlay_y
+
+        if fig_id == 'K_u':
+            xvalue = line_data['u'][1]
+            ox0 = np.min(xvalue) if ox0 is None else ox0
+            ox1 = np.min(xvalue) if ox0 is None else ox1
+        elif fig_id is 'K':
+            # TODO: we need theta_r, theta_s or theta itself
+            pass
+
+        figures_styles[fig_id]['overlay_x'] = (ox0, ox1)
+        figures_styles[fig_id]['overlay_y'] = (oy0, oy1)
 
     # build a list of figs that actually contain some data
     nonempty_figs = []
@@ -565,7 +575,7 @@ def get_shown_figs_ids(figures_styles):
     return figs_ids
 
 def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
-                overlays, show_titles):
+                show_titles):
 
      # plot the lines
     legend_labels = []
@@ -638,17 +648,18 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
     else: ymax = None
 
     #handle overlays
-    if fig_id in overlays:
-        #following should be done nicer ...
-        if fig_id in ['relsat', 'K_u']:
-            ax = plt.gca()
-            minu = overlays[fig_id]['minu']
-            maxu = overlays[fig_id]['maxu']
-            ax.fill_between(np.array([minu, maxu],float),
-                            ymin or overlays[fig_id].get('miny') or 0,
-                            ymax or overlays[fig_id].get('maxy') or 1e10,
-                            facecolor=overlays[fig_id]['facecolor'],
-                            alpha=overlays[fig_id]['alpha'])
+    overlay_x = get_figure_option(figs_styles, fig_id, 'overlay_x')
+    overlay_y = get_figure_option(figs_styles, fig_id, 'overlay_y')
+    if (not overlay_x is None) or (not overlay_y is None):
+        (ox0, ox1) = (overlay_x[0] or xmin or 0.0, overlay_x[1] or xmax or 1)
+        (oy0, oy1) = (overlay_y[0] or ymin or 0.0, overlay_y[1] or ymax or 1)
+
+        ax = plt.gca()
+        ax.fill_between(np.array([ox0, ox1],float), oy0, oy1,
+                        facecolor=get_figure_option(figs_styles, fig_id,
+                                                    'overlay_color'),
+                        alpha=get_figure_option(figs_styles, fig_id,
+                                                 'overlay_alpha'))
 
     if show_titles:
         plt.suptitle(get_figure_option(figs_styles, fig_id, 'title'))
@@ -682,8 +693,7 @@ class DataStorage:
         styles = {'options': DISPLAY_OPTIONS, 'lines': LINESTYLES_DEFAULT,
                   'figures': set_default_units(FIGURES_DEFAULTS),
                   'plots_keep': {}, 'plots_remove': {}, 'params_ref': {},
-                  'lines_order': (),
-                  'overlays': {},
+                  'lines_order': ()
                  }
 
         # Read user plotysles inifiles
@@ -949,7 +959,6 @@ class DataStorage:
 
         lines_styles = styles['lines']
         lines_ids = styles['lines_order']
-        overlays = styles['overlays']
 
         print_status(self)
 
@@ -991,7 +1000,7 @@ class DataStorage:
                 plt.subplot(3, 2, img_num)
 
             draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
-                        overlays, show_titles)
+                        show_titles)
 
             img_num += 1
 
