@@ -474,7 +474,7 @@ def assign_data(styles, displayed_figs, data):
         if fig_id in ('K_u', 'relsat'):
             xvalue = line_data['u'][1]
             ox0 = np.min(xvalue) if ox0 is None else ox0
-            ox1 = np.min(xvalue) if ox0 is None else ox1
+            ox1 = np.max(xvalue) if ox1 is None else ox1
         elif fig_id in ('K', 'theta'):
             # TODO: we need theta_r, theta_s or theta itself
             pass
