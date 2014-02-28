@@ -652,9 +652,9 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
     #handle overlays
     overlay_x = get_figure_option(figs_styles, fig_id, 'overlay_x')
     overlay_y = get_figure_option(figs_styles, fig_id, 'overlay_y')
-    if (not overlay_x is None) or (not overlay_y is None):
-        (ox0, ox1) = (overlay_x[0] or xmin or 0.0, overlay_x[1] or xmax or 1)
-        (oy0, oy1) = (overlay_y[0] or ymin or 0.0, overlay_y[1] or ymax or 1)
+    if (not overlay_x is None): # either both are None or none
+        (ox0, ox1) = (overlay_x[0] or xmin or 0.0, overlay_x[1] or xmax or 1e10)
+        (oy0, oy1) = (overlay_y[0] or ymin or 0.0, overlay_y[1] or ymax or 1e10)
 
         ax = plt.gca()
         ax.fill_between(np.array([ox0, ox1],float), oy0, oy1,
