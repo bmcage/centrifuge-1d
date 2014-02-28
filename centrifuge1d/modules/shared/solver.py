@@ -410,7 +410,7 @@ def penalize_cond(parameters, conditions):
 def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
-                         'fmin_bfgs', 'raster']
+                         'fmin_bfgs', 'raster', 'fmin_slsqp']
     if not optimfn in available_solvers:
         print("Unknown inverse method solver for 'optimfn': ", optimfn)
         print("Available solvers are: ", available_solvers)
@@ -448,7 +448,7 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                       penalization)
 
             return measurements.get_penalized(penalization,
-                                              scalar=(optimfn != 'leastsq'))
+                            scalar=(optimfn not in ['leastsq']))
 
         model.set_parameters(optim_params)
 
@@ -469,7 +469,7 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
             total_LSQ_error = np.sum(np.power(error, 2))
             print('\nTotal LSQ error:', total_LSQ_error)
 
-            if optimfn == 'leastsq':
+            if optimfn in ['leastsq']:
                 result = error
             else:
                 result = total_LSQ_error
@@ -484,8 +484,30 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                       'parameters... Penalizing by ', penalization)
 
             result = measurements.get_penalized(penalization,
-                                                scalar=(optimfn != 'leastsq'))
+                            scalar=(optimfn not in ['leastsq']))
         return result
+
+    def optimineq_wrapper(optimargs):
+        #inequality conditions
+
+        untransform_dict(optim_names, optimargs, optim_par_length,
+                         optim_params, untransform)
+        ineqs = np.empty((0,), float)
+        for (name, values) in optim_params.items():
+            if not np.iterable(values):
+                values = [values]
+            for cond in conditions[name]:
+                if cond == '':
+                    continue
+                if cond.lower() in ['ascending', 'asc']:
+                    #parameters must be ascending
+                    ineqs = np.append(ineqs, values[1:]-values[:-1])
+                else:
+                    raise Exception('Condition on parameters not recoginized: %s' % cond)
+        if len(ineqs) == 0:
+            raise Exception('Use inequality solver only if there are are inequality'
+                            'conditions! None found.')
+        return ineqs
 
     # Further it is assumed that we are using OrderedDict so that the
     # order of values is stable
@@ -590,6 +612,15 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                        maxiter=model.max_inv_iter, gtol=model.gtol,
                        disp=model.disp_inv_conv,
                        full_output=True, retall=False)
+        elif optimfn == 'fmin_slsqp':
+            (opt_params, fopt,fcalls, warnflag, msg) = \
+                optimize(optimfn_wrapper, init_values,
+                         f_eqcons=optimfn_wrapper,
+                         f_ieqcons=optimineq_wrapper,
+                         iter=model.max_inv_iter or 100,
+                         acc=model.xtol, full_output=True,
+                         epsilon=model.epsfcn, disp=model.disp_inv_conv
+                         )
 
         untransform_dict(optim_names, opt_params, optim_par_length,
                          optim_params, untransform)

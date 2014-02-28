@@ -4,14 +4,14 @@ CONFIG_OPTIONS = {
     'inverse-solver' : \
       {'optimfn': ("Optimization function for inverse problem used."
                    "Values: 'leastsq', 'fmin', 'fmin_powell', 'fmin_cg', "
-                   "'fmin_bfgs'")},
+                   "'fmin_bfgs', 'fmin_slsqp'")},
     'inverse-solver-options': \
       {'epsn': ("Type: float."
-                "Used by: 'leastsq'"),
+                "Used by: 'leastsq', 'fmin_slsqp'"),
        'factor': ("Type: float."
                   "Used by: 'leastsq'"),
        'xtol': ("Type: float."
-                "Used by: 'leastsq', 'fmin', 'fmin_powell'"),
+                "Used by: 'leastsq', 'fmin', 'fmin_powell', 'fmin_slsqp'"),
        'ftol': ("Type: float."
                 "\nUsed by: 'leastsq', 'fmin', 'fmin_powell'"),
        'gtol': ("Type: float."
@@ -20,10 +20,10 @@ CONFIG_OPTIONS = {
                    "\nUsed by: 'fmin', 'fmin_powell"),
        'max_inv_iter': ("Maximal number of iterations of the inverse solver."
                         "\nUsed by: 'fmin', 'fmin_powell, 'fmin_cg', "
-                        "'fmin_bfgs'"),
+                        "'fmin_bfgs', 'fmin_slsqp'"),
        'disp_inv_conv': ("Type: boolean."
                          "\nUsed by: 'fmin', 'fmin_powell, 'fmin_cg', "
-                         "'fmin_bfgs'")
+                         "'fmin_bfgs', 'fmin_slsqp'")
       },
     'additional': \
       {'transform_params':("Specifies whether to transform optimized "
