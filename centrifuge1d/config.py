@@ -679,6 +679,16 @@ class ModelParameters:
         return {key.lower(): getattr(self, key.lower())
                 for key in parameters if hasattr(self, key.lower()) }
 
+    def refine(self):
+        """
+        We allow the parameters to be refined if one of the objects
+        with parameters allows refine.
+        """
+        if hasattr(self, 'SC'):
+            return self.SC.refine(self.measurements)
+        return False
+
+
     def next_iteration(self):
         """
           Assign the next value of the parameters that were given as type list

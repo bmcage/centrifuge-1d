@@ -1,7 +1,7 @@
 from __future__ import print_function, division
 import scikits.odes.sundials.ida as ida
 import numpy as np
-from .functions import has_data
+from .show import show_inbetween_result
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -408,7 +408,34 @@ def penalize_cond(parameters, conditions):
     return penalization
 
 def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
+    """
+    As long as refinements in approach are possible, restart inverse method
+    """
+    invrun =0;
+    while True:
+        (optim_params, cov) = run_inverse(direct_fn, model, measurements, optimfn)
+        invrun += 1
+        # make sure we work with optim parameters
+        model.set_parameters(optim_params)
 
+        # reset if previously stored values of measurements (it's re-set also
+        # inside the simulate_direct() but user may supply his own direct
+        # function, so we need to be sure measurements were re-setted
+        measurements.reset_calc_measurements()
+
+        if hasattr(model, "refine"):
+            success = model.refine()
+            if not success:
+                break;
+        else:
+            break;
+        #output inbetween data of this refinement run.
+        show_inbetween_result(model.experiment_info, model,
+                              optim_params, cov, ext='_%03d' % invrun)
+
+    return (optim_params, cov)
+
+def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
     available_solvers = ['leastsq', 'fmin', 'fmin_powell', 'fmin_cg',
                          'fmin_bfgs', 'raster', 'fmin_slsqp']
     if not optimfn in available_solvers:
@@ -547,11 +574,6 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
     iv_ind = 0
 
     for (ind, name) in enumerate(optim_names):
-        # Add missing [un]transform functions
-        if not name in transform:
-            transform[name]   = no_transform_fn
-            untransform[name] = no_transform_fn
-
         # Update init_values
         iv_ind_next = iv_ind + optim_par_length[ind]
         init_values[iv_ind:iv_ind_next] = \

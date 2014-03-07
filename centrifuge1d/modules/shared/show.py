@@ -935,7 +935,7 @@ class DataStorage:
 
         return True
 
-    def display(self, fignum=1):
+    def display(self, fignum=1, ext=''):
         """ Display the figures and/or write them to files. """
 
         styles = self._styles
@@ -1023,7 +1023,7 @@ class DataStorage:
             print('Saving figures... ', end='')
             figures_dpi = display_options['figures_dpi']
             for (fig, img_suffix) in save_figs_list:
-                fig.savefig(save_dir + 'image-' + img_suffix, dpi=figures_dpi)
+                fig.savefig(save_dir + 'image-' + img_suffix + ext, dpi=figures_dpi)
 
         print('Done.')              # Generating/displaying/saving figures
 
@@ -1034,6 +1034,27 @@ class DataStorage:
 ################################################################################
 #                         Module's provided functions                          #
 ################################################################################
+def show_inbetween_result(experiment_info, model, inv_params, cov, ext):
+    """
+    store inbetween resuls, as files with extra ext ending.
+    """
+    data = DataStorage(experiment_info)
+    model.measurements.run_inverse_problem_p(False)
+
+    data.store_measurements(model.measurements, model)
+    data.store_computation(model, model.measurements)
+    data.store('inv_params', inv_params)
+    data.store('cov', cov)
+    savedir = get_directories('figs', 'mask', experiment_info)
+    filename = savedir + '/' + 'results' + ext + '.txt'
+
+    if not path.exists(savedir):
+        makedirs(savedir)
+
+
+    print_status(data, filename)
+
+    data.display(ext=ext)
 
 def show_results(experiment_info,
                  model=None, inv_params=None, cov=None):

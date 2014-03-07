@@ -126,6 +126,7 @@ def default_transformation(lbound, ubound, max_value = TRANSFORM_MAX_VALUE):
 ########################################################################
 
 class SC_base():
+
     def retention_curve(self, theta_s, rho, g, theta_r=0.0, p=None, h=None,
                         find_p=True):
         """
@@ -249,6 +250,12 @@ class SC_base():
         using these parameters always obtain untransformed values.
         """
         pass
+
+    def refine(self):
+        """
+        refine the parameters and reinit. Return if success
+        """
+        return False
 
     def typeSC(self):
         """
@@ -431,7 +438,10 @@ class SC_freeform(SC_base):
     of the given points {(h_i, u_i)} and {(h_i, k_i)}
     From this cubic spline the derivatives can be extracted
     """
-    def __init__(self, hi=None, ui=None, ki=None):
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
+        self.refinenr=0
+        self.refinemax = refinemax
+
         if hi is not None and ui is not None and ki is not None:
             SC_freeform.check_params(hi, ui, ki)
             self.__set_values(np.array(hi, dtype=float), np.array(ui, dtype=float),
@@ -618,3 +628,18 @@ class SC_freeform(SC_base):
         Indication of the compatible types of SC
         """
         return SC_FF
+
+    def refine(self, prev_measurements):
+        """
+        refine the parameters and reinit. Return if success
+        """
+        if self.refine >= self.refinemax:
+            return False
+        #we refine the parameter space. Here we add a h point, and hence
+        #add 2 new parameters: the ki and ui at that new hi.
+        comph = prev_measurements.get_computed_value(self, 'h')
+        compu = prev_measurements.get_computed_value(self, 'u')
+        print ('comph', comph)
+        print ('compu', compu)
+        self.refine += 1
+        return False

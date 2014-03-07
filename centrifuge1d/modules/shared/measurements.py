@@ -1032,6 +1032,16 @@ class Measurements():
         """ Return x-axis values of (external) measurements that are stored. """
         return list(self._measurements_xvalues.values())
 
+    def get_computed_value(self, name):
+        """ Obtain a computed value
+            name can be h or u
+        """
+        for (cname, yvalue) in self._computed.items():
+            if cname in ('h', 'u') and cname == name:
+                xvalue = self._computed['x']
+
+                return (xvalue, yvalue)
+
     def store_calc_measurement(self, meas_id, value):
         """ Store (calculated) value of measurement. """
         if not meas_id in self._computed:

@@ -16,6 +16,7 @@ PARENTAL_MODULES = ['base']
 
 CONFIG_OPTIONS = ['inner_points', 'dtype',
                   ('sc_type', 1),
+                  ('sc_max_refine', 0),
                   (lambda cfg: cfg.get_value('sc_type') == 1,
                    ['n', 'gamma']),
                   (lambda cfg: cfg.get_value('sc_type') == 2,
@@ -47,7 +48,7 @@ def adjust_cfg(cfg):
         SC = mSC.SC_vanGenuchten(cfg.get_value('n'), cfg.get_value('gamma'))
     elif SC_type == 2:
         SC = mSC.SC_freeform(cfg.get_value('hi'), cfg.get_value('ui'),
-                             cfg.get_value('ki'))
+                             cfg.get_value('ki'), cfg.get_value('sc_max_refine'))
     else:
         print('Unknown value of ''SC_type'': ', SC_type)
         exit(1)
