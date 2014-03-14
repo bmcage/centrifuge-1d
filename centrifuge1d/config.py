@@ -22,7 +22,8 @@ from sys import modules as sysmodules
 from types import MethodType
 from .modules.shared.measurements import Measurements
 from .modules.shared.saturation_curve import (SC_vanGenuchten, SC_freeform,
-                                              SC_vG, SC_FF)
+                                              SC_freeform_BSpline,
+                                              SC_vG, SC_FF, SC_FF_BS)
 
 ##################################################################
 #                   ModulesManager class                         #
@@ -670,6 +671,8 @@ class ModelParameters:
                     self.SC = SC_vanGenuchten()
                 elif thekey ['sc_type'] == SC_FF:
                     self.SC = SC_freeform()
+                elif thekey ['sc_type'] == SC_FF_BS:
+                    self.SC = SC_freeform_BSpline()
             self.SC.set_parameters(parameters_dict)
 
         for (key, value) in parameters_dict.items():
