@@ -428,7 +428,7 @@ class PchipInterpolator(PiecewisePolynomial):
         include duplicate values (otherwise f is overspecified)
     y : ndarray
         A 1-D array of real values.  `y`'s length along the interpolation
-        axis must be equal to the length of `x`. If N-D array, use axis 
+        axis must be equal to the length of `x`. If N-D array, use axis
         parameter to select correct axis.
     axis : int, optional
         Axis in the y array corresponding to the x-coordinate values.
@@ -521,7 +521,7 @@ class PchipInterpolator(PiecewisePolynomial):
         Returns
         -------
         d : ndarray
-            root interpolated at the y-points. 
+            root interpolated at the y-points.
         """
         # first determine the correct cubic polynomial
         y, y_shape = self._prepare_x(y)
@@ -542,13 +542,13 @@ class PchipInterpolator(PiecewisePolynomial):
                     ress = self._poly_inv(poly, y[c])
                     x[c] = ress[:, np.newaxis]
         return self._finish_y(x, y_shape)
-       
+
     @staticmethod
     def _poly_inv(cubic, y):
-        """Given a cubic KroghInterpolator polynomial, 
+        """Given a cubic KroghInterpolator polynomial,
            we determine the root f(x) = y, where x must be
            bounded by the edges of the Krogh polynomial
-        
+
         Parameters
         ----------
         y : array-like
@@ -556,7 +556,7 @@ class PchipInterpolator(PiecewisePolynomial):
         Returns
         -------
         d : ndarray
-            root of the cubic polynomial interpolated at the y-points. 
+            root of the cubic polynomial interpolated at the y-points.
         """
         from scipy.interpolate._ppoly import real_roots
         x0 = cubic.xi[0]
@@ -597,7 +597,7 @@ class MonoCubicInterp(PchipInterpolator):
         Returns
         -------
         d : ndarray
-            root interpolated at the y-points. 
+            root interpolated at the y-points.
         """
         # first determine the correct cubic polynomial
         y, y_shape = self._prepare_x(y)
@@ -618,13 +618,13 @@ class MonoCubicInterp(PchipInterpolator):
                     ress = self._poly_inv(poly, y[c])
                     x[c] = ress[:, np.newaxis]
         return self._finish_y(x, y_shape)
-       
+
     @staticmethod
     def _poly_inv(cubic, y):
-        """Given a cubic KroghInterpolator polynomial, 
+        """Given a cubic KroghInterpolator polynomial,
            we determine the root f(x) = y, where x must be
            bounded by the edges of the Krogh polynomial
-        
+
         Parameters
         ----------
         y : array-like
@@ -632,7 +632,7 @@ class MonoCubicInterp(PchipInterpolator):
         Returns
         -------
         d : ndarray
-            root of the cubic polynomial interpolated at the y-points. 
+            root of the cubic polynomial interpolated at the y-points.
         """
         from scipy.interpolate._ppoly import real_roots
         x0 = cubic.xi[0]
@@ -667,3 +667,288 @@ class MonoCubicInterp(PchipInterpolator):
             else:
                 raise Exception ('Multiple roots found')
         return result
+
+class QuadraticBspline(object):
+    def __init__(self, xi, yi):
+        self.xi = xi
+        self.yi = yi
+        self.size = len(self.xi) -1;
+        self.h = xi[1:] - xi[:-1]
+        #we create the spline functions
+        self.splines = []
+
+    def quadspline(self, j, x):
+        """
+        spline j evaluated at scalar x, spline has peak from j to j+1 point
+        """
+        if j> self.size or j < -1:
+            raise Exception("A Quad requested that does not exist " + str(j))
+        elif j == -1:
+            if self.xi[0] <= x <= self.xi[1]:
+                return (self.xi[1]-x)**2 / (2*self.h[0]**2)
+            else:
+                return 0.
+        elif j == self.size:
+            if self.xi[-2] <= x <= self.xi[-1]:
+                return (x-self.xi[-2])**2 / (2*self.h[-1]**2)
+            else:
+                return 0.
+        if j==0:
+            lbound = self.xi[0]
+        else:
+            lbound = self.xi[j-1]
+        if j == self.size -1:
+            rbound = self.xi[-1]
+        else:
+            rbound = self.xi[j+2]
+        if not (lbound <= x <= rbound):
+            return 0.
+        if x > self.xi[j+1]:
+            return (self.xi[j+2]-x)**2 / (2*self.h[j+1]**2)
+        elif x > self.xi[j]:
+            y = (0.5 + (x-self.xi[j])/self.h[j] \
+                    - (x-self.xi[j])**2/self.h[j]**2)
+            #if j == self.size-1:
+            #    y += (x-self.xi[j])**2 / (2*self.h[j]**2)
+            #    print (x,y)
+            #elif j == 0:
+            #    y += (self.xi[1]-x)**2 / (2*self.h[0]**2)
+            return y
+        else:
+            return (x-self.xi[j-1])**2 / (2*self.h[j-1]**2)
+
+    def quadspline_der1(self, j, x):
+        """
+        spline j evaluated at scalar x
+        """
+        if j> self.size or j < -1:
+            raise Exception("A Quad requested that does not exist " + str(j))
+        elif j == -1:
+            if self.xi[0] <= x <= self.xi[1]:
+                return -2*(self.xi[1]-x) / (2*self.h[0]**2)
+            else:
+                return 0.
+        elif j == self.size:
+            if self.xi[-2] <= x <= self.xi[-1]:
+                return 2*(x-self.xi[-2]) / (2*self.h[-1]**2)
+            else:
+                return 0.
+        if j==0:
+            lbound = self.xi[0]
+        else:
+            lbound = self.xi[j-1]
+        if j == self.size -1:
+            rbound = self.xi[-1]
+        else:
+            rbound = self.xi[j+2]
+        if not (lbound <= x <= rbound):
+            return 0.
+        if x > self.xi[j+1]:
+            return -2*(self.xi[j+2]-x) / (2*self.h[j+1]**2)
+        elif x > self.xi[j]:
+            return (1/self.h[j]- 2*(x-self.xi[j])/self.h[j]**2)
+        else:
+            return 2*(x-self.xi[j-1]) / (2*self.h[j-1]**2)
+
+    def quadspline_der2(self, j, x):
+        """
+        spline j evaluated at scalar x
+        """
+        if j> self.size or j < -1:
+            raise Exception("A Quad requested that does not exist " + str(j))
+        elif j == -1:
+            if self.xi[0] <= x <= self.xi[1]:
+                return 2 / (2*self.h[0]**2)
+            else:
+                return 0.
+        elif j == self.size:
+            if self.xi[-2] <= x <= self.xi[-1]:
+                return 2 / (2*self.h[-1]**2)
+            else:
+                return 0.
+        if j==0:
+            lbound = self.xi[0]
+        else:
+            lbound = self.xi[j-1]
+        if j == self.size -1:
+            rbound = self.xi[-1]
+        else:
+            rbound = self.xi[j+2]
+        if not (lbound <= x <= rbound):
+            return 0.
+        if x > self.xi[j+1]:
+            return 2 / (2*self.h[j+1]**2)
+        elif x > self.xi[j]:
+            return (-2/self.h[j]**2)
+        else:
+            return 2 / (2*self.h[j-1]**2)
+
+    def __minplusval(self, ind):
+        if ind-2 < 0:
+            yim = 0
+        else:
+            yim = self.yi[ind-2]
+        if ind >= self.size+1:
+            yip = 0
+        else:
+            yip = self.yi[ind]
+        return yim, yip
+
+    def __call__(self, x):
+        """
+        Evaluate the interpolant
+
+        Parameters
+        ----------
+        x : array-like
+            Points to evaluate the interpolant at.
+
+        Returns
+        -------
+        y : array-like
+            Interpolated values.
+        """
+        if _isscalar(x):
+            ind = np.searchsorted(self.xi, x)
+            if (ind == 0 or ind == self.size+1):
+                #out of bounds
+                y = 0.
+            else:
+                yim, yip = self.__minplusval(ind)
+
+                y = (yim*self.quadspline(ind-2,x) +
+                     self.yi[ind-1]*self.quadspline(ind-1,x) +
+                     yip*self.quadspline(ind,x)  )
+        else:
+           y = np.zeros(len(x), dtype=x.dtype)
+           inds = np.searchsorted(self.xi, x)
+           for i, ind in enumerate(inds):
+                if (ind == 0 or ind == self.size+1):
+                    #out of bounds
+                    y[i] = 0.
+                else:
+                   yim, yip = self.__minplusval(ind)
+                   y[i] = (yim*self.quadspline(ind-2,x[i]) +
+                           self.yi[ind-1]*self.quadspline(ind-1,x[i]) +
+                           yip*self.quadspline(ind,x[i])  )
+        return y
+
+    def derivative(self, x, der=1):
+        """
+        Evaluate one derivative of the polynomial at the point x
+
+        Parameters
+        ----------
+        x : array-like
+            Point or points at which to evaluate the derivatives
+
+        der : integer, optional
+            Which derivative to extract. This number includes the
+            function value as 0th derivative.
+
+        Returns
+        -------
+        d : ndarray
+            Derivative interpolated at the x-points.
+        """
+        if der == 0:
+            return self.__call__(x)
+        elif der == 1:
+            if _isscalar(x):
+                ind = np.searchsorted(self.xi, x)
+                if (ind == 0 or ind == self.size+1):
+                    #out of bounds
+                    y = 0.
+                else:
+                    yim, yip = self.__minplusval(ind)
+                    y = (yim*self.quadspline_der1(ind-2,x) +
+                         self.yi[ind  ]*self.quadspline_der1(ind-1 ,x) +
+                         yip*self.quadspline_der1(ind,x)  )
+            else:
+               y = np.zeros(len(x), dtype=x.dtype)
+               inds = np.searchsorted(self.xi, x)
+               for i, ind in enumerate(inds):
+                   if (ind == 0 or ind == self.size+1):
+                       #out of bounds
+                       y[i] = 0.
+                   else:
+                       yim, yip = self.__minplusval(ind)
+                       y[i] = (yim*self.quadspline_der1(ind-2,x[i]) +
+                               self.yi[ind  ]*self.quadspline_der1(ind-1,x[i]) +
+                               yip*self.quadspline_der1(ind,x[i])  )
+            return y
+        elif der == 2:
+            if _isscalar(x):
+                ind = np.searchsorted(self.xi, x)
+                if (ind == 0 or ind == self.size+1):
+                    #out of bounds
+                    y = 0.
+                else:
+                    yim, yip = self.__minplusval(ind)
+                    y = (yim*self.quadspline_der2(ind-2,x) +
+                         self.yi[ind  ]*self.quadspline_der2(ind-1,x) +
+                         yip*self.quadspline_der2(ind,x)  )
+            else:
+               y = np.zeros(len(x), dtype=x.dtype)
+               inds = np.searchsorted(self.xi, x)
+               for i, ind in enumerate(inds):
+                   if (ind == 0 or ind == self.size+1):
+                       #out of bounds
+                       y[i] = 0.
+                   else:
+                       yim, yip = self.__minplusval(ind)
+                       y[i] = (yim*self.quadspline_der2(ind-2,x[i]) +
+                               self.yi[ind  ]*self.quadspline_der2(ind-1,x[i]) +
+                               yip*self.quadspline_der2(ind,x[i])  )
+            return y
+        else:
+            if _isscalar(x):
+                y = 0
+            else:
+               y = np.zeros(len(x), dtype=x.dtype)
+            return y
+
+if __name__ == "__main__":
+    #test of QuadraticBspline
+    x = np.linspace(0, 10, 21)
+    mcub = MonoCubicInterp
+    mcub_lin = mcub(x, x)
+    lin = x
+    mcub_kwa = mcub(x, np.power(x,2))
+    kwa = x**2
+    mcub_cub = mcub(x, np.power(x,3))
+    cub = x**3
+    mcub_limit = mcub(np.array([0,2]), np.array([0,4]))
+    h = -np.power(10, x[::-1])/5
+    u = 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3)
+    mcub_vGn = mcub(h, u)
+
+    bspl = QuadraticBspline
+    bspl_lin = bspl(x, x)
+    bspl_kwa = bspl(x, np.power(x,2))
+    bspl_cub = bspl(x, np.power(x,3))
+    bspl_limit = bspl(np.array([0,2]), np.array([0,4]))
+    h = -np.power(10, x[::-1])/5
+    u = 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3)
+    bspl_vGn = bspl(h, u)
+
+    import pylab
+    pylab.figure(1)
+    xaxis = np.linspace(-1000., 1e-1, 100)
+    mcuby = mcub_vGn(xaxis)
+    bsply = bspl_vGn(xaxis)
+    pylab.xlim(xmin=-2001)
+    pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'g-')
+    pylab.plot(xaxis, mcuby, 'bo')
+    pylab.plot(xaxis, bsply, 'ro')
+    pylab.show()
+
+    pylab.figure(2)
+    xaxis = np.linspace(0, 10, 100)
+    mcuby = mcub_lin(xaxis)
+    bsply = bspl_lin(xaxis)
+    pylab.plot(x, lin, 'go')
+    pylab.plot(xaxis, mcuby, 'bo')
+    pylab.plot(xaxis, bsply, 'ro')
+    pylab.plot(xaxis, map(bspl_lin.quadspline, np.ones(len(xaxis),float),xaxis), 'ko')
+    pylab.show()
