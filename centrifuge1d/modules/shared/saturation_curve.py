@@ -466,7 +466,7 @@ class SC_freeform(SC_base):
         #we use the log values  for head.
         self._hnodes[1:-1] = -1*np.log(-hi[:])
         self._hnodes[0] = -1*np.log(-hi[0]*1e3)
-        self._hnodes[-1] = max(-1*np.log(1e-28), -1*np.log(-hi[-2]*1e-3))
+        self._hnodes[-1] = max(-1*np.log(1e-28), -1*np.log(-hi[-1]*1e-3))
         self._hmax = -np.exp(-self._hnodes)
         #with log for head, saturation is linear
         self._uvals[1:-1] = ui[:]
@@ -667,7 +667,7 @@ class SC_freeform_BSpline(SC_base):
         self.refinemax = refinemax
 
         if hi is not None and ui is not None and ki is not None:
-            SC_freeform.check_params(hi, ui, ki)
+            SC_freeform_BSpline.check_params(hi, ui, ki)
             self.__set_values(np.array(hi, dtype=float), np.array(ui, dtype=float),
                               np.array(ki, dtype=float))
         else:
@@ -689,7 +689,7 @@ class SC_freeform_BSpline(SC_base):
         #we use the log values  for head.
         self._hnodes[1:-1] = -1*np.log(-hi[:])
         self._hnodes[0] = -1*np.log(-hi[0]*1e3)
-        self._hnodes[-1] = max(-1*np.log(1e-28), -1*np.log(-hi[-2]*1e-3))
+        self._hnodes[-1] = max(-1*np.log(1e-28), -1*np.log(-hi[-1]*1e-3))
         self._hmax = -np.exp(-self._hnodes)
         #with log for head, saturation is linear
         self._uvals[1:-1] = ui[:]
@@ -870,3 +870,42 @@ class SC_freeform_BSpline(SC_base):
         print ('compu', compu)
         self.refine += 1
         return False
+
+
+if __name__ == "__main__":
+    #test of SC curves
+    #BSPLINE on hi, ui, ki
+    hi = [-403.43, -1]
+    ui = [0.73394395,  0.9923954]
+    ki = np.array([0.00239603,  0.08027015])
+    #BSPLINE on hi, ui, ki
+    hiext = [-403.43*1e3, -403.43, -1, -1*1e-3]
+    uiext = [0          , 0.73394395,  0.9923954, 1]
+    kiext = [0.00239603*np.exp(-10), 0.00239603,  0.08027015, 1]
+    BS = SC_freeform_BSpline(hi, ui, ki)
+    FF = SC_freeform(hi, ui, ki)
+    ks = 0.00011846618
+
+    haxis = np.linspace(-500., 0, 10000)
+    uax = BS.h2u(haxis)
+    kax = BS.h2Kh(haxis, ks)
+    duax = BS.dudh(haxis)
+    uaxf = FF.h2u(haxis)
+    kaxf = FF.h2Kh(haxis, ks)
+    duaxf = FF.dudh(haxis)
+
+    import pylab
+    pylab.figure(1)
+    pylab.xlim(xmin=hi[0])
+    pylab.plot(hiext, uiext, 'k-')
+    pylab.plot(haxis, uax, 'b-')
+    pylab.plot(haxis, duax, 'r-')
+    pylab.plot(haxis, uaxf, 'g-')
+    pylab.plot(haxis, duaxf, 'c-')
+    pylab.show()
+
+    pylab.figure(2)
+    pylab.plot(hi, ki*ks, 'k-')
+    pylab.plot(haxis, kax, 'b-')
+    pylab.plot(haxis, kaxf, 'g-')
+    pylab.show()

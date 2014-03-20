@@ -669,9 +669,21 @@ class MonoCubicInterp(PchipInterpolator):
         return result
 
 class QuadraticBspline(object):
+    """
+    Implementation of interpolating quadratic B-Spline
+    The grid goes from 0 to n=len(input)-1
+    The splines go from -1 to n, with B_{-1} to left of interval, and B_n to right
+    Intervals goes from 0 to n-1, with only internal intervals
+    """
     def __init__(self, xi, yi):
         self.xi = xi
-        self.yi = yi
+        self.origyi = yi
+        #for interpolating origyi, we need at knots
+        #   y0 = origy0 and yi = 2*origyi-yi-1
+        self.yi = np.empty(len(yi), float)
+        self.yi[0] = yi[0]
+        for ind in range(1,len(yi)):
+            self.yi[ind] = 2*yi[ind]-self.yi[ind-1]
         self.size = len(self.xi) -1;
         self.h = xi[1:] - xi[:-1]
         #we create the spline functions
@@ -679,7 +691,7 @@ class QuadraticBspline(object):
 
     def quadspline(self, j, x):
         """
-        spline j evaluated at scalar x, spline has peak from j to j+1 point
+        spline j evaluated at scalar x, spline j has peak from j to j+1 point
         """
         if j> self.size or j < -1:
             raise Exception("A Quad requested that does not exist " + str(j))
