@@ -687,9 +687,20 @@ class ModelParameters:
         We allow the parameters to be refined if one of the objects
         with parameters allows refine.
         """
+        succ = False
         if hasattr(self, 'SC'):
-            return self.SC.refine(self.measurements)
-        return False
+            if self.SC.canrefine_h():
+                if not 'ki' in self.init_values or not 'ui' in self.init_values:
+                    raise Exception("Refine of h only allowed if ki and ui "
+                                    "are parameters to determine inversely")
+                succ =  self.SC.refine(self.measurements)
+                if succ:
+                    #update model init values
+                    self.init_values['hi'] = self.SC.refinable_h()
+                    ui, ki = self.SC.get_parameters()
+                    self.init_values['ki'] = ki
+                    self.init_values['ui'] = ui
+        return succ
 
 
     def next_iteration(self):

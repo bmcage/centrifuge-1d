@@ -935,7 +935,7 @@ class DataStorage:
 
         return True
 
-    def display(self, fignum=1, ext=''):
+    def display(self, fignum=1, ext='', noblock=False):
         """ Display the figures and/or write them to files. """
 
         styles = self._styles
@@ -1027,9 +1027,13 @@ class DataStorage:
 
         print('Done.')              # Generating/displaying/saving figures
 
-        if show_figures:
-            input('\nPress ENTER to continue...')
-            plt.close('all')
+        if noblock:
+            if show_figures:
+                plt.close('all')
+        else:
+            if show_figures:
+                input('\nPress ENTER to continue...')
+                plt.close('all')
 
 ################################################################################
 #                         Module's provided functions                          #
@@ -1054,7 +1058,7 @@ def show_inbetween_result(experiment_info, model, inv_params, cov, ext):
 
     print_status(data, filename)
 
-    data.display(ext=ext)
+    data.display(ext=ext, noblock=True)
 
 def show_results(experiment_info,
                  model=None, inv_params=None, cov=None):

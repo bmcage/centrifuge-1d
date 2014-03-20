@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 
 """
   This modules contains saturation curve object(s) for single flow
@@ -251,6 +251,12 @@ class SC_base():
         using these parameters always obtain untransformed values.
         """
         pass
+
+    def canrefine_h(self):
+        """
+        indicate if this SC allows refinement of h
+        """
+        return False
 
     def refine(self):
         """
@@ -534,6 +540,12 @@ class SC_freeform(SC_base):
         SC_freeform.check_params(self._hi, ui, ki)
         self.__set_values(self._hi, ui, ki)
 
+    def get_parameters(self):
+        """
+        return the current parameters
+        """
+        return self._ui, self._ki
+
     def h2Kh(self, h, Ks, Kh = None):
         """
         For a given head h and saturated hydraulic conductivity Ks, what is
@@ -630,20 +642,103 @@ class SC_freeform(SC_base):
         """
         return SC_FF
 
+    def canrefine_h(self):
+        """
+        indicate if this SC allows refinement of h
+        """
+        return True
+
+    def refinable_h(self):
+        """
+        Obtain the current h values which are allowed to be refined
+        """
+        return -np.exp(-self._hnodes[1:-1])
+
     def refine(self, prev_measurements):
         """
         refine the parameters and reinit. Return if success
         """
-        if self.refine >= self.refinemax:
+        if self.refinenr >= self.refinemax:
             return False
         #we refine the parameter space. Here we add a h point, and hence
         #add 2 new parameters: the ki and ui at that new hi.
-        comph = prev_measurements.get_computed_value(self, 'h')
-        compu = prev_measurements.get_computed_value(self, 'u')
+        # obtain (x, h) computed data and (x, u)
+        comph  = prev_measurements.get_computed_value('h')
+        compu  = prev_measurements.get_computed_value('u')
+        compui = self._ui
+        compki = self._ki
         print ('comph', comph)
         print ('compu', compu)
-        self.refine += 1
-        return False
+        print ('compui', compui)
+        if self.refinenr == 0:
+            #first refine. refine strategy must start from 2 points!
+            self._internalrefine = 1
+            if not len(self._hi) == 2:
+                raise Exception("Refinement must start from minimum amount "
+                                "of points: 2 given head values")
+
+        hn = self._hnodes[1:-1]
+        minh = np.min(comph[1])
+        while True:
+            if self._internalrefine > 32:
+                #stop computation:
+                print ("More than maximum number of internal refinements!")
+                return False
+            curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
+            curintervalsize = 1/2**(curexp)
+            possiblenewhnodes = [hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
+                                                for i in range(curexp)]
+            possiblenewhnodes = [i for i in possiblenewhnodes if not i in hn]
+            #we select only h > minh
+            possiblenewhnodes = np.array([i for i in possiblenewhnodes
+                                            if -np.exp(-i) > minh])
+            print ('newhn', possiblenewhnodes)
+            if possiblenewhnodes == []:
+                self._internalrefine += 1
+                continue
+            else:
+                possiblenewh = -np.exp(-possiblenewhnodes)
+                #start with the one in interval with largest u change
+                uchange = 0;
+                prevui = self._uvals[1]
+                nexth = possiblenewh[0]
+                nexthnode = possiblenewhnodes[0]
+                for h, hnode in zip(possiblenewh, possiblenewhnodes):
+                    for hi, ui in zip(self._hi, self._ui):
+                        if hi > h:
+                            diffu = ui-prevui
+                            if diffu > uchange:
+                                nexth = h
+                                nexthnode = hnode
+                                uchange = diffu
+                        prevui = ui
+                break;
+
+        #we have a new h to add, we insert it, and update parameters
+        nh = self.h2u(np.array([nexth]))
+        nk = self.h2Kh(np.array([nexth]), 1)
+        ind = np.searchsorted(self._hnodes, nexthnode)
+        self._hnodes = np.insert(self._hnodes, ind, nexthnode)
+        self._hi     = np.insert(self._hi, ind-1, nexth)
+        self._ui     = np.insert(self._ui, ind-1, nh)
+        self._ki     = np.insert(self._ki, ind-1, nk)
+        self._uvals  = np.insert(self._uvals, ind, self._ui[ind-1])
+        self._kvals  = np.insert(self._kvals, ind, np.log(self._ki[ind-1]))
+
+        print ("*** refined SC curve  - new par ***")
+        print (" h  ", self._hi)
+        print (" u  ", self._ui)
+        print (" k  ", self._ki)
+        print (" hn ", self._hnodes)
+        print (" uv ", self._uvals)
+        print (" kv ", self._kvals)
+
+        self.logh2u = QuadraticBspline(self._hnodes, self._uvals)
+        self.logh2logk = QuadraticBspline(self._hnodes, self._kvals)
+
+        self.refinenr += 1
+        self._internalrefine += 1
+        return True
 
 ########################################################################
 #                           Free-form  model local BSpline based       #
@@ -760,6 +855,12 @@ class SC_freeform_BSpline(SC_base):
         SC_freeform_BSpline.check_params(self._hi, ui, ki)
         self.__set_values(self._hi, ui, ki)
 
+    def get_parameters(self):
+        """
+        return the current parameters
+        """
+        return self._ui, self._ki
+
     def h2Kh(self, h, Ks, Kh = None):
         """
         For a given head h and saturated hydraulic conductivity Ks, what is
@@ -855,21 +956,6 @@ class SC_freeform_BSpline(SC_base):
         Indication of the compatible types of SC
         """
         return SC_FF_BS
-
-    def refine(self, prev_measurements):
-        """
-        refine the parameters and reinit. Return if success
-        """
-        if self.refine >= self.refinemax:
-            return False
-        #we refine the parameter space. Here we add a h point, and hence
-        #add 2 new parameters: the ki and ui at that new hi.
-        comph = prev_measurements.get_computed_value(self, 'h')
-        compu = prev_measurements.get_computed_value(self, 'u')
-        print ('comph', comph)
-        print ('compu', compu)
-        self.refine += 1
-        return False
 
 
 if __name__ == "__main__":

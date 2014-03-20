@@ -1038,6 +1038,7 @@ class Measurements():
         """
         for (cname, yvalue) in self._computed.items():
             if cname in ('h', 'u') and cname == name:
+                #sample position as x value for computed vals
                 xvalue = self._computed['x']
 
                 return (xvalue, yvalue)

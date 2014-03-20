@@ -423,15 +423,19 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
         # function, so we need to be sure measurements were re-setted
         measurements.reset_calc_measurements()
 
+        #output inbetween data of this refinement run.
+        show_inbetween_result(model.experiment_info, model,
+                              optim_params, cov, ext='_%03d' % invrun)
+
+        print ("Doing refine now")
+
         if hasattr(model, "refine"):
             success = model.refine()
+            print ("Doing refine .. ", success)
             if not success:
                 break;
         else:
             break;
-        #output inbetween data of this refinement run.
-        show_inbetween_result(model.experiment_info, model,
-                              optim_params, cov, ext='_%03d' % invrun)
 
     return (optim_params, cov)
 
