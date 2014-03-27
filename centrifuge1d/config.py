@@ -696,10 +696,13 @@ class ModelParameters:
                 succ =  self.SC.refine(self.measurements)
                 if succ:
                     #update model init values
-                    self.init_values['hi'] = self.SC.refinable_h()
+                    if 'hi' in self.init_values:
+                        self.init_values['hi'] = self.SC.refinable_h()
                     ui, ki = self.SC.get_parameters()
-                    self.init_values['ki'] = ki
-                    self.init_values['ui'] = ui
+                    if 'ki' in self.init_values:
+                        self.init_values['ki'] = ki
+                    if 'ui' in self.init_values:
+                        self.init_values['ui'] = ui
         return succ
 
 
