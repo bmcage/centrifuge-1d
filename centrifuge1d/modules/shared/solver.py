@@ -318,7 +318,10 @@ def print_params(params):
     print()
     for (name, value) in params.items():
         if name == 'ks':
-            print('{:5}: {: .8g}'.format('Ks', value))
+            if np.iterable(value):
+                print('{0:5}: {1!s}'.format('Ks', value))
+            else:
+                print('{:5}: {: .8g}'.format('Ks', value))
         else:
             if np.iterable(value):
                 print('{0:5}: {1!s}'.format(name, value))
