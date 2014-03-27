@@ -2,6 +2,7 @@ from __future__ import print_function, division
 import scikits.odes.sundials.ida as ida
 import numpy as np
 from .show import show_inbetween_result
+from matplotlib.cbook import flatten
 
 simulation_err_str = ('%s simulation: Calculation did not reach '
                       'the expected time. An error occured.'
@@ -608,7 +609,7 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
             print('Running optimization to obtain the covariance of '
                   'untransformed parameters...')
             untransform = None
-            init_values = [optim_params[name] for name in optim_names]
+            init_values = list(flatten([optim_params[name] for name in optim_names]))
 
         if optimfn == 'leastsq':
             (opt_params, cov, infodic, msg, ier) = \
