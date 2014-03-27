@@ -6,7 +6,7 @@ CONFIG_OPTIONS = {
                    "Values: 'leastsq', 'fmin', 'fmin_powell', 'fmin_cg', "
                    "'fmin_bfgs', 'fmin_slsqp'")},
     'inverse-solver-options': \
-      {'epsn': ("Type: float."
+      {'epsfcn': ("Type: float."
                 "Used by: 'leastsq', 'fmin_slsqp'"),
        'factor': ("Type: float."
                   "Used by: 'leastsq'"),

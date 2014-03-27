@@ -303,7 +303,10 @@ def print_status(data, filename=None):
             print('\nOptimal parameters found:', file=stream)
             for (name, value) in params.items():
                 if name == 'ks':
-                    print('  Ks [cm/s]: {: .8g}'.format(value), file=stream)
+                    if np.iterable(value):
+                        print('  Ks [cm/s]: {0!s}'.format(value), file=stream)
+                    else:
+                        print('  Ks [cm/s]: {: .8g}'.format(value), file=stream)
                 elif np.iterable(value):
                     print('  {0:9}: {1!s}'.format(name, value), file=stream)
                 else:
@@ -461,7 +464,7 @@ def assign_data(styles, displayed_figs, data):
     # Resolve 'overlay_x' and 'overlay_y'
     figures_styles = styles['figures']
     line_data = data.get_linedata('computed')
-    u_min = np.min(line_data['u'][1])
+    u_min = np.min(line_data['u'][1][:,:-1])
     u_max = np.max(line_data['u'][1])
     for fig_id in displayed_figs:
         overlay_x = get_figure_option(figures_styles, fig_id, 'overlay_x')
