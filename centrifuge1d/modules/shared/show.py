@@ -464,8 +464,10 @@ def assign_data(styles, displayed_figs, data):
     # Resolve 'overlay_x' and 'overlay_y'
     figures_styles = styles['figures']
     line_data = data.get_linedata('computed')
-    u_min = np.min(line_data['u'][1][:,:-1])
-    u_max = np.max(line_data['u'][1])
+    udata = line_data['u'][1][:,:].flatten()
+    udata = udata[udata != 0.]
+    u_min = np.min(udata)
+    u_max = np.max(udata)
     for fig_id in displayed_figs:
         overlay_x = get_figure_option(figures_styles, fig_id, 'overlay_x')
         overlay_y = get_figure_option(figures_styles, fig_id, 'overlay_y')
