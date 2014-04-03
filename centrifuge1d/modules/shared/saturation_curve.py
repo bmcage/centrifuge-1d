@@ -693,7 +693,7 @@ class SC_freeform(SC_base):
             possiblenewhnodes = np.array([i for i in possiblenewhnodes
                                             if -np.exp(-i) > minh])
             print ('newhn', possiblenewhnodes)
-            if possiblenewhnodes == []:
+            if len(possiblenewhnodes) == 0:
                 self._internalrefine += 1
                 continue
             else:
