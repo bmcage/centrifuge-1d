@@ -501,7 +501,8 @@ class SC_freeform(SC_base):
             raise Exception ( 'Some parameters are not given: '\
                     'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
         if not (len(hi)==len(ui)==len(ki)):
-            raise Exception ('Parameters must have equal length')
+            raise Exception ('Parameters must have equal length. '\
+                    'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
         #hi must be monotone ascending > 0, and ui, ki monotone ascending
         ho = hi[0]
         uo = ui[0]
