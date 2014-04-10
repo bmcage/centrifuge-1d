@@ -669,10 +669,14 @@ class ModelParameters:
             if 'sc_type' in thekey  and thekey ['sc_type'] != self.SC.typeSC():
                 if thekey ['sc_type'] == SC_vG:
                     self.SC = SC_vanGenuchten()
+                # TODO ERROR: we need to pass hi somehow !!!
+                # see base_unsaturated/options.py  adjust_cfg functionS
                 elif thekey ['sc_type'] == SC_FF:
-                    self.SC = SC_freeform()
+                    print ("ERROR set_parameters, don't think this works\n")
+                    self.SC = SC_freeform(self._cfg.get_value('hi'))
                 elif thekey ['sc_type'] == SC_FF_BS:
-                    self.SC = SC_freeform_BSpline()
+                    print ("ERROR set_parameters, don't think this works\n")
+                    self.SC = SC_freeform_BSpline(self._cfg.get_value('hi'))
             self.SC.set_parameters(parameters_dict)
 
         for (key, value) in parameters_dict.items():

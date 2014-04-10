@@ -128,6 +128,9 @@ def default_transformation(lbound, ubound, max_value = TRANSFORM_MAX_VALUE):
 
 class SC_base():
 
+    def __init__(self):
+        self.h_init_max = 0.
+
     def retention_curve(self, theta_s, rho, g, theta_r=0.0, p=None, h=None,
                         find_p=True):
         """
@@ -237,7 +240,8 @@ class SC_base():
         actual values. This may be important in the parameters
         optimization process.
         """
-        return  h_init_max
+        self.h_init_max = h_init_max
+        return self.h_init_max
 
     def add_transformations_fns(self, transform, untransform,
                                 lbounds, ubounds):
@@ -258,7 +262,7 @@ class SC_base():
         """
         return False
 
-    def refine(self):
+    def refine(self, _):
         """
         refine the parameters and reinit. Return if success
         """
@@ -287,6 +291,7 @@ class SC_vanGenuchten(SC_base):
          k(u)  =  u^0.5 (1 - (1 - u^{1/m})^m )^2
     """
     def __init__(self, n=None, gamma=None):
+        SC_base.__init__(self)
         self._n = n
         if n is None:
             self._m = None
@@ -407,7 +412,8 @@ class SC_vanGenuchten(SC_base):
         """
         Dynamically set 'h_init' value based on the 'gamma' parameter.
         """
-        return  min(c_gammah / self._gamma, h_init_max)
+        self.h_init_max = min(c_gammah / self._gamma, h_init_max)
+        return self.h_init_max
 
     def add_transformations_fns(self, transform, untransform,
                                 lbounds, ubounds):
@@ -446,6 +452,8 @@ class SC_freeform(SC_base):
     From this cubic spline the derivatives can be extracted
     """
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
+        SC_base.__init__(self)
+        self.extra = 0
         self.refinenr=0
         self.refinemax = refinemax
 
@@ -466,22 +474,30 @@ class SC_freeform(SC_base):
         self._hi = hi
         self._ui = ui
         self._ki = ki
-        self._hnodes = np.empty(len(hi)+2, float)
-        self._uvals = np.empty(len(hi)+2, float)
-        self._kvals = np.empty(len(hi)+2, float)
+        hmax = -min(1e-28, -hi[-1]*1e-3)
+        self.extra = 0
+        if self.h_init_max > self._hi[-1] and self.h_init_max < hmax:
+            self.extra = 1
+        self._hnodes = np.empty(len(hi)+2+self.extra, float)
+        self._uvals = np.empty(len(hi)+2+self.extra, float)
+        self._kvals = np.empty(len(hi)+2+self.extra, float)
         #we use the log values  for head.
-        self._hnodes[1:-1] = -1*np.log(-hi[:])
+        self._hnodes[1:-1-self.extra] = -1*np.log(-hi[:])
         self._hnodes[0] = -1*np.log(-hi[0]*1e3)
-        self._hnodes[-1] = max(-1*np.log(1e-28), -1*np.log(-hi[-1]*1e-3))
+        self._hnodes[-1] = -1*np.log(-hmax)
         self._hmax = -np.exp(-self._hnodes)
         #with log for head, saturation is linear
-        self._uvals[1:-1] = ui[:]
+        self._uvals[1:-1-self.extra] = ui[:]
         self._uvals[0] = 0.
         self._uvals[-1] = 1.
         #with log for head, also rel perm should be log values
-        self._kvals[1:-1] = np.log(ki[:])
+        self._kvals[1:-1-self.extra] = np.log(ki[:])
         self._kvals[0] = min(-50, self._kvals[1]-10 )
         self._kvals[-1] = 0.
+        if self.extra == 1:
+            self._hnodes[-2] = -1*np.log(-self.h_init_max)
+            self._uvals[-2]  = 1-1e-5
+            self._kvals[-1]  = np.log(1-1e-5)
 
         # we now construct two cubic monotone interpolations: U(H) and K(H)
 #        print ('test mono')
@@ -546,6 +562,26 @@ class SC_freeform(SC_base):
         return the current parameters
         """
         return self._ui, self._ki
+
+
+    def get_dyn_h_init(self, c_gammah, h_init_max):
+        """
+        Initial values of h~0 can cause troubles to the solver to start
+        depending on parameters of the SC class. To ensure "smooth" start
+        we compute a dynamically obtained 'h_init' value based on
+        actual values. This may be important in the parameters
+        optimization process.
+        """
+        recreate = False
+        if self._hi is not None and self.h_init_max != h_init_max:
+            #we need to regenerate the bsplace!
+            recreate = True
+        self.h_init_max = h_init_max
+        if recreate and self._hi is not None and self._ui is not None \
+                and self._ki is not None:
+            self.__set_values(self._hi, self._ui, self._ki)
+
+        return self.h_init_max
 
     def h2Kh(self, h, Ks, Kh = None):
         """
@@ -664,13 +700,10 @@ class SC_freeform(SC_base):
         #we refine the parameter space. Here we add a h point, and hence
         #add 2 new parameters: the ki and ui at that new hi.
         # obtain (x, h) computed data and (x, u)
-        comph  = prev_measurements.get_computed_value('h')
-        compu  = prev_measurements.get_computed_value('u')
+        comph  = prev_measurements.get_computed_value('h')[1]
+        compu  = prev_measurements.get_computed_value('u')[1]
         compui = self._ui
-        compki = self._ki
-        print ('comph', comph)
-        print ('compu', compu)
-        print ('compui', compui)
+        #compki = self._ki
         if self.refinenr == 0:
             #first refine. refine strategy must start from 2 points!
             self._internalrefine = 1
@@ -678,8 +711,9 @@ class SC_freeform(SC_base):
                 raise Exception("Refinement must start from minimum amount "
                                 "of points: 2 given head values")
 
-        hn = self._hnodes[1:-1]
-        minh = np.min(comph[1])
+        hn = self._hnodes[1:-1-self.extra]
+        minh = np.min(comph.flatten())
+
         while True:
             if self._internalrefine > 32:
                 #stop computation:
@@ -759,6 +793,7 @@ class SC_freeform_BSpline(SC_base):
     From this cubic spline the derivatives can be extracted
     """
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
+        SC_base.__init__(self)
         self.refinenr=0
         self.refinemax = refinemax
 
@@ -962,18 +997,18 @@ class SC_freeform_BSpline(SC_base):
 if __name__ == "__main__":
     #test of SC curves
     #BSPLINE on hi, ui, ki
-    hi = [-403.43, -1]
-    ui = [0.73394395,  0.9923954]
-    ki = np.array([0.00239603,  0.08027015])
+    ks = 0.00011846618
+    hi = [-403.43, -200, -1]
+    ui = [0.73394395, 0.8625, 0.9923954]
+    ki = np.array([0.00239603,  0.043, 0.08027015])
     #BSPLINE on hi, ui, ki
-    hiext = [-403.43*1e3, -403.43, -1, -1*1e-3]
-    uiext = [0          , 0.73394395,  0.9923954, 1]
-    kiext = [0.00239603*np.exp(-10), 0.00239603,  0.08027015, 1]
+    hiext = [-403.43*1e3, -403.43, -200, -1, -1*1e-3]
+    uiext = [0          , 0.73394395,  0.8625, 0.9923954, 1]
+    kiext = [0.00239603*np.exp(-10), 0.00239603, 0.043/ks, 0.08027015, 1]
     BS = SC_freeform_BSpline(hi, ui, ki)
     FF = SC_freeform(hi, ui, ki)
-    ks = 0.00011846618
 
-    haxis = np.linspace(-500., 0, 10000)
+    haxis = np.linspace(-500., -0.0001, 10000)
     uax = BS.h2u(haxis)
     kax = BS.h2Kh(haxis, ks)
     duax = BS.dudh(haxis)
@@ -984,15 +1019,20 @@ if __name__ == "__main__":
     import pylab
     pylab.figure(1)
     pylab.xlim(xmin=hi[0])
+    pylab.title("effective saturation")
     pylab.plot(hiext, uiext, 'k-')
-    pylab.plot(haxis, uax, 'b-')
-    pylab.plot(haxis, duax, 'r-')
-    pylab.plot(haxis, uaxf, 'g-')
-    pylab.plot(haxis, duaxf, 'c-')
+    pylab.plot(haxis, uax, 'b-', label="BS")
+    #pylab.plot(haxis, duax, 'r-')
+    pylab.plot(haxis, uaxf, 'g-', label="FF")
+    #pylab.plot(haxis, duaxf, 'c-')
+    pylab.legend()
     pylab.show()
 
     pylab.figure(2)
-    pylab.plot(hi, ki*ks, 'k-')
-    pylab.plot(haxis, kax, 'b-')
-    pylab.plot(haxis, kaxf, 'g-')
+    pylab.title("relative permeability")
+    pylab.plot(hi, ki, 'k-')
+    pylab.plot(haxis, kax/ks, 'b-', label="BS")
+    pylab.plot(haxis, kaxf/ks, 'g-', label="FF")
+    pylab.ylim(ymax=1.1)
+    pylab.legend()
     pylab.show()
