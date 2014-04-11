@@ -721,13 +721,16 @@ class SC_freeform(SC_base):
                 return False
             curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
             curintervalsize = 1/2**(curexp)
+            print ('intref', self._internalrefine)
             possiblenewhnodes = [hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
-                                                for i in range(curexp)]
+                                                for i in range(2**(curexp-1))]
+            print ('newhn 0', possiblenewhnodes)
             possiblenewhnodes = [i for i in possiblenewhnodes if not i in hn]
+            print ('newhn 1', possiblenewhnodes)
             #we select only h > minh
             possiblenewhnodes = np.array([i for i in possiblenewhnodes
                                             if -np.exp(-i) > minh])
-            print ('newhn', possiblenewhnodes)
+            print ('newhn E', possiblenewhnodes)
             if len(possiblenewhnodes) == 0:
                 self._internalrefine += 1
                 continue
