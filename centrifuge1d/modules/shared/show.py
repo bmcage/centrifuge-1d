@@ -195,7 +195,7 @@ FIGURES_IDS = list(FIGURES_DEFAULTS.keys())
 DISPLAY_OPTIONS = {'separate_figures': False, 'show_figures': True,
                    'save_figures': True, 'matplotlib_backend': None,
                    'show_figures_titles': None, 'comparison_table': False,
-                   'figures_dpi': 92}
+                   'save_formats': ['png'], 'figures_dpi': 92}
 
 def set_default_units(figures_styles):
     for fig_style in figures_styles.values():
@@ -1033,9 +1033,21 @@ class DataStorage:
 
         if save_figures:
             print('Saving figures... ', end='')
+
+            save_formats = display_options['save_formats']
+            if np.isscalar(save_formats):
+                save_formats = (save_formats, )
             figures_dpi = display_options['figures_dpi']
+
             for (fig, img_suffix) in save_figs_list:
-                fig.savefig(save_dir + 'image-' + img_suffix + ext, dpi=figures_dpi)
+                for save_format in save_formats:
+                    try:
+                        fig.savefig(save_dir + 'image-' + img_suffix + ext
+                                     + '.' + save_format,
+                                    format=save_format, dpi=figures_dpi)
+                    except:
+                        print('Saving figures to format ' + save_format
+                               + ' was not successful. Skipping...')
 
         print('Done.')              # Generating/displaying/saving figures
 
