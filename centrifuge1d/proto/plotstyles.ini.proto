@@ -177,7 +177,7 @@
 #                      - default value: ['png', 'eps'],
 # 'comparison_table'   - display comparison of computed vs. measured values in
 #                        a table
-# 'figures_dpi'	       - set the dpi of the saved figure. Default is 92.
+# 'figures_dpi'        - set the dpi of the saved figure. Default is 92.
 # 'matplotlib_backend' - Use different backend for matplotlib. If value is None,
 #                        the default one for matplotlib is used. Note: given
 #                        backend has to be installed just as the python bindings

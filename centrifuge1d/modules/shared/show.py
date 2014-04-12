@@ -33,10 +33,12 @@ DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
                  'force_kgp': 'gf', 'weight': 'g', 'velocity': 'cm/s',
                  'rotational_speed': 'rpm', 'none': ''}
 
-# Linestyle is searched in order:
-#   1. Exists 'lineid' and there for 'fig_id' specific option
-#   2. If not, search '_default_' for 'fig_id'
-#   3. If not, use option in the '_base_' of the '_default_'
+# Linestyle is searched in order from most specific to least specific and return
+# the first found value of specified option. The order is:
+#   1. 'line_id'   -> 'fig_id'
+#   2. 'line_id'   -> '_base_'
+#   3. '_default_' -> 'fig_id'
+#   4. '_default_' -> '_base_'
 # Linestyle options:
 #    Assigned only to '_base_' of line_id:
 #        'xdata', 'ydata', 'label', 'legend_data', 'order',
@@ -209,10 +211,11 @@ def get_unit_coef(unit_base):
       Return the coeficient for the new unit type to be used, so that
       the internal unit is converted to the new unit.
     """
+    default_units =  ['cm', 's', 'pa', 'g', 'gf', 'cm/s', 'rpm', '']
 
     unit = unit_base.lower()
     # units used for computation are: cm, s, pa, gf and "no units"
-    if unit in ['cm', 's', 'pa', 'g', 'gf', 'cm/s', 'rpm', '']: coef = 1.0
+    if unit in default_units: coef = 1.0
     elif unit == 'mm': coef = 10.
     elif unit in 'min': coef = 1./60.
     elif unit == 'h': coef = 1./3600.
