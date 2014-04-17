@@ -753,6 +753,9 @@ class DataStorage:
         if not flag:
             print("Computation of reference with ID '" + ID + "' was not "
                   "successfull. Data will not be saved.")
+            if ID == 'computed':
+                #no sense continuing if computed does not work
+                raise Exception('Could not obtain computed data')
         else:
             line_style = self._styles['lines'][ID]
             data = {}
