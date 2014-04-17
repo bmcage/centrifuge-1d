@@ -437,6 +437,8 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
             success = model.refine()
             print ("Doing refine .. ", success)
             if not success:
+                print ("Stopping refinement, current par")
+                print (model.get_parameters(optim_params))
                 break;
         else:
             break;
@@ -571,12 +573,12 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                         (transform[name], untransform[name]) = \
                           default_transformation(-np.inf, np.inf)
                 else:
-                    error('Name ''', name, ' '' is specified in one of '
+                    raise Exception('Name ''', name, ' '' is specified in one of '
                         '[un]transform but not in the other:\n'
                         'Transform:   ', transform,
                         '\nUntransform: ', untransform)
     else:
-        error('One of transform/untransform is ''None'' while the other not.')
+        raise Exception('One of transform/untransform is ''None'' while the other not.')
 
     init_values = np.empty((np.sum(optim_par_length), ), dtype=float)
     iv_ind = 0
@@ -683,37 +685,38 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
         if not value is None:
             out += ' |{:8d}'.format(value)
     print(out, '|')
+    #print("Extra info:", opt_params, cov, infodic, msg, ier)
 
     return (optim_params, cov)
 
-def compute_raster(model):
-        lbounds = xdata.inv_lbounds
-        ubounds = xdata.inv_ubounds
-        raster_size = xdata.raster_grid_size
-        nrlevels = len(lbounds)
-        if np.isscalar(raster_size):
-            raster_size = [raster_size] * nrlevels
-
-        optimargs = [0]* nrlevels
-        grid = []
-        output = []
-
-        from copy import copy
-        for (lb, ub, rsize) in zip(lbounds, ubounds, raster_size):
-            grid.append(np.linspace(float(lb), float(ub), float(rsize)))
-
-        def loopsingle(level):
-            for (ind, val) in enumerate(grid[level]):
-                optimargs[level] = val
-
-                if level == nrlevels - 1:
-                    output.append((fmin_wrapper_fn(optimargs, xdata),
-                                  copy(optimargs)))
-                else:
-                    loopsingle(level+1)
-
-        loopsingle(0)
-
-        print(output)
-        from  pickle import dump
-        dump(output, '/home/archetyp/Desktop/dump.bin')
+#def compute_raster(model):
+#        lbounds = xdata.inv_lbounds
+#        ubounds = xdata.inv_ubounds
+#        raster_size = xdata.raster_grid_size
+#        nrlevels = len(lbounds)
+#        if np.isscalar(raster_size):
+#            raster_size = [raster_size] * nrlevels
+#
+#        optimargs = [0]* nrlevels
+#        grid = []
+#        output = []
+#
+#        from copy import copy
+#        for (lb, ub, rsize) in zip(lbounds, ubounds, raster_size):
+#            grid.append(np.linspace(float(lb), float(ub), float(rsize)))
+#
+#        def loopsingle(level):
+#            for (ind, val) in enumerate(grid[level]):
+#                optimargs[level] = val
+#
+#                if level == nrlevels - 1:
+#                    output.append((fmin_wrapper_fn(optimargs, xdata),
+#                                  copy(optimargs)))
+#                else:
+#                    loopsingle(level+1)
+#
+#        loopsingle(0)
+#
+#        print(output)
+#        from  pickle import dump
+#        dump(output, '/home/archetyp/Desktop/dump.bin')
