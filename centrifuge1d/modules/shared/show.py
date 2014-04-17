@@ -737,6 +737,10 @@ class DataStorage:
 
     def store_computation(self, model, measurements, ID='computed'):
         """ Store computed values with ID """
+
+        print("Storing Computation %s with main parameters:" % ID,
+                  model.get_parameters(['ks', 'hi', 'ki', 'ui', 'n', 'gamma']),
+                    ', h_init=', getattr(model, 'h_init', None))
         if self._modman is None:
             self._modman = ModulesManager()
 
