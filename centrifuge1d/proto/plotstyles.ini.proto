@@ -171,9 +171,13 @@
 #                        'separate_figures' is True
 # 'save_figures'       - automatically save figures after computation
 #                      - value: True (default) /False
+# 'save_formats'       - file extensions supported by the active backend. Most
+#                        backends support png, pdf, ps, eps and svg
+#                      - value: format or list of formats
+#                      - default value: ['png', 'eps'],
 # 'comparison_table'   - display comparison of computed vs. measured values in
 #                        a table
-# 'figures_dpi'	       - set the dpi of the saved figure. Default is 92.
+# 'figures_dpi'        - set the dpi of the saved figure. Default is 92.
 # 'matplotlib_backend' - Use different backend for matplotlib. If value is None,
 #                        the default one for matplotlib is used. Note: given
 #                        backend has to be installed just as the python bindings
@@ -185,6 +189,7 @@
 #options = {'separate_figures': False,
 #           'show_figures': True,
 #           'save_figures': True,
+#           'save_formats': ['png', 'eps'],
 #           'figures_dpi': 92,
 #           'show_figures_titles',
 #           'comparison_table': False,

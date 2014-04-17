@@ -33,10 +33,12 @@ DEFAULT_UNITS = {'length': 'cm', 'time': 'min', 'pressure': 'Pa',
                  'force_kgp': 'gf', 'weight': 'g', 'velocity': 'cm/s',
                  'rotational_speed': 'rpm', 'none': ''}
 
-# Linestyle is searched in order:
-#   1. Exists 'lineid' and there for 'fig_id' specific option
-#   2. If not, search '_default_' for 'fig_id'
-#   3. If not, use option in the '_base_' of the '_default_'
+# Linestyle is searched in order from most specific to least specific and return
+# the first found value of specified option. The order is:
+#   1. 'line_id'   -> 'fig_id'
+#   2. 'line_id'   -> '_base_'
+#   3. '_default_' -> 'fig_id'
+#   4. '_default_' -> '_base_'
 # Linestyle options:
 #    Assigned only to '_base_' of line_id:
 #        'xdata', 'ydata', 'label', 'legend_data', 'order',
@@ -195,7 +197,7 @@ FIGURES_IDS = list(FIGURES_DEFAULTS.keys())
 DISPLAY_OPTIONS = {'separate_figures': False, 'show_figures': True,
                    'save_figures': True, 'matplotlib_backend': None,
                    'show_figures_titles': None, 'comparison_table': False,
-                   'figures_dpi': 92}
+                   'save_formats': ['png'], 'figures_dpi': 92}
 
 def set_default_units(figures_styles):
     for fig_style in figures_styles.values():
@@ -209,10 +211,11 @@ def get_unit_coef(unit_base):
       Return the coeficient for the new unit type to be used, so that
       the internal unit is converted to the new unit.
     """
+    default_units =  ['cm', 's', 'pa', 'g', 'gf', 'cm/s', 'rpm', '']
 
     unit = unit_base.lower()
     # units used for computation are: cm, s, pa, gf and "no units"
-    if unit in ['cm', 's', 'pa', 'g', 'gf', 'cm/s', 'rpm', '']: coef = 1.0
+    if unit in default_units: coef = 1.0
     elif unit == 'mm': coef = 10.
     elif unit in 'min': coef = 1./60.
     elif unit == 'h': coef = 1./3600.
@@ -1033,9 +1036,21 @@ class DataStorage:
 
         if save_figures:
             print('Saving figures... ', end='')
+
+            save_formats = display_options['save_formats']
+            if np.isscalar(save_formats):
+                save_formats = (save_formats, )
             figures_dpi = display_options['figures_dpi']
+
             for (fig, img_suffix) in save_figs_list:
-                fig.savefig(save_dir + 'image-' + img_suffix + ext, dpi=figures_dpi)
+                for save_format in save_formats:
+                    try:
+                        fig.savefig(save_dir + 'image-' + img_suffix + ext
+                                     + '.' + save_format,
+                                    format=save_format, dpi=figures_dpi)
+                    except:
+                        print('Saving figures to format ' + save_format
+                               + ' was not successful. Skipping...')
 
         print('Done.')              # Generating/displaying/saving figures
 
