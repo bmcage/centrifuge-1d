@@ -1098,7 +1098,7 @@ if __name__ == "__main__":
     pylab.plot(x, lin, 'go')
     pylab.plot(xaxis, mcuby, 'bo')
     pylab.plot(xaxis, bsply, 'ro')
-    pylab.plot(xaxis, map(bspl_lin.quadspline, np.ones(len(xaxis),float),xaxis), 'ko')
+    pylab.plot(xaxis, list(map(bspl_lin.quadspline, np.ones(len(xaxis),float),xaxis)), 'ko')
 
     # test of PiecewiseLinear
     pylab.figure(3)
