@@ -189,8 +189,12 @@ class Configuration:
 
         cfg_dict[key] = value
 
-    def get_value(self, key, section = None, not_found=None):
-        """ Get value for specified key. """
+    def get_value(self, keys, section = None, not_found=None):
+        """
+        Get value for specified keys. Keys can be either a list (tuple) of
+        strings of single string.
+        """
+        if not keys: return not_found
 
         cfg_dict = self._cfg_dict
 
@@ -199,16 +203,13 @@ class Configuration:
             print('get_value error: Section not present in config: ', section)
             exit(1)
 
-        if self._preserve_sections_p:
-            if key in cfg_dict[section]:
-                return cfg_dict[section][key]
-            else:
-                return not_found
-        else:
-            if key in cfg_dict:
-                return cfg_dict[key]
-            else:
-                return not_found
+        search_dict = cfg_dict[section] if self._preserve_sections_p else cfg_dict
+
+        if type(keys) is str:             # single key
+            return search_dict[keys] if keys in search_dict else not_found
+        else:                             # multiple keys
+            return [search_dict[key] if key in search_dict else not_found
+                    for key in keys]
 
     def del_value(self, key, section = None):
         if self._preserve_sections_p:
