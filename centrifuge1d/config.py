@@ -86,35 +86,52 @@ class ModulesManager():
                 print('        Description:')
                 print('            ', module.desc)
 
-    def traverse_ancestors(self, modname_or_exptype, apply_fn, submodule = '',
-                           prehook = None, get_ancestors_fn = get_ancestors):
+    def traverse_ancestors(self, modname_or_exptype, hook_fn, submodule = '',
+                           prehook_fn = None, get_ancestors_fn = get_ancestors):
         """
           Recursively traverses the modules, preserving the order of ancestors
           it gets from 'get_ancestors(module)' function, and applies the
-          function 'apply_fn(module)' on each (ancestor) module.
-          If 'prehook(module)' is specified, this function is called before
-          going into recursion.
+          function 'hook_fn(module)' on each (ancestor) module.
+          If 'prehook_fn(module)' is specified, this function is applied in
+          reverse order than 'hook_fn' i.e. when going into recursion.
         """
-
-        def traverse(module):
-            """ Walk through specified module """
-
-            if prehook:
-                prehook(module)
+        def traverse_prehook(module):
+            """ Walk through specified module and apply prehook function. """
+            if not prehook_fn(module):
+                return False
 
             ancestors_list = get_ancestors_fn(module)
 
             for ancestor_name in ancestors_list:
-                ancestor_module = self.find_module(ancestor_name, submodule)
+                if not ancestor_name in ancestor_names:
+                    ancestor_names.add(ancestor_name)
+                    ancestor_module = self.find_module(ancestor_name, submodule)
+                traverse_prehook(ancestor_module)
 
-                if not traverse(ancestor_module):
-                    return False
+            return True
 
-            return apply_fn(module)
+        def traverse_hook(module):
+            """ Walk through specified module and apply hook function. """
 
+            ancestors_list = get_ancestors_fn(module)
+
+            for ancestor_name in ancestors_list:
+                if not ancestor_name in ancestor_names:
+                    ancestor_names.add(ancestor_name)
+                    ancestor_module = self.find_module(ancestor_name, submodule)
+                    traverse_hook(ancestor_module)
+
+            return hook_fn(module)
+
+        ancestor_names = set()
         module = self.find_module(modname_or_exptype, submodule)
 
-        return traverse(module)
+        prehook = not bool(prehook_fn)    # is prehook computed without errors?
+        if not prehook:
+            prehook = traverse_prehook(module)
+            ancestor_names = set()
+
+        return prehook and traverse_hook(module)
 
     def find_module(self, modname_or_exptype, submodule='', not_found=None):
         """
@@ -283,7 +300,7 @@ class Configuration:
         exp_type = self.get_value('exp_type')
 
         modman.traverse_ancestors(exp_type, module_adjust_cfg,
-                                  prehook=module_preadjust_cfg,
+                                  prehook_fn=module_preadjust_cfg,
                                   submodule='options')
 
         self._group()
