@@ -48,7 +48,13 @@ def check_cfg(cfg):
     return True
 
 def prior_adjust_cfg(cfg):
-    pass
+    # Assign data from 'inv_init_params' to cfg
+    for (name, value) in cfg.get_value('inv_init_params').items():
+        if not cfg.get_value(name, not_found='NoTfOuNd') == 'NoTfOuNd':
+            print("Parameter '{}' is present in configuration file. It will"
+                  " be shadowed with initial value from 'inv_init_params'."
+                  .format(name))
+        cfg.set_value(name, value[0]) # is a list of (value, range, opts)
 
 def adjust_cfg(cfg):
     # Process 'inv_init_params'
@@ -80,24 +86,6 @@ def adjust_cfg(cfg):
     cfg.set_value('_lbounds', lbounds)
     cfg.set_value('_ubounds', ubounds)
     cfg.set_value('_conditions', conditions)
-
-    SC_type = cfg.get_value('sc_type')
-    if (SC_type == SC_vG):
-        n = init_values.get('n') or cfg.get_value('n')
-        gamma = init_values.get('gamma') or cfg.get_value('gamma')
-        if not n or not gamma:
-            print("Option SC_type = 1 requires init 'n' and 'gamma'")
-            exit(1)
-    elif (SC_type in [SC_FF, SC_FF_BS]):
-        hi = init_values.get('hi') or cfg.get_value('hi')
-        ki = init_values.get('ki') or cfg.get_value('ki')
-        ui = init_values.get('ui') or cfg.get_value('ui')
-        if not hi or not ki or not ui:
-            print("Option SC_type = 2/3 requires init 'hi',  'ki' and 'ui'")
-            exit(1)
-        if not len(hi) == len(ki) == len(ui):
-            print ("Length of hi, ki and ui must be identical for SC_type = 2/3")
-            exit(1)
 
     # Process transformation of optimized parameters
     if cfg.get_value('transform_params'):
