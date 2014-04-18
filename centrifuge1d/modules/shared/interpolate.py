@@ -920,6 +920,143 @@ class QuadraticBspline(object):
                y = np.zeros(len(x), dtype=x.dtype)
             return y
 
+class PiecewiseLinear(object):
+    """
+    Implementation of piecewise linear function with smoothing in the
+    neighbourhood of the grid point to stay differentiable.
+    """
+    def __init__(self, xi, yi, dx_eps=1e-1):
+        self.dx_epsilon = dx_eps
+        self.xi = xi
+        self.yi = yi
+        self.dxi = xi[1:] - xi[:-1]
+        self.Dyi = np.asarray((yi[1:] - yi[:-1])/self.dxi, dtype=float)
+
+        if not all(self.dxi > 2*dx_eps):
+            raise Exception("For piecewise linear interpolation the points "
+                            "must be at least at distance 2*dx_eps. Current "
+                            "value of dx_eps: {}". format(dx_eps))
+        size = np.alen(xi)
+        self.size = size
+
+    def _polynomial(self, x, x1, y1, D0, D1):
+        """
+        Find value of x on polynomial joing two piecewise linear segments,
+        where (x1, y1) is the junction of the two linear segments and
+        D0 is the derivative of the first and D1 of the second segment.
+        """
+        t = (x-x1)/self.dx_epsilon
+        return y1 + self.dx_epsilon*((1 + t*t)*(D1 - D0) + 2*t*(D1 + D0))/4
+
+    def _polynomial_der1(self, x, x1, y1, D0, D1):
+        """
+        Find derivative of x on polynomial joing two piecewise linear segments,
+        where (x1, y1) is the junction of the two linear segments and
+        D0 is the derivative of the first and D1 of the second segment.
+        """
+        t = (x-x1)/self.dx_epsilon
+        return 0.5*((D1 - D0)*t + D1 + D0)
+
+    def _polynomial_der2(self, x, x1, y1, D0, D1):
+        """
+        Find second derivative of polynomial joing two piecewise linear
+        segments, where (x1, y1) is the junction of the two linear segments and
+        D0 is the derivative of the first and D1 of the second segment.
+        """
+        return 0.5*(D1 - D0)/self.dx_epsilon
+
+    def __call__(self, x):
+        xi  = self.xi
+        yi  = self.yi
+        Dyi = self.Dyi
+        dx_eps = self.dx_epsilon
+        size = self.size
+        end = self.size - 1
+
+        y = np.zeros(np.alen(x))
+        if np.isscalar(x):
+            x = (x, )
+
+        idxs = np.searchsorted(self.xi, x)
+        for (i, idx) in enumerate(idxs):
+            if idx == 0: # out of bounds
+                y[i] = yi[0] + Dyi[0]*(x[i]-xi[0])
+            elif idx == size:
+                y[i] = yi[-1] + (x[i]-xi[-1])*Dyi[-1]
+            elif (idx < size - 1) and (xi[idx] - x[i] < dx_eps):
+                # close to the right end of segment - all but last segment
+                y[i] = self._polynomial(x[i], xi[idx], yi[idx],
+                                        Dyi[idx-1], Dyi[idx])
+            elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
+                # close to the left end of segment - all but first segment
+                y[i] = self._polynomial(x[i], xi[idx-1], yi[idx-1],
+                                        Dyi[idx-2], Dyi[idx-1])
+            else:
+                y[i] = yi[idx-1] + Dyi[idx-1]*(x[i]-xi[idx-1])
+        return y
+
+    def derivative(self, x, der=1):
+        """
+        NOTE: Second derivative in the points (x-eps), (x+eps) is not continuous
+        function.
+        """
+        if np.isscalar(x):
+            x = (x, )
+
+        if der == 0:
+            return self.__call__(x)
+
+        Dy = np.zeros(np.alen(x))
+        size = self.size
+        xi  = self.xi
+        yi  = self.yi
+        Dyi = self.Dyi
+        dx_eps = self.dx_epsilon
+
+        idxs = np.searchsorted(self.xi, x)
+
+        if der == 1:
+            for (i, idx) in enumerate(idxs):
+                if idx == 0: # out of bounds
+                    Dy[i] = Dyi[0]
+                elif idx == size:
+                    Dy[i] = Dyi[-1]
+                elif (idx < size -1 ) and (xi[idx] - x[i] < dx_eps):
+                    # close to the right end of segment - all but last segment
+                    Dy[i] = self._polynomial_der1(x[i], xi[idx], yi[idx],
+                                                  Dyi[idx-1], Dyi[idx])
+                elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
+                    # close to the left end of segment - all but first segment
+                    Dy[i] = self._polynomial_der1(x[i], xi[idx-1], yi[idx-1],
+                                                  Dyi[idx-2], Dyi[idx-1])
+                else:
+                    Dy[i] = Dyi[idx-1]
+
+        elif der == 2:
+            for (i, idx) in enumerate(idxs):
+                if (idx == 0) or (idx == size): # out of bounds
+                    Dy[i] = 0.0
+                elif (idx < size - 1) and (xi[idx] - x[i] < dx_eps):
+                    # close to the right end of segment - all but last segment
+                    Dy[i] = self._polynomial_der2(x[i], xi[idx], yi[idx],
+                                                  yi[idx-1], Dyi[idx])
+                elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
+                    # close to the left end of segment - all but first segment
+                    x[i]
+                    xi[idx-1]
+                    yi[idx-1]
+                    Dyi[idx-2]
+                    Dyi[idx-1]
+                    #print(idx, size - 1)
+
+                    Dy[i] = self._polynomial_der2(x[i], xi[idx-1], yi[idx-1],
+                                                  Dyi[idx-2], Dyi[idx-1])
+                else:
+                    Dy[i] = 0.0
+        # else all derivatives are 0
+
+        return Dy
+
 if __name__ == "__main__":
     #test of QuadraticBspline
     x = np.linspace(0, 10, 21)
@@ -953,7 +1090,6 @@ if __name__ == "__main__":
     pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'g-')
     pylab.plot(xaxis, mcuby, 'bo')
     pylab.plot(xaxis, bsply, 'ro')
-    pylab.show()
 
     pylab.figure(2)
     xaxis = np.linspace(0, 10, 100)
@@ -963,4 +1099,17 @@ if __name__ == "__main__":
     pylab.plot(xaxis, mcuby, 'bo')
     pylab.plot(xaxis, bsply, 'ro')
     pylab.plot(xaxis, map(bspl_lin.quadspline, np.ones(len(xaxis),float),xaxis), 'ko')
+
+    # test of PiecewiseLinear
+    pylab.figure(3)
+    plin = PiecewiseLinear
+    plin_vGn = plin(h, u, dx_eps=0.2)
+    xaxis = np.linspace(-1000., 1e-1, 10000)
+    pylab.xlim(xmin=-2001)
+    y=plin_vGn(xaxis)
+    pylab.plot(xaxis, y,'-')
+    pylab.plot(xaxis.T, plin_vGn.derivative(xaxis, der=1).T, 'o')
+    #pylab.plot(xaxis, plin_vGn.derivative(xaxis, der=2), 'o')
+    #pylab.plot(xaxis, plin_vGn.derivative(xaxis, der=3))
+    pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'g-')
     pylab.show()
