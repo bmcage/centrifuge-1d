@@ -32,19 +32,16 @@ EXCLUDE_FROM_MODEL = ['inv_init_params']
 
 def provide_inv_init_params(cfg):
     inv_init_params = cfg.get_value('inv_init_params')
-    if inv_init_params and (type(inv_init_params) is dict):
-        value = list(inv_init_params.keys())
-    else:
-        value = []
 
-    return value
+    return list(inv_init_params.keys())
 
 PROVIDE_OPTIONS = [provide_inv_init_params]
 
 OPTIONS_ITERABLE_LISTS = []
 
 def check_cfg(cfg):
-    if not type(cfg.get_value('inv_init_params')) is dict:
+    inv_init_params = cfg.get_value('inv_init_params')
+    if (not inv_init_params or not type(inv_init_params) is dict):
         print("Option 'inv_init_params' has to be of type dict.")
         return False
 
