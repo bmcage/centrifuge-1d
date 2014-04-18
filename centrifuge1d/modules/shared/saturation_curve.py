@@ -460,7 +460,7 @@ class SC_freeform_base(SC_base):
 
         if hi is not None and ui is not None and ki is not None:
             SC_freeform_base.check_params(hi, ui, ki)
-            self.__set_values(np.array(hi, dtype=float), np.array(ui, dtype=float),
+            self._set_values(np.array(hi, dtype=float), np.array(ui, dtype=float),
                               np.array(ki, dtype=float))
         else:
             self._hi = hi
@@ -469,10 +469,11 @@ class SC_freeform_base(SC_base):
             self._ui = ui
             self._ki = ki
 
-        # NOTE: After  base class initialization the subclass must run
-        #       self.__interpolate_values() to get proper intializaton !
+        # NOTE: After base class initialization the subclass must run
+        #       self.__interpolate_values() to get proper intializaton
+        #       of the node values
 
-    def __set_values(self, hi, ui, ki):
+    def _set_values(self, hi, ui, ki):
         #are internal parameters are such that all is monotone increasing
         # in terms of h
         self._hi = hi
@@ -564,7 +565,7 @@ class SC_freeform_base(SC_base):
         else:
             ki = self._ki
         SC_freeform_base.check_params(self._hi, ui, ki)
-        self.__set_values(self._hi, ui, ki)
+        self._set_values(self._hi, ui, ki)
 
     def get_parameters(self):
         """
@@ -701,7 +702,7 @@ class SC_freeform_Cubic(SC_freeform_base):
         self.h_init_max = h_init_max
         if recreate and self._hi is not None and self._ui is not None \
                 and self._ki is not None:
-            self.__set_values(self._hi, self._ui, self._ki)
+            self._set_values(self._hi, self._ui, self._ki)
 
         return self.h_init_max
 
