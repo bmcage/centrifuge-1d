@@ -1,5 +1,4 @@
 from __future__ import division
-from ..shared import saturation_curve as mSC
 
 PARENTAL_MODULES = ['base_inverse']
 
@@ -51,6 +50,3 @@ def adjust_cfg(cfg):
     cfg.set_value('transform_params', False)
     cfg.set_value('_transform', None)
     cfg.set_value('_untransform', None)
-
-    SC = mSC.SC_vanGenuchten()
-    cfg.set_value('SC', SC)

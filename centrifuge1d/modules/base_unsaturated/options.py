@@ -1,9 +1,9 @@
 from __future__ import division
 
-from ..shared import saturation_curve as mSC
 from ..shared.functions import lagrangian_derivative_coefs
 from numpy import linspace, power, empty
-from ..shared.saturation_curve import (SC_vG, SC_FF, SC_FF_BS)
+from ..shared.saturation_curve import (create_SC, SC_vG, SC_FF_CUB, SC_FF_BS,
+                                       SC_FF_LIN)
 
 def dtype_deps(cfg):
     dtype = cfg.get_value('dtype')
@@ -20,7 +20,8 @@ CONFIG_OPTIONS = ['inner_points', 'dtype',
                   ('sc_max_refine', 0),
                   (lambda cfg: cfg.get_value('sc_type') == SC_vG,
                    ['n', 'gamma']),
-                  (lambda cfg: cfg.get_value('sc_type') in [SC_FF, SC_FF_BS],
+                  (lambda cfg: cfg.get_value('sc_type') in [SC_FF_CUB, SC_FF_BS,
+                                                            SC_FF_LIN],
                    [('hi', None), ('ui', None), ('ki', None)]),
                   'porosity',
                   'estimate_zp0',
@@ -44,20 +45,7 @@ OPTIONS_ITERABLE_LISTS = ['porosity']
 
 def adjust_cfg(cfg):
     # Determine saturation curve model used
-    SC_type = cfg.get_value('sc_type')
-    if SC_type == SC_vG:
-        SC = mSC.SC_vanGenuchten(cfg.get_value('n'), cfg.get_value('gamma'))
-    elif SC_type in [SC_FF]:
-        SC = mSC.SC_freeform(cfg.get_value('hi'), cfg.get_value('ui'),
-                             cfg.get_value('ki'), cfg.get_value('sc_max_refine'))
-    elif SC_type in [SC_FF_BS]:
-        SC = mSC.SC_freeform_BSpline(cfg.get_value('hi'), cfg.get_value('ui'),
-                             cfg.get_value('ki'), cfg.get_value('sc_max_refine'))
-    else:
-        print('Unknown value of ''SC_type'': ', SC_type)
-        exit(1)
-
-    cfg.set_value('SC', SC)
+    cfg.set_value('SC', create_SC(cfg))
 
     # Discretization
     inner_points = cfg.get_value('inner_points')

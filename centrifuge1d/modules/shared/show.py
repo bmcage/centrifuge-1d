@@ -9,6 +9,7 @@ from ...shared import get_directories, parse_value, yn_prompt, filter_indices
 from ...config import ModulesManager, load_model
 from collections import OrderedDict, defaultdict
 from .functions import has_data, compare_data
+from .saturation_curve import create_SC
 
 if sys.version_info[0] == 2:
     #python 2.7
@@ -879,13 +880,19 @@ class DataStorage:
 
             backup_params = model.get_parameters(ref_params) # backup
             if hasattr(model, 'SC'):
+                # TODO: load plotstyles.ini with cfg loader to have
+                #       all parameters names in lowercase
                 backup_SC = model.SC
                 backup_typeSC = model.SC.typeSC()
-                thekey = [key.lower() for key in ref_params.keys()]
-                if not 'sc_type' in thekey:
+                if not 'sc_type' in ref_params:
                     print('Referencing model does not contain "SC_type", '
                           'cannot set parameters of the saturation curve.'
                           '\nSkipping...')
+                try:
+                    model.SC = create_SC(ref_params)
+                except Exception as E:
+                    print(E)
+                    print('Could not process ref_params. Continuing...')
 
             model.set_parameters(ref_params)
 

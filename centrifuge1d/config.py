@@ -21,9 +21,7 @@ import importlib
 from sys import modules as sysmodules
 from types import MethodType
 from .modules.shared.measurements import Measurements
-from .modules.shared.saturation_curve import (SC_vanGenuchten, SC_freeform,
-                                              SC_freeform_BSpline,
-                                              SC_vG, SC_FF, SC_FF_BS)
+from .modules.shared.saturation_curve import create_SC
 
 ##################################################################
 #                   ModulesManager class                         #
@@ -682,19 +680,15 @@ class ModelParameters:
         setattr(self, key, value)
 
     def set_parameters(self, parameters_dict):
-        thekey = {key.lower(): parameters_dict[key] for key in parameters_dict.keys()}
+        # ERROR: when running this for ref_params, the SC object is in
+        #        general not compatible. Need to be added first and
+        #        only after that we can run this !
         if hasattr(self, 'SC'):
-            if 'sc_type' in thekey  and thekey ['sc_type'] != self.SC.typeSC():
-                if thekey ['sc_type'] == SC_vG:
-                    self.SC = SC_vanGenuchten()
-                # TODO ERROR: we need to pass hi somehow !!!
-                # see base_unsaturated/options.py  adjust_cfg functionS
-                elif thekey ['sc_type'] == SC_FF:
-                    print ("ERROR set_parameters, don't think this works\n")
-                    self.SC = SC_freeform(self._cfg.get_value('hi'))
-                elif thekey ['sc_type'] == SC_FF_BS:
-                    print ("ERROR set_parameters, don't think this works\n")
-                    self.SC = SC_freeform_BSpline(self._cfg.get_value('hi'))
+            if ('sc_type' in parameters_dict
+                and parameters_dict ['sc_type'] != self.SC.typeSC()):
+
+                raise Exception('The current SC object is not compatible with '
+                                'supplied SC parameters. Exiting...')
             self.SC.set_parameters(parameters_dict)
 
         for (key, value) in parameters_dict.items():

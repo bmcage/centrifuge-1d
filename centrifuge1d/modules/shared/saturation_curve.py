@@ -16,6 +16,38 @@ SC_vG     = 1
 SC_FF_CUB = 2
 SC_FF_BS  = 3
 
+def get_dict_value(dictionary, keys):
+    if type(keys) is str:                 # single item
+        return dictionary[keys]
+    else:                                 # list of keys
+        return [dictionary[key] for key in keys]
+
+def create_SC(data):
+    """
+    Returns a new SC object. Data is expected to be either a dict with values
+    or an instance of Configuration class.
+    """
+    if type(data) is dict:                # dict
+        get_value = lambda keys: get_dict_value(data, keys)
+    else:                                 # Configuration class instance
+        get_value = data.get_value
+
+    SC_type = get_value('sc_type')
+    if SC_type == SC_vG:
+        SC = SC_vanGenuchten(get_value('n'), get_value('gamma'))
+    elif SC_type in (SC_FF_CUB, SC_FF_BS, SC_FF_LIN):
+        (hi, ui, ki, max_refine) = get_value(('hi', 'ui', 'ki', 'sc_max_refine'))
+        if SC_type == SC_FF_CUB:
+            SC = SC_freeform_Cubic(hi, ui, ki, max_refine)
+        elif SC_type == SC_FF_BS:
+            SC = SC_freeform_BSpline(hi, ui, ki, max_refine)
+    else:
+        print('Unknown value of ''SC_type'': ', SC_type)
+        exit(1)
+
+    return SC
+
+
 ########################################################################
 #              General (default) transformation functions              #
 ########################################################################

@@ -2,8 +2,6 @@ from __future__ import division, print_function
 import numpy as np
 from collections import OrderedDict
 
-from ..shared.saturation_curve import (SC_vG, SC_FF, SC_FF_BS)
-
 PARENTAL_MODULES = []
 
 CONFIG_OPTIONS = ['inv_init_params', ('optimfn', 'leastsq'),
