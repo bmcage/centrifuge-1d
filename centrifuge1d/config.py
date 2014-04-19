@@ -864,6 +864,8 @@ def load_model(experiment_info, display_only=False, validate=True,
     if modman is None:
         modman = ModulesManager()
 
+    cfg.load_definition(modman)
+
     if validate and (not cfg.is_valid(modman, verbose=True)): exit(1)
 
     cfg.adjust_cfg(modman)
