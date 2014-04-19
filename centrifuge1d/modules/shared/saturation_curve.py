@@ -12,9 +12,9 @@ P_DEFAULT = np.power(10* np.ones(__NR), P_DEFAULT)
 P_DEFAULT[0] = 0
 #P_DEFAULT = np.arange(0, 10000000, 100)
 
-SC_vG    = 1
-SC_FF    = 2
-SC_FF_BS = 3
+SC_vG     = 1
+SC_FF_CUB = 2
+SC_FF_BS  = 3
 
 ########################################################################
 #              General (default) transformation functions              #
@@ -437,8 +437,7 @@ class SC_vanGenuchten(SC_base):
 ########################################################################
 #                           Free-form  model                           #
 ########################################################################
-
-class SC_freeform(SC_base):
+class SC_freeform_base(SC_base):
     """
     A freefrom description of the saturation curve.
     In this, a discrete version of h is used: {h_i}, with -inf < h_i < 0.
@@ -447,18 +446,20 @@ class SC_freeform(SC_base):
     and also the value of the relative permeability:
         k_i = k(h_i)
 
-    We then determine u(h) and k(h) as a monotone cubic interpolation spline
-    of the given points {(h_i, u_i)} and {(h_i, k_i)}
-    From this cubic spline the derivatives can be extracted
+    Depending on the interpolation used we can then determine u(h) and k(h)
+    of the given points {(h_i, u_i)} and {(h_i, k_i)}.
     """
-    def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0,
+                 compute_extra=False, issue_warning=False):
         SC_base.__init__(self)
+        self.compute_extra = compute_extra
         self.extra = 0
         self.refinenr=0
         self.refinemax = refinemax
+        self.oncheck_warning_only = issue_warning
 
         if hi is not None and ui is not None and ki is not None:
-            SC_freeform.check_params(hi, ui, ki)
+            SC_freeform_base.check_params(hi, ui, ki)
             self.__set_values(np.array(hi, dtype=float), np.array(ui, dtype=float),
                               np.array(ki, dtype=float))
         else:
@@ -468,6 +469,9 @@ class SC_freeform(SC_base):
             self._ui = ui
             self._ki = ki
 
+        # NOTE: After  base class initialization the subclass must run
+        #       self.__interpolate_values() to get proper intializaton !
+
     def __set_values(self, hi, ui, ki):
         #are internal parameters are such that all is monotone increasing
         # in terms of h
@@ -475,9 +479,10 @@ class SC_freeform(SC_base):
         self._ui = ui
         self._ki = ki
         hmax = -min(1e-28, -hi[-1]*1e-3)
-        self.extra = 0
-        if self.h_init_max > self._hi[-1] and self.h_init_max < hmax:
-            self.extra = 1
+        if self.compute_extra:
+            self.extra = 0
+            if self.h_init_max > self._hi[-1] and self.h_init_max < hmax:
+                self.extra = 1
         self._hnodes = np.empty(len(hi)+2+self.extra, float)
         self._uvals = np.empty(len(hi)+2+self.extra, float)
         self._kvals = np.empty(len(hi)+2+self.extra, float)
@@ -494,7 +499,7 @@ class SC_freeform(SC_base):
         self._kvals[1:-1-self.extra] = np.log(ki[:])
         self._kvals[0] = min(-50, self._kvals[1]-10 )
         self._kvals[-1] = 0.
-        if self.extra == 1:
+        if self.compute_extra and (self.extra == 1):
             self._hnodes[-2] = -1*np.log(-self.h_init_max)
             self._uvals[-2]  = 1-1e-5
             self._kvals[-1]  = np.log(1-1e-5)
@@ -508,8 +513,9 @@ class SC_freeform(SC_base):
 #        print ('hn', self._hnodes)
 #        print ('uv', self._uvals)
 #        print ('kv', self._kvals)
-        self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
-        self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
+
+    def __interpolate_values(self):
+        raise Exception ("Method must be subclassed.")
 
     @staticmethod
     def check_params(hi, ui, ki):
@@ -517,8 +523,7 @@ class SC_freeform(SC_base):
             raise Exception ( 'Some parameters are not given: '\
                     'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
         if not (len(hi)==len(ui)==len(ki)):
-            raise Exception ('Parameters must have equal length. '\
-                    'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
+            raise Exception ('Parameters must have equal length')
         #hi must be monotone ascending > 0, and ui, ki monotone ascending
         ho = hi[0]
         uo = ui[0]
@@ -536,8 +541,12 @@ class SC_freeform(SC_base):
 
         #The edges of ui and ki are fixed and will not be optimized
         if not (ui[0] >0) or not (ui[-1] < 1):
-            raise Exception('Effective saturation Se starts at 0, ends at 1, '
-                            'only pass values between these extremes!')
+            if self.oncheck_warning_only:
+                print ("WARNING: Effective saturation Se starts at 0, ends "
+                       "at 1, only pass values between these extremes!")
+            else:
+                raise Exception("Effective saturation Se starts at 0, ends at "
+                                "1, only pass values between these extremes!")
         if not (ki[0] > 0) or not (ki[-1] < 1):
             raise Exception('Relative permeability k starts at 0, ends at 1, '
                             'only pass values between these extremes!')
@@ -554,7 +563,7 @@ class SC_freeform(SC_base):
             ki = params['ki']
         else:
             ki = self._ki
-        SC_freeform.check_params(self._hi, ui, ki)
+        SC_freeform_base.check_params(self._hi, ui, ki)
         self.__set_values(self._hi, ui, ki)
 
     def get_parameters(self):
@@ -562,26 +571,6 @@ class SC_freeform(SC_base):
         return the current parameters
         """
         return self._ui, self._ki
-
-
-    def get_dyn_h_init(self, c_gammah, h_init_max):
-        """
-        Initial values of h~0 can cause troubles to the solver to start
-        depending on parameters of the SC class. To ensure "smooth" start
-        we compute a dynamically obtained 'h_init' value based on
-        actual values. This may be important in the parameters
-        optimization process.
-        """
-        recreate = False
-        if self._hi is not None and self.h_init_max != h_init_max:
-            #we need to regenerate the bsplace!
-            recreate = True
-        self.h_init_max = h_init_max
-        if recreate and self._hi is not None and self._ui is not None \
-                and self._ki is not None:
-            self.__set_values(self._hi, self._ui, self._ki)
-
-        return self.h_init_max
 
     def h2Kh(self, h, Ks, Kh = None):
         """
@@ -673,11 +662,54 @@ class SC_freeform(SC_base):
         transform['ki']   = lambda ki: np.log(ki)
         untransform['ki'] = lambda ki_transf: np.exp(ki_transf)
 
+
+class SC_freeform_Cubic(SC_freeform_base):
+    """
+    A freefrom description of the saturation curve.
+    In this, a discrete version of h is used: {h_i}, with -inf < h_i < 0.
+    For these gridpoints, the value of effective saturation is passed:
+        u_i = u(h_i)
+    and also the value of the relative permeability:
+        k_i = k(h_i)
+
+    We then determine u(h) and k(h) as a monotone cubic interpolation spline
+    of the given points {(h_i, u_i)} and {(h_i, k_i)}
+    From this cubic spline the derivatives can be extracted
+    """
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
+        SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
+                                  compute_extra=True, issue_warning=False)
+        self.__interpolate_values()
+
+
+    def __interpolate_values(self):
+        self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
+        self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
+
+    def get_dyn_h_init(self, c_gammah, h_init_max):
+        """
+        Initial values of h~0 can cause troubles to the solver to start
+        depending on parameters of the SC class. To ensure "smooth" start
+        we compute a dynamically obtained 'h_init' value based on
+        actual values. This may be important in the parameters
+        optimization process.
+        """
+        recreate = False
+        if self._hi is not None and self.h_init_max != h_init_max:
+            #we need to regenerate the bsplace!
+            recreate = True
+        self.h_init_max = h_init_max
+        if recreate and self._hi is not None and self._ui is not None \
+                and self._ki is not None:
+            self.__set_values(self._hi, self._ui, self._ki)
+
+        return self.h_init_max
+
     def typeSC(self):
         """
         Indication of the compatible types of SC
         """
-        return SC_FF
+        return SC_FF_CUB
 
     def canrefine_h(self):
         """
@@ -771,18 +803,17 @@ class SC_freeform(SC_base):
         print (" uv ", self._uvals)
         print (" kv ", self._kvals)
 
-        self.logh2u = QuadraticBspline(self._hnodes, self._uvals)
-        self.logh2logk = QuadraticBspline(self._hnodes, self._kvals)
+        self.__interpolate_values()
 
         self.refinenr += 1
         self._internalrefine += 1
         return True
 
 ########################################################################
-#                           Free-form  model local BSpline based       #
+#                  Free-form  model local BSpline based                #
 ########################################################################
 
-class SC_freeform_BSpline(SC_base):
+class SC_freeform_BSpline(SC_freeform_base):
     """
     A freefrom description of the saturation curve.
     In this, a discrete version of h is used: {h_i}, with -inf < h_i < 0.
@@ -796,199 +827,14 @@ class SC_freeform_BSpline(SC_base):
     From this cubic spline the derivatives can be extracted
     """
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
-        SC_base.__init__(self)
-        self.refinenr=0
-        self.refinemax = refinemax
+        SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
+                                  compute_extra=False, issue_warning=True)
+        self.__interpolate_values()
 
-        if hi is not None and ui is not None and ki is not None:
-            SC_freeform_BSpline.check_params(hi, ui, ki)
-            self.__set_values(np.array(hi, dtype=float), np.array(ui, dtype=float),
-                              np.array(ki, dtype=float))
-        else:
-            self._hi = hi
-            if np.iterable(hi):
-                self._hi = np.array(self._hi)
-            self._ui = ui
-            self._ki = ki
 
-    def __set_values(self, hi, ui, ki):
-        #are internal parameters are such that all is monotone increasing
-        # in terms of h
-        self._hi = hi
-        self._ui = ui
-        self._ki = ki
-        self._hnodes = np.empty(len(hi)+2, float)
-        self._uvals = np.empty(len(hi)+2, float)
-        self._kvals = np.empty(len(hi)+2, float)
-        #we use the log values  for head.
-        self._hnodes[1:-1] = -1*np.log(-hi[:])
-        self._hnodes[0] = -1*np.log(-hi[0]*1e3)
-        self._hnodes[-1] = max(-1*np.log(1e-28), -1*np.log(-hi[-1]*1e-3))
-        self._hmax = -np.exp(-self._hnodes)
-        #with log for head, saturation is linear
-        self._uvals[1:-1] = ui[:]
-        self._uvals[0] = 0.
-        self._uvals[-1] = 1.
-        #with log for head, also rel perm should be log values
-        self._kvals[1:-1] = np.log(ki[:])
-        self._kvals[0] = min(-50, self._kvals[1]-10 )
-        self._kvals[-1] = 0.
-
-        # we now construct two cubic monotone interpolations: U(H) and K(H)
-#        print ('test mono')
-#        print ('hi', self._hi)
-#        print ('ui', self._ui)
-#        print ('ki', self._ki)
-#
-#        print ('hn', self._hnodes)
-#        print ('uv', self._uvals)
-#        print ('kv', self._kvals)
+    def __interpolate_values(self):
         self.logh2u = QuadraticBspline(self._hnodes, self._uvals)
         self.logh2logk = QuadraticBspline(self._hnodes, self._kvals)
-
-    @staticmethod
-    def check_params(hi, ui, ki):
-        if not np.iterable(hi) or not np.iterable(ui) or not np.iterable(ki):
-            raise Exception ( 'Some parameters are not given: '\
-                    'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
-        if not (len(hi)==len(ui)==len(ki)):
-            raise Exception ('Parameters must have equal length')
-        #hi must be monotone ascending > 0, and ui, ki monotone ascending
-        ho = hi[0]
-        uo = ui[0]
-        ko = ki[0]
-        for h,u,k in zip(hi[1:],ui[1:],ki[1:]):
-            if not h>ho or not h<0.:
-                raise Exception('Hydraulic head h must be negative and a '
-                                'monotone ascending array, instead %s' % str(hi))
-            if not u>uo or not uo>0:
-                raise Exception('Effective saturation Se must be positive and a '
-                                'monotone ascending array in terms of h, instead %s' % str(ui))
-            if not k>ko or not ko>0:
-                raise Exception('Relative permeability k must be positive and a '
-                                'monotone ascending array in terms of h, instead %s' % str(ki))
-
-        #The edges of ui and ki are fixed and will not be optimized
-        if not (ui[0] >0) or not (ui[-1] < 1):
-            #this is a warning
-            print ("WARNING: Effective saturation Se starts at 0, ends at 1, "
-                            "only pass values between these extremes!")
-            #raise Exception('Effective saturation Se starts at 0, ends at 1, '
-            #                'only pass values between these extremes!')
-        if not (ki[0] > 0) or not (ki[-1] < 1):
-            raise Exception('Relative permeability k starts at 0, ends at 1, '
-                            'only pass values between these extremes!')
-
-    def set_parameters(self, params):
-        """
-        Setting the parameters. Only ui and ki are parameters!
-        """
-        if 'ui' in params:
-            ui = params['ui']
-        else:
-            ui = self._ui
-        if 'ki' in params:
-            ki = params['ki']
-        else:
-            ki = self._ki
-        SC_freeform_BSpline.check_params(self._hi, ui, ki)
-        self.__set_values(self._hi, ui, ki)
-
-    def get_parameters(self):
-        """
-        return the current parameters
-        """
-        return self._ui, self._ki
-
-    def h2Kh(self, h, Ks, Kh = None):
-        """
-        For a given head h and saturated hydraulic conductivity Ks, what is
-        K(h) = Ks k(u(h)).
-        If Kh given, it is used to store the result
-        """
-        tmp1 = np.exp( self.logh2logk(-np.log(-h) ))
-
-        if not Kh is None:
-            Kh[:] = Ks * tmp1
-        else:
-            Kh    = Ks * tmp1
-        return Kh
-
-    def u2Ku(self, u, Ks, Ku = None):
-        """
-        For a given effective saturation u and saturated hydraulic conductivity
-        Ks, what is K(u) = Ks k(u)
-        """
-        h = self.u2h(u)
-        return self.h2Kh(h, Ks, Ku)
-
-    def h2u(self, h, u = None):
-        """
-        Return the value of effective saturation u corresponding with h.
-        """
-        wherezero = (h >= 0)
-        wheresmall = (h < -np.exp(-self._hnodes[0]))
-        tmp1 = self.logh2u(-np.log(-h) )
-        if not u is None:
-            u[:] = tmp1[:]
-        else:
-            u    = tmp1
-        u[wherezero] = 1.
-        #less than smallest in our approx, set u to zero
-        u[wheresmall] = 0.
-        return u
-
-    def u2h(self, u, h = None):
-        """
-        Return the value of h for the given effective saturation u and
-        parameters passed
-        """
-        internal_u = u[:]
-        internal_u[ u<self._uvals[ 0] ] = self._uvals[ 0]
-        internal_u[ u>self._uvals[-1] ] = self._uvals[-1]
-        tmph = self.logh2u.root(internal_u)
-        tmph = - np.exp(-tmph)
-
-        if not h is None:
-            h[:] =  tmph[:]
-        else:
-            h    =  tmph
-
-        return h
-
-    def dudh(self, h, dudh = None):
-        """
-        Return value of du/dh in h
-        We have logh2u which is u(logh(h)) so
-        du/dh = d logh2u / dlogh .  dlogh/dh, with dlogh/dh = -1/h
-        """
-        logh = -np.log(-h)
-        tmp1 = self.logh2u.derivative(logh,der=1) * -1/h
-
-        if not dudh is None:
-            dudh[:] = tmp1[:]
-        else:
-            dudh    = tmp1
-
-        return dudh
-
-    def add_transformations_fns(self, transform, untransform,
-                                lbounds, ubounds):
-        """
-        Transform/untransform methods for 'ki' and 'ui' parameters
-        """
-        # ui, ki are on <0, 1>
-        #(transform['ki'], untransform['ki']) = \
-        #  default_transformation(lbounds['ki'], ubounds['ki'])
-
-        #(transform['ui'], untransform['ui']) = \
-        #  default_transformation(lbounds['ui'], ubounds['ui'])
-
-        transform['ui']   = lambda ui: ui
-        untransform['ui'] = lambda ui_transf: ui_transf
-
-        transform['ki']   = lambda ki: np.log(ki)
-        untransform['ki'] = lambda ki_transf: np.exp(ki_transf)
 
     def typeSC(self):
         """
@@ -1009,7 +855,7 @@ if __name__ == "__main__":
     uiext = [0          , 0.73394395,  0.8625, 0.9923954, 1]
     kiext = [0.00239603*np.exp(-10), 0.00239603, 0.043/ks, 0.08027015, 1]
     BS = SC_freeform_BSpline(hi, ui, ki)
-    FF = SC_freeform(hi, ui, ki)
+    FF = SC_freeform_Cubic(hi, ui, ki)
 
     haxis = np.linspace(-500., -0.0001, 10000)
     uax = BS.h2u(haxis)
