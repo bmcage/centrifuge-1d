@@ -4,7 +4,7 @@ from __future__ import division, print_function
   This modules contains saturation curve object(s) for single flow
 """
 import numpy as np
-from .interpolate import MonoCubicInterp, QuadraticBspline
+from .interpolate import MonoCubicInterp, QuadraticBspline, PiecewiseLinear
 
 __NR = 400
 P_DEFAULT = np.linspace(-1, 9, __NR)
@@ -15,6 +15,7 @@ P_DEFAULT[0] = 0
 SC_vG     = 1
 SC_FF_CUB = 2
 SC_FF_BS  = 3
+SC_FF_LIN = 4
 
 def get_dict_value(dictionary, keys):
     if type(keys) is str:                 # single item
@@ -41,6 +42,8 @@ def create_SC(data):
             SC = SC_freeform_Cubic(hi, ui, ki, max_refine)
         elif SC_type == SC_FF_BS:
             SC = SC_freeform_BSpline(hi, ui, ki, max_refine)
+        elif SC_type == SC_FF_LIN:
+            SC = SC_freeform_Linear(hi, ui, ki, max_refine)
     else:
         print('Unknown value of ''SC_type'': ', SC_type)
         exit(1)
@@ -875,6 +878,103 @@ class SC_freeform_BSpline(SC_freeform_base):
         """
         return SC_FF_BS
 
+class SC_freeform_linear(SC_freeform_base):
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
+        SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
+                                  compute_extra=True, issue_warning=False)
+        self.__interpolate_values()
+
+    def __interpolate_values(self):
+        self.logh2u    = PiecewiseLinearInterp(self._hnodes, self._uvals)
+        self.logh2logk = PiecewiseLinearInterp(self._hnodes, self._kvals)
+
+    def typeSC(self):
+        return SC_FF_LIN
+
+    def canrefine_h(self):
+        """
+        indicate if this SC allows refinement of h
+        """
+        return True
+
+    def refine(self, prev_measurements):
+
+        if self.refinenr >= self.refinemax:
+            return False
+
+        # Probably not needed for piecewise linear interpolation
+        # #first refine must start from 2 points
+        # if (self.refinenr == 0) and (if not len(self._hi) == 2):
+        #     raise Exception("Refinement must start from minimum amount "
+        #                     "of points: 2 given head values")
+
+        # Copy & paste of the CubicInterpolator.refine()
+        hn = self._hnodes[1:-1-self.extra]
+        minh = np.min(comph.flatten())
+
+        while True:
+            if self._internalrefine > 32:
+                #stop computation:
+                print ("More than maximum number of internal refinements!")
+                return False
+
+            curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
+            curintervalsize = 1/2**(curexp)
+            print ('intref', self._internalrefine)
+            possiblenewhnodes = [hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
+                                                for i in range(2**(curexp-1))]
+            print ('newhn 0', possiblenewhnodes)
+            possiblenewhnodes = [i for i in possiblenewhnodes if not i in hn]
+            print ('newhn 1', possiblenewhnodes)
+            #we select only h > minh
+            possiblenewhnodes = np.array([i for i in possiblenewhnodes
+                                            if -np.exp(-i) > minh])
+            print ('newhn E', possiblenewhnodes)
+            if len(possiblenewhnodes) == 0:
+                self._internalrefine += 1
+                continue
+            else:
+                possiblenewh = -np.exp(-possiblenewhnodes)
+                #start with the one in interval with largest u change
+                uchange = 0;
+                prevui = self._uvals[1]
+                nexth = possiblenewh[0]
+                nexthnode = possiblenewhnodes[0]
+                for h, hnode in zip(possiblenewh, possiblenewhnodes):
+                    for hi, ui in zip(self._hi, self._ui):
+                        if hi > h:
+                            diffu = ui-prevui
+                            if diffu > uchange:
+                                nexth = h
+                                nexthnode = hnode
+                                uchange = diffu
+                        prevui = ui
+                break;
+
+        #we have a new h to add, we insert it, and update parameters
+        nh = self.h2u(np.array([nexth]))
+        nk = self.h2Kh(np.array([nexth]), 1)
+        ind = np.searchsorted(self._hnodes, nexthnode)
+        self._hnodes = np.insert(self._hnodes, ind, nexthnode)
+        self._hi     = np.insert(self._hi, ind-1, nexth)
+        self._ui     = np.insert(self._ui, ind-1, nh)
+        self._ki     = np.insert(self._ki, ind-1, nk)
+        self._uvals  = np.insert(self._uvals, ind, self._ui[ind-1])
+        self._kvals  = np.insert(self._kvals, ind, np.log(self._ki[ind-1]))
+
+        print ("*** refined SC curve  - new par ***")
+        print (" h  ", self._hi)
+        print (" u  ", self._ui)
+        print (" k  ", self._ki)
+        print (" hn ", self._hnodes)
+        print (" uv ", self._uvals)
+        print (" kv ", self._kvals)
+
+        self.__interpolate_values()
+
+        self.refinenr += 1
+        self._internalrefine += 1
+        return True
 
 if __name__ == "__main__":
     #test of SC curves
@@ -889,6 +989,7 @@ if __name__ == "__main__":
     kiext = [0.00239603*np.exp(-10), 0.00239603, 0.043/ks, 0.08027015, 1]
     BS = SC_freeform_BSpline(hi, ui, ki)
     FF = SC_freeform_Cubic(hi, ui, ki)
+    LI = SC_freeform_Linear(hi, ui, ki)
 
     haxis = np.linspace(-500., -0.0001, 10000)
     uax = BS.h2u(haxis)
@@ -897,6 +998,9 @@ if __name__ == "__main__":
     uaxf = FF.h2u(haxis)
     kaxf = FF.h2Kh(haxis, ks)
     duaxf = FF.dudh(haxis)
+    uaxl  = LI.h2u(haxis)
+    kaxl  = LI.h2Kh(haxis,ks)
+    duaxl = LI.dudh(haxis)
 
     import pylab
     pylab.figure(1)
