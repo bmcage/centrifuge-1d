@@ -22,7 +22,8 @@ CONFIG_OPTIONS = ['inv_init_params', ('optimfn', 'leastsq'),
                   (lambda cfg:
                        cfg.get_value('optimfn') in ['fmin_cg', 'fmin_bfgs'],
                     [('gtol', 1e-5), ('max_inv_iter', None),
-                     ('disp_inv_conv', True)])
+                     ('disp_inv_conv', True)]),
+                  ('print_params', ['ks', 'hi'])
                   ]
 
 INTERNAL_OPTIONS = ['_transform', '_untransform', 'init_values',
