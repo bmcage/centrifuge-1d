@@ -290,7 +290,7 @@ def print_status(data, filename=None):
             m_value = m_data[1]
 
             if c_value is not None:
-                LSQ_error = compare_data(key, c_value, m_value, stream)
+                LSQ_error, RMS_error = compare_data(key, c_value, m_value, stream)
                 total_LSQ_error += LSQ_error
 
         print('\nTotal LSQ error: ', total_LSQ_error, file=stream)
