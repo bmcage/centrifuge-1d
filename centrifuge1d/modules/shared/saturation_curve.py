@@ -897,6 +897,12 @@ class SC_freeform_Linear(SC_freeform_base):
         """
         return True
 
+    def refinable_h(self):
+        """
+        Obtain the current h values which are allowed to be refined
+        """
+        return -np.exp(-self._hnodes[1:-1])
+
     def refine(self, prev_measurements):
 
         if self.refinenr >= self.refinemax:
