@@ -246,9 +246,13 @@ def compare_data(name, value_computed, value_measured = None,
         i0 = i0 + in_row
 
     LSQ_error = np.sum(np.power(data_computed - data_measured, 2))
+    RMS_error = np.sqrt(LSQ_error/len(data_measured))
+    mean = np.mean(data_measured)
     print('LSQ error ' + "'" + name + "':", LSQ_error, file=stream)
+    print('RMS error ' + "'" + name + "':", RMS_error, 'for mean', mean,
+              'Coefficient variation:', RMS_error/mean, file=stream)
 
-    return LSQ_error
+    return LSQ_error, RMS_error
 
 #*******************************************************
 #
@@ -309,7 +313,7 @@ def smoothing_gaussian_rec(vlist, rec = 2, degree=5):
 
 def smoothing_gaussian_exp(vlist, degree=5, smooth_fac=0.5):
     #exponential smoothing based on underlying gaussian smoothing
-    #smooth_fac is the exponential smoothing factor. If 0 no extra smoothing, 
+    #smooth_fac is the exponential smoothing factor. If 0 no extra smoothing,
     assert 0 < smooth_fac < 1
     vlist = smoothing_gaussian(vlist, degree)
     smoothed = np.empty(len(vlist), float)

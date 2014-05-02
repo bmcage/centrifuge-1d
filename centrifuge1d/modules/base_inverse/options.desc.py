@@ -34,7 +34,8 @@ CONFIG_OPTIONS = {
                              "computed 'cov' is corresponds to these "
                              "transfomed parameters. If 'untransformd_cov' "
                              "is set to True, the covariance corresponding "
-                             "to untransformed parameters is computed.")
+                             "to untransformed parameters is computed."),
+       'print_params': ("Extra parameters to print out in the output files"),
     }
 }
 

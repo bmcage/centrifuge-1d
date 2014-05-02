@@ -291,7 +291,7 @@ def print_status(data, filename=None):
             m_value = m_data[1]
 
             if c_value is not None:
-                LSQ_error = compare_data(key, c_value, m_value, stream)
+                LSQ_error, RMS_error = compare_data(key, c_value, m_value, stream)
                 total_LSQ_error += LSQ_error
 
         print('\nTotal LSQ error: ', total_LSQ_error, file=stream)
@@ -306,6 +306,24 @@ def print_status(data, filename=None):
         if not params is None:
             print('\nOptimal parameters found:', file=stream)
             for (name, value) in params.items():
+                if name == 'ks':
+                    if np.iterable(value):
+                        print('  Ks [cm/s]: {0!s}'.format(value), file=stream)
+                    else:
+                        print('  Ks [cm/s]: {: .8g}'.format(value), file=stream)
+                elif np.iterable(value):
+                    print('  {0:9}: {1!s}'.format(name, value), file=stream)
+                else:
+                    print('  {:9}: {: .8g}'.format(name, value), file=stream)
+
+        params = data.get('print_params')
+        if not params is None:
+            print('\nUsed parameters:', file=stream)
+            for name in params:
+                value = data.get(name)
+                print (name, value)
+                if value is None:
+                    continue
                 if name == 'ks':
                     if np.iterable(value):
                         print('  Ks [cm/s]: {0!s}'.format(value), file=stream)
@@ -742,9 +760,9 @@ class DataStorage:
     def store_computation(self, model, measurements, ID='computed'):
         """ Store computed values with ID """
 
-        print("Storing Computation %s with main parameters:" % ID,
-                  model.get_parameters(['ks', 'hi', 'ki', 'ui', 'n', 'gamma']),
-                    ', h_init=', getattr(model, 'h_init', None))
+#        print("Storing Computation %s with main parameters:" % ID,
+#                  model.get_parameters(['ks', 'hi', 'ki', 'ui', 'n', 'gamma']),
+#                    ', h_init=', getattr(model, 'h_init', None))
         if self._modman is None:
             self._modman = ModulesManager()
 
@@ -767,6 +785,19 @@ class DataStorage:
         else:
             line_style = self._styles['lines'][ID]
             data = {}
+            if self.get('print_params') is None:
+                #store from model extra param to print from computation
+                self.store('print_params', model.get_value('print_params'))
+            if self.get('print_params')  and ID == 'computed':
+                for name in self.get('print_params'):
+                    val = model.get_parameters([name])
+                    if name in val:
+                        val = val[name]
+                    else:
+                        val = None
+                    if val in [None, '']:
+                        val = getattr(model, name, None)
+                    self._data[name] = val
 
             # Store all computed data
             for (name, xvalue, yvalue) in measurements.iterate_calc_measurements():
@@ -792,6 +823,8 @@ class DataStorage:
             if hasattr(model, 'SC'):
 
                 SC = model.SC
+                if SC.canrefine_h() and ID == 'computed':
+                    self._data['hi'] = SC.refinable_h()
 
                 theta_s = (model.theta_s if hasattr(model, 'theta_s')
                             else  model.porosity)

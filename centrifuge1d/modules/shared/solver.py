@@ -468,6 +468,7 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
         print(15 * '*', ' Iteration: {:4d}'.format(ITERATION), ' ', 15 * '*')
         ITERATION += 1
 
+        print ( "True arg", optimargs)
         untransform_dict(optim_names, optimargs, optim_par_length,
                          optim_params, untransform)
 
@@ -487,6 +488,7 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
             return measurements.get_penalized(penalization,
                             scalar=(optimfn not in ['leastsq']))
 
+        print ( "Used arg", optim_params)
         model.set_parameters(optim_params)
 
         # reset if previously stored values of measurements (it's re-set also
@@ -653,12 +655,15 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                          acc=model.xtol, full_output=True,
                          epsilon=model.epsfcn, disp=model.disp_inv_conv
                          )
-
+        print ("Final param", opt_params)
         untransform_dict(optim_names, opt_params, optim_par_length,
                          optim_params, untransform)
+        print ("unstransf final param", optim_params)
 
     # run the direct once more to obtain correct covariance
+    print ('rerunning for opt error')
     opt_error = optimfn_wrapper(opt_params)
+    print ('finished, error:', opt_error)
 
     if cov is None:
         print('Warning: singular matrix for covariance  encountered '
