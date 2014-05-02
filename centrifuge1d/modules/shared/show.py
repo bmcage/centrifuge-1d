@@ -917,7 +917,9 @@ class DataStorage:
                 #       all parameters names in lowercase
                 backup_SC = model.SC
                 backup_typeSC = model.SC.typeSC()
-                if not 'sc_type' in ref_params:
+                if 'SC_type' in ref_params and not ('sc_type' in ref_params):
+                    ref_params['sc_type'] = ref_params['SC_type']
+                if (not ('sc_type' in ref_params)):
                     print('Referencing model does not contain "SC_type", '
                           'cannot set parameters of the saturation curve.'
                           '\nSkipping...')
