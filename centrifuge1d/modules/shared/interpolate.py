@@ -5,6 +5,7 @@ import numpy as np
 # copy of scipy 0.13 as this deprecated starting scipy 0.14
 # rewrite in terms of 0.14 when we can do as in MonoCubicInterp here.
 from scipy.interpolate import KroghInterpolator
+from scipy.optimize import fsolve
 
 def _isscalar(x):
     """Check whether x is if a scalar type, or 0-dim"""
@@ -1057,6 +1058,58 @@ class PiecewiseLinear(object):
 
         return Dy
 
+
+    def root(self, y):
+        """
+        Evaluate for which `x` we have `f(x) = y`.
+        As each linear piece is monotonic, the solution is unique if the
+        Interpolator has been constructed with y[i+1] > y[i]
+
+        Parameters
+        ----------
+        y : array-like
+            Point or points at which to evaluate `f^{-1}(y)=x`
+
+        Returns
+        -------
+        d : ndarray
+            root interpolated at the y-points.
+        """
+        # first determine the correct polynomial, we assume monotone!!
+
+        xi  = self.xi
+        yi  = self.yi
+        Dyi = self.Dyi
+        dx_eps = self.dx_epsilon
+        size = self.size
+        end = self.size - 1
+
+        x = np.zeros(np.alen(y))
+        if np.isscalar(y):
+            y = (y, )
+
+        idxs = np.searchsorted(self.yi, y)
+        for (i, idx) in enumerate(idxs):
+            if idx == 0: # out of bounds
+                x[i] = (y[i] - yi[0]) / Dyi[0] + xi[0]
+            elif idx == size:
+                x[i] = (y[i] - yi[-1]) / Dyi[-1] + xi[-1]
+            elif (idx < size - 1) and (xi[idx] - x[i] < dx_eps):
+                # close to the right end of segment - all but last segment
+                rootfn = lambda unknown: self._polynomial(unknown, xi[idx], yi[idx],
+                                        Dyi[idx-1], Dyi[idx]) - y[i]
+                res = fsolve(rootfn, yi[idx])
+                x[i] = res[0]
+            elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
+                # close to the right end of segment - all but last segment
+                rootfn = lambda unknown: self._polynomial(x[i], xi[idx-1], yi[idx-1],
+                                        Dyi[idx-2], Dyi[idx-1]) - y[i]
+                res = fsolve(rootfn, yi[idx-1])
+                x[i] = res[0]
+            else:
+                x[i] = (y[i] - yi[idx-1]) / Dyi[idx-1] + xi[idx-1]
+        return x
+
 if __name__ == "__main__":
     #test of QuadraticBspline
     x = np.linspace(0, 10, 21)
@@ -1081,35 +1134,46 @@ if __name__ == "__main__":
     u = 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3)
     bspl_vGn = bspl(h, u)
 
+    plin = PiecewiseLinear
+    plin_lin = plin(x, x)
+    plin_kwa = plin(x, np.power(x,2))
+    plin_cub = plin(x, np.power(x,3))
+    plin_vGn = plin(h, u, dx_eps=0.2)
+
     import pylab
     pylab.figure(1)
     xaxis = np.linspace(-1000., 1e-1, 100)
     mcuby = mcub_vGn(xaxis)
     bsply = bspl_vGn(xaxis)
+    pliny = plin_vGn(xaxis)
     pylab.xlim(xmin=-2001)
-    pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'g-')
-    pylab.plot(xaxis, mcuby, 'bo')
-    pylab.plot(xaxis, bsply, 'ro')
+    pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'k-')
+    pylab.plot(xaxis, mcuby, 'bo', label='cubic')
+    pylab.plot(xaxis, bsply, 'ro', label='bspline')
+    pylab.plot(xaxis, pliny, 'go', label='plin')
+    pylab.legend()
 
     pylab.figure(2)
     xaxis = np.linspace(0, 10, 100)
     mcuby = mcub_lin(xaxis)
     bsply = bspl_lin(xaxis)
-    pylab.plot(x, lin, 'go')
-    pylab.plot(xaxis, mcuby, 'bo')
-    pylab.plot(xaxis, bsply, 'ro')
+    pliny = plin_lin(xaxis)
+    pylab.plot(x, lin, 'ko')
+    pylab.plot(xaxis, mcuby, 'bo', label='cubic')
+    pylab.plot(xaxis, bsply, 'ro', label='bspline')
+    #pylab.plot(xaxis, pliny, 'go', label='plin')
     pylab.plot(xaxis, list(map(bspl_lin.quadspline, np.ones(len(xaxis),float),xaxis)), 'ko')
+    pylab.legend()
 
     # test of PiecewiseLinear
     pylab.figure(3)
-    plin = PiecewiseLinear
-    plin_vGn = plin(h, u, dx_eps=0.2)
     xaxis = np.linspace(-1000., 1e-1, 10000)
     pylab.xlim(xmin=-2001)
     y=plin_vGn(xaxis)
-    pylab.plot(xaxis, y,'-')
-    pylab.plot(xaxis.T, plin_vGn.derivative(xaxis, der=1).T, 'o')
+    pylab.plot(xaxis, y,'b-', label='lin interp')
+    pylab.plot(xaxis.T, plin_vGn.derivative(xaxis, der=1).T, 'ro', label='deriv')
     #pylab.plot(xaxis, plin_vGn.derivative(xaxis, der=2), 'o')
     #pylab.plot(xaxis, plin_vGn.derivative(xaxis, der=3))
-    pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'g-')
+    pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'g-', label='orig')
+    pylab.legend()
     pylab.show()
