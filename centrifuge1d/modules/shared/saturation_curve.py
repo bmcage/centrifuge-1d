@@ -878,15 +878,15 @@ class SC_freeform_BSpline(SC_freeform_base):
         """
         return SC_FF_BS
 
-class SC_freeform_linear(SC_freeform_base):
+class SC_freeform_Linear(SC_freeform_base):
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
         SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
                                   compute_extra=True, issue_warning=False)
         self.__interpolate_values()
 
     def __interpolate_values(self):
-        self.logh2u    = PiecewiseLinearInterp(self._hnodes, self._uvals)
-        self.logh2logk = PiecewiseLinearInterp(self._hnodes, self._kvals)
+        self.logh2u    = PiecewiseLinear(self._hnodes, self._uvals)
+        self.logh2logk = PiecewiseLinear(self._hnodes, self._kvals)
 
     def typeSC(self):
         return SC_FF_LIN
@@ -1011,6 +1011,7 @@ if __name__ == "__main__":
     #pylab.plot(haxis, duax, 'r-')
     pylab.plot(haxis, uaxf, 'g-', label="FF")
     #pylab.plot(haxis, duaxf, 'c-')
+    pylab.plot(haxis, uaxl, 'r-', label="LF")
     pylab.legend()
     pylab.show()
 
@@ -1019,6 +1020,7 @@ if __name__ == "__main__":
     pylab.plot(hi, ki, 'k-')
     pylab.plot(haxis, kax/ks, 'b-', label="BS")
     pylab.plot(haxis, kaxf/ks, 'g-', label="FF")
+    pylab.plot(haxis, kaxl/ks, 'r-', label="LF")
     pylab.ylim(ymax=1.1)
     pylab.legend()
     pylab.show()
