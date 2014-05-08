@@ -692,60 +692,6 @@ class SC_freeform_base(SC_base):
         transform['ki']   = lambda ki: np.log(ki)
         untransform['ki'] = lambda ki_transf: np.exp(ki_transf)
 
-
-class SC_freeform_Cubic(SC_freeform_base):
-    """
-    A freefrom description of the saturation curve.
-    In this, a discrete version of h is used: {h_i}, with -inf < h_i < 0.
-    For these gridpoints, the value of effective saturation is passed:
-        u_i = u(h_i)
-    and also the value of the relative permeability:
-        k_i = k(h_i)
-
-    We then determine u(h) and k(h) as a monotone cubic interpolation spline
-    of the given points {(h_i, u_i)} and {(h_i, k_i)}
-    From this cubic spline the derivatives can be extracted
-    """
-    def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
-        SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
-                                  compute_extra=True, issue_warning=False)
-
-
-    def _interpolate_values(self):
-        self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
-        self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
-
-    def get_dyn_h_init(self, c_gammah, h_init_max):
-        """
-        Initial values of h~0 can cause troubles to the solver to start
-        depending on parameters of the SC class. To ensure "smooth" start
-        we compute a dynamically obtained 'h_init' value based on
-        actual values. This may be important in the parameters
-        optimization process.
-        """
-        recreate = False
-        if self._hi is not None and self.h_init_max != h_init_max:
-            #we need to regenerate the bsplace!
-            recreate = True
-        self.h_init_max = h_init_max
-        if recreate and self._hi is not None and self._ui is not None \
-                and self._ki is not None:
-            self._set_values(self._hi, self._ui, self._ki)
-
-        return self.h_init_max
-
-    def typeSC(self):
-        """
-        Indication of the compatible types of SC
-        """
-        return SC_FF_CUB
-
-    def canrefine_h(self):
-        """
-        indicate if this SC allows refinement of h
-        """
-        return True
-
     def refinable_h(self):
         """
         Obtain the current h values which are allowed to be refined
@@ -838,6 +784,60 @@ class SC_freeform_Cubic(SC_freeform_base):
         self._internalrefine += 1
         return True
 
+
+class SC_freeform_Cubic(SC_freeform_base):
+    """
+    A freefrom description of the saturation curve.
+    In this, a discrete version of h is used: {h_i}, with -inf < h_i < 0.
+    For these gridpoints, the value of effective saturation is passed:
+        u_i = u(h_i)
+    and also the value of the relative permeability:
+        k_i = k(h_i)
+
+    We then determine u(h) and k(h) as a monotone cubic interpolation spline
+    of the given points {(h_i, u_i)} and {(h_i, k_i)}
+    From this cubic spline the derivatives can be extracted
+    """
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
+        SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
+                                  compute_extra=True, issue_warning=False)
+
+
+    def _interpolate_values(self):
+        self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
+        self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
+
+    def get_dyn_h_init(self, c_gammah, h_init_max):
+        """
+        Initial values of h~0 can cause troubles to the solver to start
+        depending on parameters of the SC class. To ensure "smooth" start
+        we compute a dynamically obtained 'h_init' value based on
+        actual values. This may be important in the parameters
+        optimization process.
+        """
+        recreate = False
+        if self._hi is not None and self.h_init_max != h_init_max:
+            #we need to regenerate the bsplace!
+            recreate = True
+        self.h_init_max = h_init_max
+        if recreate and self._hi is not None and self._ui is not None \
+                and self._ki is not None:
+            self._set_values(self._hi, self._ui, self._ki)
+
+        return self.h_init_max
+
+    def typeSC(self):
+        """
+        Indication of the compatible types of SC
+        """
+        return SC_FF_CUB
+
+    def canrefine_h(self):
+        """
+        indicate if this SC allows refinement of h
+        """
+        return True
+
 ########################################################################
 #                  Free-form  model local BSpline based                #
 ########################################################################
@@ -886,101 +886,6 @@ class SC_freeform_Linear(SC_freeform_base):
         """
         indicate if this SC allows refinement of h
         """
-        return True
-
-    def refinable_h(self):
-        """
-        Obtain the current h values which are allowed to be refined
-        """
-        return -np.exp(-self._hnodes[1:-1])
-
-    def refine(self, prev_measurements):
-
-        #we refine the parameter space. Here we add a h point, and hence
-        #add 2 new parameters: the ki and ui at that new hi.
-        # obtain (x, h) computed data and (x, u)
-        comph  = prev_measurements.get_computed_value('h')[1]
-        compu  = prev_measurements.get_computed_value('u')[1]
-        compui = self._ui
-        #compki = self._ki
-
-        if self.refinenr >= self.refinemax:
-            return False
-
-        if self.refinenr == 0:
-            #first refine. refine strategy must start from 2 points!
-            self._internalrefine = 1
-            if not len(self._hi) == 2:
-                raise Exception("Refinement must start from minimum amount "
-                                "of points: 2 given head values")
-
-
-        # Copy & paste of the CubicInterpolator.refine()
-        hn = self._hnodes[1:-1-self.extra]
-        minh = np.min(comph.flatten())
-
-        while True:
-            if self._internalrefine > 32:
-                #stop computation:
-                print ("More than maximum number of internal refinements!")
-                return False
-
-            curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
-            curintervalsize = 1/2**(curexp)
-            print ('intref', self._internalrefine)
-            possiblenewhnodes = [hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
-                                                for i in range(2**(curexp-1))]
-            print ('newhn 0', possiblenewhnodes)
-            possiblenewhnodes = [i for i in possiblenewhnodes if not i in hn]
-            print ('newhn 1', possiblenewhnodes)
-            #we select only h > minh
-            possiblenewhnodes = np.array([i for i in possiblenewhnodes
-                                            if -np.exp(-i) > minh])
-            print ('newhn E', possiblenewhnodes)
-            if len(possiblenewhnodes) == 0:
-                self._internalrefine += 1
-                continue
-            else:
-                possiblenewh = -np.exp(-possiblenewhnodes)
-                #start with the one in interval with largest u change
-                uchange = 0;
-                prevui = self._uvals[1]
-                nexth = possiblenewh[0]
-                nexthnode = possiblenewhnodes[0]
-                for h, hnode in zip(possiblenewh, possiblenewhnodes):
-                    for hi, ui in zip(self._hi, self._ui):
-                        if hi > h:
-                            diffu = ui-prevui
-                            if diffu > uchange:
-                                nexth = h
-                                nexthnode = hnode
-                                uchange = diffu
-                        prevui = ui
-                break;
-
-        #we have a new h to add, we insert it, and update parameters
-        nh = self.h2u(np.array([nexth]))
-        nk = self.h2Kh(np.array([nexth]), 1)
-        ind = np.searchsorted(self._hnodes, nexthnode)
-        self._hnodes = np.insert(self._hnodes, ind, nexthnode)
-        self._hi     = np.insert(self._hi, ind-1, nexth)
-        self._ui     = np.insert(self._ui, ind-1, nh)
-        self._ki     = np.insert(self._ki, ind-1, nk)
-        self._uvals  = np.insert(self._uvals, ind, self._ui[ind-1])
-        self._kvals  = np.insert(self._kvals, ind, np.log(self._ki[ind-1]))
-
-        print ("*** refined SC curve  - new par ***")
-        print (" h  ", self._hi)
-        print (" u  ", self._ui)
-        print (" k  ", self._ki)
-        print (" hn ", self._hnodes)
-        print (" uv ", self._uvals)
-        print (" kv ", self._kvals)
-
-        self._interpolate_values()
-
-        self.refinenr += 1
-        self._internalrefine += 1
         return True
 
 if __name__ == "__main__":
