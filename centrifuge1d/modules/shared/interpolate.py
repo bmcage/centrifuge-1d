@@ -926,7 +926,7 @@ class PiecewiseLinear(object):
     Implementation of piecewise linear function with smoothing in the
     neighbourhood of the grid point to stay differentiable.
     """
-    def __init__(self, xi, yi, dx_eps=1e-1):
+    def __init__(self, xi, yi, dx_eps=2e-2):
         self.dx_epsilon = dx_eps
         self.xi = xi
         self.yi = yi
@@ -936,7 +936,8 @@ class PiecewiseLinear(object):
         if not all(self.dxi > 2*dx_eps):
             raise Exception("For piecewise linear interpolation the points "
                             "must be at least at distance 2*dx_eps. Current "
-                            "value of dx_eps: {}". format(dx_eps))
+                            "value of dx_eps: {}, given dx: {}" \
+                            . format(dx_eps, self.dxi))
         size = np.alen(xi)
         self.size = size
 
@@ -1094,15 +1095,17 @@ class PiecewiseLinear(object):
                 x[i] = (y[i] - yi[0]) / Dyi[0] + xi[0]
             elif idx == size:
                 x[i] = (y[i] - yi[-1]) / Dyi[-1] + xi[-1]
-            elif (idx < size - 1) and (xi[idx] - x[i] < dx_eps):
+            elif (idx < size - 1) and (self._polynomial(xi[idx]-dx_eps, xi[idx], yi[idx],
+                                        Dyi[idx-1], Dyi[idx]) < y[i]):
                 # close to the right end of segment - all but last segment
                 rootfn = lambda unknown: self._polynomial(unknown, xi[idx], yi[idx],
                                         Dyi[idx-1], Dyi[idx]) - y[i]
                 res = fsolve(rootfn, yi[idx])
                 x[i] = res[0]
-            elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
+            elif (idx > 1) and (y[i] < self._polynomial(xi[idx-1]+dx_eps, xi[idx-1], yi[idx-1],
+                                        Dyi[idx-2], Dyi[idx-1])):
                 # close to the right end of segment - all but last segment
-                rootfn = lambda unknown: self._polynomial(x[i], xi[idx-1], yi[idx-1],
+                rootfn = lambda unknown: self._polynomial(unknown, xi[idx-1], yi[idx-1],
                                         Dyi[idx-2], Dyi[idx-1]) - y[i]
                 res = fsolve(rootfn, yi[idx-1])
                 x[i] = res[0]
@@ -1176,4 +1179,17 @@ if __name__ == "__main__":
     #pylab.plot(xaxis, plin_vGn.derivative(xaxis, der=3))
     pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'g-', label='orig')
     pylab.legend()
+
+    pylab.figure(4)
+    xaxis = np.linspace(-1000., 1e-1, 100)
+    mcuby = mcub_vGn(xaxis)
+    pliny = plin_vGn(xaxis)
+    pylab.xlim(xmin=-2001)
+    pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'k-')
+    pylab.plot(xaxis, mcuby, 'bo', label='cubic')
+    pylab.plot(mcub_vGn.root(mcuby), mcuby, 'b-',label='cubuc inv')
+    pylab.plot(xaxis, pliny, 'go', label='plin')
+    pylab.plot(plin_vGn.root(pliny), pliny, 'g-',label='plin inv')
+    pylab.legend()
+
     pylab.show()

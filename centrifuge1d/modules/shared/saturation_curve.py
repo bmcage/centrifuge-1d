@@ -505,7 +505,7 @@ class SC_freeform_base(SC_base):
             self._ki = ki
 
         # NOTE: After base class initialization the subclass must run
-        #       self.__interpolate_values() to get proper intializaton
+        #       self._interpolate_values() to get proper intializaton
         #       of the node values
 
     def _set_values(self, hi, ui, ki):
@@ -539,18 +539,10 @@ class SC_freeform_base(SC_base):
             self._hnodes[-2] = -1*np.log(-self.h_init_max)
             self._uvals[-2]  = 1-1e-5
             self._kvals[-1]  = np.log(1-1e-5)
+        #now we reconstruct the interpolating functions
+        self._interpolate_values()
 
-        # we now construct two cubic monotone interpolations: U(H) and K(H)
-#        print ('test mono')
-#        print ('hi', self._hi)
-#        print ('ui', self._ui)
-#        print ('ki', self._ki)
-#
-#        print ('hn', self._hnodes)
-#        print ('uv', self._uvals)
-#        print ('kv', self._kvals)
-
-    def __interpolate_values(self):
+    def _interpolate_values(self):
         raise Exception ("Method must be subclassed.")
 
     @staticmethod
@@ -715,10 +707,9 @@ class SC_freeform_Cubic(SC_freeform_base):
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
         SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
                                   compute_extra=True, issue_warning=False)
-        self.__interpolate_values()
 
 
-    def __interpolate_values(self):
+    def _interpolate_values(self):
         self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
         self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
 
@@ -839,7 +830,7 @@ class SC_freeform_Cubic(SC_freeform_base):
         print (" uv ", self._uvals)
         print (" kv ", self._kvals)
 
-        self.__interpolate_values()
+        self._interpolate_values()
 
         self.refinenr += 1
         self._internalrefine += 1
@@ -865,10 +856,9 @@ class SC_freeform_BSpline(SC_freeform_base):
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
         SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
                                   compute_extra=False, issue_warning=True)
-        self.__interpolate_values()
 
 
-    def __interpolate_values(self):
+    def _interpolate_values(self):
         self.logh2u = QuadraticBspline(self._hnodes, self._uvals)
         self.logh2logk = QuadraticBspline(self._hnodes, self._kvals)
 
@@ -882,9 +872,8 @@ class SC_freeform_Linear(SC_freeform_base):
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
         SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
                                   compute_extra=True, issue_warning=False)
-        self.__interpolate_values()
 
-    def __interpolate_values(self):
+    def _interpolate_values(self):
         self.logh2u    = PiecewiseLinear(self._hnodes, self._uvals)
         self.logh2logk = PiecewiseLinear(self._hnodes, self._kvals)
 
@@ -905,14 +894,24 @@ class SC_freeform_Linear(SC_freeform_base):
 
     def refine(self, prev_measurements):
 
+        #we refine the parameter space. Here we add a h point, and hence
+        #add 2 new parameters: the ki and ui at that new hi.
+        # obtain (x, h) computed data and (x, u)
+        comph  = prev_measurements.get_computed_value('h')[1]
+        compu  = prev_measurements.get_computed_value('u')[1]
+        compui = self._ui
+        #compki = self._ki
+
         if self.refinenr >= self.refinemax:
             return False
 
-        # Probably not needed for piecewise linear interpolation
-        # #first refine must start from 2 points
-        # if (self.refinenr == 0) and (if not len(self._hi) == 2):
-        #     raise Exception("Refinement must start from minimum amount "
-        #                     "of points: 2 given head values")
+        if self.refinenr == 0:
+            #first refine. refine strategy must start from 2 points!
+            self._internalrefine = 1
+            if not len(self._hi) == 2:
+                raise Exception("Refinement must start from minimum amount "
+                                "of points: 2 given head values")
+
 
         # Copy & paste of the CubicInterpolator.refine()
         hn = self._hnodes[1:-1-self.extra]
@@ -976,7 +975,7 @@ class SC_freeform_Linear(SC_freeform_base):
         print (" uv ", self._uvals)
         print (" kv ", self._kvals)
 
-        self.__interpolate_values()
+        self._interpolate_values()
 
         self.refinenr += 1
         self._internalrefine += 1
