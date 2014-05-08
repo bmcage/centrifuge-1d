@@ -538,7 +538,9 @@ class SC_freeform_base(SC_base):
         if self.compute_extra and (self.extra == 1):
             self._hnodes[-2] = -1*np.log(-self.h_init_max)
             self._uvals[-2]  = 1-1e-5
-            self._kvals[-1]  = np.log(1-1e-5)
+            self._kvals[-2]  = np.log(1-1e-5)
+            print ('Extra point', self.extra)
+            raw_input('Testing if extra point active. Continue?')
         #now we reconstruct the interpolating functions
         self._interpolate_values()
 
