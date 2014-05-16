@@ -926,7 +926,7 @@ class PiecewiseLinear(object):
     Implementation of piecewise linear function with smoothing in the
     neighbourhood of the grid point to stay differentiable.
     """
-    def __init__(self, xi, yi, dx_eps=2e-2):
+    def __init__(self, xi, yi, dx_eps=4e-2):
         self.dx_epsilon = dx_eps
         self.xi = xi
         self.yi = yi
@@ -1138,9 +1138,6 @@ if __name__ == "__main__":
     bspl_vGn = bspl(h, u)
 
     plin = PiecewiseLinear
-    plin_lin = plin(x, x)
-    plin_kwa = plin(x, np.power(x,2))
-    plin_cub = plin(x, np.power(x,3))
     plin_vGn = plin(h, u, dx_eps=0.2)
 
     import pylab
@@ -1148,19 +1145,18 @@ if __name__ == "__main__":
     xaxis = np.linspace(-1000., 1e-1, 100)
     mcuby = mcub_vGn(xaxis)
     bsply = bspl_vGn(xaxis)
-    pliny = plin_vGn(xaxis)
     pylab.xlim(xmin=-2001)
     pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'k-')
     pylab.plot(xaxis, mcuby, 'bo', label='cubic')
     pylab.plot(xaxis, bsply, 'ro', label='bspline')
-    pylab.plot(xaxis, pliny, 'go', label='plin')
+    #pylab.plot(xaxis, pliny, 'go', label='plin')
     pylab.legend()
 
     pylab.figure(2)
     xaxis = np.linspace(0, 10, 100)
     mcuby = mcub_lin(xaxis)
     bsply = bspl_lin(xaxis)
-    pliny = plin_lin(xaxis)
+    #pliny = plin_lin(xaxis)
     pylab.plot(x, lin, 'ko')
     pylab.plot(xaxis, mcuby, 'bo', label='cubic')
     pylab.plot(xaxis, bsply, 'ro', label='bspline')
@@ -1169,6 +1165,11 @@ if __name__ == "__main__":
     pylab.legend()
 
     # test of PiecewiseLinear
+    x = np.linspace(0, 10, 6)
+    plin_lin = plin(x, x)
+    plin_kwa = plin(x, np.power(x,2))
+    plin_cub = plin(x, np.power(x,3), dx_eps=0.4)
+
     pylab.figure(3)
     xaxis = np.linspace(-1000., 1e-1, 10000)
     pylab.xlim(xmin=-2001)
@@ -1190,6 +1191,16 @@ if __name__ == "__main__":
     pylab.plot(mcub_vGn.root(mcuby), mcuby, 'b-',label='cubuc inv')
     pylab.plot(xaxis, pliny, 'go', label='plin')
     pylab.plot(plin_vGn.root(pliny), pliny, 'g-',label='plin inv')
+    pylab.legend()
+
+    pylab.figure(5)
+    xaxis = np.linspace(0, 10, 10000)
+    pliny = plin_kwa(xaxis)
+    pylab.plot(xaxis, np.power(xaxis,2), 'k-', label='$x^2$')
+    pylab.plot(xaxis, pliny, 'g-', label='plin $x^2$')
+    pliny = plin_cub(xaxis)
+    pylab.plot(xaxis, np.power(xaxis,3), 'k-', label='$x^=3$')
+    pylab.plot(xaxis, pliny, 'b-', label='plin $x^3$')
     pylab.legend()
 
     pylab.show()
