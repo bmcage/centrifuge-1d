@@ -857,23 +857,24 @@ class Measurements():
         #    b) measurements, xvalues
         (measurements, measurements_xvalues) = \
           determine_measurements(cfg, phases_scans)
-        #    c) measurements weights
+        #    c) measurements that should be taken as diff
         measurements_diff    = cfg.get_value('measurements_diff')
+        #    d) measurements weights
         measurements_weights = determine_weights(cfg, measurements,
                                                  measurements_diff)
-        #    d) scaling coefs of measurements
+        #    e) scaling coefs of measurements
         scales_coefs = determine_scaling_coefs(cfg)
-        #    e) measurements times
+        #    f) measurements times
         times = determine_measurements_times(measurements_xvalues)
-        #    f) omega (rpm, radps, omega2g)
+        #    g) omega (rpm, radps, omega2g)
         (omega_ini_rpm, omega_ini_radps, omega2g, omega_rpm, omega_radps) = \
           determine_omega(cfg, acc_duration, dec_duration, fh_duration,
                           include_acceleration, times)
-        #    g) determine tara calibration curve
+        #    h) determine tara calibration curve
         tara_calibration = \
           determine_tara_calibration(cfg, measurements, times, omega2g,
                                      phases_scans, omega_ini_rpm)
-        #    h) determine indices of preserved measurements
+        #    i) determine indices of preserved measurements
         (measurements_filter, measurements_times_filter) =  \
           determine_filtering_indices(cfg, times, measurements,
                                       measurements_xvalues)
