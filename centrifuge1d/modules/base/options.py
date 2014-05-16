@@ -58,7 +58,7 @@ CONFIG_OPTIONS = ['exp_type',
                   ('ww1', None), ('gf_mo_tara', None), ('gf_mt_tara', None),
                   'gf_mt_calibration_curve', 'gf_mo_calibration_curve',
                   ('measurements_scale_coefs', None),
-                  ('cf_weights', 1.0),
+                  ('cf_weights', 1.0), ('measurements_diff', []),
                   ('measurements_keep', None), ('measurements_remove', None),
                   ('show_original_measurements', None),
 

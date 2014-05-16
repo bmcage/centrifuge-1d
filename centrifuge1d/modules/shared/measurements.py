@@ -847,8 +847,6 @@ class Measurements():
         information - measurements times, weights and scaling.
         """
 
-        measurements_diff    = self._measurements_diff
-
         # 0. Determine whether we run direct or inverse problem
         self.run_inverse_problem_p(cfg.get_value('inv_init_params'))
 
@@ -860,6 +858,7 @@ class Measurements():
         (measurements, measurements_xvalues) = \
           determine_measurements(cfg, phases_scans)
         #    c) measurements weights
+        measurements_diff    = cfg.get_value('measurements_diff')
         measurements_weights = determine_weights(cfg, measurements,
                                                  measurements_diff)
         #    d) scaling coefs of measurements
@@ -909,6 +908,7 @@ class Measurements():
         self._scales_coefs    = scales_coefs
         self._measurements                  = measurements
         self._measurements_xvalues          = measurements_xvalues
+        self._measurements_diff             = measurements_diff
         self._original_measurements         = original_measurements
         self._original_measurements_xvalues = original_measurements_xvalues
         self._measurements_weights          = measurements_weights
