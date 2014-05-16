@@ -1,7 +1,6 @@
 from __future__ import print_function, division
 
 import numpy as np, matplotlib, pickle
-import matplotlib.pyplot as plt
 import sys
 from ...const import PLOTSTYLE_ININAME, DUMP_DATA_VERSION, DUMP_DATA_FILENAME
 from os import makedirs, path
@@ -486,10 +485,15 @@ def assign_data(styles, displayed_figs, data):
     # Resolve 'overlay_x' and 'overlay_y'
     figures_styles = styles['figures']
     line_data = data.get_linedata('computed')
-    udata = line_data['u'][1][:,:].flatten()
-    udata = udata[udata != 0.]
-    u_min = np.min(udata)
-    u_max = np.max(udata)
+    if 'u' in line_data:
+        udata = line_data['u'][1][:,:].flatten()
+        udata = udata[udata != 0.]
+        u_min = np.min(udata)
+        u_max = np.max(udata)
+    else:
+        #output has no u, eg saturated data!
+        u_min = 0
+        u_max = 1
     for fig_id in displayed_figs:
         overlay_x = get_figure_option(figures_styles, fig_id, 'overlay_x')
         overlay_y = get_figure_option(figures_styles, fig_id, 'overlay_y')
@@ -504,11 +508,12 @@ def assign_data(styles, displayed_figs, data):
             ox0 = u_min if ox0 is None else ox0
             ox1 = u_max if ox1 is None else ox1
         elif fig_id in ('K', 'theta'):
-            theta_s = line_data['theta'][1][0] # = theta at full saturation
-            # normally theta_r << 1 hence it won't be visible in the figure
-            # if we consider theta_r == 0
-            ox0 = theta_s*u_min if ox0 is None else ox0
-            ox1 = theta_s*u_max if ox1 is None else ox1
+            if 'theta' in line_data:
+                theta_s = line_data['theta'][1][0] # = theta at full saturation
+                # normally theta_r << 1 hence it won't be visible in the figure
+                # if we consider theta_r == 0
+                ox0 = theta_s*u_min if ox0 is None else ox0
+                ox1 = theta_s*u_max if ox1 is None else ox1
 
         figures_styles[fig_id]['overlay_x'] = (ox0, ox1)
         figures_styles[fig_id]['overlay_y'] = (oy0, oy1)
@@ -610,6 +615,7 @@ def get_shown_figs_ids(figures_styles):
 def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
                 show_titles):
 
+    import matplotlib.pyplot as plt
      # plot the lines
     legend_labels = []
 
@@ -655,7 +661,7 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
                                            'label', fig_id, line_id)
         if np.isscalar(legend_label):
             legend_labels.append(legend_label)
-        else:
+        elif legend_label is not None:
             legend_labels.extend(legend_label)
 
     xlabel = get_figure_option(figs_styles, fig_id, 'xlabel')
@@ -995,6 +1001,7 @@ class DataStorage:
     def display(self, fignum=1, ext='', noblock=False):
         """ Display the figures and/or write them to files. """
 
+        import matplotlib.pyplot as plt
         styles = self._styles
 
         display_options = styles['options']
@@ -1175,6 +1182,7 @@ def display_table(data, fignum=None):
     """ Display comparison table of measured vs. computed results. """
 
     from matplotlib.ticker import NullLocator
+    import matplotlib.pyplot as plt
 
     majorLocator = NullLocator()
 
