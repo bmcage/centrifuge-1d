@@ -588,8 +588,11 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
     for (ind, name) in enumerate(optim_names):
         # Update init_values
         iv_ind_next = iv_ind + optim_par_length[ind]
-        init_values[iv_ind:iv_ind_next] = \
-          transform[name](np.asarray(model.init_values[name]))
+        if transform and name in transform:
+            init_values[iv_ind:iv_ind_next] = \
+            transform[name](np.asarray(model.init_values[name]))
+        else:
+            init_values[iv_ind:iv_ind_next] = np.asarray(model.init_values[name])
         iv_ind = iv_ind_next
 
     import scipy.optimize
