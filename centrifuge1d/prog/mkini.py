@@ -532,7 +532,7 @@ def determine_duration_and_omega(measurement_data, omegas_ini, scans, scan_span)
     c_omega = compress_seq(omegas_ini)
 
     if np.isscalar(c_omega): # omega is constant
-        omega_ret = c_omega
+        omega_cen = c_omega
 
         total_duration = scan_span * (scans[-1] - scans[0] + 1)
         include_acceleration = (not c_omega == 0.0)
@@ -793,13 +793,13 @@ def main(csv_path=None, csv_filebasename=None, dataout_path=None):
 
     if dataout_path:
         info['ini_dir'] = dataout_path + sep + 'datafiles'
-        info['figs_dir'] = dataout_path + sep + 'datafiles' 
+        info['figs_dir'] = dataout_path + sep + 'datafiles'
     else:
         info['ini_dir'] = INI_DIR
         info['figs_dir'] = FIGS_DIR
 
     data = CSV2data(info['csv_path'], info['csv_filebasename'])
     data2ini(data, info)
-    
+
 if __name__ == "__main__":
     main()
