@@ -448,6 +448,8 @@ class SC_vanGenuchten(SC_base):
         Dynamically set 'h_init' value based on the 'gamma' parameter.
         """
         self.h_init_max = min(c_gammah / self._gamma, h_init_max)
+        #raw_input(' ok to use h init max {} instead of {}?'
+        #                .format(self.h_init_max, c_gammah / self._gamma))
         return self.h_init_max
 
     def add_transformations_fns(self, transform, untransform,
