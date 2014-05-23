@@ -842,6 +842,8 @@ class DataStorage:
                                                     rho=model.density)
 
                 if hasattr(model, 'p') or hasattr(model, 'pc'):
+                    # TODO: can we not remove this?? Is stored in measured NOW!
+                    # returning more than lenth two in data no longer supported !!
                     p_meas = np.asarray(model.p if hasattr(model, 'p')
                                         else model.pc, dtype=float)
 
@@ -852,8 +854,10 @@ class DataStorage:
                       SC.retention_curve_u(g=model.g, rho=model.density,
                                            p=p_meas)
 
-                    data['theta']  = (p, theta, p_user, theta_user)
-                    data['relsat'] = (-rc_h, rc_u, -rc_h_user, rc_u_user)
+                    data['theta']  = (p, theta)
+                    #, p_user, theta_user)   # no longer supported
+                    data['relsat'] = (-rc_h, rc_u)
+                    #, -rc_h_user, rc_u_user)   # no longer supported
                 else:
                     data['theta']  = (p, theta)
                     data['relsat'] = (-rc_h, rc_u)
