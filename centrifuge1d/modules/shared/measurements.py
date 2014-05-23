@@ -858,7 +858,7 @@ class Measurements():
         (measurements, measurements_xvalues) = \
           determine_measurements(cfg, phases_scans)
         #    c) measurements that should be taken as diff
-        measurements_diff    = cfg.get_value('measurements_diff')
+        measurements_diff    = cfg.get_value('measurements_diff') or []
         #    d) measurements weights
         measurements_weights = determine_weights(cfg, measurements,
                                                  measurements_diff)
