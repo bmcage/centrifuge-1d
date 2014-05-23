@@ -1,5 +1,8 @@
 from __future__ import division
 
+
+from ..shared.saturation_curve import (create_SC, SC_vG)
+
 PARENTAL_MODULES = ['base_inverse']
 
 # These options are added by the constants.ini just as
@@ -44,6 +47,10 @@ def check_cfg(cfg):
     return True
 
 def adjust_cfg(cfg):
+    # Determine saturation curve model used
+    cfg.set_value('sc_type', SC_vG)
+    cfg.set_value('SC', create_SC(cfg))
+
     cfg.set_value('separate_figures', True)
 
     # Brute hack as default options cannot be overriden in child modules
