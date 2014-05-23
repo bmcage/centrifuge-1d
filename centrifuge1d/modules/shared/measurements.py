@@ -1022,10 +1022,10 @@ class Measurements():
             if name in self._measurements_diff:
                 value = data[name][idx]
                 computations[iS:iE-1] = value[1:] - value[:-1]
+                iS = iE-1
             else:
                 computations[iS:iE] = data[name][idx]
-
-            iS = iE
+                iS = iE
 
         return computations
 
