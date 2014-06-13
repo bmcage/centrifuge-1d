@@ -341,6 +341,27 @@ def print_status(data, filename=None):
     finally:
         if not filename is None: stream.close()
 
+
+    #output synthetic data for direct runs
+    streamsynthetic = None if filename is None else open(filename[:-5]+"_synth.ini", 'w')
+    try:
+        for (key, c_data) in computed.items():
+            if key == 'theta':
+                if  len(computed[key]) == 2:
+                    # OEPS TODO, fit_retention_curve, this is working
+                    #   when writing to file !!! WHY ??
+                    continue
+                else:
+                    c_value = computed[key][3]
+            else:
+                c_value = computed[key][1]
+            c_xvalue = c_data[0]
+
+            if c_value is not None:
+                output_synthetic(key, c_xvalue, c_value, streamsynthetic)
+    finally:
+        if not filename is None: streamsynthetic.close()
+
 def get_filenames(experiment_info):
     """ Given experiment information find a list of all plotstyle inifiles. """
 
@@ -1273,3 +1294,20 @@ def compare_results(name, c_value, m_value, colsnum, apply_row_fn,
                        + ['']*(colsnum - 2)*bool(padding))
         apply_row_fn(['']*(colsnum + 1)*bool(padding))
         i0 = i1
+
+def output_synthetic(name, xvalue_computed, value_computed = None,
+                 stream=None):
+
+    if stream is None: return
+
+    print('%s =  [' % (name+'_xvalues'), file=stream, end="")
+    for val in xvalue_computed[:-1]:
+        print(val, file=stream, end="")
+        print(', ', file=stream, end="")
+    print(xvalue_computed[-1], "]", file=stream)
+
+    print('%s =  [' % name, file=stream, end="")
+    for val in value_computed[:-1]:
+        print(val, file=stream, end="")
+        print(', ', file=stream, end="")
+    print(value_computed[-1], "]", file=stream)
