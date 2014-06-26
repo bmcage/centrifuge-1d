@@ -343,7 +343,12 @@ def print_status(data, filename=None):
 
 
     #output synthetic data for direct runs
-    streamsynthetic = None if filename is None else open(filename[:-5]+"_synth.ini", 'w')
+    streamsynthetic = None if filename is None else \
+                            open(filename[:-5]+"_synth.ini", 'w')
+    if not (streamsynthetic is None):
+        #section heading
+        print('[experiment]\n', file=streamsynthetic)
+
     try:
         for (key, c_data) in computed.items():
             if key == 'theta':
@@ -357,7 +362,7 @@ def print_status(data, filename=None):
                 c_value = computed[key][1]
             c_xvalue = c_data[0]
 
-            if c_value is not None:
+            if c_value is not None and key in data._styles['output_computed_as_meas']:
                 output_synthetic(key, c_xvalue, c_value, streamsynthetic)
     finally:
         if not filename is None: streamsynthetic.close()
@@ -756,7 +761,8 @@ class DataStorage:
         styles = {'options': DISPLAY_OPTIONS, 'lines': LINESTYLES_DEFAULT,
                   'figures': set_default_units(FIGURES_DEFAULTS),
                   'plots_keep': {}, 'plots_remove': {}, 'params_ref': {},
-                  'lines_order': ()
+                  'lines_order': (),
+                  'output_computed_as_meas': {},
                  }
 
         # Read user plotysles inifiles
@@ -1297,7 +1303,6 @@ def compare_results(name, c_value, m_value, colsnum, apply_row_fn,
 
 def output_synthetic(name, xvalue_computed, value_computed = None,
                  stream=None):
-
     if stream is None: return
 
     print('%s =  [' % (name+'_xvalues'), file=stream, end="")
