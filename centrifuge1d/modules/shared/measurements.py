@@ -150,6 +150,7 @@ def determine_tara_calibration(cfg, measurements, measurements_times, omega2g,
             # WR_fluid =  gF_fluid * g/(omega_radps^2)
             # Hence:
             # WR_tara = (gF_tara - gF_fluid) * g / (omega_radps^2)
+            print ('test WR_fluid for gF_WT is', WR_fluid, 'so gF part sat water', omega2g*WR_fluid)
             WR_tara = WR_tara - WR_fluid
 
         # subtract the tara influence from measured values
