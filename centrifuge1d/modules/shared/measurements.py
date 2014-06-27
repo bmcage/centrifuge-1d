@@ -102,7 +102,7 @@ def determine_tara_calibration(cfg, measurements, measurements_times, omega2g,
         else:
            print('The tara value of ' + F_name + ' (' + F_name + '_tara) '
                  'must be a list/tuple of length 2 of type [omega, weight] '
-                 'or dict constisting of pairs "omega:wight".'
+                 'or dict constisting of pairs "omega:weight".'
                  '\nCannot continue, aborting.')
            exit(1)
 
