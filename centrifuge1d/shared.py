@@ -212,11 +212,11 @@ def filter_indices(filter_idxs, pfilter, new_value):
 
     """
     filter_idxs_len = np.alen(filter_idxs)
-
     for kf in pfilter:
         if callable(kf):
             (rstart, rstop, rstep) = kf()
-            for idx in range(rstart, filter_idxs_len+rstop+1, rstep):
+            if rstart == '': rstart = 0
+            for idx in range(rstart, filter_idxs_len+rstop, rstep):
                 filter_idxs[idx] = new_value
         elif np.isscalar(kf):
             filter_idxs[kf] = new_value
