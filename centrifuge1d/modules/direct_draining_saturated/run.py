@@ -288,7 +288,6 @@ def initialize_zp0(zp0, z0, model):
     zp0[model.mass_in_idx] = zp0[model.s1_idx] = 0.0
     zp0[model.mass_out_idx] = dmodt
     zp0[model.s2_idx] = ds2dt
-
     zp0[first_idx] = \
       dhdy[0]/ds*ds1dt - 2./(porosity*du_dh[0]* dy[0]*ds) * (q12[0] - q_first)
     zp0[first_idx+1:last_idx] = \
@@ -339,8 +338,19 @@ def solve(model, measurements):
 
 solve_direct = solve  # to remove warning about 'solve_direct' not specified
 
+import cProfile, pstats
+PROFILE = False
+
 def run(model):
+    if PROFILE:
+        pr = cProfile.Profile()
+        pr.enable()
+
     show_results(model.experiment_info, model=model)
+
+    if PROFILE:
+        pr.disable()
+        pr.print_stats('cumtime')
 
 def dry_run(model):
     show_results(model.experiment_info, model=model)
