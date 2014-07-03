@@ -1408,7 +1408,6 @@ class Measurements():
         error[:] = scale * (computations - measurements)
         if not np.isscalar(weights):
             error[:] *= weights
-
         return error
 
     def display_error(self, stream=None):
@@ -1417,7 +1416,7 @@ class Measurements():
         measurements_diff = self._measurements_diff
 
         computed = self._computed
-        indices  = self._measurements_indices
+        indices  = self._computed_indices
 
         for (name, measured_value) in self._measurements.items():
             filter_idxs = indices[name]
