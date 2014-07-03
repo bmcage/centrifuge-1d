@@ -407,6 +407,11 @@ def penalize_cond(parameters, conditions):
                         continue
                     penalty = np.exp(1/(tolerance)) + np.exp(50*a)
                     penalization += min(penalty, max_penalization)
+            elif cond.lower() in ['positive', 'pos']:
+                for value in values:
+                    if value <= 0:
+                        penalty = np.exp(1/(tolerance)) + np.exp(50*(0.1+value))
+                        penalization += min(penalty, max_penalization)
             else:
                 raise Exception('Condition on parameters not recoginized: %s' % cond)
     return penalization
