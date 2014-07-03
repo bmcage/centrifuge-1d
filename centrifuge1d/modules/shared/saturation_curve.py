@@ -570,6 +570,9 @@ class SC_freeform_base(SC_base):
             if not k>ko or not ko>0:
                 raise Exception('Relative permeability k must be positive and a '
                                 'monotone ascending array in terms of h, instead %s' % str(ki))
+            ho = h
+            uo = u
+            ko = k
 
         #The edges of ui and ki are fixed and will not be optimized
         if not (ui[0] >0) or not (ui[-1] < 1):
@@ -855,7 +858,7 @@ class SC_freeform_BSpline(SC_freeform_base):
 
     We then determine u(h) and k(h) as a localized quadratic B-spline
     of the given points {(h_i, u_i)} and {(h_i, k_i)}
-    From this cubic spline the derivatives can be extracted
+    From this spline the derivatives can be extracted
     """
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
         SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
