@@ -875,7 +875,7 @@ class QuadraticBspline(object):
                 else:
                     yim, yip = self.__minplusval(ind)
                     y = (yim*self.quadspline_der1(ind-2,x) +
-                         self.yi[ind  ]*self.quadspline_der1(ind-1 ,x) +
+                         self.yi[ind-1]*self.quadspline_der1(ind-1 ,x) +
                          yip*self.quadspline_der1(ind,x)  )
             else:
                y = np.zeros(len(x), dtype=x.dtype)
@@ -887,7 +887,7 @@ class QuadraticBspline(object):
                    else:
                        yim, yip = self.__minplusval(ind)
                        y[i] = (yim*self.quadspline_der1(ind-2,x[i]) +
-                               self.yi[ind  ]*self.quadspline_der1(ind-1,x[i]) +
+                               self.yi[ind-1]*self.quadspline_der1(ind-1,x[i]) +
                                yip*self.quadspline_der1(ind,x[i])  )
             return y
         elif der == 2:
@@ -899,7 +899,7 @@ class QuadraticBspline(object):
                 else:
                     yim, yip = self.__minplusval(ind)
                     y = (yim*self.quadspline_der2(ind-2,x) +
-                         self.yi[ind  ]*self.quadspline_der2(ind-1,x) +
+                         self.yi[ind-1]*self.quadspline_der2(ind-1,x) +
                          yip*self.quadspline_der2(ind,x)  )
             else:
                y = np.zeros(len(x), dtype=x.dtype)
@@ -911,7 +911,7 @@ class QuadraticBspline(object):
                    else:
                        yim, yip = self.__minplusval(ind)
                        y[i] = (yim*self.quadspline_der2(ind-2,x[i]) +
-                               self.yi[ind  ]*self.quadspline_der2(ind-1,x[i]) +
+                               self.yi[ind-1]*self.quadspline_der2(ind-1,x[i]) +
                                yip*self.quadspline_der2(ind,x[i])  )
             return y
         else:
@@ -925,15 +925,28 @@ class PiecewiseLinear(object):
     """
     Implementation of piecewise linear function with smoothing in the
     neighbourhood of the grid point to stay differentiable.
+    The neighbourhood can be passed as a fraction of the dxi interval length,
+    so if dx_eps_fraction = 5, then neighboorhood  [xi-eps, xi+eps], with
+     eps = min(x[i]-x[i-1], x[i+1]-x[i]) / 5
     """
-    def __init__(self, xi, yi, dx_eps=4e-2):
-        self.dx_epsilon = dx_eps
+    def __init__(self, xi, yi, dx_eps_fraction=5.):
+        assert(dx_eps_fraction > 2)
+
         self.xi = xi
         self.yi = yi
         self.dxi = xi[1:] - xi[:-1]
-        self.Dyi = np.asarray((yi[1:] - yi[:-1])/self.dxi, dtype=float)
 
-        if not all(self.dxi > 2*dx_eps):
+        self.dx_epsilon = np.empty(len(xi), float)
+        self.dx_epsilon[0] = self.dxi[0]
+        self.dx_epsilon[-1] = self.dxi[-1]
+        self.dx_epsilon[1:-1] = np.minimum(self.dxi[:-1],self.dxi[1:])
+        self.dx_epsilon[:] = self.dx_epsilon[:] / dx_eps_fraction
+
+        self.Dyi = np.empty(len(xi), float)
+        self.Dyi[:-1] = np.asarray((yi[1:] - yi[:-1])/self.dxi, dtype=float)
+        self.Dyi[-1] = self.Dyi[-2]
+
+        if not all(self.dxi > 2*self.dx_epsilon[:-1]):
             raise Exception("For piecewise linear interpolation the points "
                             "must be at least at distance 2*dx_eps. Current "
                             "value of dx_eps: {}, given dx: {}" \
@@ -941,31 +954,31 @@ class PiecewiseLinear(object):
         size = np.alen(xi)
         self.size = size
 
-    def _polynomial(self, x, x1, y1, D0, D1):
+    def _polynomial(self, x, x1, y1, D0, D1, dx_eps):
         """
         Find value of x on polynomial joing two piecewise linear segments,
         where (x1, y1) is the junction of the two linear segments and
         D0 is the derivative of the first and D1 of the second segment.
         """
-        t = (x-x1)/self.dx_epsilon
-        return y1 + self.dx_epsilon*((1 + t*t)*(D1 - D0) + 2*t*(D1 + D0))/4
+        t = (x-x1)/dx_eps
+        return y1 + dx_eps*((1 + t*t)*(D1 - D0) + 2*t*(D1 + D0))/4
 
-    def _polynomial_der1(self, x, x1, y1, D0, D1):
+    def _polynomial_der1(self, x, x1, y1, D0, D1, dx_eps):
         """
         Find derivative of x on polynomial joing two piecewise linear segments,
         where (x1, y1) is the junction of the two linear segments and
         D0 is the derivative of the first and D1 of the second segment.
         """
-        t = (x-x1)/self.dx_epsilon
+        t = (x-x1)/dx_eps
         return 0.5*((D1 - D0)*t + D1 + D0)
 
-    def _polynomial_der2(self, x, x1, y1, D0, D1):
+    def _polynomial_der2(self, x, x1, y1, D0, D1, dx_eps):
         """
         Find second derivative of polynomial joing two piecewise linear
         segments, where (x1, y1) is the junction of the two linear segments and
         D0 is the derivative of the first and D1 of the second segment.
         """
-        return 0.5*(D1 - D0)/self.dx_epsilon
+        return 0.5*(D1 - D0)/dx_eps
 
     def __call__(self, x):
         xi  = self.xi
@@ -973,28 +986,50 @@ class PiecewiseLinear(object):
         Dyi = self.Dyi
         dx_eps = self.dx_epsilon
         size = self.size
-        end = self.size - 1
 
-        y = np.zeros(np.alen(x))
+        y = np.empty(np.alen(x), float)
         if np.isscalar(x):
-            x = (x, )
+            x = np.array([x])
 
         idxs = np.searchsorted(self.xi, x)
-        for (i, idx) in enumerate(idxs):
-            if idx == 0: # out of bounds
-                y[i] = yi[0] + Dyi[0]*(x[i]-xi[0])
-            elif idx == size:
-                y[i] = yi[-1] + (x[i]-xi[-1])*Dyi[-1]
-            elif (idx < size - 1) and (xi[idx] - x[i] < dx_eps):
-                # close to the right end of segment - all but last segment
-                y[i] = self._polynomial(x[i], xi[idx], yi[idx],
-                                        Dyi[idx-1], Dyi[idx])
-            elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
-                # close to the left end of segment - all but first segment
-                y[i] = self._polynomial(x[i], xi[idx-1], yi[idx-1],
-                                        Dyi[idx-2], Dyi[idx-1])
-            else:
-                y[i] = yi[idx-1] + Dyi[idx-1]*(x[i]-xi[idx-1])
+        idxsclipped = np.clip(idxs, 1, size-1)
+
+        #set all straigth pieces to linear
+        y[:] = yi[idxsclipped-1] + Dyi[idxsclipped-1]*(x[:]-xi[idxsclipped-1])
+
+        #correct all xi-eps to xi pieces
+        c = np.logical_and((idxs < size - 1), (xi[idxsclipped] - x[:] < dx_eps[idxsclipped]))
+        y[c] = self._polynomial(x[c], xi[idxsclipped][c], yi[idxsclipped][c],
+                        Dyi[idxsclipped-1][c], Dyi[idxsclipped][c], dx_eps[idxsclipped][c])
+
+        #set last segment
+        #d = idxs == size-1
+        #y[d] = yi[-1] + (x[d]-xi[-1])*Dyi[-1]
+
+        #correct all  xi to xi+eps pieces
+        c = np.logical_and(np.logical_not(c),
+                np.logical_and((idxs > 1), (x[:] - xi[idxsclipped-1] < dx_eps[idxsclipped-1])))
+        y[c] = self._polynomial(x[c], xi[idxsclipped-1][c], yi[idxsclipped-1][c],
+                        Dyi[idxsclipped-2][c], Dyi[idxsclipped-1][c], dx_eps[idxsclipped-1][c])
+
+        #c = idxs == 0 # out of bounds
+        #y[c] = yi[0] + Dyi[0]*(x[c]-xi[0])
+
+#        for (i, idx) in enumerate(idxs):
+#            if idx == 0: # out of bounds
+#                y[i] = yi[0] + Dyi[0]*(x[i]-xi[0])
+#            elif idx == size:
+#                y[i] = yi[-1] + (x[i]-xi[-1])*Dyi[-1]
+#            elif (idx < size - 1) and (xi[idx] - x[i] < dx_eps):
+#                # close to the right end of segment - all but last segment
+#                y[i] = self._polynomial(x[i], xi[idx], yi[idx],
+#                                        Dyi[idx-1], Dyi[idx])
+#            elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
+#                # close to the left end of segment - all but first segment
+#                y[i] = self._polynomial(x[i], xi[idx-1], yi[idx-1],
+#                                        Dyi[idx-2], Dyi[idx-1])
+#            else:
+#                y[i] = yi[idx-1] + Dyi[idx-1]*(x[i]-xi[idx-1])
         return y
 
     def derivative(self, x, der=1):
@@ -1008,7 +1043,7 @@ class PiecewiseLinear(object):
         if der == 0:
             return self.__call__(x)
 
-        Dy = np.zeros(np.alen(x))
+        Dy = np.empty(np.alen(x))
         size = self.size
         xi  = self.xi
         yi  = self.yi
@@ -1016,45 +1051,78 @@ class PiecewiseLinear(object):
         dx_eps = self.dx_epsilon
 
         idxs = np.searchsorted(self.xi, x)
+        idxsclipped = np.clip(idxs, 1, size-1)
 
         if der == 1:
-            for (i, idx) in enumerate(idxs):
-                if idx == 0: # out of bounds
-                    Dy[i] = Dyi[0]
-                elif idx == size:
-                    Dy[i] = Dyi[-1]
-                elif (idx < size -1 ) and (xi[idx] - x[i] < dx_eps):
-                    # close to the right end of segment - all but last segment
-                    Dy[i] = self._polynomial_der1(x[i], xi[idx], yi[idx],
-                                                  Dyi[idx-1], Dyi[idx])
-                elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
-                    # close to the left end of segment - all but first segment
-                    Dy[i] = self._polynomial_der1(x[i], xi[idx-1], yi[idx-1],
-                                                  Dyi[idx-2], Dyi[idx-1])
-                else:
-                    Dy[i] = Dyi[idx-1]
+            #set all straigth pieces to linear
+            Dy[:] = Dyi[idxsclipped-1]
+
+            #correct all xi-eps to xi pieces
+            c = np.logical_and((idxs < size - 1), (xi[idxsclipped] - x[:] < dx_eps[idxsclipped]))
+            # close to the right end of segment - all but last segment
+            Dy[c] = self._polynomial_der1(x[c], xi[idxsclipped][c], yi[idxsclipped][c],
+                        Dyi[idxsclipped-1][c], Dyi[idxsclipped][c], dx_eps[idxsclipped][c])
+
+            #Dy[idxs == size - 1] = Dyi[-1]
+
+            #correct all xi to xi+eps pieces
+            c = np.logical_and(np.logical_not(c),
+                np.logical_and((idxs > 1), (x[:] - xi[idxsclipped-1] < dx_eps[idxsclipped-1])))
+            # close to the left end of segment - all but first segment
+            Dy[c] = self._polynomial_der1(x[c], xi[idxsclipped-1][c], yi[idxsclipped-1][c],
+                        Dyi[idxsclipped-2][c], Dyi[idxsclipped-1][c], dx_eps[idxsclipped-1][c])
+
+            #c = idxs == 0 # out of bounds
+            #Dy[c] = Dyi[0]
+#            for (i, idx) in enumerate(idxs):
+#                if idx == 0: # out of bounds
+#                    Dy[i] = Dyi[0]
+#                elif idx == size:
+#                    Dy[i] = Dyi[-1]
+#                elif (idx < size -1 ) and (xi[idx] - x[i] < dx_eps):
+#                    # close to the right end of segment - all but last segment
+#                    Dy[i] = self._polynomial_der1(x[i], xi[idx], yi[idx],
+#                                                  Dyi[idx-1], Dyi[idx])
+#                elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
+#                    # close to the left end of segment - all but first segment
+#                    Dy[i] = self._polynomial_der1(x[i], xi[idx-1], yi[idx-1],
+#                                                  Dyi[idx-2], Dyi[idx-1])
+#                else:
+#                    Dy[i] = Dyi[idx-1]
 
         elif der == 2:
-            for (i, idx) in enumerate(idxs):
-                if (idx == 0) or (idx == size): # out of bounds
-                    Dy[i] = 0.0
-                elif (idx < size - 1) and (xi[idx] - x[i] < dx_eps):
-                    # close to the right end of segment - all but last segment
-                    Dy[i] = self._polynomial_der2(x[i], xi[idx], yi[idx],
-                                                  yi[idx-1], Dyi[idx])
-                elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
-                    # close to the left end of segment - all but first segment
-                    x[i]
-                    xi[idx-1]
-                    yi[idx-1]
-                    Dyi[idx-2]
-                    Dyi[idx-1]
-                    #print(idx, size - 1)
+            #set all straigth pieces to linear
+            Dy[:] = 0.0
 
-                    Dy[i] = self._polynomial_der2(x[i], xi[idx-1], yi[idx-1],
-                                                  Dyi[idx-2], Dyi[idx-1])
-                else:
-                    Dy[i] = 0.0
+            #correct all xi-eps to xi pieces
+            c = np.logical_and((idxs < size - 1), (xi[idxsclipped] - x[:] < dx_eps[idxsclipped]))
+            # close to the right end of segment - all but last segment
+            Dy[c] = self._polynomial_der2(x[c], xi[idxsclipped][c], yi[idxsclipped][c],
+                        Dyi[idxsclipped-1][c], Dyi[idxsclipped][c], dx_eps[idxsclipped][c])
+
+            #c = np.logical_or(idxs == 0, idxs == size-1)
+            #Dy[c] = 0.0
+
+            #correct all xi to xi+eps pieces
+            c = np.logical_and(np.logical_not(c),
+                np.logical_and((idxs > 1), (x[:] - xi[idxsclipped-1] < dx_eps[idxsclipped-1])))
+            # close to the left end of segment - all but first segment
+            Dy[c] = self._polynomial_der2(x[c], xi[idxsclipped-1][c], yi[idxsclipped-1][c],
+                        Dyi[idxsclipped-2][c], Dyi[idxsclipped-1][c], dx_eps[idxsclipped-1][c])
+
+#            for (i, idx) in enumerate(idxs):
+#                if (idx == 0) or (idx == size): # out of bounds
+#                    Dy[i] = 0.0
+#                elif (idx < size - 1) and (xi[idx] - x[i] < dx_eps):
+#                    # close to the right end of segment - all but last segment
+#                    Dy[i] = self._polynomial_der2(x[i], xi[idx], yi[idx],
+#                                                  Dyi[idx-1], Dyi[idx])
+#                elif (idx > 1) and (x[i] - xi[idx-1] < dx_eps):
+#                    # close to the left end of segment - all but first segment
+#                    Dy[i] = self._polynomial_der2(x[i], xi[idx-1], yi[idx-1],
+#                                                  Dyi[idx-2], Dyi[idx-1])
+#                else:
+#                    Dy[i] = 0.0
         # else all derivatives are 0
 
         return Dy
@@ -1093,20 +1161,20 @@ class PiecewiseLinear(object):
         for (i, idx) in enumerate(idxs):
             if idx == 0: # out of bounds
                 x[i] = (y[i] - yi[0]) / Dyi[0] + xi[0]
-            elif idx == size:
+            elif idx == size-1:
                 x[i] = (y[i] - yi[-1]) / Dyi[-1] + xi[-1]
-            elif (idx < size - 1) and (self._polynomial(xi[idx]-dx_eps, xi[idx], yi[idx],
-                                        Dyi[idx-1], Dyi[idx]) < y[i]):
+            elif (idx < size - 1) and (self._polynomial(xi[idx]-dx_eps[idx], xi[idx], yi[idx],
+                                        Dyi[idx-1], Dyi[idx], dx_eps[idx]) < y[i]):
                 # close to the right end of segment - all but last segment
                 rootfn = lambda unknown: self._polynomial(unknown, xi[idx], yi[idx],
-                                        Dyi[idx-1], Dyi[idx]) - y[i]
+                                        Dyi[idx-1], Dyi[idx], dx_eps[idx]) - y[i]
                 res = fsolve(rootfn, yi[idx])
                 x[i] = res[0]
-            elif (idx > 1) and (y[i] < self._polynomial(xi[idx-1]+dx_eps, xi[idx-1], yi[idx-1],
-                                        Dyi[idx-2], Dyi[idx-1])):
+            elif (idx > 1) and (y[i] < self._polynomial(xi[idx-1]+dx_eps[idx-1], xi[idx-1], yi[idx-1],
+                                        Dyi[idx-2], Dyi[idx-1], dx_eps[idx-1])):
                 # close to the right end of segment - all but last segment
                 rootfn = lambda unknown: self._polynomial(unknown, xi[idx-1], yi[idx-1],
-                                        Dyi[idx-2], Dyi[idx-1]) - y[i]
+                                        Dyi[idx-2], Dyi[idx-1], dx_eps[idx-1]) - y[i]
                 res = fsolve(rootfn, yi[idx-1])
                 x[i] = res[0]
             else:
@@ -1138,7 +1206,7 @@ if __name__ == "__main__":
     bspl_vGn = bspl(h, u)
 
     plin = PiecewiseLinear
-    plin_vGn = plin(h, u, dx_eps=0.2)
+    plin_vGn = plin(h, u, dx_eps_fraction=5)
 
     import pylab
     pylab.figure(1)
@@ -1168,14 +1236,15 @@ if __name__ == "__main__":
     x = np.linspace(0, 10, 6)
     plin_lin = plin(x, x)
     plin_kwa = plin(x, np.power(x,2))
-    plin_cub = plin(x, np.power(x,3), dx_eps=0.4)
+    plin_cub = plin(x, np.power(x,3), dx_eps_fraction=2.5)
 
     pylab.figure(3)
     xaxis = np.linspace(-1000., 1e-1, 10000)
     pylab.xlim(xmin=-2001)
     y=plin_vGn(xaxis)
     pylab.plot(xaxis, y,'b-', label='lin interp')
-    pylab.plot(xaxis.T, plin_vGn.derivative(xaxis, der=1).T, 'ro', label='deriv')
+    pylab.plot(xaxis.T, plin_vGn.derivative(xaxis, der=1).T, 'r-', label='deriv')
+    pylab.plot(xaxis.T, mcub_vGn.derivative(xaxis, der=1).T, 'k-', label='deriv cub')
     #pylab.plot(xaxis, plin_vGn.derivative(xaxis, der=2), 'o')
     #pylab.plot(xaxis, plin_vGn.derivative(xaxis, der=3))
     pylab.plot(h, 1/np.power(1+ np.power(-0.015 * h, 1.3), 1. - 1./1.3), 'g-', label='orig')
@@ -1190,7 +1259,8 @@ if __name__ == "__main__":
     pylab.plot(xaxis, mcuby, 'bo', label='cubic')
     pylab.plot(mcub_vGn.root(mcuby), mcuby, 'b-',label='cubuc inv')
     pylab.plot(xaxis, pliny, 'go', label='plin')
-    pylab.plot(plin_vGn.root(pliny), pliny, 'g-',label='plin inv')
+    ## TODO: reenable !!
+    #pylab.plot(plin_vGn.root(pliny), pliny, 'g-',label='plin inv')
     pylab.legend()
 
     pylab.figure(5)
@@ -1198,9 +1268,39 @@ if __name__ == "__main__":
     pliny = plin_kwa(xaxis)
     pylab.plot(xaxis, np.power(xaxis,2), 'k-', label='$x^2$')
     pylab.plot(xaxis, pliny, 'g-', label='plin $x^2$')
+    print (' test plin_cub' )
     pliny = plin_cub(xaxis)
     pylab.plot(xaxis, np.power(xaxis,3), 'k-', label='$x^=3$')
     pylab.plot(xaxis, pliny, 'b-', label='plin $x^3$')
     pylab.legend()
 
+    pylab.figure(6)
+    #logh versus u
+    newbspli = bspl(np.array([-12.89921983,  -5.99146455,  -0., 64.4723826 ]),
+         np.array([ 0.,     0.5,    0.999,  1.   ]))
+    xaxis = np.linspace(-10., 100, 1000)
+    bsply = newbspli(xaxis)
+    bsplyderiv = newbspli.derivative(xaxis)
+    bsplyderiv2 = newbspli.derivative(xaxis, der=2)
+    pylab.plot(xaxis, bsply, label='log h vs u bspline')
+    pylab.plot(xaxis, bsplyderiv, label='first deriv.')
+    pylab.plot(xaxis, bsplyderiv2, label='second deriv.')
+    pylab.legend()
     pylab.show()
+
+    pylab.figure(7)
+    xaxis = np.linspace(0, 10, 10000)
+    plin_cub = plin(x, np.power(x,3), dx_eps_fraction=2.5)
+    pliny = plin_cub(xaxis)
+    pylab.plot(xaxis, np.power(xaxis,3), 'k-', label='$x^3$')
+    pylab.plot(xaxis, pliny, 'b-', label='$\epsilon = 2/2.5$')
+
+    plin_cub = plin(x, np.power(x,3), dx_eps_fraction=5)
+    pliny = plin_cub(xaxis)
+    pylab.plot(xaxis, pliny, 'g-', label='$\epsilon = 2/5$')
+
+    plin_cub = plin(x, np.power(x,3), dx_eps_fraction=10)
+    pliny = plin_cub(xaxis)
+    pylab.plot(xaxis, pliny, 'r-', label='$\epsilon = 2/10$')
+
+    pylab.legend()
