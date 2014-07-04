@@ -4,7 +4,7 @@ from __future__ import division, print_function
   This modules contains saturation curve object(s) for single flow
 """
 import numpy as np
-from .interpolate import MonoCubicInterp, QuadraticBspline, PiecewiseLinear
+from interpolate import MonoCubicInterp, QuadraticBspline, PiecewiseLinear
 
 __NR = 400
 P_DEFAULT = np.linspace(-1, 9, __NR)
@@ -496,7 +496,7 @@ class SC_freeform_base(SC_base):
         self.oncheck_warning_only = issue_warning
 
         if hi is not None and ui is not None and ki is not None:
-            SC_freeform_base.check_params(hi, ui, ki)
+            SC_freeform_base.check_params(hi, ui, ki, issue_warning)
             self._set_values(np.array(hi, dtype=float), np.array(ui, dtype=float),
                               np.array(ki, dtype=float))
         else:
@@ -550,7 +550,7 @@ class SC_freeform_base(SC_base):
         raise Exception ("Method must be subclassed.")
 
     @staticmethod
-    def check_params(hi, ui, ki):
+    def check_params(hi, ui, ki, issue_warning=False):
         if not np.iterable(hi) or not np.iterable(ui) or not np.iterable(ki):
             raise Exception ( 'Some parameters are not given: '\
                     'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
@@ -576,7 +576,7 @@ class SC_freeform_base(SC_base):
 
         #The edges of ui and ki are fixed and will not be optimized
         if not (ui[0] >0) or not (ui[-1] < 1):
-            if self.oncheck_warning_only:
+            if issue_warning:
                 print ("WARNING: Effective saturation Se starts at 0, ends "
                        "at 1, only pass values between these extremes!")
             else:
@@ -598,7 +598,7 @@ class SC_freeform_base(SC_base):
             ki = params['ki']
         else:
             ki = self._ki
-        SC_freeform_base.check_params(self._hi, ui, ki)
+        SC_freeform_base.check_params(self._hi, ui, ki, self.oncheck_warning_only)
         self._set_values(self._hi, ui, ki)
 
     def get_parameters(self):
@@ -733,15 +733,25 @@ class SC_freeform_base(SC_base):
                 return False
             curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
             curintervalsize = 1/2**(curexp)
-            print ('intref', self._internalrefine)
-            possiblenewhnodes = [hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
-                                                for i in range(2**(curexp-1))]
-            print ('newhn 0', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)))
+            print ('intref', self._internalrefine, 'extra', self.extra)
+            possiblenewhnodes = np.array([hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
+                                                for i in range(2**(curexp-1))], float)
+            print ('newhn 0', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)), ', hn=',hn)
             possiblenewhnodes = [i for i in possiblenewhnodes if not i in hn]
+            tmp = []
+            for i in possiblenewhnodes:
+                #if too close, also skip
+                add = True
+                for j in hn:
+                    if np.allclose(i,j):
+                        add = False
+                if add:
+                    tmp += [i]
+            possiblenewhnodes = tmp
             print ('newhn 1', possiblenewhnodes)
             #we select only h > minh
             possiblenewhnodes = np.array([i for i in possiblenewhnodes
-                                            if -np.exp(-i) > minh*2])
+                                            if -np.exp(-i) > minh*2 and i < hn[-1]])
             print ('newhn E', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)))
             if len(possiblenewhnodes) == 0:
                 self._internalrefine += 1
@@ -939,5 +949,66 @@ if __name__ == "__main__":
     pylab.plot(haxis, kaxf/ks, 'g-', label="FF")
     pylab.plot(haxis, kaxl/ks, 'r-', label="LF")
     pylab.ylim(ymax=1.1)
+    pylab.legend()
+    pylab.show()
+
+    hi = [-400.,         -189.1483218,   -89.4427191,   -42.29485054,  -20.,
+              -9.45741609,   -4.47213595,   -1.        ]
+    ui = [ 0.47673222,  0.54549018,  0.61424814,  0.6830061,   0.75176406,  0.81381497,
+              0.87586588,  0.9999677 ]
+    ki = [ 0.0088788,   0.00888467,  0.00889055,  0.00889643,  0.00890232,  0.01578902,
+              0.02800315,  0.08808679]
+
+    BS = SC_freeform_BSpline(hi, ui, ki)
+    FF = SC_freeform_Cubic(hi, ui, ki)
+    LI = SC_freeform_Linear(hi, ui, ki)
+
+    haxis = np.linspace(-500., -0.0001, 10000)
+    uax = BS.h2u(haxis)
+    kax = BS.h2Kh(haxis, ks)
+    #u2Kax = BS.u2Ku(uax, ks)   # no root function yet ...
+    duax = BS.dudh(haxis)
+    uaxf = FF.h2u(haxis)
+    kaxf = FF.h2Kh(haxis, ks)
+    u2Kaxf = FF.u2Ku(uax, ks)
+    duaxf = FF.dudh(haxis)
+    uaxl  = LI.h2u(haxis)
+    kaxl  = LI.h2Kh(haxis,ks)
+    u2Kaxl = LI.u2Ku(uax, ks)
+    duaxl = LI.dudh(haxis)
+
+    pylab.figure(3)
+    pylab.xlim(xmin=hi[0])
+    pylab.title("effective saturation")
+    pylab.plot(hi, ui, 'ko', label="hi-ui points")
+    pylab.plot(haxis, uax, 'b-', label="BS")
+    pylab.plot(haxis, uaxf, 'g-', label="FF")
+    pylab.plot(haxis, uaxl, 'r-', label="LF")
+    pylab.legend()
+    pylab.show()
+
+    pylab.figure(4)
+    pylab.title("relative permeability")
+    pylab.plot(hi, ki, 'ko', label="hi-ki points")
+    pylab.plot(haxis, kax/ks, 'b-', label="BS")
+    pylab.plot(haxis, kaxf/ks, 'g-', label="FF")
+    pylab.plot(haxis, kaxl/ks, 'r-', label="LF")
+    pylab.ylim(ymax=1.1)
+    pylab.legend()
+    pylab.show()
+
+    pylab.figure(5)
+    pylab.title("K(u)/ks determined from u")
+    #pylab.plot(uax, u2Kax /ks, 'b-', label="BS")
+    pylab.plot(uax, u2Kaxf /ks, 'g-', label="FF")
+    pylab.plot(uax, u2Kaxl /ks, 'r-', label="LF")
+    pylab.legend()
+    pylab.show()
+
+    pylab.figure(6)
+    pylab.title("dudh(h) plot")
+    pylab.plot(haxis, duax, 'b-', label="BS")
+    pylab.plot(haxis, duaxf, 'g-', label="FF")
+    pylab.plot(haxis, duaxl, 'r-', label="LI")
     pylab.legend()
     pylab.show()
