@@ -935,9 +935,7 @@ if __name__ == "__main__":
     pylab.title("effective saturation")
     pylab.plot(hiext, uiext, 'k-')
     pylab.plot(haxis, uax, 'b-', label="BS")
-    #pylab.plot(haxis, duax, 'r-')
     pylab.plot(haxis, uaxf, 'g-', label="FF")
-    #pylab.plot(haxis, duaxf, 'c-')
     pylab.plot(haxis, uaxl, 'r-', label="LF")
     pylab.legend()
     pylab.show()
@@ -966,6 +964,7 @@ if __name__ == "__main__":
     haxis = np.linspace(-500., -0.0001, 10000)
     uax = BS.h2u(haxis)
     kax = BS.h2Kh(haxis, ks)
+    # TODO: reenable !!
     #u2Kax = BS.u2Ku(uax, ks)   # no root function yet ...
     duax = BS.dudh(haxis)
     uaxf = FF.h2u(haxis)

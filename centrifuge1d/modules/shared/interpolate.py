@@ -1159,26 +1159,42 @@ class PiecewiseLinear(object):
 
         idxs = np.searchsorted(self.yi, y)
         for (i, idx) in enumerate(idxs):
-            if idx == 0: # out of bounds
+            #first assume linear peace
+            if idx == 0: # out of bounds left
                 x[i] = (y[i] - yi[0]) / Dyi[0] + xi[0]
-            elif idx == size-1:
+            elif idx == size: #out of bounds right
                 x[i] = (y[i] - yi[-1]) / Dyi[-1] + xi[-1]
-            elif (idx < size - 1) and (self._polynomial(xi[idx]-dx_eps[idx], xi[idx], yi[idx],
-                                        Dyi[idx-1], Dyi[idx], dx_eps[idx]) < y[i]):
-                # close to the right end of segment - all but last segment
-                rootfn = lambda unknown: self._polynomial(unknown, xi[idx], yi[idx],
-                                        Dyi[idx-1], Dyi[idx], dx_eps[idx]) - y[i]
-                res = fsolve(rootfn, yi[idx])
-                x[i] = res[0]
-            elif (idx > 1) and (y[i] < self._polynomial(xi[idx-1]+dx_eps[idx-1], xi[idx-1], yi[idx-1],
-                                        Dyi[idx-2], Dyi[idx-1], dx_eps[idx-1])):
-                # close to the right end of segment - all but last segment
-                rootfn = lambda unknown: self._polynomial(unknown, xi[idx-1], yi[idx-1],
-                                        Dyi[idx-2], Dyi[idx-1], dx_eps[idx-1]) - y[i]
-                res = fsolve(rootfn, yi[idx-1])
-                x[i] = res[0]
             else:
                 x[i] = (y[i] - yi[idx-1]) / Dyi[idx-1] + xi[idx-1]
+            #consider kwadratic pieces, first image of xi-eps to xi
+            if not (idx >=size-1) and (self._polynomial(xi[idx]-dx_eps[idx], xi[idx], yi[idx],
+                                 Dyi[idx-1], Dyi[idx], dx_eps[idx])
+                    < y[i] <
+                self._polynomial(xi[idx]+dx_eps[idx], xi[idx], yi[idx],
+                                 Dyi[idx-1], Dyi[idx], dx_eps[idx])):
+                if idx == size-1 or idx == 0:
+                    continue
+                rootfn = lambda unknown: self._polynomial(unknown, xi[idx], yi[idx],
+                                        Dyi[idx-1], Dyi[idx], dx_eps[idx]) - y[i]
+                res = fsolve(rootfn, xi[idx])
+                if xi[idx] - dx_eps[idx] <= res[0] <= xi[idx] + dx_eps[idx]:
+                    x[i] = res[0]
+                else:
+                    x[i] = res[1]
+            elif (self._polynomial(xi[idx-1]-dx_eps[idx-1], xi[idx-1], yi[idx-1],
+                                 Dyi[idx-2], Dyi[idx-1], dx_eps[idx-1])
+                    < y[i] <
+                self._polynomial(xi[idx-1]+dx_eps[idx-1], xi[idx-1], yi[idx-1],
+                                 Dyi[idx-2], Dyi[idx-1], dx_eps[idx-1]) ):
+                if idx-1 == size-1 or idx-1 == 0:
+                    continue
+                rootfn = lambda unknown: self._polynomial(unknown, xi[idx-1], yi[idx-1],
+                                        Dyi[idx-2], Dyi[idx-1], dx_eps[idx-1]) - y[i]
+                res = fsolve(rootfn, xi[idx-1])
+                if xi[idx-1] - dx_eps[idx-1] <= res[0] <= xi[idx-1] + dx_eps[idx-1]:
+                    x[i] = res[0]
+                else:
+                    x[i] = res[1]
         return x
 
 if __name__ == "__main__":
@@ -1259,8 +1275,7 @@ if __name__ == "__main__":
     pylab.plot(xaxis, mcuby, 'bo', label='cubic')
     pylab.plot(mcub_vGn.root(mcuby), mcuby, 'b-',label='cubuc inv')
     pylab.plot(xaxis, pliny, 'go', label='plin')
-    ## TODO: reenable !!
-    #pylab.plot(plin_vGn.root(pliny), pliny, 'g-',label='plin inv')
+    pylab.plot(plin_vGn.root(pliny), pliny, 'g-',label='plin inv')
     pylab.legend()
 
     pylab.figure(5)
