@@ -28,7 +28,7 @@ OPTIONS_ITERABLE_LISTS = []
 def adjust_cfg(cfg):
     # Set array indexes
     inner_points = cfg.get_value('inner_points')
-
+    cfg.set_value('sc_max_refine', 0)
     cfg.set_value('first_idx',    0)
     cfg.set_value('last_idx',     inner_points+1)
     cfg.set_value('mass_in_idx',  inner_points+2)

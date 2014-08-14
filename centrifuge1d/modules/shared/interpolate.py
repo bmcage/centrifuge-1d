@@ -950,7 +950,7 @@ class PiecewiseLinear(object):
             raise Exception("For piecewise linear interpolation the points "
                             "must be at least at distance 2*dx_eps. Current "
                             "value of dx_eps: {}, given dx: {}" \
-                            . format(dx_eps, self.dxi))
+                            . format(self.dx_epsilon, self.dxi))
         size = np.alen(xi)
         self.size = size
 

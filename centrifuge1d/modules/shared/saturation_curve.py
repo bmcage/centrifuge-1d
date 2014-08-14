@@ -37,13 +37,13 @@ def create_SC(data):
     if SC_type == SC_vG:
         SC = SC_vanGenuchten(get_value('n'), get_value('gamma'))
     elif SC_type in (SC_FF_CUB, SC_FF_BS, SC_FF_LIN):
-        (hi, ui, ki, max_refine) = get_value(('hi', 'ui', 'ki', 'sc_max_refine'))
+        (hi, hiadd, ui, ki, max_refine) = get_value(('hi', 'hiadd', 'ui', 'ki', 'sc_max_refine'))
         if SC_type == SC_FF_CUB:
-            SC = SC_freeform_Cubic(hi, ui, ki, max_refine)
+            SC = SC_freeform_Cubic(hi, ui, ki, max_refine, hiadd)
         elif SC_type == SC_FF_BS:
-            SC = SC_freeform_BSpline(hi, ui, ki, max_refine)
+            SC = SC_freeform_BSpline(hi, ui, ki, max_refine, hiadd)
         elif SC_type == SC_FF_LIN:
-            SC = SC_freeform_Linear(hi, ui, ki, max_refine)
+            SC = SC_freeform_Linear(hi, ui, ki, max_refine, hiadd)
     else:
         print('Unknown value of ''SC_type'': ', SC_type)
         exit(1)
@@ -486,7 +486,7 @@ class SC_freeform_base(SC_base):
     Depending on the interpolation used we can then determine u(h) and k(h)
     of the given points {(h_i, u_i)} and {(h_i, k_i)}.
     """
-    def __init__(self, hi=None, ui=None, ki=None, refinemax=0,
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0, hiadd=None,
                  compute_extra=False, issue_warning=False):
         SC_base.__init__(self)
         self.compute_extra = compute_extra
@@ -495,12 +495,24 @@ class SC_freeform_base(SC_base):
         self.refinemax = refinemax
         self.oncheck_warning_only = issue_warning
 
+        self.hiaddpos = None
+        truehi = []
+        if hi is not None and hiadd is not None:
+            assert type(hiadd) in [int, float]
+            truehi = [x for x in hi if x < hiadd]
+            self.hiaddpos = len(truehi)
+            truehi.append(hiadd)
+            truehi = truehi + [x for x in hi if x>hiadd]
+        else:
+            truehi = hi
+        print ('hiadd', hiadd, truehi, hi)
+
         if hi is not None and ui is not None and ki is not None:
-            SC_freeform_base.check_params(hi, ui, ki, issue_warning)
-            self._set_values(np.array(hi, dtype=float), np.array(ui, dtype=float),
+            SC_freeform_base.check_params(truehi, ui, ki, issue_warning)
+            self._set_values(np.array(truehi, dtype=float), np.array(ui, dtype=float),
                               np.array(ki, dtype=float))
         else:
-            self._hi = hi
+            self._hi = truehi
             if np.iterable(hi):
                 self._hi = np.array(self._hi)
             self._ui = ui
@@ -555,7 +567,7 @@ class SC_freeform_base(SC_base):
             raise Exception ( 'Some parameters are not given: '\
                     'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
         if not (len(hi)==len(ui)==len(ki)):
-            raise Exception ('Parameters must have equal length')
+            raise Exception ('Parameters must have equal length: %s, %s, %s' % (str(hi), str(ui), str(ki)))
         #hi must be monotone ascending > 0, and ui, ki monotone ascending
         ho = hi[0]
         uo = ui[0]
@@ -579,6 +591,16 @@ class SC_freeform_base(SC_base):
             if issue_warning:
                 print ("WARNING: Effective saturation Se starts at 0, ends "
                        "at 1, only pass values between these extremes!")
+                i = 0
+                while ui[i] <=0 :
+                    ui[i] = (i+1)*1e-10
+                    i+=1
+                    if i==len(ui): break
+                i = len(ui)-1
+                while ui[i] >=1 :
+                    ui[i] = 1- (len(ui)-i)*1e-10
+                    i-=1
+                    if i==-1: break
             else:
                 raise Exception("Effective saturation Se starts at 0, ends at "
                                 "1, only pass values between these extremes!")
@@ -598,6 +620,21 @@ class SC_freeform_base(SC_base):
             ki = params['ki']
         else:
             ki = self._ki
+        if 'hiadd' in params:
+            hiadd = params['hiadd']
+            if self.hiaddpos>0:
+                if hiadd <= self._hi[self.hiaddpos-1]:
+                    #problem, hi must be ascending, correct for this.
+                    print ('WARNING: hiadd less than previous known value', hiadd, self._hi, self.hiaddpos)
+                    hiadd = self._hi[self.hiaddpos-1]+1e-10
+            elif self.hiaddpos < len(self._hi)-1:
+                if hiadd >= self._hi[self.hiaddpos+1]:
+                    #problem, hi must be ascending, correct for this.
+                    print ('WARNING: hiadd more than following known value', hiadd, self._hi, self.hiaddpos)
+                    hiadd = self._hi[self.hiaddpos+1]-1e-10
+            self._hi[self.hiaddpos] = hiadd
+
+
         SC_freeform_base.check_params(self._hi, ui, ki, self.oncheck_warning_only)
         self._set_values(self._hi, ui, ki)
 
@@ -605,7 +642,10 @@ class SC_freeform_base(SC_base):
         """
         return the current parameters
         """
-        return self._ui, self._ki
+        if self.hiaddpos is not None:
+            return self._ui, self._ki, self._hi[self.hiaddpos]
+        else:
+            return self._ui, self._ki
 
     def h2Kh(self, h, Ks, Kh = None):
         """
@@ -697,6 +737,9 @@ class SC_freeform_base(SC_base):
         transform['ki']   = lambda ki: np.log(ki)
         untransform['ki'] = lambda ki_transf: np.exp(ki_transf)
 
+        transform['hiadd']   = lambda hi: hi
+        untransform['hiadd'] = lambda hi_transf: hi_transf
+
     def refinable_h(self):
         """
         Obtain the current h values which are allowed to be refined
@@ -719,60 +762,109 @@ class SC_freeform_base(SC_base):
         if self.refinenr == 0:
             #first refine. refine strategy must start from 2 points!
             self._internalrefine = 1
-            if not len(self._hi) == 2:
+            if not len(self._hi) < 4:
                 raise Exception("Refinement must start from minimum amount "
-                                "of points: 2 given head values")
+                                "of points: 2 or 3 given head values")
 
         hn = self._hnodes[1:-1-self.extra]
         minh = np.min(comph.flatten())
 
-        while True:
-            if self._internalrefine > 32:
-                #stop computation:
-                print ("More than maximum number of internal refinements!")
-                return False
-            curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
-            curintervalsize = 1/2**(curexp)
-            print ('intref', self._internalrefine, 'extra', self.extra)
-            possiblenewhnodes = np.array([hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
-                                                for i in range(2**(curexp-1))], float)
-            print ('newhn 0', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)), ', hn=',hn)
-            possiblenewhnodes = [i for i in possiblenewhnodes if not i in hn]
-            tmp = []
-            for i in possiblenewhnodes:
-                #if too close, also skip
-                add = True
-                for j in hn:
-                    if np.allclose(i,j):
-                        add = False
-                if add:
-                    tmp += [i]
-            possiblenewhnodes = tmp
-            print ('newhn 1', possiblenewhnodes)
-            #we select only h > minh
-            possiblenewhnodes = np.array([i for i in possiblenewhnodes
-                                            if -np.exp(-i) > minh*2 and i < hn[-1]])
-            print ('newhn E', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)))
-            if len(possiblenewhnodes) == 0:
-                self._internalrefine += 1
-                continue
-            else:
-                possiblenewh = -np.exp(-possiblenewhnodes)
-                #start with the one in interval with largest u change
-                uchange = 0;
-                prevui = self._uvals[1]
-                nexth = possiblenewh[0]
-                nexthnode = possiblenewhnodes[0]
-                for h, hnode in zip(possiblenewh, possiblenewhnodes):
-                    for hi, ui in zip(self._hi, self._ui):
-                        if hi > h:
-                            diffu = ui-prevui
-                            if diffu > uchange:
-                                nexth = h
-                                nexthnode = hnode
-                                uchange = diffu
-                        prevui = ui
-                break;
+        if self.hiaddpos is None:
+            #we selected a good insert position based on logaritmic bisection
+            while True:
+                if self._internalrefine > 32:
+                    #stop computation:
+                    print ("More than maximum number of internal refinements!")
+                    return False
+                curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
+                curintervalsize = 1/2**(curexp)
+                print ('intref', self._internalrefine, 'extra', self.extra)
+                possiblenewhnodes = np.array([hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
+                                                    for i in range(2**(curexp-1))], float)
+                print ('newhn 0', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)), ', hn=',hn)
+                possiblenewhnodes = [i for i in possiblenewhnodes if not i in hn]
+                tmp = []
+                for i in possiblenewhnodes:
+                    #if too close, also skip
+                    add = True
+                    for j in hn:
+                        if np.allclose(i,j):
+                            add = False
+                    if add:
+                        tmp += [i]
+                possiblenewhnodes = tmp
+                print ('newhn 1', possiblenewhnodes)
+                #we select only h > minh
+                possiblenewhnodes = np.array([i for i in possiblenewhnodes
+                                                if -np.exp(-i) > minh*2 and i < hn[-1]])
+                print ('newhn E', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)))
+                if len(possiblenewhnodes) == 0:
+                    self._internalrefine += 1
+                    continue
+                else:
+                    possiblenewh = -np.exp(-possiblenewhnodes)
+                    #start with the one in interval with largest u change
+                    uchange = 0;
+                    prevui = self._uvals[1]
+                    nexth = possiblenewh[0]
+                    nexthnode = possiblenewhnodes[0]
+                    for h, hnode in zip(possiblenewh, possiblenewhnodes):
+                        for hi, ui in zip(self._hi, self._ui):
+                            if hi > h:
+                                diffu = ui-prevui
+                                if diffu > uchange:
+                                    nexth = h
+                                    nexthnode = hnode
+                                    uchange = diffu
+                            prevui = ui
+                    break;
+        else:
+            #hi position will be nicely optimized. So, we only select the
+            #interval where to add a hi value, then take middle of this interval
+            while True:
+                if self._internalrefine > 32:
+                    #stop computation:
+                    print ("More than maximum number of internal refinements!")
+                    return False
+                curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
+                curintervalsize = 1/2**(curexp)
+                print ('intref', self._internalrefine, 'extra', self.extra)
+                possiblenewhnodes = np.array([hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
+                                        for i in range(2**(curexp-1))], float)
+                tmp = []
+                for i in possiblenewhnodes:
+                    #if too close, also skip
+                    add = True
+                    for j in hn:
+                        if np.allclose(i,j):
+                            add = False
+                    if add:
+                        tmp += [i]
+                possiblenewhnodes = tmp
+                #we select only h > minh
+                possiblenewhnodes = np.array([i for i in possiblenewhnodes
+                                                if -np.exp(-i) > minh*2 and i < hn[-1]])
+                print ('newhn E', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)))
+                if len(possiblenewhnodes) == 0:
+                    self._internalrefine += 1
+                    continue
+                else:
+                    possiblenewh = -np.exp(-possiblenewhnodes)
+                    #start with the one in interval with largest u change
+                    uchange = 0;
+                    prevui = self._uvals[1]
+                    nexth = possiblenewh[0]
+                    nexthnode = possiblenewhnodes[0]
+                    for h, hnode in zip(possiblenewh, possiblenewhnodes):
+                        for hi, ui in zip(self._hi, self._ui):
+                            if hi > h:
+                                diffu = ui-prevui
+                                if diffu > uchange:
+                                    nexth = h
+                                    nexthnode = hnode
+                                    uchange = diffu
+                            prevui = ui
+                    break;
 
         #we have a new h to add, we insert it, and update parameters
         nh = self.h2u(np.array([nexth]))
@@ -813,8 +905,8 @@ class SC_freeform_Cubic(SC_freeform_base):
     of the given points {(h_i, u_i)} and {(h_i, k_i)}
     From this cubic spline the derivatives can be extracted
     """
-    def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
-        SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0, hiadd=None):
+        SC_freeform_base.__init__(self, hi, ui, ki, refinemax, hiadd,
                                   compute_extra=True, issue_warning=False)
 
 
@@ -851,6 +943,8 @@ class SC_freeform_Cubic(SC_freeform_base):
         """
         indicate if this SC allows refinement of h
         """
+        if self.refinenr >= self.refinemax:
+            return False
         return True
 
 ########################################################################
@@ -870,8 +964,8 @@ class SC_freeform_BSpline(SC_freeform_base):
     of the given points {(h_i, u_i)} and {(h_i, k_i)}
     From this spline the derivatives can be extracted
     """
-    def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
-        SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0, hiadd=None):
+        SC_freeform_base.__init__(self, hi, ui, ki, refinemax, hiadd,
                                   compute_extra=False, issue_warning=True)
 
 
@@ -886,9 +980,9 @@ class SC_freeform_BSpline(SC_freeform_base):
         return SC_FF_BS
 
 class SC_freeform_Linear(SC_freeform_base):
-    def __init__(self, hi=None, ui=None, ki=None, refinemax=0):
-        SC_freeform_base.__init__(self, hi, ui, ki, refinemax,
-                                  compute_extra=True, issue_warning=False)
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0, hiadd=None):
+        SC_freeform_base.__init__(self, hi, ui, ki, refinemax, hiadd,
+                                  compute_extra=True, issue_warning=True)
 
     def _interpolate_values(self):
         self.logh2u    = PiecewiseLinear(self._hnodes, self._uvals)
@@ -901,6 +995,8 @@ class SC_freeform_Linear(SC_freeform_base):
         """
         indicate if this SC allows refinement of h
         """
+        if self.refinenr >= self.refinemax:
+            return False
         return True
 
 if __name__ == "__main__":

@@ -325,7 +325,6 @@ def print_status(data, filename=None):
             print('\nUsed parameters:', file=stream)
             for name in params:
                 value = data.get(name)
-                print (name, value)
                 if value is None:
                     continue
                 if name == 'ks':
@@ -826,7 +825,7 @@ class DataStorage:
             if self.get('print_params') is None:
                 #store from model extra param to print from computation
                 self.store('print_params', model.get_value('print_params'))
-            if self.get('print_params')  and ID == 'computed':
+            if self.get('print_params') and ID == 'computed':
                 for name in self.get('print_params'):
                     val = model.get_parameters([name])
                     if name in val:
@@ -861,7 +860,7 @@ class DataStorage:
             if hasattr(model, 'SC'):
 
                 SC = model.SC
-                if SC.canrefine_h() and ID == 'computed':
+                if hasattr(SC, 'refinable_h') and ID == 'computed':
                     self._data['hi'] = SC.refinable_h()
 
                 theta_s = (model.theta_s if hasattr(model, 'theta_s')
@@ -929,6 +928,7 @@ class DataStorage:
             return False   # nothing needs to be re-computed
 
         if model is None:
+            #model = load_model(self.get('experiment_info'), display_only=True, validate=True)
             model = load_model(self.get('experiment_info'), validate=True)
             #set original parameters as the found inverse param
             model.set_parameters(self.get('inv_params', {}))
@@ -961,6 +961,7 @@ class DataStorage:
                 backup_typeSC = model.SC.typeSC()
                 if 'SC_type' in ref_params and not ('sc_type' in ref_params):
                     ref_params['sc_type'] = ref_params['SC_type']
+                    del ref_params['SC_type']
                 if (not ('sc_type' in ref_params)):
                     print('Referencing model does not contain "SC_type", '
                           'cannot set parameters of the saturation curve.'
