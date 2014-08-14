@@ -352,7 +352,7 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
     penalization = 0.0
 
     if when == 'out_of_bounds':
-        tolerance = 0.05
+        tolerance = 0.15
         a_max = 0.01
         for (name, values) in parameters.items():
             if not np.iterable(values):
@@ -365,13 +365,12 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
                 else:
                     continue
 
-                if a > a_max:
-                    penalty = np.exp(1/tolerance) + np.exp(10*(a - a_max))
-                else:
-                    penalty = np.exp(1/(a_max + tolerance - a))
+                penalty = (1/tolerance) + (10*a)
 
-                penalization += min(penalty, max_penalization)
+                penalization += penalty # min(penalty, max_penalization)
+                print('penalty', penalty, penalization)
     else:
+        #failed computation
         for (name, values) in parameters.items():
             if not np.iterable(values):
                 values = [values]
@@ -386,8 +385,8 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
 
 def penalize_cond(parameters, conditions):
 
-    max_penalization = 1e50
-    tolerance = 0.05
+    max_penalization = 1e5
+    tolerance = 0.15
 
     penalization = 0.0
     for (name, values) in parameters.items():
@@ -405,13 +404,13 @@ def penalize_cond(parameters, conditions):
                     else:
                         prevval = value
                         continue
-                    penalty = np.exp(1/(tolerance)) + np.exp(50*a)
-                    penalization += min(penalty, max_penalization)
+                    penalty = 1/(tolerance) + 50*a
+                    penalization += penalty # min(penalty, max_penalization)
             elif cond.lower() in ['positive', 'pos']:
                 for value in values:
                     if value <= 0:
-                        penalty = np.exp(1/(tolerance)) + np.exp(50*(0.1+value))
-                        penalization += min(penalty, max_penalization)
+                        penalty = 1/(tolerance) + 50*(-value)
+                        penalization += penalty # min(penalty, max_penalization)
             else:
                 raise Exception('Condition on parameters not recoginized: %s' % cond)
     return penalization
@@ -463,12 +462,15 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
     ubounds      = model._ubounds
     conditions   = model._conditions
     optim_params = {}
+    global last_good_res
+    last_good_res = None
 
     global ITERATION # Python 2.7 hack (no support for nonlocal variables)
     ITERATION = 0
 
     def optimfn_wrapper(optimargs):
         global ITERATION # Python 2.7 hack (no support for nonlocal variables)
+        global last_good_res
 
         print(15 * '*', ' Iteration: {:4d}'.format(ITERATION), ' ', 15 * '*')
         ITERATION += 1
@@ -482,16 +484,23 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
         penalization = penalize(optim_params, lbounds, ubounds,
                                 when='out_of_bounds')
         penalization += penalize_cond(optim_params, conditions)
-        if penalization > 0:
-            print ('not ascending par', penalization)
+#        if penalization > 0:
+#            print ('not ascending par', penalization)
 
         if penalization > 0.0:
             if model.verbosity > 0:
-                print('Optimized arguments are out of bounds... Penalizing by ',
+                print('Optimized arguments are out of bounds or not satisfying conditions ... Penalizing by ',
                       penalization)
 
-            return measurements.get_penalized(penalization,
-                            scalar=(optimfn not in ['leastsq']))
+            #error = measurements.get_penalized(penalization,
+            #                scalar=(optimfn not in ['leastsq']))
+            if optimfn in ['leastsq']:
+                error = np.abs(last_good_res) + penalization/len(last_good_res)
+            else:
+                error = np.abs(last_good_res) + penalization
+            #if model.verbosity > 0:
+            #    print('Penalized error is', error)
+            return error
 
         print ( "Used arg", optim_params)
         model.set_parameters(optim_params)
@@ -518,6 +527,8 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
             else:
                 result = total_LSQ_error
 
+            last_good_res = result
+
         else:
             # something is wrong, so penalize
             penalization = \
@@ -529,6 +540,7 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 
             result = measurements.get_penalized(penalization,
                             scalar=(optimfn not in ['leastsq']))
+
         return result
 
     def optimineq_wrapper(optimargs):
