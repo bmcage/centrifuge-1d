@@ -717,6 +717,7 @@ class ModelParameters:
                     if 'hiadd' in self.init_values:
                         hi = orighi
                         ui, ki, hiadd = self.SC.get_parameters()
+                        self.init_values['hiadd'] = hiadd
                     else:
                         hi = self.SC.refinable_h()
                         ui, ki = self.SC.get_parameters()
