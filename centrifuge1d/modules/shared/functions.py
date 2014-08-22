@@ -4,6 +4,8 @@ import numpy as np
 from math import sqrt
 from sys import stdout
 
+SHOWLISTING = False
+
 def rpm2radps(omega):
     """
       Converts rpm to rad/s
@@ -221,7 +223,8 @@ def compare_data(name, value_computed, value_measured = None,
     fstr = '% {}.6f'.format(float_disp_size)
 
     print('\n', file=stream)
-    while remaining > 0:
+    if SHOWLISTING:
+      while remaining > 0:
         if remaining > in_row:
             disp_items = in_row
         else:
