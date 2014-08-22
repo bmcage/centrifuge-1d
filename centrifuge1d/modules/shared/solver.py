@@ -444,6 +444,9 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                 print ("Stopping refinement, current par")
                 print (model.get_parameters(optim_params))
                 break;
+            else:
+                #refine was success, we update the params
+                model.get_parameters(optim_params)
         else:
             break;
 
@@ -488,6 +491,7 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
 #            print ('not ascending par', penalization)
 
         if penalization > 0.0:
+            if penalization < 1e3: penalization += 1e3
             if model.verbosity > 0:
                 print('Optimized arguments are out of bounds or not satisfying conditions ... Penalizing by ',
                       penalization)

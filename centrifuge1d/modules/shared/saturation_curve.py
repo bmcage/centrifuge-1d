@@ -505,7 +505,7 @@ class SC_freeform_base(SC_base):
             truehi = truehi + [x for x in hi if x>hiadd]
         else:
             truehi = hi
-        print ('hiadd', hiadd, truehi, hi)
+        print ('hiaddtest', hiadd, truehi, hi)
 
         if hi is not None and ui is not None and ki is not None:
             SC_freeform_base.check_params(truehi, ui, ki, issue_warning)
@@ -740,6 +740,16 @@ class SC_freeform_base(SC_base):
         transform['hiadd']   = lambda hi: hi
         untransform['hiadd'] = lambda hi_transf: hi_transf
 
+        # Functions as used in MINUIT, see http://lmfit.github.io/lmfit-py/bounds.html
+        # for bounds keeping
+        # ui is between 0 and 1
+        transform['ui']   = lambda ui: np.arcsin(2*(ui-0)/(1.-0)-1)
+        untransform['ui'] = lambda ui_transf: 0 + (np.sin(ui_transf)+1)*(1-0)/2
+
+        #log ki is between -inf and 0
+        transform['ki']   = lambda ki: np.sqrt((0-np.log(ki)+1)**2-1)
+        untransform['ki'] = lambda ki_transf: np.exp(0+1-np.sqrt(ki_transf**2+1))
+
     def refinable_h(self):
         """
         Obtain the current h values which are allowed to be refined
@@ -867,12 +877,35 @@ class SC_freeform_base(SC_base):
                     break;
 
         #we have a new h to add, we insert it, and update parameters
-        nh = self.h2u(np.array([nexth]))
+        nu = self.h2u(np.array([nexth]))
         nk = self.h2Kh(np.array([nexth]), 1)
         ind = np.searchsorted(self._hnodes, nexthnode)
+        #we add new control points of the interpolations,
+        #this is not equal to interpolation points!!
+        # hence, we check if control point before after is still good
+        # as nu is computed as an interpolated value, using it as control point
+        # requires all remains monotone ascending
+        if self._ui[ind-2] > nu:
+            self._ui[ind-2] = self.h2u(self._hi[ind-2])
+            self._uvals[ind-1] = self._ui[ind-2]
+        elif self._ui[ind-1] < nu:
+            self._ui[ind-1] = self.h2u(self._hi[ind-1])
+            self._uvals[ind] = self._ui[ind-1]
+        if self._ki[ind-2] > nk:
+            self._ki[ind-2] = self.h2Kh(self._hi[ind-2])
+            self._kvals[ind-1] = np.log(self._ki[ind-2])
+        elif self._ki[ind-1] < nk:
+            self._ki[ind-1] = self.h2Kh(self._hi[ind-1])
+            self._kvals[ind] = np.log(self._ki[ind-1])
+
         self._hnodes = np.insert(self._hnodes, ind, nexthnode)
         self._hi     = np.insert(self._hi, ind-1, nexth)
-        self._ui     = np.insert(self._ui, ind-1, nh)
+
+        if self.hiaddpos is not None:
+            self.hiaddpos = ind-1
+            print ("New hiaddpos is" , self.hiaddpos, ", value", self._hi[self.hiaddpos] )
+
+        self._ui     = np.insert(self._ui, ind-1, nu)
         self._ki     = np.insert(self._ki, ind-1, nk)
         self._uvals  = np.insert(self._uvals, ind, self._ui[ind-1])
         self._kvals  = np.insert(self._kvals, ind, np.log(self._ki[ind-1]))
