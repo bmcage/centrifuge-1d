@@ -17,6 +17,8 @@ if sys.version_info[0] == 2:
 else:
     import configparser
 
+LARGE_FONT = True
+
 ################################################################################
 #                   Define graphs, axes labels and units                       #
 ################################################################################
@@ -25,7 +27,7 @@ DATA_UNITS = {'length': ('mm', 'cm', 'm'),
               'time': ('s', 'min', 'h'),
               'pressure': ('Pa', 'kPa'),
               'weight': ('g', 'kg'),
-              'force_kgp': ('gf', 'kgf'),
+              'force_kgp': ('gf', 'kgf', 'N'),
               'velocity': ('cm/s', 'm/s'),
               'rotational_speed': ('rpm', 'rps', 'rad/s', 'rad/min'),
               'none': ('', )}
@@ -199,6 +201,7 @@ DISPLAY_OPTIONS = {'separate_figures': False, 'show_figures': True,
                    'show_figures_titles': None, 'comparison_table': False,
                    'save_formats': ['png'], 'figures_dpi': 92}
 
+
 def set_default_units(figures_styles):
     for fig_style in figures_styles.values():
         fig_style['xunit'] = DEFAULT_UNITS[fig_style['xtype']]
@@ -217,13 +220,15 @@ def get_unit_coef(unit_base):
     # units used for computation are: cm, s, pa, gf and "no units"
     if unit in default_units: coef = 1.0
     elif unit == 'mm': coef = 10.
-    elif unit in 'min': coef = 1./60.
+    elif unit in ('min',): coef = 1./60.
     elif unit == 'h': coef = 1./3600.
     elif unit in ('m', 'm/s'): coef = 0.01
     elif unit in ['kpa', 'kg', 'kgp']: coef = 0.001
     elif unit == 'rps': coef = 60.
     elif unit == 'rad/s': coef = np.pi/30.
     elif unit == 'rad/min': coef = 2*np.pi
+    elif unit == 'n':  # Newton N!
+        coef = 9.80665/1000.
     else:
         print('Unknown unit:', unit_base, '\nKnown units are only:', DATA_UNITS)
         exit(1)
@@ -646,6 +651,12 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
                 show_titles):
 
     import matplotlib.pyplot as plt
+    if LARGE_FONT:
+        font = {#'family' : 'normal',
+                #'weight' : 'bold',
+                'size'   : 16 }
+        matplotlib.rc('font', **font)
+
      # plot the lines
     legend_labels = []
 
