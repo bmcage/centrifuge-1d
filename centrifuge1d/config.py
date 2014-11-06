@@ -711,7 +711,9 @@ class ModelParameters:
                     raise Exception("Refine of h only allowed if ki and ui "
                                     "are parameters to determine inversely")
                 orighi = self.SC.refinable_h()
-                succ =  self.SC.refine(self.measurements)
+                succ =  self.SC.refine(self.measurements, self._transform,
+                                       self._untransform, self._lbounds,
+                                       self._ubounds )
                 if succ:
                     #update model init values
                     if 'hiadd' in self.init_values:
