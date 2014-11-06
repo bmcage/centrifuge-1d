@@ -1285,22 +1285,22 @@ class Measurements():
         mo = mo_1d * tube_area * fluid_density
         (mo0, gc0) = calibration[0]
 
+        GC = -1.0
         if mo < mo0:
-            print('Amount of expelled fluid (in gramms): ', mo,
+            print('WARNING: Amount of expelled fluid (in gramms): ', mo,
                   ' is less than the amount specified as the first point '
                   'of the MO_calibration curve: ', calibration[0][0],
-                  '. Cannot proceed, exiting...')
-            exit(1)
-
-        GC = -1.0
-
-        for (mo1, gc1) in calibration[1:]:
-            if mo < mo1:
-                GC = gc0 + (mo - mo0)/(mo1 - mo0) * (gc1 - gc0)
-                break
-            else:
-                mo0 = mo1
-                gc0 = gc1
+                  '. Using first point instead, continuing...')
+            GC = gc0
+            mo = mo0
+        else:
+            for (mo1, gc1) in calibration[1:]:
+                if mo < mo1:
+                    GC = gc0 + (mo - mo0)/(mo1 - mo0) * (gc1 - gc0)
+                    break
+                else:
+                    mo0 = mo1
+                    gc0 = gc1
 
         if GC < 0.0:
             print('Amount of expelled water: ', mo,  ' is more than the amount '
