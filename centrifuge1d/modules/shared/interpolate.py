@@ -1197,7 +1197,72 @@ class PiecewiseLinear(object):
                     x[i] = res[1]
         return x
 
+def make_monotone_asc(xi,yi):
+    """ given an input array yi over xi, we make yi monotone in case it was not
+    """
+    yi_curr = yi[0]
+    for ind, yival in enumerate(yi[1:]):
+        if yival < yi_curr:
+            #worst case, all smaller, last value must be updated:
+            xi_good = xi[-1]
+            yi_good = yi_curr
+            #obtain first yi that is >= yi_curr
+            for xi_search, yi_search in zip(xi[ind+2:], yi[ind+2:]):
+                if yi_search >= yi_curr:
+                    xi_good = xi_search
+                    yi_good = yi_search
+                    break
+            #we update the yi value
+            xi_curr = xi[ind]
+            yi[ind+1] = yi_curr + (yi_good-yi_curr)/(xi_good-xi_curr) * (xi[ind+1]-xi_curr)
+            #update curr value
+            yi_curr = yi[ind+1]
+        else:
+            yi_curr = yival
+
+
+class PiecewiseLinearMonotoneAsc(PiecewiseLinear):
+    """
+    Automatic conversion of given data to piecewise linear monotone ascending
+    form via convex hull
+    """
+    def __init__(self, xi, yi, dx_eps_fraction=5.):
+        PiecewiseLinear.__init__(self, xi, yi, dx_eps_fraction)
+        #we now correct the yi values to be monotone ascending
+        make_monotone_asc(self.xi, self.yi)
+
+        #reset Dyi based on yi
+        self.Dyi[:-1] = np.asarray((self.yi[1:] - self.yi[:-1])/self.dxi, dtype=float)
+        self.Dyi[-1] = self.Dyi[-2]
+
 if __name__ == "__main__":
+    #test of make_monotone_asc
+    a = [1,2,3,4,5]
+    b = [1,2,3,4,5]
+    print('test make_monotone_asc bef:', a,b)
+    make_monotone_asc(a, b)
+    print('test make_monotone_asc aft:', a,b)
+
+    b = [1,2,1,4,5]
+    print('test make_monotone_asc bef:', a,b)
+    make_monotone_asc(a, b)
+    print('test make_monotone_asc aft:', a,b)
+
+    b = [1,2,1,1.9,0]
+    print('test make_monotone_asc bef:', a,b)
+    make_monotone_asc(a, b)
+    print('test make_monotone_asc aft:', a,b)
+
+    #test for bug in interpolation
+    hn = np.array([-12.76568843,  -5.85793315,  -5.15563808,  -4.39344947, -3.37960559,  -3.21364634,  -0.,          64.4723826 ])
+    uv = np.array([  0.00000000e+00,   4.49740502e-04,   6.33059683e-01,      7.41565246e-01,   8.89413948e-01,   9.74879647e-01,   9.99844932e-01, 1.00000000e+00])
+    kv = np.array([-50.,          -6.00812881,  -4.9896291,  -3.98129448,  -2.87199099,  -1.22488324,  -0.33274884,   0.        ])
+    logh2u    = PiecewiseLinear(hn, uv)
+    logh2logk = PiecewiseLinear(hn, kv)
+    newh = -168.290476
+    print (-np.log(-newh), logh2u(-np.log(-newh)), ' > ?' , uv[2], logh2u(hn[2]))
+    print ("Above shows that interpolation based on PiecewiseLinear can have result values Lower than previous interpolation point !!" )
+
     #test of QuadraticBspline
     x = np.linspace(0, 10, 21)
     mcub = MonoCubicInterp
