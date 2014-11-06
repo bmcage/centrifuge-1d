@@ -905,6 +905,18 @@ class Measurements():
         self._computed['omega_rpm'] = omega_rpm
 
         # 4. Set internal variables
+        self._meas_omega2g = {}
+        for (name, values) in measurements_xvalues.items():
+            if name in ['gF_MO', 'gF_MT', 'gf_mo', 'gf_mt'] :
+                #we need omega2g at these xvalues
+                self._meas_omega2g[name] = []
+                for valx in values:
+                    pos = np.searchsorted(times, valx)
+                    self._meas_omega2g[name].append(omega2g[pos])
+                self._meas_omega2g[name] = np.array(self._meas_omega2g[name], float)
+        self._re = cfg.get_value('re')
+        self._l0 = cfg.get_value('l0')
+        if not np.isscalar(self._l0): self._l0 = self._l0[0]
         self._times           = times
         self._measurements_nr = np.alen(times)
         self._scales_coefs    = scales_coefs
@@ -980,14 +992,26 @@ class Measurements():
         """ Return weights of (external) measurements that are stored. """
         if self._weights is None:
             weights = []
-
-            if not self._measurements_weights is None:
-                for weight in self._measurements_weights.values():
-                    weights.append(weight)
+            compute_mt_mo = True
+            for (name, value) in self._measurements.items():
+                if compute_mt_mo and name in ['gf_mo', 'gF_MO']:
+                    # end cup is at approx 1 cm after end rE!
+                    weights.append([(100*np.abs(value[1] - value[0] )/self._meas_omega2g[name][0]/(self._re+1) + 1)/self._meas_omega2g[name][0] ])
+                    weights.append((100*np.abs(value[1:] - value[:-1])/self._meas_omega2g[name][1:]/(self._re+1) + 1)/self._meas_omega2g[name][1:])
+                    weights[-1][weights[-1]>10] = 10
+                elif compute_mt_mo and name in ['gf_mt', 'gF_MT']:
+                    # mid sample is at rE-L/2
+                    weights.append([(100*np.abs(value[1] - value[0] )/self._meas_omega2g[name][0]/(self._re-self._l0/2.) + 1)/self._meas_omega2g[name][0] ])
+                    weights.append((100*np.abs(value[1:] - value[:-1])/self._meas_omega2g[name][1:]/(self._re-self._l0/2.) + 1)/self._meas_omega2g[name][1:])
+                    weights[-1][weights[-1]>10] = 10
+                else:
+                    if not self._measurements_weights is None:
+                        weights.append(self._measurements_weights[name])
 
             if not weights:
                 self._weights = 1.0
             else:
+                print ('Computed or used weigths:', weights)
                 self._weights = np.concatenate(weights)
 
         return self._weights
