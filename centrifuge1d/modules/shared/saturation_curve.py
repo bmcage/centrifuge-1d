@@ -4,7 +4,8 @@ from __future__ import division, print_function
   This modules contains saturation curve object(s) for single flow
 """
 import numpy as np
-from interpolate import MonoCubicInterp, QuadraticBspline, PiecewiseLinear
+from interpolate import (MonoCubicInterp, QuadraticBspline, PiecewiseLinear,
+                         PiecewiseLinearMonotoneAsc)
 
 __NR = 400
 P_DEFAULT = np.linspace(-1, 9, __NR)
@@ -16,6 +17,7 @@ SC_vG     = 1
 SC_FF_CUB = 2
 SC_FF_BS  = 3
 SC_FF_LIN = 4
+SC_FF_LINCONV = 5
 
 def get_dict_value(dictionary, keys):
     if type(keys) is str:                 # single item
@@ -36,7 +38,7 @@ def create_SC(data):
     SC_type = get_value('sc_type')
     if SC_type == SC_vG:
         SC = SC_vanGenuchten(get_value('n'), get_value('gamma'))
-    elif SC_type in (SC_FF_CUB, SC_FF_BS, SC_FF_LIN):
+    elif SC_type in (SC_FF_CUB, SC_FF_BS, SC_FF_LIN, SC_FF_LINCONV):
         (hi, hiadd, ui, ki, max_refine) = get_value(('hi', 'hiadd', 'ui', 'ki', 'sc_max_refine'))
         if SC_type == SC_FF_CUB:
             SC = SC_freeform_Cubic(hi, ui, ki, max_refine, hiadd)
@@ -44,6 +46,8 @@ def create_SC(data):
             SC = SC_freeform_BSpline(hi, ui, ki, max_refine, hiadd)
         elif SC_type == SC_FF_LIN:
             SC = SC_freeform_Linear(hi, ui, ki, max_refine, hiadd)
+        elif SC_type == SC_FF_LINCONV:
+            SC = SC_freeform_LinearConvex(hi, ui, ki, max_refine, hiadd)
     else:
         print('Unknown value of ''SC_type'': ', SC_type)
         exit(1)
@@ -297,7 +301,7 @@ class SC_base():
         """
         return False
 
-    def refine(self, _):
+    def refine(self, _1, _2, _3, _4, _5):
         """
         refine the parameters and reinit. Return if success
         """
@@ -495,6 +499,10 @@ class SC_freeform_base(SC_base):
         self.refinemax = refinemax
         self.oncheck_warning_only = issue_warning
 
+        self.TRANSHIADD = False
+        self.KASCPOSCHECK = True
+        self.UASCPOSCHECK = True
+
         self.hiaddpos = None
         truehi = []
         if hi is not None and hiadd is not None:
@@ -508,7 +516,7 @@ class SC_freeform_base(SC_base):
         print ('hiaddtest', hiadd, truehi, hi)
 
         if hi is not None and ui is not None and ki is not None:
-            SC_freeform_base.check_params(truehi, ui, ki, issue_warning)
+            self.check_params(truehi, ui, ki, issue_warning)
             self._set_values(np.array(truehi, dtype=float), np.array(ui, dtype=float),
                               np.array(ki, dtype=float))
         else:
@@ -561,8 +569,7 @@ class SC_freeform_base(SC_base):
     def _interpolate_values(self):
         raise Exception ("Method must be subclassed.")
 
-    @staticmethod
-    def check_params(hi, ui, ki, issue_warning=False):
+    def check_params(self, hi, ui, ki, issue_warning=False):
         if not np.iterable(hi) or not np.iterable(ui) or not np.iterable(ki):
             raise Exception ( 'Some parameters are not given: '\
                     'hi:%s, ui:%s, ki:%s' % (str(hi), str(ui), str(ki)))
@@ -576,10 +583,10 @@ class SC_freeform_base(SC_base):
             if not h>ho or not h<0.:
                 raise Exception('Hydraulic head h must be negative and a '
                                 'monotone ascending array, instead %s' % str(hi))
-            if not u>uo or not uo>0:
+            if self.UASCPOSCHECK and (not u>uo or not uo>0):
                 raise Exception('Effective saturation Se must be positive and a '
                                 'monotone ascending array in terms of h, instead %s' % str(ui))
-            if not k>ko or not ko>0:
+            if self.KASCPOSCHECK and (not k>ko or not ko>0):
                 raise Exception('Relative permeability k must be positive and a '
                                 'monotone ascending array in terms of h, instead %s' % str(ki))
             ho = h
@@ -590,7 +597,7 @@ class SC_freeform_base(SC_base):
         if not (ui[0] >0) or not (ui[-1] < 1):
             if issue_warning:
                 print ("WARNING: Effective saturation Se starts at 0, ends "
-                       "at 1, only pass values between these extremes!")
+                       "at 1, only pass values between these extremes!\n .. Correcting automatically")
                 i = 0
                 while ui[i] <=0 :
                     ui[i] = (i+1)*1e-10
@@ -635,7 +642,7 @@ class SC_freeform_base(SC_base):
             self._hi[self.hiaddpos] = hiadd
 
 
-        SC_freeform_base.check_params(self._hi, ui, ki, self.oncheck_warning_only)
+        self.check_params(self._hi, ui, ki, self.oncheck_warning_only)
         self._set_values(self._hi, ui, ki)
 
     def get_parameters(self):
@@ -737,8 +744,16 @@ class SC_freeform_base(SC_base):
         transform['ki']   = lambda ki: np.log(ki)
         untransform['ki'] = lambda ki_transf: np.exp(ki_transf)
 
-        transform['hiadd']   = lambda hi: hi
-        untransform['hiadd'] = lambda hi_transf: hi_transf
+        if self.TRANSHIADD == False:
+            transform['hiadd']   = lambda hi: hi
+            untransform['hiadd'] = lambda hi_transf: hi_transf
+        else:
+            #bound by self._hi[self.hiaddpos-1] and self._hi[self.hiaddpos+1]
+            print ('bounds hiadd', self._hi[self.hiaddpos-1], self._hi[self.hiaddpos],self._hi[self.hiaddpos+1])
+            himin = self._hi[self.hiaddpos-1]+1e-20
+            himax = self._hi[self.hiaddpos+1]-1e-20
+            transform['hiadd']   = lambda hi: np.arcsin(2*(hi-himin)/(himax-himin)-1)
+            untransform['hiadd'] = lambda hi_transf: himin + (np.sin(hi_transf)+1)*(himax-himin)/2
 
         # Functions as used in MINUIT, see http://lmfit.github.io/lmfit-py/bounds.html
         # for bounds keeping
@@ -747,6 +762,8 @@ class SC_freeform_base(SC_base):
         untransform['ui'] = lambda ui_transf: 0 + (np.sin(ui_transf)+1)*(1-0)/2
 
         #log ki is between -inf and 0
+        #TODO: for -inf we obtain ki=0, which we want to avoid. Investigate if
+        #      not better to have log ki bounded between 1e-100 and 0 !!
         transform['ki']   = lambda ki: np.sqrt((0-np.log(ki)+1)**2-1)
         untransform['ki'] = lambda ki_transf: np.exp(0+1-np.sqrt(ki_transf**2+1))
 
@@ -756,7 +773,7 @@ class SC_freeform_base(SC_base):
         """
         return -np.exp(-self._hnodes[1:-1])
 
-    def refine(self, prev_measurements):
+    def refine(self, prev_measurements, transform, untransform, lbounds, ubounds):
         """
         refine the parameters and reinit. Return if success
         """
@@ -878,24 +895,28 @@ class SC_freeform_base(SC_base):
 
         #we have a new h to add, we insert it, and update parameters
         nu = self.h2u(np.array([nexth]))
-        nk = self.h2Kh(np.array([nexth]), 1)
+        #relative perm, so Ks=1
+        Ksrel = 1.
+        nk = self.h2Kh(np.array([nexth]), Ksrel)
+        print ('test nu nk', nu, nk)
         ind = np.searchsorted(self._hnodes, nexthnode)
         #we add new control points of the interpolations,
         #this is not equal to interpolation points!!
         # hence, we check if control point before after is still good
         # as nu is computed as an interpolated value, using it as control point
         # requires all remains monotone ascending
-        if self._ui[ind-2] > nu:
-            self._ui[ind-2] = self.h2u(self._hi[ind-2])
+        if self._ui[ind-2] > nu[0]:
+            print ('problem ui at', ind-2, self._ui[ind-2], nu[0], self._hi[ind-2],self.h2u(self._hi[ind-2]))
+            self._ui[ind-2] = self.h2u(np.array([self._hi[ind-2]]))[0]
             self._uvals[ind-1] = self._ui[ind-2]
-        elif self._ui[ind-1] < nu:
-            self._ui[ind-1] = self.h2u(self._hi[ind-1])
+        elif self._ui[ind-1] < nu[0]:
+            self._ui[ind-1] = self.h2u(np.array([self._hi[ind-1]]))[0]
             self._uvals[ind] = self._ui[ind-1]
-        if self._ki[ind-2] > nk:
-            self._ki[ind-2] = self.h2Kh(self._hi[ind-2])
+        if self._ki[ind-2] > nk[0]:
+            self._ki[ind-2] = self.h2Kh(np.array([self._hi[ind-2]]), Ksrel)[0]
             self._kvals[ind-1] = np.log(self._ki[ind-2])
-        elif self._ki[ind-1] < nk:
-            self._ki[ind-1] = self.h2Kh(self._hi[ind-1])
+        elif self._ki[ind-1] < nk[0]:
+            self._ki[ind-1] = self.h2Kh(np.array([self._hi[ind-1]]), Ksrel)[0]
             self._kvals[ind] = np.log(self._ki[ind-1])
 
         self._hnodes = np.insert(self._hnodes, ind, nexthnode)
@@ -922,6 +943,9 @@ class SC_freeform_base(SC_base):
 
         self.refinenr += 1
         self._internalrefine += 1
+        # set updated transformations in case it is needed
+        self.add_transformations_fns(transform, untransform,
+                                     lbounds, ubounds)
         return True
 
 
@@ -941,6 +965,7 @@ class SC_freeform_Cubic(SC_freeform_base):
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0, hiadd=None):
         SC_freeform_base.__init__(self, hi, ui, ki, refinemax, hiadd,
                                   compute_extra=True, issue_warning=False)
+        self.TRANSHIADD = True
 
 
     def _interpolate_values(self):
@@ -1016,6 +1041,7 @@ class SC_freeform_Linear(SC_freeform_base):
     def __init__(self, hi=None, ui=None, ki=None, refinemax=0, hiadd=None):
         SC_freeform_base.__init__(self, hi, ui, ki, refinemax, hiadd,
                                   compute_extra=True, issue_warning=True)
+        self.TRANSHIADD = True
 
     def _interpolate_values(self):
         self.logh2u    = PiecewiseLinear(self._hnodes, self._uvals)
@@ -1031,6 +1057,22 @@ class SC_freeform_Linear(SC_freeform_base):
         if self.refinenr >= self.refinemax:
             return False
         return True
+
+
+class SC_freeform_LinearConvex(SC_freeform_Linear):
+
+    def __init__(self, hi=None, ui=None, ki=None, refinemax=0, hiadd=None):
+        SC_freeform_Linear.__init__(self, hi, ui, ki, refinemax, hiadd)
+        self.TRANSHIADD = True
+        self.KASCPOSCHECK = False
+        self.UASCPOSCHECK = False
+
+    def _interpolate_values(self):
+        self.logh2u    = PiecewiseLinearMonotoneAsc(self._hnodes, self._uvals)
+        self.logh2logk = PiecewiseLinearMonotoneAsc(self._hnodes, self._kvals)
+
+    def typeSC(self):
+        return SC_FF_LINCONV
 
 if __name__ == "__main__":
     #test of SC curves
