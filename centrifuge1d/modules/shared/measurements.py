@@ -1,6 +1,8 @@
 from __future__ import division, print_function
 
 import numpy as np
+from scipy.integrate import simps
+
 from collections import OrderedDict
 from ...shared import flatten, filter_indices
 from .functions import rpm2radps, radps2rpm, compare_data, \
@@ -1149,6 +1151,35 @@ class Measurements():
     def run_inverse_problem_p(self, flag):
         self._run_inverse_p = bool(flag)
 
+    def store_calc_e(self, x, e, CON):
+        """
+        Store the void ration e
+        """
+        if not 'e' in self._computed:
+            for meas_id in ('x', 'e', 'ks_e', 'effstress_e'):
+                self._computed[meas_id] = \
+                  np.empty([self._measurements_nr, np.alen(e)], dtype=float)
+                self._indexes[meas_id]  = 0
+        # store x
+        self._computed['x'][self._indexes['x'], :] = x
+        self._indexes['x'] += 1
+
+        # store void ratio
+        self._computed['e'][self._indexes['e'], :] = e
+        self._indexes['e'] += 1
+
+        # store hydr. conductivity
+        Ks_e = CON.e2Ks(e)
+        self._computed['ks_e'][self._indexes['ks_e'], :] = Ks_e
+        self._indexes['ks_e'] += 1
+
+        # store effective stress
+        effstress_e = CON.e2sigmaprime(e)
+        self._computed['effstress_e'][self._indexes['effstress_e'], :] = effstress_e
+        self._indexes['effstress_e'] += 1
+
+        return (Ks_e, effstress_e)
+
     def store_calc_theta(self, h, SC, theta_s, theta_r, rho, g):
         if not 'theta' in self._computed:
             self._computed['theta'] = np.empty(h.shape, dtype=float)
@@ -1223,9 +1254,6 @@ class Measurements():
           fl2, fp2 - ending filter length, porosity and distance from
                      sample beginning (to filter's beginning)
           tube_area - the cross-section area of the tube containing the sample
-          from_end - (optional) if specified, computed GC will be returned as
-                     distance from the "from_end" point
-          tube_area - the cross-section area of the tube containing the sample
           store - if set to False, value will not be saved
         """
         # Water mass
@@ -1244,6 +1272,27 @@ class Measurements():
             self.store_calc_measurement('WM_in_tube', WM_in_tube)
 
         return (WM_total, WM_in_tube)
+
+    def store_calc_wm_e(self, e, y, L, wl, MO, fl2, fp2, tube_area=1.0,
+                      store=True):
+        """
+          As store_calc_wm but when void ratio in saturated sample is
+          considered
+        """
+        # Water mass
+        WM_in_tube = L*simps(e/(1+e),x=y)
+        WM_in_tube += wl
+        WM_in_tube += fp2 * fl2
+        WM_in_tube *= tube_area
+
+        WM_total   = WM_in_tube + MO * tube_area
+
+        if store:
+            self.store_calc_measurement('WM', WM_total)
+            self.store_calc_measurement('WM_in_tube', WM_in_tube)
+
+        return (WM_total, WM_in_tube)
+
 
     def store_calc_gc(self, u, y, dy, s1, s2, mass_in, d_sat_s, d_sat_e,
                       soil_porosity, fl2, fp2, fr2, WM_in_tube, fluid_density,
@@ -1279,6 +1328,23 @@ class Measurements():
                 / WM_in_tube * tube_area)
 
         if not from_end is None: gc = from_end - gc
+
+        return self.store_calc_measurement('GC', gc)
+
+    def store_calc_gc_e(self, e, y, dy, L, fluid_density, soil_density):
+        """
+        The Gravitational center as would be measured outside the centrifuge
+        on a balance, if no water on the top. We consider soil sample only with
+        GC distance from outflow edge
+        So, in this lab coordinates x, we have x from 0 to L
+        This maps to our y from 0 to 1 with x = L(1-y)
+        We have GC = int_0^L x rho A dx / int_0^L  rho A dx
+                   = int_0^1 L(1-y) rho dy / int_0^1 rho dx
+        with rho = e/(1+e) fluid_density + 1/(1+e) soil_density
+        """
+        rho = e/(1+e)*fluid_density + 1/(1+e)*soil_density
+
+        gc = simps(L*(1-y)*rho,x=y) / simps(rho,x=y)
 
         return self.store_calc_measurement('GC', gc)
 
@@ -1382,6 +1448,19 @@ class Measurements():
                         soil_porosity, fl2, fp2, fr2, fluid_density)
              * omega2g * tube_area)
 
+        return self.store_calc_measurement('gF_MT', F)
+
+    def store_calc_gf_mt_e(self, omega2g, e, y, dy, L,
+                           wl, rE, fl2, fp2,
+                           fluid_density, soil_density,
+                           tube_area):
+        """
+        Calculate and store the value off the centrifugal force on the changing
+        sample: water and soil
+        """
+        F = (calc_force_e(e, y, dy, rE, L, wl, fl2, fp2, fluid_density,
+                          soil_density)
+             * omega2g * tube_area)
         return self.store_calc_measurement('gF_MT', F)
 
     def store_calc_rm(t, u, mass_in, mass_out, s1, s2, model):
@@ -1521,3 +1600,27 @@ def calc_force(u, y, dy, r0, s1, s2, mass_in, d_sat_s, d_sat_e,
         F_sat += fp2 * calc_sat_force(r0+fr2, r0+fr2+fl2, fluid_density)
 
     return F_unsat + F_sat
+
+def calc_force_e(e, y, dy, rE, L, wl, fl2, fp2, fluid_density,
+                 soil_density):
+    """
+    Calculate gram-force of the water in the sample and the
+    compressed soil in the sample
+    Multply with g for actual Newton!
+    """
+    r0 = rE - L - fl2
+    r  = r0 + L*y
+    F_sat = (fluid_density * L/2
+               * (dy[0]*e[0]/(1+e[0])*r[0] + dy[-1]*e[-1]/(1+e[-1])*r[-1]
+                  + np.sum((dy[:-1] + dy[1:])*e[1:-1]/(1+e[1:-1])*r[1:-1])))
+    #water on top of sample
+    F_sat += calc_sat_force(r0-wl, r0, fluid_density)
+    #compressed sample
+    F_sat += (soil_density * L/2
+               * (dy[0]*1/(1+e[0])*r[0] + dy[-1]*1/(1+e[-1])*r[-1]
+                  + np.sum((dy[:-1] + dy[1:])*1/(1+e[1:-1])*r[1:-1])))
+
+    if fl2 > 0.0:
+        F_sat += fp2 * calc_sat_force(rE - fl2, rE, fluid_density)
+
+    return F_sat
