@@ -28,7 +28,7 @@ CONFIG_OPTIONS = ['exp_type',
                   'first_step_size',
                   'max_steps', 'max_step_size',
                   # defaults
-                  ('g', 981),
+                  ('g', 981),   # g accelleration in cm/s
                   ('tube_no', None),
                   ('tube_diam', None),
                   'fl1',

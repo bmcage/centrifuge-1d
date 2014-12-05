@@ -25,6 +25,7 @@ class centrifuge_residual(IDA_RhsFunction):
         rb_type = model.rb_type
 
         if (rb_type > 3) and (s2 > L - model.dip_height):
+            ## TODO: ERROR, no >3 and should be r0+s2 ????
             print('refine, s2EQ=', L - model.dip_height, 's2=', s2)
             return 1
 
@@ -75,8 +76,9 @@ class centrifuge_residual(IDA_RhsFunction):
             rD = rE - model.dip_height
             rI = r0 + s2
 
+            #no fl1 contribution, as no saturated flow there
             q_sat = (omega2g/2. * (rD*rD - rI*rI)
-                     / (model.fl1/model.ks1 + (L-s2)/model.ks
+                     / ( (L-s2)/model.ks
                         + model.fl2/model.ks2))
 
             if q_sat < 0:
