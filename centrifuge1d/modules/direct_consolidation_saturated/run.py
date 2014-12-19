@@ -148,16 +148,16 @@ class centrifuge_residual(IDA_RhsFunction):
                 #Mout must be fixed, so derivative should be zero
                 result[model.mass_out_idx] = zdot[model.mass_out_idx]
             else:
-                qN = -Ks_e[-1]/gamma_w * (-1/L*dsminsprimedy_right \
-                                          + gamma_w*omega2g*(rE-fl2))
+                qN = -Ks_e[-1]/gamma_w * (1/L*dsminsprimedy_right \
+                                          - gamma_w*omega2g*(rE-fl2))
                 result[model.mass_out_idx] = zdot[model.mass_out_idx] - qN
 
 
             #water level on top
             ## NOTE: we alternatively can use an algebraic equation of
             ##       conservation of water !!
-            q0 = -Ks_e[0]/gamma_w * (-1/L*dsminsprimedy_left \
-                                      + gamma_w*omega2g*(rE-fl2-L))
+            q0 = -Ks_e[0]/gamma_w * (1/L*dsminsprimedy_left \
+                                      - gamma_w*omega2g*(rE-fl2-L))
             result[model.wl_idx] = zdot[model.wl_idx] + q0
 
             #mass flowing in: not used at the moment in this model
