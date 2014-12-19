@@ -55,6 +55,8 @@ class centrifuge_residual(IDA_RhsFunction):
 
             if np.any(self.ecopy <= 0): # negative void ratio??
                 print ('ERROR: Negative void ratio found', self.ecopy)
+                print ('input z   ', z)
+                print ('input zdot', zdot)
                 self.ecopy[self.ecopy <= 0] = 0
 
             edot =  zdot[first_idx:last_idx+1]
@@ -79,7 +81,7 @@ class centrifuge_residual(IDA_RhsFunction):
 
             omega2g = model.find_omega2g(t)
             #small regularization to start with some effect
-            minom = 1e-3
+            minom = 0#1e-3
             minomega2g = minom*minom/model.g
             if omega2g < minomega2g:
                 omega2g = minomega2g
@@ -116,9 +118,21 @@ class centrifuge_residual(IDA_RhsFunction):
             if rb_type == 3:
                 return 1  # not yet programmed, see run of direct_sat_drain
             elif rb_type == 0:  #no outflow!
-                result[last_idx]  = \
-                  dedy[-1] - (L/ CON.dsigpde(self.ecopy[-1]) * (gamma_s-gamma_w)
+                result[last_idx]  = (
+                  CON.dsigpde([self.ecopy[-1]],zeroval=-1e-20) * dedy[-1]
+                            - (L
+                               * (gamma_s-gamma_w)
                                / (1+self.ecopy[-1]) *omega2g * (rE-fl2))
+                                      )
+                print ('result', t, result[last_idx],CON.dsigpde([self.ecopy[-1]],zeroval=-1e-20), self.ecopy[-1])
+#==============================================================================
+#                 if omega2g < 0.5e-7:
+#                     # too small rotation, no change yet!
+#                     result[last_idx] = dedy[-1]
+#                 elif omega2g < 1e-7:
+#                     #regularize start up
+#                     result[last_idx] = dedy[-1] + (omega2g-0.5e-7)/0.5e-7 * (result[last_idx]- dedy[-1])
+#==============================================================================
             elif rb_type == 1: #free outflow
                 #effective stress should be equal to total stress at BC
                 #print ('Test free outflow' , t, effstress_e[-1], totsig[-1], CON.sigmaprime2e(totsig[-1]), np.power(omega2g*model.g,.5))
@@ -185,11 +199,18 @@ class centrifuge_residual(IDA_RhsFunction):
         return 0
 
 RESIDUAL_FN = centrifuge_residual()
+def sat_cons_root(t, z, zdot, result, model):
+    print ('cur root val', z[model.wl_idx])
+    result[0] = z[model.wl_idx]
+
+def sat_cons_root_cont(model, t, z):
+    return False
 
 def on_measurement(t, z, model, measurements):
 
     L  = measurements.store_calc_measurement('L', z[model.L_idx])
     wl = measurements.store_calc_measurement('wl', z[model.wl_idx])
+    measurements.store_calc_measurement('MI', z[model.wl_idx])
     MO = measurements.store_calc_measurement('MO', z[model.mass_out_idx])
 
     #compute the x values from 0 to L corresponding to grid y values:
@@ -262,7 +283,14 @@ def solve(model, measurements):
     measurements.reset_calc_measurements()
 
     # Initialization. L is via an algebraic equation based on e values
-    algvars_idx = [model.last_idx, model.L_idx]
+    if model.rb_type == 0:
+        algvars_idx = [model.L_idx]
+    elif model.rb_type == 1:
+        algvars_idx = [model.last_idx, model.L_idx]
+    else:
+        print('Not supported yet')
+        sys.exit(1)
+
     atol_backup        = model.atol # backup value
     if type(atol_backup) == list:
         atol = np.asarray(atol_backup, dtype=float)
@@ -279,7 +307,9 @@ def solve(model, measurements):
     # Computation
     (flag, t, z, i) = simulate_direct(initialize_z0, model, model.measurements,
                                       RESIDUAL_FN,
-                                      root_fn = None, nr_rootfns=None,
+                                      root_fn = sat_cons_root, nr_rootfns=1,
+                                      continue_on_root_found = sat_cons_root_cont,
+                                      truncate_results_on_stop = True,
                                       initialize_zp0=zp0_init,
                                       algvars_idx=algvars_idx,
                                       on_measurement=on_measurement)
