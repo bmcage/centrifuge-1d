@@ -6,9 +6,12 @@ from __future__ import division, print_function
 import numpy as np
 from interpolate import (MonoCubicInterp, QuadraticBspline, PiecewiseLinear,
                          PiecewiseLinearMonotoneAsc)
-from saturation_curve import (P_DEFAULT, TRANSFORM_MAX_VALUE,
+from saturation_curve import (TRANSFORM_MAX_VALUE,
                               default_transformation)
 
+
+__NR = 400
+E_DEFAULT = np.linspace(0.01, 9, __NR)
 
 CON_SLURRY   = 1
 CON_PRECON   = 2
@@ -108,8 +111,43 @@ class CON_base():
         """
         raise NotImplementedError
 
+    def effstress_curve(self, e=None):
+        """
+          Determine the effective stress curve.
+
+          Parameters:
+            e        - void ratio
+
+          Return values:
+            e                 - void ratio
+            effective stress  - effective stress sigma^' for the e values
+        """
+        if (e is None):
+            e = E_DEFAULT
+
+        return (e, self.e2sigmaprime(e))
+
+
+    def conductivity_curve(self, e=None):
+        """
+          Determine the conductivity curve.
+
+          Parameters:
+
+          Return values:
+            e        - void ratio
+            K        - saturated hydraulic conductivity
+        """
+
+        if (e is None):
+            e = E_DEFAULT
+
+        K     = self.e2Ks(e)
+
+        return (e, K)
+
 ########################################################################
-#                       van Genuchten model                            #
+#                       Slurry based model                             #
 ########################################################################
 
 class CON_Slurry(CON_base):
@@ -204,14 +242,18 @@ class CON_Slurry(CON_base):
             dKo1pede = 0*e+self._D
         return dKo1pede
 
-    def dsigpde(self, e, dsigpde = None):
+    def dsigpde(self, e, dsigpde = None, zeroval=0.):
         """
         return value of d sigma' / de at e
+        Note: for CON_Slurry, values at e0 go to 0, so we avoid derivatives
+              there, enforcing e<=0.999 e0. This is a needed regularization
+        If zeroval != 0, all values > zeroval are given the value zeroval.
+          For example: zeroval = -1e-10 returns as highest value -1e10!
         """
         einternal = np.empty(len(e), float)
         einternal[:] = e[:]
         #numerically, we can have values of e>e0, we correct for those
-        einternal[self._e0 < e] = self._e0 #2*self._e0-e[self._e0<e]
+        einternal[self._e0*0.999 < einternal] = self._e0*.999 #2*self._e0-e[self._e0<e]
         if not dsigpde is None:
             dsigpde[:] = -self._B * self._A  \
                 * np.power((self._e0 - einternal), self._B-1) \
@@ -220,6 +262,8 @@ class CON_Slurry(CON_base):
             dsigpde = -self._B * self._A  \
                 * np.power((self._e0 - einternal), self._B-1) \
                 / np.power((1 + self._e0), self._B)
+        if zeroval != 0:
+            dsigpde[dsigpde>zeroval] = zeroval
         return dsigpde
 
     def typeCON(self):
