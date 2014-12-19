@@ -234,8 +234,8 @@ def determine_measurements(cfg, phases_scans):
              continue
         elif type(value) in [int, float]:
             value = (value, )
+        value = np.asarray(flatten(value), dtype=float)
 
-        value = np.asarray(value, dtype=float)
         measurements[name] = value
 
         xvalue = cfg.get_value(iname + '_xvalues')
@@ -1065,7 +1065,7 @@ class Measurements():
             name can be h or u
         """
         for (cname, yvalue) in self._computed.items():
-            if cname in ('h', 'u') and cname == name:
+            if cname in ('h', 'u', 'e', 'ks_x', 'effstress_x') and cname == name:
                 #sample position as x value for computed vals
                 xvalue = self._computed['x']
 
@@ -1100,7 +1100,7 @@ class Measurements():
         for (name, yvalue) in self._computed.items():
             if name in ('x'): continue
 
-            if name in ('h', 'u'):
+            if name in ('h', 'u', 'e', 'ks_x', 'effstress_x'):
                 xvalue = self._computed['x']
             elif name in ('gF_MT_tara', 'gF_MO_tara'):
                 continue
@@ -1156,7 +1156,7 @@ class Measurements():
         Store the void ration e
         """
         if not 'e' in self._computed:
-            for meas_id in ('x', 'e', 'ks_e', 'effstress_e'):
+            for meas_id in ('x', 'e', 'ks_x', 'effstress_x'):
                 self._computed[meas_id] = \
                   np.empty([self._measurements_nr, np.alen(e)], dtype=float)
                 self._indexes[meas_id]  = 0
@@ -1168,17 +1168,17 @@ class Measurements():
         self._computed['e'][self._indexes['e'], :] = e
         self._indexes['e'] += 1
 
-        # store hydr. conductivity
-        Ks_e = CON.e2Ks(e)
-        self._computed['ks_e'][self._indexes['ks_e'], :] = Ks_e
-        self._indexes['ks_e'] += 1
+        # store hydr. conductivity with the e values which correspond to xvalues
+        Ks_x = CON.e2Ks(e)
+        self._computed['ks_x'][self._indexes['ks_x'], :] = Ks_x
+        self._indexes['ks_x'] += 1
 
-        # store effective stress
-        effstress_e = CON.e2sigmaprime(e)
-        self._computed['effstress_e'][self._indexes['effstress_e'], :] = effstress_e
-        self._indexes['effstress_e'] += 1
+        # store effective stress with the e values which correspond to x values
+        effstress_x = CON.e2sigmaprime(e)
+        self._computed['effstress_x'][self._indexes['effstress_x'], :] = effstress_x
+        self._indexes['effstress_x'] += 1
 
-        return (Ks_e, effstress_e)
+        return (Ks_x, effstress_x)
 
     def store_calc_theta(self, h, SC, theta_s, theta_r, rho, g):
         if not 'theta' in self._computed:

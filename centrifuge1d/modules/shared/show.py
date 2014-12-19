@@ -4,7 +4,8 @@ import numpy as np, matplotlib, pickle
 import sys
 from ...const import PLOTSTYLE_ININAME, DUMP_DATA_VERSION, DUMP_DATA_FILENAME
 from os import makedirs, path
-from ...shared import get_directories, parse_value, yn_prompt, filter_indices
+from ...shared import (get_directories, parse_value, parse_range, yn_prompt,
+                       filter_indices)
 from ...config import ModulesManager, load_model
 from collections import OrderedDict, defaultdict
 from .functions import has_data, compare_data
@@ -51,7 +52,13 @@ LINESTYLES_DEFAULT = {'_default_': {'_base_': {'width': 1, 'symbolsize': 6,
                                     'h':      {'lineopt': '-'},
                                     'u':      {'lineopt': '-'},
                                     'theta':  {'lineopt': '-'},
-                                    'relsat': {'lineopt': '-'}},
+                                    'relsat': {'lineopt': '-'},
+                                    'Ks_e':       {'lineopt': '-'},
+                                    'effstress_e':{'lineopt': '-'},
+                                    'e':          {'lineopt': '-'},
+                                    'ks_x':       {'lineopt': '-'},
+                                    'effstress_x':{'lineopt': '-'},
+                                   },
                       'measured':  {'_base_': {'lineopt': 'x'},
                                     'theta':  {'lineopt': '.'},
                                     'relsat': {'lineopt': '.'}},
@@ -96,6 +103,11 @@ FIGURES_DEFAULTS = \
                'MO': {'title':  'Amount of expelled water',
                       'xlabel': dg_label_time,
                       'ylabel': "Expelled water [{}]",
+                      'xtype':  'time',
+                      'ytype':  'length'},
+               'wl': {'title':  'Level of water in the inflow chamber',
+                      'xlabel': dg_label_time,
+                      'ylabel': "Inflow water [{}]",
                       'xtype':  'time',
                       'ytype':  'length'},
                'MI': {'title':  'Amount of water in the inflow chamber',
@@ -187,12 +199,51 @@ FIGURES_DEFAULTS = \
                              'xlabel': dg_label_time,
                              'ylabel':  "Rotational speed [{}]",
                              'xtype':  'time',
-                             'ytype':   'rotational_speed'}
-                      }
+                             'ytype':   'rotational_speed'},
+               'e':  {'title':  'Void ratio',
+                      'xlabel': dg_label_length,
+                      'ylabel': "Void ratio $e$ [{}]",
+                      'xtype':  'length',
+                      'ytype':  'none',
+                      'legend_title': 'Time [min]',
+                      'legend_bbox': (1.01, 1.),
+                      'legend_loc': 2},
+               'effstress_e':  {'title':  'Effective Stress',
+                      'xlabel': "Void ratio $e${}",
+                      'ylabel': "Effective Stress $\\sigma^\\prime$ [{}]",
+                      'xtype':  'none',
+                      'ytype':  'pressure',
+                      'yscale': 'log'},
+               'Ks_e':  {'title':  'Hydraulic conductivity $K(e)$',
+                      'xlabel': "Void ratio $e${}",
+                      'ylabel': "Hydraulic conductivity $K(e)$ [{}]",
+                      'xtype':  'none',
+                      'ytype':  'velocity',
+                      'yscale': 'log'},
+               'ks_x':  {'title':  'Hydraulic conductivity $K$ over length sample',
+                      'xlabel': dg_label_length,
+                      'ylabel': "Hydraulic conductivity $K(e)$ [{}]",
+                      'xtype':  'length',
+                      'ytype':  'velocity',
+                      'yscale': 'log',
+                      'legend_title': 'Time [min]',
+                      'legend_bbox': (1.01, 1.),
+                      'legend_loc': 2},
+               'effstress_x':  {'title':  'Effective Stress over length sample',
+                      'xlabel': dg_label_length,
+                      'ylabel': "Effective Stress $\\sigma^\\prime$ [{}]",
+                      'xtype':  'length',
+                      'ytype':  'pressure',
+                      'yscale': 'log',
+                      'legend_title': 'Time [min]',
+                      'legend_bbox': (1.01, 1.),
+                      'legend_loc': 2},
+             }
 
 FIGURES_PAIRS = (('h', 'u'), ('MI', 'MO'), ('GC', 'RM'), ('K', 'K_u'),
                  ('gF_MT', 'gF_MO'), ('dgF_MT', 'dgF_MO'), ('s1', 's2'),
-                 ('theta', 'relsat'))
+                 ('theta', 'relsat'), ('effstress_e', 'Ks_e'),
+                 ('effstress_x', 'ks_x'))
 
 FIGURES_IDS = list(FIGURES_DEFAULTS.keys())
 
@@ -474,6 +525,9 @@ def update_styles(styles, user_styles):
     # Display legend only on 'u' if 'u' and 'h' are on the same window
     styles['figures']['h']['show_legend'] = \
       styles['options']['separate_figures']
+    # same for effstress_x and ks_x
+    styles['figures']['effstress_x']['show_legend'] = \
+      styles['options']['separate_figures']
 
     # Order lines
     lines_ids = (['original', 'measured', 'computed']
@@ -529,6 +583,15 @@ def assign_data(styles, displayed_figs, data):
         #output has no u, eg saturated data!
         u_min = 0
         u_max = 1
+    if 'e' in line_data:
+        edata = line_data['e'][1][:,:].flatten()
+        edata = edata[edata != 0.]
+        e_min = np.min(edata)
+        e_max = np.max(edata)
+    else:
+        #output has no e
+        e_min = 0
+        e_max = 10
     for fig_id in displayed_figs:
         overlay_x = get_figure_option(figures_styles, fig_id, 'overlay_x')
         overlay_y = get_figure_option(figures_styles, fig_id, 'overlay_y')
@@ -549,6 +612,9 @@ def assign_data(styles, displayed_figs, data):
                 # if we consider theta_r == 0
                 ox0 = theta_s*u_min if ox0 is None else ox0
                 ox1 = theta_s*u_max if ox1 is None else ox1
+        elif fig_id in ('Ks_e', 'effstress_e'):
+            ox0 = e_min if ox0 is None else ox0
+            ox1 = e_max if ox1 is None else ox1
 
         figures_styles[fig_id]['overlay_x'] = (ox0, ox1)
         figures_styles[fig_id]['overlay_y'] = (oy0, oy1)
@@ -575,7 +641,8 @@ def assign_data(styles, displayed_figs, data):
         for fig_id in displayed_figs:
             # we skip other 'h' and 'u' data, as it would be mess
             if ((not fig_id in line_data)
-                 or (fig_id in ['h', 'u']) and (not line_id == 'computed')):
+                 or (fig_id in ['h', 'u', 'e', 'ks_x', 'effstress_x'])
+                 and (not line_id == 'computed')):
                 continue
 
             line_value = line_data[fig_id]
@@ -604,7 +671,7 @@ def assign_data(styles, displayed_figs, data):
                 and ((fig_id in plots_keep) or (fig_id in plots_remove))):
 
                 # filter computed data
-                if fig_id in ('h', 'u'):
+                if fig_id in ('h', 'u', 'e', 'ks_x', 'effstress_x'):
                     filter_size = xdata.shape[1]
                 else:
                     filter_size = np.alen(xdata) # can be (n, ) ~ (1,n) ~ (n,1)
@@ -618,7 +685,7 @@ def assign_data(styles, displayed_figs, data):
                 if fig_id in plots_remove:
                     filter_indices(filter_idxs, plots_remove[fig_id], False)
 
-                if fig_id in ('h', 'u'):
+                if fig_id in ('h', 'u', 'e', 'ks_x', 'effstress_x'):
                     xdata = xdata[:, filter_idxs]
                     ydata = ydata[:, filter_idxs]
                 else:
@@ -770,7 +837,14 @@ class DataStorage:
         # Default values (merged with plotstyles inifiles)
         styles = {'options': DISPLAY_OPTIONS, 'lines': LINESTYLES_DEFAULT,
                   'figures': set_default_units(FIGURES_DEFAULTS),
-                  'plots_keep': {}, 'plots_remove': {}, 'params_ref': {},
+                  'plots_keep': {'GC': [parse_range('0::10')],
+                                 'h': [parse_range('0::20')],
+                                 'u': [parse_range('0::20')],
+                                 'e': [parse_range('0::20')],
+                                 'ks_x': [parse_range('0::20')],
+                                 'effstress_x': [parse_range('0::20')],
+                                 },
+                  'plots_remove': {}, 'params_ref': {},
                   'lines_order': (),
                   'output_computed_as_meas': {},
                  }
@@ -855,7 +929,7 @@ class DataStorage:
                 xvalue = xvalue.copy()
                 yvalue = yvalue.copy()
 
-                if name in ('h', 'u'):
+                if name in ('h', 'u', 'e', 'ks_x', 'effstress_x'):
                     t = measurements.get_times()
                     xvalue = xvalue.transpose()
                     yvalue = yvalue.transpose()
@@ -918,6 +992,14 @@ class DataStorage:
                     except:
                         import traceback
                         print(traceback.format_exc())
+            if hasattr(model, 'CON'):
+                CON = model.CON
+                if hasattr(CON, 'refinable_e') and ID == 'computed':
+                    self._data['ei'] = CON.refinable_e()
+                (e, effstress_e) = CON.effstress_curve()
+                (e, Ks_e)    = CON.conductivity_curve(e)
+                data['effstress_e'] = (e, effstress_e)
+                data['Ks_e'] = (e, Ks_e)
 
             self._data['lines'][ID] = data
             self.store('experiment_info', model.experiment_info)
@@ -1063,7 +1145,7 @@ class DataStorage:
             return
 
         # make sure user did not pass True
-        show_titles = separate_figures if (show_titles is None) else False
+        show_titles = separate_figures if (show_titles in [None, True]) else False
 
         figs_styles = styles['figures']
         figs_ids = assign_data(styles, get_shown_figs_ids(figs_styles), self)
