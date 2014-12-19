@@ -13,7 +13,8 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None,
                     on_phase_change = None, continue_on_root_found=None,
-                    on_measurement=None, truncate_results_on_stop=True):
+                    on_measurement=None, truncate_results_on_stop=True,
+                    show_progress=True):
     """
     Input:
       initialize_z0 - function with signature f(z0, model), where:
@@ -240,9 +241,16 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                 if previous_phase is None: previous_phase = phase
                 if previous_phase != phase: on_phase_change(model, phase)
 
+            perc_done=0;
+            perc_next=1;
             while True:
                 (flag, t_out) = solver.step(t_meas, z[i, :])
                 t[i] = t_out
+                perc_done = (t_out-model.t0) / (t_end-model.t0)
+                if perc_done >= perc_next:
+                    if show_progress:
+                        print ('Finished %f percent of computation' % perc_done)
+                    perc_next = int(perc_done+1)
 
                 if flag < 0:     # error occured
                     if verbosity > 1:
@@ -261,14 +269,21 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                          and (continue_on_root_found(model, t_out, z[i, :]))):
                         if verbosity > 1:
                              print('Root found: continuing computation')
+                        if truncate_results_on_stop:
+                            return (False, t[:i+1], z[:i+1, :], i)
+                        else:
+                            return (False, t, z, i)
                     else:
                         if verbosity > 1:
                              print('Root found: aborted further computation.')
+                        if not on_measurement is None:
+                            on_measurement(t_out, z[i, :], model,
+                                           measurements)
+                        if truncate_results_on_stop:
+                            return (True, t[:i+1], z[:i+1, :], i)
+                        else:
+                            return (True, t, z, i)
 
-                    if truncate_results_on_stop:
-                        return (False, t[:i+1], z[:i+1, :], i)
-                    else:
-                        return (False, t, z, i)
                 else: # success or t_stop reached
                     if (flag == 0) or (t_out == t_meas):
                         if not on_measurement is None:
