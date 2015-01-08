@@ -213,13 +213,15 @@ FIGURES_DEFAULTS = \
                       'ylabel': "Effective Stress $\\sigma^\\prime$ [{}]",
                       'xtype':  'none',
                       'ytype':  'pressure',
-                      'yscale': 'log'},
+                      'yscale': 'log',
+                      'overlay_x': (None, None)},
                'Ks_e':  {'title':  'Hydraulic conductivity $K(e)$',
                       'xlabel': "Void ratio $e${}",
                       'ylabel': "Hydraulic conductivity $K(e)$ [{}]",
                       'xtype':  'none',
                       'ytype':  'velocity',
-                      'yscale': 'log'},
+                      'yscale': 'log',
+                      'overlay_x': (None, None)},
                'ks_x':  {'title':  'Hydraulic conductivity $K$ over length sample',
                       'xlabel': dg_label_length,
                       'ylabel': "Hydraulic conductivity $K(e)$ [{}]",
@@ -730,6 +732,12 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
     xunit = get_figure_option(figs_styles, fig_id, 'xunit')
     yunit = get_figure_option(figs_styles, fig_id, 'yunit')
 
+    #handle overlays
+    overlay_x = get_figure_option(figs_styles, fig_id, 'overlay_x')
+    overlay_y = get_figure_option(figs_styles, fig_id, 'overlay_y')
+
+    ydatamin = 1e100
+    ydatamax = 1e-100
     for line_id in lines_ids:
         xdata = get_line_option(lines_styles, line_id, 'xdata', fig_id)
         ydata = get_line_option(lines_styles, line_id, 'ydata', fig_id)
@@ -757,9 +765,19 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
 
                 plt.plot(entryx, entryy, plot_style[ind%max_styles],
                          linewidth=width, markersize=symbolsize)
+                if overlay_x:
+                    tmpmin = np.min(entryy)
+                    if tmpmin < ydatamin: ydatamin = tmpmin
+                    tmpmax = np.max(entryy)
+                    if tmpmin > ydatamax: ydatamax = tmpmax
         else:
             plt.plot(xdata, ydata, plot_style, linewidth=width,
                      markersize=symbolsize)
+            if overlay_x:
+                tmpmin = np.min(ydata)
+                if tmpmin < ydatamin: ydatamin = tmpmin
+                tmpmax = np.max(ydata)
+                if tmpmax > ydatamax: ydatamax = tmpmax
 
         # Extend the legend labels
         legend_label = get_line_option(lines_styles, line_id,
@@ -793,11 +811,13 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
     if np.isscalar(ymax): plt.ylim(ymax=ymax)
 
     #handle overlays
-    overlay_x = get_figure_option(figs_styles, fig_id, 'overlay_x')
-    overlay_y = get_figure_option(figs_styles, fig_id, 'overlay_y')
     if (not overlay_x is None): # either both are None or none
         (ox0, ox1) = (overlay_x[0] or xmin or 0.0, overlay_x[1] or xmax or 1)
-        (oy0, oy1) = (overlay_y[0] or ymin or 0.0, overlay_y[1] or ymax or 1e10)
+        (oy0, oy1) = (overlay_y[0] or ymin or ydatamin, overlay_y[1] or ymax or ydatamax)
+        if oy0 == 0.0 and yscale:
+            oy0 = 1e-50
+            if fig_id == 'effstress_e':
+                oy0 = 1
 
         ax = plt.gca()
         ax.fill_between(np.array([ox0, ox1],float), oy0, oy1,
