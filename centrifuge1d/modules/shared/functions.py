@@ -116,8 +116,8 @@ def find_omega2g(t, omega_final, omega_start, g,
             else:
                 omega = f1(t)
 
-            omega_rel = omega_final - omega_start
             omega = omega_start + omega/omega_base * (omega_final - omega_start)
+
     else:
         omega = omega_final
 
