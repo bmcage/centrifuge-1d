@@ -11,6 +11,8 @@ from ..shared.solver import simulate_direct
 from ..shared.show import show_results
 
 NUMERFACT_e0 = 1#0.999
+use_cons_water = True
+
 
 class centrifuge_residual(IDA_RhsFunction):
     def __init__(self):
@@ -170,9 +172,17 @@ class centrifuge_residual(IDA_RhsFunction):
             #water level on top
             ## NOTE: we alternatively can use an algebraic equation of
             ##       conservation of water !!
-            q0 = -Ks_e[0]/gamma_w * (1/L*dsminsprimedy_left \
+            if use_cons_water:
+                (wm, wm_in_tube) = model.measurements.store_calc_wm_e(
+                        self.ecopy,
+                        model.y, z[model.L_idx], z[model.wl_idx],
+                        z[model.mass_out_idx],
+                        model.fl2, model.fp2, store=False)
+                result[model.wl_idx] = wm - model.wm0
+            else:
+                q0 = -Ks_e[0]/gamma_w * (1/L*dsminsprimedy_left \
                                       - gamma_w*omega2g*(rE-fl2-L))
-            result[model.wl_idx] = zdot[model.wl_idx] + q0
+                result[model.wl_idx] = zdot[model.wl_idx] + q0
 
             #mass flowing in: not used at the moment in this model
             result[model.mass_in_idx] = zdot[model.mass_in_idx]
@@ -290,6 +300,8 @@ def solve(model, measurements):
     else:
         print('Not supported yet')
         sys.exit(1)
+    if use_cons_water:
+        algvars_idx += [model.wl_idx]
 
     atol_backup        = model.atol # backup value
     if type(atol_backup) == list:

@@ -1280,11 +1280,10 @@ class Measurements():
         """
         # Water mass
         WM_in_tube = L*simps(e/(1+e),x=y)
-        WM_in_tube += wl
         WM_in_tube += fp2 * fl2
         WM_in_tube *= tube_area
 
-        WM_total   = WM_in_tube + MO * tube_area
+        WM_total   = WM_in_tube + MO * tube_area + wl * tube_area
 
         if store:
             self.store_calc_measurement('WM', WM_total)
