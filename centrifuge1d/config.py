@@ -45,6 +45,9 @@ class ModulesManager():
         modules_names = {}
 
         for module_name in available_modules:
+            if module_name[0] == '.':
+                #hidden directory
+                continue
             try:
                 submodule_info_name = '.modules.' + module_name + '.info'
 
