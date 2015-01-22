@@ -9,7 +9,7 @@ def dtype_deps(cfg):
     dtype = cfg.get_value('dtype')
     result = []
     if dtype == 1: pass
-    elif dtype == 2: result = ['k_dx']
+    elif dtype in [2,3]: result = ['k_dx']
 
     return result
 
@@ -71,7 +71,7 @@ def adjust_cfg(cfg):
     discretization_type = cfg.get_value('dtype')
     if discretization_type == 1:   # linear discretization
         y = linspace(0, 1, inner_points + 2)
-    elif discretization_type == 2: # L= a+ka+(k^2)a+...+(k^inner_points)a
+    elif discretization_type in [2,3]: # L= a+ka+(k^2)a+...+(k^inner_points)a
         # L=1 (as we use transformed interval <0,1>)
         # L = a*[(1-k^(inner_points +1))/(1-k)]
         k = cfg.get_value('k_dx')
@@ -81,6 +81,10 @@ def adjust_cfg(cfg):
         for i in range(1, inner_points+1):
             y[i] = y[i-1] + a
             a = a*k
+        if discretization_type == 3:
+            # invert it
+            tmp = y[::-1]
+            y[:] = 1. - tmp[:]
     else:
         print('Unsupported discretization type:', discretization_type)
         exit(1)
