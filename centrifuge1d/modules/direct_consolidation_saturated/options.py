@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 
 from ..shared.functions import lagrangian_derivative_coefs
 from numpy import linspace, power, empty
@@ -92,13 +92,13 @@ def adjust_cfg(cfg):
         exit(1)
     e0 = por/(1-por)
     cfg.set_value('e0', e0)
-    print ('Calculated initial void ratio is', cfg.get_value('e0'))
+    print ('Consolidation: Calculated initial void ratio is', cfg.get_value('e0'))
     ksguess = cfg.get_value('ks')
     ks = ksguess
     if cfg.get_value('con_type') == CON_SLURRY:
         ks = (1+e0)*(cfg.get_value('c')+cfg.get_value('d')*e0)
         cfg.set_value('ks', ks)
-    print ('Your guessed ks', ksguess, 'has been changed into calculated', ks)
+    print ('Consolidation: Your guessed ks', ksguess, 'has been changed into calculated', ks)
 
     # Determine consolidation curve model used, all data is now available
     cfg.set_value('CON', create_CON(cfg))
@@ -117,7 +117,6 @@ def adjust_cfg(cfg):
     cfg.set_value('ldc1', ldc1)
     cfg.set_value('ldc2', ldc2)
     cfg.set_value('ldc3', ldc3)
-
 
     inner_points = cfg.get_value('inner_points')
     cfg.set_value('sc_max_refine', 0)

@@ -124,7 +124,7 @@ class centrifuge_residual(IDA_RhsFunction):
                                * (gamma_s-gamma_w)
                                / (1+self.ecopy[-1]) *omega2g * (rE-fl2))
                                       )
-                print ('result', t, result[last_idx],CON.dsigpde([self.ecopy[-1]],zeroval=-1e-20), self.ecopy[-1])
+
 #==============================================================================
 #                 if omega2g < 0.5e-7:
 #                     # too small rotation, no change yet!
@@ -200,7 +200,7 @@ class centrifuge_residual(IDA_RhsFunction):
 
 RESIDUAL_FN = centrifuge_residual()
 def sat_cons_root(t, z, zdot, result, model):
-    print ('cur root val', z[model.wl_idx])
+    #print ('cur root val', z[model.wl_idx])
     result[0] = z[model.wl_idx]
 
 def sat_cons_root_cont(model, t, z):
@@ -284,7 +284,7 @@ def solve(model, measurements):
 
     # Initialization. L is via an algebraic equation based on e values
     if model.rb_type == 0:
-        algvars_idx = [model.L_idx]
+        algvars_idx = [model.last_idx, model.L_idx]
     elif model.rb_type == 1:
         algvars_idx = [model.last_idx, model.L_idx]
     else:
@@ -312,6 +312,7 @@ def solve(model, measurements):
                                       truncate_results_on_stop = True,
                                       initialize_zp0=zp0_init,
                                       algvars_idx=algvars_idx,
+                                    #  exclude_algvar_from_error=True,
                                       on_measurement=on_measurement)
 
     # Restore modified values

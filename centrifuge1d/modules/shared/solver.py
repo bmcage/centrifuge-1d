@@ -12,6 +12,7 @@ simulation_err_str = ('%s simulation: Calculation did not reach '
 def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     update_initial_condition=None, initialize_zp0=None,
                     root_fn = None, nr_rootfns=None, algvars_idx=None,
+                    exclude_algvar_from_error=False,
                     on_phase_change = None, continue_on_root_found=None,
                     on_measurement=None, truncate_results_on_stop=True,
                     show_progress=True):
@@ -170,6 +171,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                      max_step_size = model.max_step_size,
                      max_steps = model.max_steps,
                      algebraic_vars_idx=algvars_idx,
+                     exclude_algvar_from_error=exclude_algvar_from_error,
                      rootfn=root_fn, nr_rootfns=nr_rootfns,
                      #linsolver='band', uband=1, lband=1,
                      user_data=model)
@@ -210,6 +212,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
             t_end = t0 + duration
 
             solver.set_options(tstop=t_end)
+            print ('adding tstop at:', t_end, 'Phase:', phase)
 
             model.phase = phase
             if phase == 'a':
@@ -244,12 +247,12 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
             perc_done=0;
             perc_next=1;
             while True:
-                (flag, t_out) = solver.step(t_meas, z[i, :])
+                (flag, t_out) = solver.step(t_meas, z[i, :], zp0)
                 t[i] = t_out
-                perc_done = (t_out-model.t0) / (t_end-model.t0)
+                perc_done = (t_out-model.t0) / (t_end-model.t0) * 100
                 if perc_done >= perc_next:
                     if show_progress:
-                        print ('Finished %f percent of computation' % perc_done)
+                        print ('Finished %03d percent of computation' % int(perc_done))
                     perc_next = int(perc_done+1)
 
                 if flag < 0:     # error occured
