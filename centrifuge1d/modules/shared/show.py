@@ -233,7 +233,7 @@ FIGURES_DEFAULTS = \
                       'legend_loc': 2},
                'effstress_x':  {'title':  'Effective Stress over length sample',
                       'xlabel': dg_label_length,
-                      'ylabel': "Effective Stress $\\sigma^\\prime$ [{}]",
+                      'ylabel': "Effective Stress $\\sigma^\\prime + 1$ [{}]",
                       'xtype':  'length',
                       'ytype':  'pressure',
                       'yscale': 'log',

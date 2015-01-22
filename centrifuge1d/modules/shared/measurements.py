@@ -152,7 +152,6 @@ def determine_tara_calibration(cfg, measurements, measurements_times, omega2g,
             # WR_fluid =  gF_fluid * g/(omega_radps^2)
             # Hence:
             # WR_tara = (gF_tara - gF_fluid) * g / (omega_radps^2)
-            print ('test WR_fluid for gF_WT is', WR_fluid, 'so gF part sat water first 50', omega2g[:50]*WR_fluid)
             WR_tara = WR_tara - WR_fluid
 
         # subtract the tara influence from measured values
@@ -1175,7 +1174,7 @@ class Measurements():
 
         # store effective stress with the e values which correspond to x values
         effstress_x = CON.e2sigmaprime(e)
-        self._computed['effstress_x'][self._indexes['effstress_x'], :] = effstress_x
+        self._computed['effstress_x'][self._indexes['effstress_x'], :] = effstress_x +1
         self._indexes['effstress_x'] += 1
 
         return (Ks_x, effstress_x)
