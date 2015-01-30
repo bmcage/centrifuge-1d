@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 from ..shared.functions import lagrangian_derivative_coefs
 from numpy import linspace, power, empty
-from ..shared.consolidation import (create_CON, CON_SLURRY, CON_PRECON,
+from ..shared.consolidation import (create_CON, CON_SLURRY, CON_GOMPERTZ,
                                     CON_FREEFORM)
 
 def dtype_deps(cfg):
@@ -20,8 +20,8 @@ CONFIG_OPTIONS = ['inner_points', 'dtype',
                   ('con_max_refine', 0),
                   (lambda cfg: cfg.get_value('con_type') == CON_SLURRY,
                    ['a', 'b', 'c', 'd']),
-                  (lambda cfg: cfg.get_value('con_type') in [CON_PRECON,],
-                   ['a', 'b', 'c', 'd', 'precona', 'preconb']),
+                  (lambda cfg: cfg.get_value('con_type') in [CON_GOMPERTZ,],
+                   ['a', 'b', 'c', 'd', 'cc']),
                   (lambda cfg: cfg.get_value('con_type') in [CON_FREEFORM],
                    [('ei', None), ('si', None), ('ki', None), ('eiadd', None)]),
                   'porosity',

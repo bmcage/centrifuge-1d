@@ -17,8 +17,7 @@ CONFIG_OPTIONS = {
          'b' : ("A parameter for the constitutive consolidation laws"),
          'c' : ("A parameter for the constitutive consolidation laws"),
          'd' : ("A parameter for the constitutive consolidation laws"),
-         'precona' : ("A parameter for the constitutive consolidation laws"),
-         'preconb' : ("A parameter for the constitutive consolidation laws"),
+         'cc' : ("A parameter for the constitutive consolidation laws"),
          'ei' : ("For freeform consolidation grid points in void radio e"),
          'si' : ("For freeform consolidation effective stress sigma values "
                  "with the grid points in void radio e"),
