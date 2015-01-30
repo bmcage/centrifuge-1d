@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import scikits.odes.sundials.ida as ida
 import numpy as np
+import sys
 from .show import show_inbetween_result
 from matplotlib.cbook import flatten
 
@@ -247,6 +248,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
             perc_done=0;
             perc_next=1;
             while True:
+                #print ( ' Step start', t_meas )
                 (flag, t_out) = solver.step(t_meas, z[i, :], zp0)
                 t[i] = t_out
                 perc_done = (t_out-model.t0) / (t_end-model.t0) * 100
@@ -327,6 +329,10 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
             z0 = z[i-1, :]
 
         if model.always_restart_solver:
+            #makes sense only if there is an init cond to compute
+            if model.compute_initcond == None:
+                print ("Error: Asking to restart solver, but no computation of init condition")
+                sys.exit(0)
             solver_initialized = False
 
     return (True, t, z, i-1)
