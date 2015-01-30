@@ -118,6 +118,13 @@ CONFIG_OPTIONS = {
                       "Type: integer"),
         'max_step_size': ("Maximal size of one step the solver performs. "
                           "Type: float"),
+        'compute_initcond': ("Value of compute_initcond for the solver. This"
+                              " can be one of None: don't compute init condition,"
+                              " 'yp0': calculates/improves the yp0 initial "
+                              "condition (considering y0 to be accurate), or "
+                              "'y0' : calculates/improves the y0 initial "
+                              "condition (considering yp0 to be accurate)."
+                            ),
         'always_restart_solver': ("If the initial condition of the next step "
                                   "is the same as the final state of previous "
                                   "step, the solver just continues - if set to "

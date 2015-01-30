@@ -165,7 +165,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
     t_meas = measurements_times[i]
 
     solver = ida.IDA(residual_fn,
-                     compute_initcond='yp0',
+                     compute_initcond=model.compute_initcond,
                      first_step_size=model.first_step_size,
                      atol=model.atol, rtol=model.rtol,
                      max_step_size = model.max_step_size,
