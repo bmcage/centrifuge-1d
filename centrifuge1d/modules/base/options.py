@@ -27,6 +27,7 @@ CONFIG_OPTIONS = ['exp_type',
                   'atol', 'rtol',
                   'first_step_size',
                   'max_steps', 'max_step_size',
+                  ('compute_initcond', 'yp0'),
                   # defaults
                   ('g', 981),   # g accelleration in cm/s
                   ('tube_no', None),
