@@ -9,6 +9,7 @@ from scikits.odes.sundials.ida import IDA_RhsFunction
 from ..shared.functions import y2x
 from ..shared.solver import simulate_direct
 from ..shared.show import show_results
+from ..shared.consolidation import CON_GOMPERTZ
 
 NUMERFACT_e0 = 1#0.999
 use_cons_water = True
@@ -55,11 +56,18 @@ class centrifuge_residual(IDA_RhsFunction):
                 self.ecopy = np.empty(last_idx+1-first_idx, float)
             self.ecopy[:] = z[first_idx:last_idx+1]
 
-            if np.any(self.ecopy <= 0): # negative void ratio??
-                print ('ERROR: Negative void ratio found', self.ecopy)
-                print ('input z   ', z)
-                print ('input zdot', zdot)
-                self.ecopy[self.ecopy <= 0] = 0
+            if CON.typeCON() == CON_GOMPERTZ:
+                if np.any(self.ecopy <= CON._e0 - CON._c): # negative void ratio??
+                    print ('ERROR: Too low void ratio found', self.ecopy, '<', CON._e0 - CON._c)
+                    print ('input z   ', z)
+                    print ('input zdot', zdot)
+                    self.ecopy[self.ecopy <= CON._e0 - CON._c] = 1.0001 * (CON._e0 - CON._c)
+            else:
+                if np.any(self.ecopy <= 0): # negative void ratio??
+                    print ('ERROR: Negative void ratio found', self.ecopy)
+                    print ('input z   ', z)
+                    print ('input zdot', zdot)
+                    self.ecopy[self.ecopy <= 0] = 0
 
             edot =  zdot[first_idx:last_idx+1]
 
