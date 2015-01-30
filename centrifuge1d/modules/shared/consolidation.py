@@ -340,10 +340,9 @@ class CON_Gompertz(CON_base):
         einternal[:] = e[:]
         #numerically, we can have values of e>e0, we correct for those
         if len(e) == 1:
-            einternal[0] = self._e0
-            if einternal[0]> self._e0: einternal[0]=self._e0
+            if einternal[0]> 0.9999*self._e0: einternal[0]=self._e0*0.9999
         else:
-            einternal[self._e0 < e] = self._e0
+            einternal[0.9999*self._e0 < e] = self._e0*0.9999
         #note, einternal > a is required !!
         a = self._e0 - self._c
         b = np.exp(1)*self._Cc / self._c
@@ -396,14 +395,13 @@ class CON_Gompertz(CON_base):
         """
         return value of d sigma' / de at e
 
-        If zeroval != 0, all values > zeroval are given the value zeroval.
-          For example: zeroval = -1e-10 returns as highest value -1e10!
+        zeroval not used!!
         """
         einternal = np.empty(len(e), float)
         einternal[:] = e[:]
         #numerically, we can have values of e>e0, we correct for those
-        einternal[self._e0*0.999 < einternal] = self._e0*.999 #2*self._e0-e[self._e0<e]
-        sigp = self.e2sigmaprime(e, None)
+        einternal[self._e0*0.9999 < einternal] = self._e0*.9999 #2*self._e0-e[self._e0<e]
+        sigp = self.e2sigmaprime(einternal, None)
         a = self._e0 - self._c
         if not dsigpde is None:
             dsigpde[:] = - self._c * np.log(10)*sigp \
@@ -415,9 +413,6 @@ class CON_Gompertz(CON_base):
                 / ((einternal-a)*np.log(self._c/(einternal-a))
                                 *self._Cc*np.exp(1)
                   )
-
-        #print ('dsipde', dsigpde)
-        #raw_input('test')
         #if zeroval != 0:
         #    dsigpde[dsigpde>-1e-8] = -1e-8
         return dsigpde
