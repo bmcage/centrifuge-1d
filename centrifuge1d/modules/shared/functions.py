@@ -134,6 +134,67 @@ def find_omega2g_dec(t, deceleration_duration, omega_start, g):
 
     return omega * omega / g
 
+def file_len(fname):
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            pass
+    return i + 1
+
+def readrpms_file(filename, g):
+    """
+    Function that creates a data structure holding rpms measured values
+    """
+    data = {'time': None,
+            'omega2': None,
+            'curpos': 0,
+            }
+
+    filelen = file_len(filename);
+    data['time'] = np.empty(filelen, float)
+    data['omega2'] = np.empty(filelen, float)
+
+    with open(filename, 'r') as f:
+        firstline = f.getline()
+        begintimefile = float(firstline.split(';')[0])
+
+    with open(filename, 'r') as f:
+        for ind, line in enumerate(f):
+            linedata = line.split(';')
+            data['time'][ind] = float(linedata[0])-begintimefile
+            data['omega2'][ind] = np.power(float(linedata[1]),2)
+    return data
+
+def find_omega2g_rpms(t, g, datarpms):
+    """
+      Function for determinantion of the omega^2/g coef under centrifugation.
+      This uses the data in datarpms to determine current rpms
+      Time 't' is the time since the centrifugation (phase) started.
+    """
+    curpos = datarpms['curpos']
+    time = datarpms['time']
+    omega2 = datarpms['omega2']
+    lenar = len(time)
+    #search around curpos to good t value.
+    curtime = time[curpos]
+    if t < curtime:
+        for ind in xrange(curpos, -1, -1):
+            if t >= time[ind]:
+                curpos = ind
+                break
+    else:
+        # t>=curtime
+        for ind in xrange(curpos+1, lenar-1, 1):
+            if t < time[ind]:
+                curpos = ind -1
+                break
+    datarpms['curpos'] = curpos
+    curtime = time[curpos]
+    nexttime = time[curpos+1]
+    dt = nexttime - curtime
+    # interpolate omega2 based on this
+    curomega2 = (nexttime-t)/dt * omega2[curpos] + (t-curtime)/dt * omega2[curpos+1]
+    return curomega2/g
+
 def y2x(y, s1, s2):
     """ Transform interval y=<0,1> to original interval x. """
     s1_len = np.alen(s1)

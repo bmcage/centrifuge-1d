@@ -23,7 +23,7 @@ def f3(t):
     return 0.1332308098 * np.log(t) + 9.5952480661
 
 #we generate rpms output in rad/s
-with open("testout_rpms", 'w') as f:
+with open("testout_rpms.csv", 'w') as f:
     omega_start = 0.;
     timenow = 0.
     for rpm, dur in zip(rpms, duration):
