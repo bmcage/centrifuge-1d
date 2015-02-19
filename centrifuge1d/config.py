@@ -116,13 +116,14 @@ class ModulesManager():
 
             ancestors_list = get_ancestors_fn(module)
 
+            val = True
             for ancestor_name in ancestors_list:
                 if not ancestor_name in ancestor_names:
                     ancestor_names.add(ancestor_name)
                     ancestor_module = self.find_module(ancestor_name, submodule)
-                    traverse_hook(ancestor_module)
+                    val = traverse_hook(ancestor_module) and val
 
-            return hook_fn(module)
+            return hook_fn(module) and val
 
         ancestor_names = set()
         module = self.find_module(modname_or_exptype, submodule)
