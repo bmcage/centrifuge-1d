@@ -149,8 +149,13 @@ def check_cfg(cfg):
             return False
         # 2. if file given, accel/decel should not be present
         if cfg.get_value('include_acceleration'):
-            print ("rpms_file given, include_accelleration must be zero!")
+            print ("rpms_file given, include_acceleration must be False!")
             return False
+        # 3. if rpms_file given, omega should be None
+        if len(cfg.get_value('omega')) is not 1:
+            print ("rpms_file given, omega should be value")
+            return False
+
 
     return True
 
@@ -178,10 +183,10 @@ def adjust_cfg(cfg):
 
     if cfg.get_value("rpms_file"):
         # we need to determine rpms based on file data!
-        datarpms = readrpms_file(cfg.get_value("rpms_file"))
-        cfg.set_value("datarpms", datarpms)
         omega_acc = (lambda model, t_total:
-                     find_omega2g_rpms(t_total-model.t0, model.g, datarpms) )
+                     find_omega2g_rpms(t_total-model.t0, model.g,
+                                       cfg.get_value("datarpms"))
+                     )
 
     cfg.set_value('omega2g_fns', {'a': omega_acc, 'g': omega_fh,
                                   'd': omega_dec})

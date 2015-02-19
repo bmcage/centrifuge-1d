@@ -5,9 +5,10 @@ from scipy.integrate import simps
 
 from collections import OrderedDict
 from ...shared import flatten, filter_indices
-from .functions import rpm2radps, radps2rpm, compare_data, \
-    find_omega2g, find_omega2g_dec, find_omega2g_fh, \
-    smoothing_gaussian, smoothing_triangle, smoothing_linear
+from .functions import (rpm2radps, radps2rpm, compare_data,
+    find_omega2g, find_omega2g_dec, find_omega2g_fh,  readrpms_file,
+    find_omega2g_rpms,
+    smoothing_gaussian, smoothing_triangle, smoothing_linear)
 
 
 # MEASUREMENTS_NAMES are the mapping between the internal
@@ -181,6 +182,11 @@ def determine_centrifugation_times(cfg):
     acc_duration_list = cfg.get_value('duration', not_found='NotFound')
     dec_duration_list = cfg.get_value('deceleration_duration', not_found='NotFound')
     fh_duration_list  = cfg.get_value('fh_duration', not_found='NotFound')
+    rpms_from_file = False
+    if cfg.get_value("rpms_file", not_found=None):
+        rpms_from_file = True
+        datarpms = readrpms_file(cfg.get_value("rpms_file"))
+        cfg.set_value("datarpms", datarpms)
 
     if (acc_duration_list is 'NotFound' and dec_duration_list is 'NotFound'
         and fh_duration_list is 'NotFound'):
@@ -210,7 +216,7 @@ def determine_centrifugation_times(cfg):
             exit(1)
 
     return (acc_duration_list, dec_duration_list, fh_duration_list,
-            phases_scans, include_acceleration)
+            phases_scans, include_acceleration, rpms_from_file)
 
 def determine_measurements(cfg, phases_scans):
     """
@@ -341,7 +347,8 @@ def determine_scaling_coefs(cfg):
 
 def determine_rotspeed(measurements_times, omega_ini_radps, acc_duration_list,
                       dec_duration_list, fh_duration_list, include_acceleration,
-                      t_acceleration_duration, g_list, r0_fall_list):
+                      t_acceleration_duration, g_list, r0_fall_list,
+                      rpms):
 
     measurements_nr = np.alen(measurements_times)
 
@@ -413,8 +420,12 @@ def determine_rotspeed(measurements_times, omega_ini_radps, acc_duration_list,
                    and (measurements_times[i] <= t_phase_end)):
 
                 if phase == 'a':
-                    omega2g = \
-                      find_omega2g(measurements_times[i] - t_phase_start,
+                    if rpms:
+                        omega2g = find_omega2g_rpms(
+                            measurements_times[i] - t_phase_start, g, rpms)
+                    else:
+                        omega2g = \
+                        find_omega2g(measurements_times[i] - t_phase_start,
                                    omega_final, omega_start, g,
                                    include_acceleration, t_acc_duration)
                 elif phase == 'd':
@@ -436,13 +447,14 @@ def determine_rotspeed(measurements_times, omega_ini_radps, acc_duration_list,
     return (omega2g_values, omega_radps)
 
 def determine_omega(cfg, acc_duration_list, dec_duration_list, fh_duration_list,
-                    include_acceleration, measurements_times):
+                    include_acceleration, measurements_times, rpms_from_file):
     """
       Determine values of 'omega' needed for computations:
           omega_rpm   - original values
           omega_radps - orignail values transformed to [rad/s] units
           omega2g     - (omega^2)/g, where omega [rad/s] is the rotational
                         speed at measurements_times
+      This is done once at the start of computation
     """
 
     t_acc_duration = cfg.get_value('acceleration_duration', not_found=None)
@@ -450,6 +462,9 @@ def determine_omega(cfg, acc_duration_list, dec_duration_list, fh_duration_list,
     r0_fall_list = cfg.get_value('r0_fall', not_found=None)
 
     omega_orig_rpm = cfg.get_value('omega', not_found=None)
+    rpms = None
+    if rpms_from_file:
+        rpms = cfg.get_value("datarpms")
 
     if omega_orig_rpm:
         omega_orig_radps = rpm2radps(omega_orig_rpm)
@@ -458,7 +473,8 @@ def determine_omega(cfg, acc_duration_list, dec_duration_list, fh_duration_list,
             determine_rotspeed(measurements_times, omega_orig_radps,
                                acc_duration_list, dec_duration_list,
                                fh_duration_list, include_acceleration,
-                               t_acc_duration, g_list, r0_fall_list)
+                               t_acc_duration, g_list, r0_fall_list,
+                               rpms)
 
         omega_rpm = radps2rpm(omega_radps)
     else:
@@ -855,7 +871,7 @@ class Measurements():
         # 1. Determine values
         #    a) centrifugation (phases) times
         (acc_duration, dec_duration, fh_duration, phases_scans,
-         include_acceleration) = determine_centrifugation_times(cfg)
+         include_acceleration, rpms_from_file) = determine_centrifugation_times(cfg)
         #    b) measurements, xvalues
         (measurements, measurements_xvalues) = \
           determine_measurements(cfg, phases_scans)
@@ -871,7 +887,7 @@ class Measurements():
         #    g) omega (rpm, radps, omega2g)
         (omega_ini_rpm, omega_ini_radps, omega2g, omega_rpm, omega_radps) = \
           determine_omega(cfg, acc_duration, dec_duration, fh_duration,
-                          include_acceleration, times)
+                          include_acceleration, times, rpms_from_file)
         #    h) determine tara calibration curve
         tara_calibration = \
           determine_tara_calibration(cfg, measurements, times, omega2g,
