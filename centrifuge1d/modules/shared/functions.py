@@ -140,7 +140,7 @@ def file_len(fname):
             pass
     return i + 1
 
-def readrpms_file(filename, g):
+def readrpms_file(filename):
     """
     Function that creates a data structure holding rpms measured values
     """
@@ -154,7 +154,7 @@ def readrpms_file(filename, g):
     data['omega2'] = np.empty(filelen, float)
 
     with open(filename, 'r') as f:
-        firstline = f.getline()
+        firstline = f.readline()
         begintimefile = float(firstline.split(';')[0])
 
     with open(filename, 'r') as f:
