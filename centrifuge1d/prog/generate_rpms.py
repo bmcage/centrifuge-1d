@@ -27,7 +27,7 @@ with open("testout_rpms.csv", 'w') as f:
     omega_start = 0.;
     timenow = 0.
     for rpm, dur in zip(rpms, duration):
-        omega_final = rpm *np.pi / 60.
+        omega_final = rpm *2*np.pi / 60.
         for time in range(dur):
             # Transform t so that acc is in <0, acceleration_duration>
             t = time * 21/acceleration_duration
