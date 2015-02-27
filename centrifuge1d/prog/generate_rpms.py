@@ -8,9 +8,11 @@ from __future__ import print_function, division
 
 import numpy as np
 
-rpms = [500,800,1000,1200]
-duration = [1000,1000,1000,1000]
-acceleration_duration = 25
+#rpms = [500,800,1000,1200]
+#duration = [1000,1000,1000,1000]
+rpms = [500,800,1000,1200,1500,1800,2100,2400,2600,2800,3000]
+duration = [1000,500,500,500,500,500,500,500,500,500,500]
+acceleration_durations = [25,25,25,25,25,30,30,30,30,35,35]
 
 def f1(t):
     """ Helper function for estimating the centrifuge acceleration curve. """
@@ -26,7 +28,8 @@ def f3(t):
 with open("testout_rpms.csv", 'w') as f:
     omega_start = 0.;
     timenow = 0.
-    for rpm, dur in zip(rpms, duration):
+    for rpm, dur, acceleration_duration in zip(rpms, duration,
+                                               acceleration_durations):
         omega_final = rpm *2*np.pi / 60.
         for time in range(dur):
             # Transform t so that acc is in <0, acceleration_duration>
