@@ -206,7 +206,7 @@ class CON_Slurry(CON_base):
         einternal = np.empty(len(e), float)
         einternal[:] = e[:]
         #numerically, we can have values of e>e0, we correct for those
-        einternal[self._e0 < e] = self._e0
+        einternal[self._e0 < einternal] = self._e0
         if not sigp is None:
             sigp[:] = self._A  * np.power((self._e0 - einternal) / (1 + self._e0), self._B)
         else:
@@ -339,9 +339,13 @@ class CON_Gompertz(CON_base):
         einternal = np.empty(len(e), float)
         einternal[:] = e[:]
         #numerically, we can have values of e>e0, we correct for those
+        bade = []
         if len(e) == 1:
-            if einternal[0]> 0.9999*self._e0: einternal[0]=self._e0*0.9999
+            if einternal[0]> self._e0: bade = np.asarray([True], bool)
+            if einternal[0]> 0.9999*self._e0:
+                einternal[0]=self._e0*0.9999
         else:
+            bade = self._e0 < e
             einternal[0.9999*self._e0 < e] = self._e0*0.9999
         #note, einternal > a is required !!
         a = self._e0 - self._c
@@ -354,8 +358,7 @@ class CON_Gompertz(CON_base):
             sigp = np.exp((np.exp(1)*self._Cc*self._m  \
                               + np.log(np.log(self._c/(einternal-a)))*self._c) \
                              *np.log(10)/(self._Cc*np.exp(1)))
-        #print ('test', self._Cc, np.log(self._c/(einternal-a)))
-        #raw_input(' test ' + str(sigp) )
+        sigp[bade] = 0.
         return sigp
 
     def sigmaprime2e(self, sigp, e = None):
@@ -397,11 +400,20 @@ class CON_Gompertz(CON_base):
 
         zeroval not used!!
         """
+        e = np.asarray(e)
         einternal = np.empty(len(e), float)
         einternal[:] = e[:]
         #numerically, we can have values of e>e0, we correct for those
-        einternal[self._e0*0.9999 < einternal] = self._e0*.9999 #2*self._e0-e[self._e0<e]
-        sigp = self.e2sigmaprime(einternal, None)
+        bade = []
+        if len(e) == 1:
+            if einternal[0]> self._e0: bade = np.asarray([True], bool)
+            if einternal[0]> 0.9999*self._e0:
+                einternal[0]=self._e0*0.9999
+        else:
+            bade = self._e0 < e
+            einternal[0.9999*self._e0 < e] = self._e0*0.9999
+
+        sigp = self.e2sigmaprime(e, None)
         a = self._e0 - self._c
         if not dsigpde is None:
             dsigpde[:] = - self._c * np.log(10)*sigp \
@@ -413,6 +425,7 @@ class CON_Gompertz(CON_base):
                 / ((einternal-a)*np.log(self._c/(einternal-a))
                                 *self._Cc*np.exp(1)
                   )
+        #dsigpde[bade] = 1e5 * (e[bade]-self._e0)
         #if zeroval != 0:
         #    dsigpde[dsigpde>-1e-8] = -1e-8
         return dsigpde

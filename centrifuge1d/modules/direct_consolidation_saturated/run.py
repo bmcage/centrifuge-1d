@@ -11,16 +11,38 @@ from ..shared.solver import simulate_direct
 from ..shared.show import show_results
 from ..shared.consolidation import CON_GOMPERTZ
 
-NUMERFACT_e0 = 1#0.999
+NUMERFACT_e0 = 0.999
 use_cons_water = True
+CONVERT = False
 
+def zida2e(z, model):
+    #convert internal z to true void ratio
+    # void ratio between  CON._e0 - CON._c and CON._e0
+    lowerb = model.CON._e0 - model.CON._c
+    upperb = model.CON._e0
+    (first_idx, last_idx) = (model.first_idx, model.last_idx)
+
+    return lowerb + (np.sin(z[first_idx:last_idx+1])+1)*(upperb-lowerb)/2
+
+def zdotida2edot(z, zdot, model):
+    #convert internal z to true void ratio
+    # void ratio between  CON._e0 - CON._c and CON._e0
+    lowerb = model.CON._e0 - model.CON._c
+    upperb = model.CON._e0
+    (first_idx, last_idx) = (model.first_idx, model.last_idx)
+
+    return np.cos(z[first_idx:last_idx+1])*zdot[first_idx:last_idx+1]*(upperb-lowerb)/2
+
+def e2zida(e, model, z):
+    lowerb = model.CON._e0 - model.CON._c
+    upperb = model.CON._e0
+    (first_idx, last_idx) = (model.first_idx, model.last_idx)
+    z[first_idx:last_idx+1] = np.arcsin(2*(e-lowerb)/(upperb-lowerb)-1)
 
 class centrifuge_residual(IDA_RhsFunction):
     def __init__(self):
         IDA_RhsFunction.__init__(self)
         self.ecopy = None
-
-
 
     def evaluate(self, t, z, zdot, result, model):
         # F(t,h,dh/dt) = porosity * du/dh * dh/dt
@@ -54,14 +76,18 @@ class centrifuge_residual(IDA_RhsFunction):
 
             if self.ecopy is None:
                 self.ecopy = np.empty(last_idx+1-first_idx, float)
-            self.ecopy[:] = z[first_idx:last_idx+1]
+            if CONVERT:
+                self.ecopy[:] = zida2e(z, model)
+            else:
+                self.ecopy[:] = z[first_idx:last_idx+1]
 
             if CON.typeCON() == CON_GOMPERTZ:
                 if np.any(self.ecopy <= CON._e0 - CON._c): # negative void ratio??
                     print ('ERROR: Too low void ratio found', self.ecopy, '<', CON._e0 - CON._c)
-                    print ('input z   ', z)
-                    print ('input zdot', zdot)
-                    self.ecopy[self.ecopy <= CON._e0 - CON._c] = 1.0001 * (CON._e0 - CON._c)
+                    # added a regularization here. IMPORTANT
+                    self.ecopy[self.ecopy <= CON._e0 - CON._c] = (1.001 - 0.0001*(CON._e0 - CON._c-self.ecopy[self.ecopy <= CON._e0 - CON._c] )) *  (CON._e0 - CON._c)
+                    print ('Correcting, new value: ', self.ecopy)
+
             else:
                 if np.any(self.ecopy <= 0): # negative void ratio??
                     print ('ERROR: Negative void ratio found', self.ecopy)
@@ -69,7 +95,10 @@ class centrifuge_residual(IDA_RhsFunction):
                     print ('input zdot', zdot)
                     self.ecopy[self.ecopy <= 0] = 0
 
-            edot =  zdot[first_idx:last_idx+1]
+            if CONVERT:
+                edot = zdotida2edot(z, zdot, model)
+            else:
+                edot =  zdot[first_idx:last_idx+1]
 
             e12  = (self.ecopy[1:] + self.ecopy[:-1]) / 2
 
@@ -128,12 +157,91 @@ class centrifuge_residual(IDA_RhsFunction):
             if rb_type == 3:
                 return 1  # not yet programmed, see run of direct_sat_drain
             elif rb_type == 0:  #no outflow!
-                result[last_idx]  = (
-                  CON.dsigpde([self.ecopy[-1]],zeroval=-1e-20) * dedy[-1]
+                dsigde = CON.dsigpde([self.ecopy[-1]],zeroval=-1e-20)
+                if CON.typeCON() == CON_GOMPERTZ:
+                    eatend = self.ecopy[-1]
+                    if eatend>= CON._e0:
+                        eatend=CON._e0
+
+                    # problem, at edge we have e>=e0, and sig == 0, dsigde ==0!
+                    # we estimate dsigdy instead
+                    if (self.ecopy[-3] <= CON._e0 and self.ecopy[-2] <= CON._e0
+                            and self.ecopy[-1] <= CON._e0):
+                        #valid void ratio's
+                        dsigdy   = ldc1[-1] * CON.e2sigmaprime([self.ecopy[-3]]) + ldc2[-1] * CON.e2sigmaprime([self.ecopy[-2]]) + ldc3[-1] * CON.e2sigmaprime([self.ecopy[-1]])
+                    elif (self.ecopy[-1] >= CON._e0):
+                        #invalid void ratio, we cannot know a corresponding dsigdy
+                        #we return dsigdy as -dedy to force solver to correct and move
+                        #to values below e0
+                        dsigdy = - ((self.ecopy[-1]-self.ecopy[-2])/dy[-1])
+                    else:
+                        #numerical discretization based on the last two values, last will be < e0
+                        dsigdy = (CON.e2sigmaprime([self.ecopy[-1]])-CON.e2sigmaprime([self.ecopy[-2]]))/dy[-1]
+
+                    #boundary condition sets the value of dsigdy
+                    result[last_idx]  = ( dsigdy
+                            - (L
+                               * (gamma_s-gamma_w)
+                               / (1+eatend) *omega2g * (rE-fl2))
+                                      )
+                    if (self.ecopy[-1] >= CON._e0):
+                        #we had step in impossible direction. penelize it!
+                        result[last_idx] *= (1+self.ecopy[-1] - CON._e0)
+#==============================================================================
+#                     if dsigde == 0:
+#                         # problem, at edge we have e>=e0, and sig == 0, dsigde ==0!
+#                         # we estimate dsigdy instead
+#                         if (self.ecopy[-3] <= CON._e0 and self.ecopy[-2] <= CON._e0 and self.ecopy[-1] <= CON._e0):
+#                             #valid void ratio's
+#                             dsigdy   = ldc1[-1] * CON.e2sigmaprime([self.ecopy[-3]]) + ldc2[-1] * CON.e2sigmaprime([self.ecopy[-2]]) + ldc3[-1] * CON.e2sigmaprime([self.ecopy[-1]])
+#                         elif (self.ecopy[-1] >= CON._e0):
+#                             #invalid void ratio, we cannot know a corresponding dsigdy
+#                             #we return dsigdy as -dedy to force solver to correct
+#                             dsigdy = - ((self.ecopy[-1]-self.ecopy[-2])/dy[-1])
+#                         else:
+#                             dsigdy = (CON.e2sigmaprime([self.ecopy[-1]])-CON.e2sigmaprime([self.ecopy[-2]]))/dy[-1]
+#
+#                         result[last_idx]  = ( dsigdy
+#                                 - (L
+#                                    * (gamma_s-gamma_w)
+#                                    / (1+eatend) *omega2g * (rE-fl2))
+#                                           )
+#                         if (self.ecopy[-1] >= CON._e0):
+#                             #we had step in impossilbe direction. penelize it!
+#                             result[last_idx] *= (1+self.ecopy[-1] - CON._e0)
+#                     else:
+#                         result[last_idx]  = (1e-6+omega2g)*( dsigde
+#                             * dedy[-1]
+#                                 - (L
+#                                    * (gamma_s-gamma_w)
+#                                    / (1+self.ecopy[-1]) *omega2g * (rE-fl2))
+#                                           )
+#                         dsigdy   = ldc1[-1] * CON.e2sigmaprime([self.ecopy[-3]]) + ldc2[-1] * CON.e2sigmaprime([self.ecopy[-2]]) + ldc3[-1] * CON.e2sigmaprime([self.ecopy[-1]])
+#                         #dsigdy = (CON.e2sigmaprime([self.ecopy[-1]])-CON.e2sigmaprime([self.ecopy[-2]]))/dy[-1]
+#                         if (self.ecopy[-1] >= CON._e0):
+#                             #invalid void ratio, we cannot know a corresponding dsigdy
+#                             #we return dsigdy as -dedy to force solver to correct
+#                             dsigdy = - ((self.ecopy[-1]-self.ecopy[-2])/dy[-1])
+#                         result[last_idx]  = ( dsigdy
+#                                 - (L
+#                                    * (gamma_s-gamma_w)
+#                                    / (1+self.ecopy[-1]) *omega2g * (rE-fl2))
+#                                          )
+#==============================================================================
+                else:
+                    result[last_idx]  = (1e-6+omega2g)*( dsigde
+                        * dedy[-1]
                             - (L
                                * (gamma_s-gamma_w)
                                / (1+self.ecopy[-1]) *omega2g * (rE-fl2))
                                       )
+                    #dsigdy   = ldc1[-1] * CON.e2sigmaprime([self.ecopy[-3]]) + ldc2[-1] * CON.e2sigmaprime([self.ecopy[-2]]) + ldc3[-1] * CON.e2sigmaprime([self.ecopy[-1]])
+                    #dsigdy = (CON.e2sigmaprime([self.ecopy[-1]])-CON.e2sigmaprime([self.ecopy[-2]]))/dy[-1]
+                    #result[last_idx]  = ( dsigdy
+                    #        - (L
+                    #           * (gamma_s-gamma_w)
+                    #           / (1+self.ecopy[-1]) *omega2g * (rE-fl2))
+                    #                  )
 
 #==============================================================================
 #                 if omega2g < 0.5e-7:
@@ -195,6 +303,11 @@ class centrifuge_residual(IDA_RhsFunction):
             #mass flowing in: not used at the moment in this model
             result[model.mass_in_idx] = zdot[model.mass_in_idx]
 
+#            print ('test', t, result,[z[last_idx-2],z[last_idx-1], z[last_idx]],
+#                        zdot[last_idx],
+#                        [result[last_idx-2],result[last_idx-1],result[last_idx]])
+#            #raw_input('cont')
+
             verbosity = model.verbosity
             if verbosity > 2:
                 if verbosity > 3:
@@ -234,7 +347,11 @@ def on_measurement(t, z, model, measurements):
     #compute the x values from 0 to L corresponding to grid y values:
     x  = y2x(model.y, 0, L)
 
-    e = z[model.first_idx: model.last_idx+1]
+    if CONVERT:
+        e = zida2e(z, model)
+    else:
+        e = z[model.first_idx: model.last_idx+1]
+
     (Ks_e, effstress_e) = measurements.store_calc_e(x, e, model.CON)
 
     (WM, WM_in_tube) = \
@@ -278,6 +395,10 @@ def initialize_z0(z0, model):
             model.fl2, model.fp2, store=False)
 
     model.wm0 = wm0
+
+    if CONVERT:
+        e2zida(z0[model.first_idx:model.last_idx+1], model, z0)
+
 
 def initialize_zp0(zp0, z0, model):
     (first_idx, last_idx) = (model.first_idx, model.last_idx)
