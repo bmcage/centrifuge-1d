@@ -56,7 +56,11 @@ CONFIG_OPTIONS = {
                          "the solver by determining good starting value of "
                          "the derivatives of the unknowns ei, dei/dt."),
          'L_atol': ("Default: 1e-8. Length sample is via an algebraic equation."
-                     " With L_atol you can set abs tolerance for this. ")
+                     " With L_atol you can set abs tolerance for this. "),
+         'numerfact_e0': ("Default: 0.999. Numerical starting value at 0 rpm"
+                     " of the void ratio is numerfact_e0 * e0. This because"
+                     " staring at e0 leads to problems on first step when value"
+                     " of e becomes > e0, and no good penalization can be done." ),
         }
     }
 

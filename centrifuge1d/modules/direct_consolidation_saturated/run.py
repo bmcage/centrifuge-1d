@@ -11,7 +11,6 @@ from ..shared.solver import simulate_direct
 from ..shared.show import show_results
 from ..shared.consolidation import CON_GOMPERTZ
 
-NUMERFACT_e0 = 0.999
 use_cons_water = True
 CONVERT = False
 
@@ -52,7 +51,7 @@ class centrifuge_residual(IDA_RhsFunction):
             (rE, Lorig, porosityorig, eorig, fl2, fl1, gamma_w, gamma_s) = \
               (model.re, model.l0, model.porosity, model.e0, model.fl2, model.fl1,
                 model.gamma_w, model.gamma_s)
-            eorignumer = NUMERFACT_e0 * eorig
+            eorignumer = model.numerfact_e0 * eorig
 
             if fl1 > 0:
                 print ('ERROR: porous filter at top not supported yet!')
@@ -106,7 +105,10 @@ class centrifuge_residual(IDA_RhsFunction):
             Ks_e = CON.e2Ks(self.ecopy)
             Ks_e12 = CON.e2Ks(e12)
 
-            effstress_e = CON.e2sigmaprime(self.ecopy/NUMERFACT_e0)
+            if (t<1e-10):
+                effstress_e = CON.e2sigmaprime(self.ecopy/model.numerfact_e0)
+            else:
+                effstress_e = CON.e2sigmaprime(self.ecopy)
 
             #the grid
             (y, y12, dy, alpha)  = (model.y, model.y12, model.dy, model.alpha)
@@ -378,7 +380,7 @@ def on_measurement(t, z, model, measurements):
                                       model.tube_crosssectional_area)
 
 def initialize_z0(z0, model):
-    z0[model.first_idx:model.last_idx+1] = NUMERFACT_e0* model.e0
+    z0[model.first_idx:model.last_idx+1] = model.numerfact_e0 * model.e0
 
     mass_in = mass_out = 0.0
 
