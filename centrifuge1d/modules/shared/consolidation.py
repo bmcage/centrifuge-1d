@@ -367,6 +367,7 @@ class CON_Gompertz(CON_base):
             sigp = np.exp((np.exp(1)*self._Cc*self._m  \
                               + np.log(np.log(self._c/(einternal-a)))*self._c) \
                              *np.log(10)/(self._Cc*np.exp(1)))
+        #sigp[bade] = 1e-8
         sigp[bade] = 0.
         return sigp
 
