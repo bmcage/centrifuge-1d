@@ -44,7 +44,8 @@ CONFIG_OPTIONS = ['inner_points', 'dtype',
                   'l0',
                   'wl0',
                   'density_s', #density sample in g/(cm^3)
-                  ('numerfact_e0', 0.999)
+                  ('numerfact_e0', 0.999),
+                  ('e0_overshoot_factor', 0.),
                  ]
 
 INTERNAL_OPTIONS = ['m', 'y', 'y12', 'dy', 'alpha', 'ldc1', 'ldc2', 'ldc3',

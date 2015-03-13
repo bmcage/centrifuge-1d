@@ -146,6 +146,12 @@ class centrifuge_residual(IDA_RhsFunction):
              -segment12 * (gamma_s/gamma_w-1)*omega2g*Ks_e[1:-1] \
              + (1+self.ecopy[1:-1])/gamma_w/L/L * ( Dpart[1:] - Dpart[:-1])
 
+            #we want e to remain below max, so add an error if above
+            if model.e0_overshoot_factor:
+                bade = eorig < self.ecopy[1:-1]
+                result[first_idx+1:last_idx][bade] += model.e0_overshoot_factor*(self.ecopy[1:-1][bade] - eorig) \
+                                * np.sign(result[first_idx+1:last_idx][bade])
+
             #pressure at top
             pL = gamma_w*omega2g/2*( (rE-fl2-L-fl1)**2 - (rE-fl2-L-fl1*ell)**2 )
             #total stress over the sample

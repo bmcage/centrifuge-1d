@@ -61,6 +61,10 @@ CONFIG_OPTIONS = {
                      " of the void ratio is numerfact_e0 * e0. This because"
                      " staring at e0 leads to problems on first step when value"
                      " of e becomes > e0, and no good penalization can be done." ),
+         'e0_overshoot_factor': ("Default: 0.0. Error contribution of solver"
+                     " searching solution e>e0. Contributes an error of "
+                     "e0_overshoot_factor * (e-e0), forcing solution towards"
+                     " e values below e0."),
         }
     }
 
