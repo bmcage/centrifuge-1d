@@ -347,13 +347,15 @@ class CON_Gompertz(CON_base):
         einternal[:] = e[:]
         #numerically, we can have values of e>e0, we correct for those
         bade = []
+        fact = 0.9999
+        fact = 1
         if len(e) == 1:
             if einternal[0]> self._e0: bade = np.asarray([True], bool)
-            if einternal[0]> 0.9999*self._e0:
-                einternal[0]=self._e0*0.9999
+            if einternal[0]> fact*self._e0:
+                einternal[0]=self._e0*fact
         else:
             bade = self._e0 < e
-            einternal[0.9999*self._e0 < e] = self._e0*0.9999
+            einternal[fact*self._e0 < e] = self._e0*fact
         #note, einternal > a is required !!
         a = self._e0 - self._c
         b = np.exp(1)*self._Cc / self._c
