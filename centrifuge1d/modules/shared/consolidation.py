@@ -325,10 +325,17 @@ class CON_Gompertz(CON_base):
         For a given void ratio e, what is the hydraulic conductivity
         K(e)  =  (1+e) (C+De)
         """
+        #numerically, we can have values of e>e0, we correct for those
+        bade = []
+        if len(e) == 1:
+            if e[0] > self._e0: bade = np.asarray([True], bool)
+        else:
+            bade = self._e0 < e
         if not Ks is None:
             Ks[:] = (1+e)*(self._C + self._D * e)
         else:
             Ks = (1+e)*(self._C + self._D * e)
+        Ks[bade] = ((1+self._e0)*(self._C + self._D * self._e0))
         return Ks
 
     def e2sigmaprime(self, e, sigp = None):
