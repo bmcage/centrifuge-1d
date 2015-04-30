@@ -1,7 +1,7 @@
 # This file contains the description of base options
 
 CONFIG_OPTIONS = {
-    'general': {'g': "Gravitational constant. Default is 981 cm/s. Type:float."},
+    'general': {'g': "Gravitational constant. Default is 981 cm/s^2. Type:float."},
     'experiment': \
         {'exp_type': ("Identifier of type of experiment do determine which "
                       "module should be used. Type: string"),
@@ -22,7 +22,7 @@ CONFIG_OPTIONS = {
                      "slow speed such, that the effect is similar to the g "
                      "level. Corresponding rotational speed is calculated "
                      "automatically. Type: float"),
-         'ks': ("Saturated hydraulic conductivity of the soil sample. "
+         'ks': ("Saturated hydraulic conductivity of the soil sample in cm/s. "
                 "Type: float"),
          'l0': "Soil sample (initial) length. Type: float or array of floats.",
          'wt_out': ("Distance from 're' to the basis of the outflow cup. "

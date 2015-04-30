@@ -1,7 +1,8 @@
 from __future__ import division, print_function
 
+import sys
 from ..shared.functions import lagrangian_derivative_coefs
-from numpy import linspace, power, empty
+from numpy import linspace, power, empty, array
 from ..shared.consolidation import (create_CON, CON_SLURRY, CON_GOMPERTZ,
                                     CON_FREEFORM)
 
@@ -44,6 +45,8 @@ CONFIG_OPTIONS = ['inner_points', 'dtype',
                   'l0',
                   'wl0',
                   'density_s', #density sample in g/(cm^3)
+                  ('excess_load', [0]),
+                  ('excess_load_t',[0]),
                   ('numerfact_e0', 0.999),
                   ('e0_overshoot_factor', 0.),
                  ]
@@ -60,6 +63,31 @@ PROVIDE_OPTIONS = []
 
 OPTIONS_ITERABLE_LISTS = ['porosity']
 
+def load_func(x, atimes, aloads):
+    #print (x, atimes, aloads,aloads[x>=atimes])
+    offsettime = 1
+    x_load = aloads[x>=atimes][-1]
+    #10 sec later
+    x_offset_load = aloads[x+offsettime>=atimes][-1]
+    if (x_load == x_offset_load):
+        return x_load
+    else:
+        #load will change, change smootly to the change
+        t_new_load = atimes[x+offsettime>=atimes][-1]
+        return (x - (t_new_load-offsettime))/offsettime * (x_offset_load-x_load) + x_load
+
+def create_excess_load(times, loads):
+    if (len(times) != len(loads)):
+        print ("ERROR: excess loads and excess load times don't have same array sizes!")
+        sys.exit(0)
+    if (len(times) == 0 or (len(times) == 1 and times[0] == 0 and loads[0] == 0)):
+        #no loads
+        return lambda x: 0.
+    else:
+        atimes = array(times)
+        aloads = array(loads)
+        return lambda x: load_func(x, atimes, aloads)
+        #return lambda x: aloads[x>=atimes][-1]
 
 def adjust_cfg(cfg):
     #specific weight water in g/(s cm^2)
@@ -101,13 +129,21 @@ def adjust_cfg(cfg):
     print ('Consolidation: Calculated initial void ratio is', cfg.get_value('e0'))
     ksguess = cfg.get_value('ks')
     ks = ksguess
-    if cfg.get_value('con_type') == CON_SLURRY:
+    if cfg.get_value('con_type') in [CON_SLURRY, CON_GOMPERTZ]:
         ks = (1+e0)*(cfg.get_value('c')+cfg.get_value('d')*e0)
         cfg.set_value('ks', ks)
-    print ('Consolidation: Your guessed ks', ksguess, 'has been changed into calculated', ks)
+    else:
+        print ("ERROR: cannot calculate the start ks as consolidation type is not known!")
+        sys.exit(0)
+    print ('Consolidation: Your guessed ks', ksguess, 'has been changed into calculated', ks, 'cm/s')
+    back = raw_input("Continue? [Y/n] ")
+    if back.strip().lower() in ['n', "no"]:
+        sys.exit(0)
 
     # Determine consolidation curve model used, all data is now available
     cfg.set_value('CON', create_CON(cfg))
+
+    cfg.set_value('excess_load_f', create_excess_load(cfg.get_value('excess_load_t'),cfg.get_value('excess_load')))
 
     cfg.set_value('y', y)
     cfg.set_value('y12', (y[1:]+y[:-1])/2.)

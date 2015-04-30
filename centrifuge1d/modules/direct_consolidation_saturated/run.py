@@ -134,7 +134,13 @@ class centrifuge_residual(IDA_RhsFunction):
             dsigp_de12  = CON.dsigpde(e12) #d sigma' / de at e_{i+1/2}
 
             #no filter at top, BC at top is a water level ell(t)
-            result[first_idx] = eorignumer - self.ecopy[0]  # at top, no consolidation!
+            load = model.excess_load_f(t)
+
+            if load == 0:
+                result[first_idx] = eorignumer - self.ecopy[0]  # at top, no consolidation!
+            else:
+                # at top, the effective stress is the load
+                result[first_idx] = CON.sigmaprime2e(load) - self.ecopy[0]
 
             segment12 = (alpha[1:-1] + alpha[2:])/2
             Dpart = Ks_e12 * dsigp_de12 * dedy12
@@ -156,7 +162,7 @@ class centrifuge_residual(IDA_RhsFunction):
             pL = gamma_w*omega2g/2*( (rE-fl2-L-fl1)**2 - (rE-fl2-L-fl1*ell)**2 )
             #total stress over the sample
             totsig = np.empty(len(self.ecopy), float)
-            totsig[0] = pL
+            totsig[0] = pL + load
             for i in range(1,len(self.ecopy)):
                 totsig[i] = totsig[i-1] \
                     + omega2g*(gamma_s+gamma_w*e12[i-1])/(1+e12[i-1]) \

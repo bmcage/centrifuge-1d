@@ -282,8 +282,8 @@ class CON_Slurry(CON_base):
 class CON_Gompertz(CON_base):
     """ Reconsolidation Gompertz model.
     We start consolidation with uniform void ratio e0
-    For loading (consolistion) we use Gompertz, e0, Cc
-    This should be good model for high e, so e from eg 3 to 7
+    For loading (consolidation) we use Gompertz, e0, Cc
+    This should be good model for preconsolidated grounds
 
     We have
         effective stress

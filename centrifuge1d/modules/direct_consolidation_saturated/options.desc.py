@@ -1,13 +1,16 @@
 CONFIG_OPTIONS = {
     'soil': \
-        {'porosity': "Start porosity of the soil sample. Type: float"},
+        {'porosity': "Start porosity of the soil sample. Type: float",
          'l0': "Soil sample (initial) length. Type: float or array of floats.",
          'wl0': ("Length of water on the inflow (above the soil) in cm. "
                  "Type: float"),
          'ww0': ("Weight of water on the inflow (above the soil) in gramms. "
                  "Only one of 'wl0' and 'ww0' can be specified."
                  "Type: float"),
-	 'density_s': ("Density of the soil (without void space!!) in g/(cm^3)"),
+	   'density_s': ("Density of the soil (without void space!!) in g/(cm^3)"),
+         'excess_load': ("Array of excess load on top of sample in g/(s^2 cm)"),
+         'excess_load_t': ("Array of times for excess load on top of sample in s"),
+        },
     'consolidation': \
         {'con_type': ("Type of constitutive law to use for consolidation "
                         "sigma(e) and K(e). slurry=1, preconsolidated=2, freeform=3"),
