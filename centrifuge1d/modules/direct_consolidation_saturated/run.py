@@ -84,7 +84,10 @@ class centrifuge_residual(IDA_RhsFunction):
                 if np.any(self.ecopy <= CON._e0 - CON._c): # negative void ratio??
                     print ('ERROR: Too low void ratio found', self.ecopy, '<', CON._e0 - CON._c)
                     # added a regularization here. IMPORTANT
-                    self.ecopy[self.ecopy <= CON._e0 - CON._c] = np.max([1.001 - 0.0001*(CON._e0 - CON._c-self.ecopy[self.ecopy <= CON._e0 - CON._c] ),1.0001 - 0.0000001*(CON._e0 - CON._c-self.ecopy[self.ecopy <= CON._e0 - CON._c] ),1]) *  (CON._e0 - CON._c)
+                    t1 = 1.001 - 0.0001*(CON._e0 - CON._c-self.ecopy[self.ecopy <= CON._e0 - CON._c])
+                    t2 = 1.0001 - 0.0000001*(CON._e0 - CON._c-self.ecopy[self.ecopy <= CON._e0 - CON._c] )
+                    self.ecopy[self.ecopy <= CON._e0 - CON._c] = \
+                        np.max([np.max(t1),np.max(t2),1]) *  (CON._e0 - CON._c)
                     print ('Correcting, new value: ', self.ecopy)
 
             else:
