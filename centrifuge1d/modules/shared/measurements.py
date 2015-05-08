@@ -1190,7 +1190,8 @@ class Measurements():
 
         # store effective stress with the e values which correspond to x values
         effstress_x = CON.e2sigmaprime(e)
-        self._computed['effstress_x'][self._indexes['effstress_x'], :] = effstress_x +1
+        #effstress is in unit 0.1 Pa
+        self._computed['effstress_x'][self._indexes['effstress_x'], :] = effstress_x/10 +1
         self._indexes['effstress_x'] += 1
 
         return (Ks_x, effstress_x)

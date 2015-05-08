@@ -201,6 +201,7 @@ class CON_Slurry(CON_base):
     def e2sigmaprime(self, e, sigp = None):
         """
         For a given void ratio, what is the sigma prime (effective stress)
+        sigmaprime in unit g/(s^2 cm) = 0.1Pa
         sigprime(e) = A ((e0-e)/(1+e0))^B
         """
         einternal = np.empty(len(e), float)
@@ -323,6 +324,7 @@ class CON_Gompertz(CON_base):
     def e2Ks(self, e, Ks = None):
         """
         For a given void ratio e, what is the hydraulic conductivity
+        Ks in unit cm/s
         K(e)  =  (1+e) (C+De)
         """
         #numerically, we can have values of e>e0, we correct for those
@@ -341,6 +343,7 @@ class CON_Gompertz(CON_base):
     def e2sigmaprime(self, e, sigp = None):
         """
         For a given void ratio, what is the sigma prime (effective stress)
+        sigmaprime in unit g/(s^2 cm) = 0.1Pa
         sigprime(e) =
         """
         einternal = np.empty(len(e), float)
