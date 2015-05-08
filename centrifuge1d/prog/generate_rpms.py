@@ -8,11 +8,13 @@ from __future__ import print_function, division
 
 import numpy as np
 
-#rpms = [500,800,1000,1200]
-#duration = [1000,1000,1000,1000]
-rpms = [500,800,1000,1200,1500,1800,2100,2400,2600,2800,3000]
-duration = [1000,500,500,500,500,500,500,500,500,500,500]
-acceleration_durations = [25,25,25,25,25,30,30,30,30,35,35]
+rpms = [500,800,1000,1200]
+#duration = [43200,43200,43200,43200]
+duration = [1800,1800,1800,1800]  #30min
+acceleration_durations = [25,25,25,25]
+#rpms = [500,800,1000,1200,1500,1800,2100,2400,2600,2800,3000]
+#duration = [1000,500,500,500,500,500,500,500,500,500,500]
+#acceleration_durations = [25,25,25,25,25,30,30,30,30,35,35]
 
 def f1(t):
     """ Helper function for estimating the centrifuge acceleration curve. """
@@ -25,7 +27,7 @@ def f3(t):
     return 0.1332308098 * np.log(t) + 9.5952480661
 
 #we generate rpms output in rad/s
-with open("testout_rpms.csv", 'w') as f:
+with open("testout_rpms_to1200_t2.csv", 'w') as f:
     omega_start = 0.;
     timenow = 0.
     for rpm, dur, acceleration_duration in zip(rpms, duration,
