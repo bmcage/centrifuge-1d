@@ -288,7 +288,7 @@ class CON_Gompertz(CON_base):
 
     We have
         effective stress
-         sigprime(e) = a+c*exp(-exp(b*(log10(effstress)-m)))
+         e = a+c*exp(-exp(b*(log10(effstress)-m))); effstress = sigmaprime
             We use c=A, m=B, a=e0-c, b=exp(1)*Cc/c;
             A,B constants, e0 initial void ratio, Cc compression index
         hydraulic conductivity
