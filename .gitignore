@@ -12,3 +12,4 @@ scikits
 .directory
 git*
 *.patch
+.spyderproject
