@@ -17,6 +17,12 @@ CON_SLURRY     = 1
 CON_GOMPERTZ   = 2
 CON_FREEFORM   = 3
 
+REG_OVERSHOOT_IS_NONE = 0
+REG_OVERSHOOT_IS_E0   = 1
+REG_OVERSHOOT_IS_EXP  = 2
+
+OVERSHOOT_EXP_DECAY_FACTOR = 200
+
 def get_dict_value(dictionary, keys):
     if type(keys) is str:                 # single item
         return dictionary[keys]
@@ -173,6 +179,7 @@ class CON_Slurry(CON_base):
         self._B = B
         self._C = C
         self._D = D
+        self.REGU_TYPE = REG_OVERSHOOT_IS_EXP
 
     def set_parameters(self, params):
         if 'e0' in params:
@@ -192,10 +199,22 @@ class CON_Slurry(CON_base):
         For a given void ratio e, what is the hydraulic conductivity
         K(e)  =  (1+e) (C+De)
         """
+        bade = []
+        if len(e) == 1:
+            if e[0] > self._e0: bade = np.asarray([True], bool)
+        else:
+            bade = self._e0 < e
+
         if not Ks is None:
             Ks[:] = (1+e)*(self._C + self._D * e)
         else:
             Ks = (1+e)*(self._C + self._D * e)
+        #now regularization
+        if self.REGU_TYPE == REG_OVERSHOOT_IS_E0:
+            Ks[bade] = ((1+self._e0)*(self._C + self._D * self._e0))
+        elif self.REGU_TYPE == REG_OVERSHOOT_IS_EXP:
+            Ke0 = (1+self._e0)*(self._C + self._D * self._e0)
+            Ks[bade] = Ke0 * np.exp(-OVERSHOOT_EXP_DECAY_FACTOR*(e[bade]-self._e0))
         return Ks
 
     def e2sigmaprime(self, e, sigp = None):
@@ -305,6 +324,7 @@ class CON_Gompertz(CON_base):
         self._m = B
         self._C = C
         self._D = D
+        self.REGU_TYPE = REG_OVERSHOOT_IS_EXP
 
     def set_parameters(self, params):
         if 'e0' in params:
@@ -337,7 +357,13 @@ class CON_Gompertz(CON_base):
             Ks[:] = (1+e)*(self._C + self._D * e)
         else:
             Ks = (1+e)*(self._C + self._D * e)
-        Ks[bade] = ((1+self._e0)*(self._C + self._D * self._e0))
+        #now regularization
+        if self.REGU_TYPE == REG_OVERSHOOT_IS_E0:
+            Ks[bade] = ((1+self._e0)*(self._C + self._D * self._e0))
+        elif self.REGU_TYPE == REG_OVERSHOOT_IS_EXP:
+            Ke0 = (1+self._e0)*(self._C + self._D * self._e0)
+            Ks[bade] = Ke0 * np.exp(-OVERSHOOT_EXP_DECAY_FACTOR*(e[bade]-self._e0))
+
         return Ks
 
     def e2sigmaprime(self, e, sigp = None):
