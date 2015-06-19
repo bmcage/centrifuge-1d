@@ -148,25 +148,25 @@ class centrifuge_residual(IDA_RhsFunction):
             segment12 = (alpha[1:-1] + alpha[2:])/2
             Dpart = Ks_e12 * dsigp_de12 * dedy12
 
-            temp =  - segment12 *(1-y[1:-1])/L*dLdt*dedy[1:-1] \
-             -segment12 * (gamma_s/gamma_w-1)*omega2g*(1+self.ecopy[1:-1]) \
-                        * (rE-fl2*(1-y[1:-1])*L)/L * dKo1pe_de[1:-1] * dedy[1:-1] \
-             -segment12 * (gamma_s/gamma_w-1)*omega2g*Ks_e[1:-1] \
-             + (1+self.ecopy[1:-1])/gamma_w/L/L * ( Dpart[1:] - Dpart[:-1])
-
-            # we have segment12 * de/dt = - temp  . Normally, de/dt should never be positive
-            # we try to force this in the following
-            temp [temp<-1e-6 ] = -1e-6
-
-
-#            result[first_idx+1:last_idx] = \
-#              segment12 * edot[1:-1] - segment12 *(1-y[1:-1])/L*dLdt*dedy[1:-1] \
+#            temp =  - segment12 *(1-y[1:-1])/L*dLdt*dedy[1:-1] \
 #             -segment12 * (gamma_s/gamma_w-1)*omega2g*(1+self.ecopy[1:-1]) \
 #                        * (rE-fl2*(1-y[1:-1])*L)/L * dKo1pe_de[1:-1] * dedy[1:-1] \
 #             -segment12 * (gamma_s/gamma_w-1)*omega2g*Ks_e[1:-1] \
 #             + (1+self.ecopy[1:-1])/gamma_w/L/L * ( Dpart[1:] - Dpart[:-1])
+#
+#            # we have segment12 * de/dt = - temp  . Normally, de/dt should never be positive
+#            # we try to force this in the following
+#            temp [temp<-1e-6 ] = -1e-6
+#
+#            result[first_idx+1:last_idx] = \
+#              segment12 * edot[1:-1] + temp
+
             result[first_idx+1:last_idx] = \
-              segment12 * edot[1:-1] + temp
+              segment12 * edot[1:-1] - segment12 *(1-y[1:-1])/L*dLdt*dedy[1:-1] \
+             -segment12 * (gamma_s/gamma_w-1)*omega2g*(1+self.ecopy[1:-1]) \
+                        * (rE-fl2*(1-y[1:-1])*L)/L * dKo1pe_de[1:-1] * dedy[1:-1] \
+             -segment12 * (gamma_s/gamma_w-1)*omega2g*Ks_e[1:-1] \
+             + (1+self.ecopy[1:-1])/gamma_w/L/L * ( Dpart[1:] - Dpart[:-1])
 
             #we want e to remain below max, so add an error if above
             if model.e0_overshoot_factor:
