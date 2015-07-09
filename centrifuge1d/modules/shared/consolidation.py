@@ -128,7 +128,7 @@ class CON_base():
 
           Return values:
             e                 - void ratio
-            effective stress  - effective stress sigma^' for the e values
+            effective stress  - effective stress sigma^' for the e values in unit: 0.1 Pa
         """
         if (e is None):
             e = E_DEFAULT
@@ -144,7 +144,7 @@ class CON_base():
 
           Return values:
             e        - void ratio
-            K        - saturated hydraulic conductivity
+            K        - saturated hydraulic conductivity in unit cm/s
         """
 
         if (e is None):
@@ -164,10 +164,10 @@ class CON_Slurry(CON_base):
     This should be good model for high e, so e from eg 3 to 7
 
     We have
-        effective stress
+        effective stress in 0.1Pa
          sigprime(e) = A ((e0-e)/(1+e0))^B
             A,B constants, with B close to 2
-        hydraulic conductivity
+        hydraulic conductivity in cm/s
          K(e)  =  (1+e) (C+De)
 
     Typical values: A := 2e6; B := 1.8; e0 := 7.; C := 0.1e-6; D := 0.13e-5

@@ -1016,7 +1016,9 @@ class DataStorage:
                 CON = model.CON
                 if hasattr(CON, 'refinable_e') and ID == 'computed':
                     self._data['ei'] = CON.refinable_e()
+                #unit effstress_e is 0.1 Pa, we store as Pa !
                 (e, effstress_e) = CON.effstress_curve()
+                effstress_e = 0.1 * effstress_e
                 (e, Ks_e)    = CON.conductivity_curve(e)
                 data['effstress_e'] = (e, effstress_e)
                 data['Ks_e'] = (e, Ks_e)
