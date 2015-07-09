@@ -91,11 +91,17 @@ class centrifuge_residual(IDA_RhsFunction):
                     print ('Correcting, new value: ', self.ecopy)
 
             else:
-                if np.any(self.ecopy <= 0): # negative void ratio??
-                    print ('ERROR: Negative void ratio found', self.ecopy)
-                    print ('input z   ', z)
-                    print ('input zdot', zdot)
-                    self.ecopy[self.ecopy <= 0] = 0
+                mine = 0.1
+                if np.any(self.ecopy <= mine): # negative void ratio??
+                    print ('ERROR: Almost negative void ratio found', self.ecopy, 'at t', t)
+                    #print ('input z   ', z)
+                    #print ('input zdot', zdot)
+                    # added a regularization here. IMPORTANT
+                    t1 = 1.001 - 0.0001*(mine-self.ecopy[self.ecopy <= mine])
+                    t2 = 1.0001 - 0.0000001*(mine-self.ecopy[self.ecopy <= mine] )
+                    self.ecopy[self.ecopy <= mine] = \
+                        np.max([np.max(t1),np.max(t2),1]) *  mine
+                    #self.ecopy[self.ecopy <= mine] = mine
 
             if CONVERT:
                 edot = zdotida2edot(z, zdot, model)
@@ -143,7 +149,8 @@ class centrifuge_residual(IDA_RhsFunction):
                 result[first_idx] = eorignumer - self.ecopy[0]  # at top, no consolidation!
             else:
                 # at top, the effective stress is the load
-                result[first_idx] = CON.sigmaprime2e(load) - self.ecopy[0]
+                #print ('computed e from load is', CON.sigmaprime2e([load]), 'compared with current val', self.ecopy[0])
+                result[first_idx] = CON.sigmaprime2e([load]) - self.ecopy[0]
 
             segment12 = (alpha[1:-1] + alpha[2:])/2
             Dpart = Ks_e12 * dsigp_de12 * dedy12
@@ -284,7 +291,7 @@ class centrifuge_residual(IDA_RhsFunction):
             elif rb_type == 1: #free outflow
                 #effective stress should be equal to total stress at BC
                 #print ('Test free outflow' , t, effstress_e[-1], totsig[-1], CON.sigmaprime2e(totsig[-1]), np.power(omega2g*model.g,.5))
-                result[last_idx]  = self.ecopy[-1] - CON.sigmaprime2e(totsig[-1])
+                result[last_idx]  = self.ecopy[-1] - CON.sigmaprime2e([totsig[-1]])
                 #result[last_idx]  = effstress_e[-1] - totsig[-1]
             elif rb_type == 2:
                 return 1  #not yet programmed

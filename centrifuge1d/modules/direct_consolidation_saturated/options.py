@@ -75,7 +75,6 @@ def load_func(x, atimes, aloads):
         #load will change, change smootly to the change
         t_new_load = atimes[x+offsettime>=atimes][-1]
         val= (x - (t_new_load-offsettime))/offsettime * (x_offset_load-x_load) + x_load
-        print ('computed load', val, 'at t', x)
         return val
 
 def create_excess_load(times, loads):
