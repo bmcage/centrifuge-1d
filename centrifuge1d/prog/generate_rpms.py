@@ -8,10 +8,15 @@ from __future__ import print_function, division
 
 import numpy as np
 
-rpms = [500,800,1000,1200]
+#rpms = [1,500]
+#rpms = [500,800,1000,1200]
+rpms = [100,500,1000,1300,1650,2000]
 #duration = [43200,43200,43200,43200]
-duration = [1800,1800,1800,1800]  #30min
-acceleration_durations = [25,25,25,25]
+#duration = [1800,1800,1800,1800]  #30min
+#duration = [120,1800]
+duration = [100,78200,14100,8100,14100,8400]
+#acceleration_durations = [25,25,25,25]
+acceleration_durations = [25,25,25,25,25,25]
 #rpms = [500,800,1000,1200,1500,1800,2100,2400,2600,2800,3000]
 #duration = [1000,500,500,500,500,500,500,500,500,500,500]
 #acceleration_durations = [25,25,25,25,25,30,30,30,30,35,35]
@@ -27,7 +32,7 @@ def f3(t):
     return 0.1332308098 * np.log(t) + 9.5952480661
 
 #we generate rpms output in rad/s
-with open("testout_rpms_to1200_t2.csv", 'w') as f:
+with open("testout_rpms_to2000_SKW.csv", 'w') as f:
     omega_start = 0.;
     timenow = 0.
     for rpm, dur, acceleration_duration in zip(rpms, duration,
