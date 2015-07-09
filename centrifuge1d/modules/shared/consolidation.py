@@ -16,6 +16,7 @@ E_DEFAULT = np.linspace(0.01, 9, __NR)
 CON_SLURRY     = 1
 CON_GOMPERTZ   = 2
 CON_FREEFORM   = 3
+CON_SLURRY_CC  = 4
 
 REG_OVERSHOOT_IS_NONE = 0
 REG_OVERSHOOT_IS_E0   = 1
@@ -62,6 +63,9 @@ def create_CON(data):
     if CON_type == CON_SLURRY:
         (e0, A, B, C, D) = get_value(('e0', 'a', 'b', 'c', 'd'))
         CON = CON_Slurry(e0, A, B, C, D)
+    if CON_type == CON_SLURRY_CC:
+        (e0, cc, C, D) = get_value(('e0', 'cc', 'c', 'd'))
+        CON = CON_Slurry_Cc(e0, cc, C, D)
     elif CON_type == CON_GOMPERTZ:
         (e0, A, B, Cc, C, D) = get_value(('e0', 'a', 'b', 'cc', 'c', 'd'))
         CON = CON_Gompertz(e0, Cc, A, B, C, D)
@@ -294,6 +298,147 @@ class CON_Slurry(CON_base):
         """
         return CON_SLURRY
 
+########################################################################
+#                       Slurry based model Simple Terzaghi with Cc     #
+########################################################################
+
+class CON_Slurry_Cc(CON_base):
+    """ Slurry model.
+    We start consolidation with void ratio e0 being the fluid limit
+    This should be good model for high e, so e from eg 3 to 7
+
+    We have
+        effective stress in 0.1Pa
+         sigprime(e) = 10 exp((e0-e)/Cc) * 1e4
+            Cc constant, last *1e4 is because unit must be 0.1 Pa and with Cc
+            we have a sigp in kPa!
+        hydraulic conductivity in cm/s
+         K(e)  =  ln(e/C) /D
+
+    Typical values: Cc := 0.46 ; e0 := 2.; C := 1.1672; D := 4e7 / 100
+    """
+    def __init__(self, e0=None, Cc=None, C=None, D=None):
+        CON_base.__init__(self)
+        self._e0 = e0
+        self._A = Cc
+        self._C = C
+        self._D = D
+        self.REGU_TYPE = REG_OVERSHOOT_IS_EXP
+
+    def set_parameters(self, params):
+        if 'e0' in params:
+            self._e0 = params['e0']
+
+        if 'a' in params:
+            self._A = params['a']
+        if 'c' in params:
+            self._C = params['c']
+        if 'd' in params:
+            self._D = params['d']
+
+    def e2Ks(self, e, Ks = None):
+        """
+        For a given void ratio e, what is the hydraulic conductivity
+        K(e)  =   ln(e/C) /D
+        """
+        bade = []
+        if len(e) == 1:
+            if e[0] > self._e0: bade = np.asarray([True], bool)
+        else:
+            bade = self._e0 < e
+
+        if not Ks is None:
+            Ks[:] = np.log(e/self._C) / self._D
+        else:
+            Ks = np.log(e/self._C) / self._D
+        #now regularization
+        if self.REGU_TYPE == REG_OVERSHOOT_IS_E0:
+            Ks[bade] = np.log(self._e0/self._C) / self._D
+        elif self.REGU_TYPE == REG_OVERSHOOT_IS_EXP:
+            Ke0 =  np.log(self._e0/self._C) / self._D
+            Ks[bade] = Ke0 * np.exp(-OVERSHOOT_EXP_DECAY_FACTOR*(e[bade]-self._e0))
+        return Ks
+
+    def e2sigmaprime(self, e, sigp = None):
+        """
+        For a given void ratio, what is the sigma prime (effective stress)
+        sigmaprime in unit g/(s^2 cm) = 0.1Pa
+        sigprime(e) = 10 exp((e0-e)/Cc) * 1e4 as with Cc we obtain val in kPa
+        """
+        einternal = np.empty(len(e), float)
+        einternal[:] = e[:]
+        #numerically, we can have values of e>e0, we correct for those
+        einternal[self._e0 < einternal] = self._e0
+        if not sigp is None:
+            sigp[:] = 1e5 * np.exp((self._e0-einternal)/self._A)
+        else:
+            sigp = 1e5 * np.exp((self._e0-einternal)/self._A)
+        return sigp
+
+    def sigmaprime2e(self, sigp, e = None):
+        """
+        For a given value of of sigma prime, what is the void ratio
+        e = e0-Cc ln(sigp/1e5)
+        However, for this formula, if sigp<1e5, we should obtain e0 !
+        """
+        sigpinternal = np.empty(len(sigp), float)
+        sigpinternal[:] = sigp[:]
+        if len(sigp) == 1:
+            if sigpinternal[0]<1e5:
+                sigpinternal[0]=1e5
+        else:
+            sigpinternal[sigp < 1e5] = 1e5
+        if not e is None:
+            e[:] = self._e0 - self._A * np.log(sigpinternal/1e5)
+        else:
+            e = self._e0 - self._A * np.log(sigpinternal/1e5)
+        return e
+
+    def dKsde(self, e, dKsde = None):
+        """
+        Return value of d Ks/ de in e:
+        """
+        if not dKsde is None:
+            dKsde[:] = self._C / e / self._D
+        else:
+            dKsde = self._C / e / self._D
+        return dKsde
+
+    def dKo1pede(self, e, dKo1pede=None):
+        """
+        Return value of d (K/(1+e)) / de in e: 1/D 1/(1+e) [C/e - ln(e/C)]
+        """
+        if not dKo1pede is None:
+            dKo1pede[:] = 1 / self._D / (1+e) * (self._C/e - np.log(e/self._C))
+        else:
+            dKo1pede = 1 / self._D / (1+e) * (self._C/e - np.log(e/self._C))
+        return dKo1pede
+
+    def dsigpde(self, e, dsigpde = None, zeroval=0.):
+        """
+        return value of d sigma' / de at e
+        Note: for CON_Slurry, values at e0 go to 0, so we avoid derivatives
+              there, enforcing e<=0.999 e0. This is a needed regularization
+        If zeroval != 0, all values > zeroval are given the value zeroval.
+          For example: zeroval = -1e-10 returns as highest value -1e10!
+        """
+        einternal = np.empty(len(e), float)
+        einternal[:] = e[:]
+        #numerically, we can have values of e>e0, we correct for those
+        einternal[self._e0*0.999 < einternal] = self._e0*.999 #2*self._e0-e[self._e0<e]
+        if not dsigpde is None:
+            dsigpde[:] = -1e5 * np.exp((self._e0-einternal)/self._A) / self._A
+        else:
+            dsigpde = -1e5 * np.exp((self._e0-einternal)/self._A) / self._A
+        if zeroval != 0:
+            dsigpde[dsigpde>zeroval] = zeroval
+        return dsigpde
+
+    def typeCON(self):
+        """
+        Indication of the compatible types of CON
+        """
+        return CON_SLURRY_CC
 
 ########################################################################
 #                       Reconsolidation based on Gompertz function     #

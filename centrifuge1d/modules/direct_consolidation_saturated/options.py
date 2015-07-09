@@ -2,9 +2,9 @@ from __future__ import division, print_function
 
 import sys
 from ..shared.functions import lagrangian_derivative_coefs
-from numpy import linspace, power, empty, array
+from numpy import linspace, power, empty, array, log
 from ..shared.consolidation import (create_CON, CON_SLURRY, CON_GOMPERTZ,
-                                    CON_FREEFORM)
+                                    CON_FREEFORM, CON_SLURRY_CC)
 
 def dtype_deps(cfg):
     dtype = cfg.get_value('dtype')
@@ -65,7 +65,7 @@ OPTIONS_ITERABLE_LISTS = ['porosity']
 
 def load_func(x, atimes, aloads):
     #print (x, atimes, aloads,aloads[x>=atimes])
-    offsettime = 1
+    offsettime = 10
     x_load = aloads[x>=atimes][-1]
     #10 sec later
     x_offset_load = aloads[x+offsettime>=atimes][-1]
@@ -74,7 +74,9 @@ def load_func(x, atimes, aloads):
     else:
         #load will change, change smootly to the change
         t_new_load = atimes[x+offsettime>=atimes][-1]
-        return (x - (t_new_load-offsettime))/offsettime * (x_offset_load-x_load) + x_load
+        val= (x - (t_new_load-offsettime))/offsettime * (x_offset_load-x_load) + x_load
+        print ('computed load', val, 'at t', x)
+        return val
 
 def create_excess_load(times, loads):
     if (len(times) != len(loads)):
@@ -132,6 +134,8 @@ def adjust_cfg(cfg):
     if cfg.get_value('con_type') in [CON_SLURRY, CON_GOMPERTZ]:
         ks = (1+e0)*(cfg.get_value('c')+cfg.get_value('d')*e0)
         cfg.set_value('ks', ks)
+    elif cfg.get_value('con_type') in [CON_SLURRY_CC]:
+        ks = log(e0/cfg.get_value('c')) / cfg.get_value('d')
     else:
         print ("ERROR: cannot calculate the start ks as consolidation type is not known!")
         sys.exit(0)
