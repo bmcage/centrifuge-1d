@@ -343,9 +343,19 @@ class CON_Slurry_Cc(CON_base):
         """
         bade = []
         if len(e) == 1:
+            lene = 1
             if e[0] > self._e0: bade = np.asarray([True], bool)
         else:
+            lene = len(e)
             bade = self._e0 < e
+        toosmalle = []
+        if len(e) == 1:
+            if e[0] < 0.01: toosmalle = np.asarray([True], bool)
+        else:
+            toosmalle = e < 0.01
+        ecopy = np.empty(lene, float)
+        ecopy[:] = e[:]
+        ecopy[toosmalle] = 0.01
 
         if not Ks is None:
             Ks[:] = np.log(e/self._C) / self._D
@@ -357,6 +367,8 @@ class CON_Slurry_Cc(CON_base):
         elif self.REGU_TYPE == REG_OVERSHOOT_IS_EXP:
             Ke0 =  np.log(self._e0/self._C) / self._D
             Ks[bade] = Ke0 * np.exp(-OVERSHOOT_EXP_DECAY_FACTOR*(e[bade]-self._e0))
+        #fix negative
+        Ks[toosmalle] = 1e-100
         return Ks
 
     def e2sigmaprime(self, e, sigp = None):
