@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 
 import numpy as np
+import sys
 from scipy.integrate import simps
 
 from collections import OrderedDict
@@ -167,7 +168,17 @@ def apply_tara_calibration(tara_calibration, measurements_times_filter,
             continue
 
         filter_idxs = measurements_times_filter[F_name]
-        measurements[F_name] -= tara_calibration[F_name][filter_idxs]
+        try:
+            measurements[F_name] -= tara_calibration[F_name][filter_idxs]
+        except:
+            import traceback
+
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print ("*** print_exception:")
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                      limit=2, file=sys.stdout)
+            print ("ERROR FOUND: DO YOU WANT MEASUREMENT OUTPUT AFTER COMPUTED TIMES??")
+            sys.exit()
 
         if F_name in measurements_original:
             idx_min = filter_idxs[0]
