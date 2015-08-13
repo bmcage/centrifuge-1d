@@ -60,17 +60,19 @@ def create_CON(data):
         get_value = data.get_value
 
     CON_type = get_value('con_type')
+
     if CON_type == CON_SLURRY:
         (e0, A, B, C, D) = get_value(('e0', 'a', 'b', 'c', 'd'))
         CON = CON_Slurry(e0, A, B, C, D)
-    if CON_type == CON_SLURRY_CC:
+    elif CON_type == CON_SLURRY_CC:
         (e0, cc, C, D) = get_value(('e0', 'cc', 'c', 'd'))
         CON = CON_Slurry_Cc(e0, cc, C, D)
     elif CON_type == CON_GOMPERTZ:
         (e0, A, B, Cc, C, D) = get_value(('e0', 'a', 'b', 'cc', 'c', 'd'))
         CON = CON_Gompertz(e0, Cc, A, B, C, D)
     else:
-        print('Unknown value (or not yet implemented) of ''CON_type'': ', CON_type)
+        print('Unknown value (or not yet implemented) of CON_type: ', CON_type)
+        print('available:', CON_SLURRY, CON_SLURRY_CC, CON_GOMPERTZ)
         exit(1)
 
     return CON
