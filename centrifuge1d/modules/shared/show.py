@@ -757,11 +757,18 @@ def draw_figure(fig, fig_id, figs_styles, lines_ids, lines_styles,
 
         plot_style = get_line_option(lines_styles, line_id, 'lineopt',
                                              fig_id)
+        fig_ls = get_figure_option(figs_styles, fig_id, 'ls')
+        if fig_ls:
+            plot_style = fig_ls
+        fig_width = get_figure_option(figs_styles, fig_id, 'width')
         if (len(xdata.shape) > 1) and np.iterable(plot_style):
             max_styles = len(plot_style)
             for ind in range(len(xdata[0])):
                 entryx = xdata[:, ind]
                 entryy = ydata[:, ind]
+
+                if fig_width:
+                    width = fig_width[ind%max_styles]
 
                 plt.plot(entryx, entryy, plot_style[ind%max_styles],
                          linewidth=width, markersize=symbolsize)
