@@ -437,6 +437,10 @@ def get_filenames(experiment_info):
     plotstyles_files = \
       [fname for fname in [cfgdir + PLOTSTYLE_ININAME for cfgdir in search_dirs]
        if path.exists(fname)]
+    #allow a plotstyle depending on the mask so as to have different plot depending on the mask
+    plotstyles_files += \
+      [fname for fname in [cfgdir + experiment_info['mask'][0] + '_' + PLOTSTYLE_ININAME for cfgdir in search_dirs]
+       if path.exists(fname)]
 
     return plotstyles_files
 
