@@ -529,11 +529,10 @@ def update_styles(styles, user_styles):
     styles = deep_dictupdate(styles, user_styles)
 
     # Display legend only on 'u' if 'u' and 'h' are on the same window
-    styles['figures']['h']['show_legend'] = \
-      styles['options']['separate_figures']
-    # same for effstress_x and ks_x
-    styles['figures']['effstress_x']['show_legend'] = \
-      styles['options']['separate_figures']
+    if not styles['options']['separate_figures']:
+        styles['figures']['h']['show_legend'] = False
+        # same for effstress_x and ks_x
+        styles['figures']['effstress_x']['show_legend'] = False
 
     # Order lines
     lines_ids = (['original', 'measured', 'computed']
