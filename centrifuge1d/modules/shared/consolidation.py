@@ -311,7 +311,7 @@ class CON_Slurry_Cc(CON_base):
 
     We have
         effective stress in 0.1Pa
-         sigprime(e) = 10 exp((e0-e)/Cc) * 1e4
+         sigprime(e) = 10^((e0-e)/Cc) * 1e4
             Cc constant, last *1e4 is because unit must be 0.1 Pa and with Cc
             we have a sigp in kPa!
         hydraulic conductivity in cm/s
@@ -377,35 +377,35 @@ class CON_Slurry_Cc(CON_base):
         """
         For a given void ratio, what is the sigma prime (effective stress)
         sigmaprime in unit g/(s^2 cm) = 0.1Pa
-        sigprime(e) = 10 exp((e0-e)/Cc) * 1e4 as with Cc we obtain val in kPa
+        sigprime(e) = 10^((e0-e)/Cc) * 1e4 as with Cc we obtain val in kPa
         """
         einternal = np.empty(len(e), float)
         einternal[:] = e[:]
         #numerically, we can have values of e>e0, we correct for those
         einternal[self._e0 < einternal] = self._e0
         if not sigp is None:
-            sigp[:] = 1e5 * np.exp((self._e0-einternal)/self._A)
+            sigp[:] = 1e4 * np.power(10, (self._e0-einternal)/self._A)
         else:
-            sigp = 1e5 * np.exp((self._e0-einternal)/self._A)
+            sigp = 1e4 * np.power(10, (self._e0-einternal)/self._A)
         return sigp
 
     def sigmaprime2e(self, sigp, e = None):
         """
         For a given value of of sigma prime, what is the void ratio
-        e = e0-Cc ln(sigp/1e5)
-        However, for this formula, if sigp<1e5, we should obtain e0 !
+        e = e0-Cc log10(sigp/1e4)
+        However, for this formula, if sigp<1e4, we should obtain e0 !
         """
         sigpinternal = np.empty(len(sigp), float)
         sigpinternal[:] = sigp[:]
         if len(sigp) == 1:
-            if sigpinternal[0]<1e5:
-                sigpinternal[0]=1e5
+            if sigpinternal[0]<1e4:
+                sigpinternal[0]=1e4
         else:
-            sigpinternal[sigp < 1e5] = 1e5
+            sigpinternal[sigp < 1e4] = 1e4
         if not e is None:
-            e[:] = self._e0 - self._A * np.log(sigpinternal/1e5)
+            e[:] = self._e0 - self._A * np.log10(sigpinternal/1e4)
         else:
-            e = self._e0 - self._A * np.log(sigpinternal/1e5)
+            e = self._e0 - self._A * np.log10(sigpinternal/1e4)
         return e
 
     def dKsde(self, e, dKsde = None):
@@ -441,9 +441,9 @@ class CON_Slurry_Cc(CON_base):
         #numerically, we can have values of e>e0, we correct for those
         einternal[self._e0*0.999 < einternal] = self._e0*.999 #2*self._e0-e[self._e0<e]
         if not dsigpde is None:
-            dsigpde[:] = -1e5 * np.exp((self._e0-einternal)/self._A) / self._A
+            dsigpde[:] = -1e4 * np.power(10, (self._e0-einternal)/self._A) / self._A * np.log(10)
         else:
-            dsigpde = -1e5 * np.exp((self._e0-einternal)/self._A) / self._A
+            dsigpde = -1e4 * np.power(10, (self._e0-einternal)/self._A) / self._A * np.log(10)
         if zeroval != 0:
             dsigpde[dsigpde>zeroval] = zeroval
         return dsigpde
