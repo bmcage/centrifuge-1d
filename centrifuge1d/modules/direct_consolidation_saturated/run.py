@@ -393,6 +393,10 @@ def on_measurement(t, z, model, measurements):
         e = z[model.first_idx: model.last_idx+1]
 
     (Ks_e, effstress_e) = measurements.store_calc_e(x, e, model.CON)
+    #compute average e
+    #print (e, x)
+    e_avg = simps(e, x=x[0])/L
+    e_avg = measurements.store_calc_measurement('e_avg', e_avg)
 
     (WM, WM_in_tube) = \
       measurements.store_calc_wm_e(e, model.y, L, wl, MO,
