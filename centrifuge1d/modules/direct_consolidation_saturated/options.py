@@ -4,7 +4,7 @@ import sys
 from ..shared.functions import lagrangian_derivative_coefs
 from numpy import linspace, power, empty, array, log
 from ..shared.consolidation import (create_CON, CON_SLURRY, CON_GOMPERTZ,
-                                    CON_FREEFORM, CON_SLURRY_CC)
+                                    CON_FREEFORM, CON_SLURRY_CC, CON_SLURRY_KWA)
 
 def dtype_deps(cfg):
     dtype = cfg.get_value('dtype')
@@ -133,7 +133,7 @@ def adjust_cfg(cfg):
     if cfg.get_value('con_type') in [CON_SLURRY, CON_GOMPERTZ]:
         ks = (1+e0)*(cfg.get_value('c')+cfg.get_value('d')*e0)
         cfg.set_value('ks', ks)
-    elif cfg.get_value('con_type') in [CON_SLURRY_CC]:
+    elif cfg.get_value('con_type') in [CON_SLURRY_CC, CON_SLURRY_KWA]:
         ks = log(e0/cfg.get_value('c')) / cfg.get_value('d')
     else:
         print ("ERROR: cannot calculate the start ks as consolidation type is not known!")

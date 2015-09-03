@@ -9,7 +9,8 @@ from scikits.odes.sundials.ida import IDA_RhsFunction
 from ..shared.functions import y2x
 from ..shared.solver import simulate_direct
 from ..shared.show import show_results
-from ..shared.consolidation import CON_GOMPERTZ, CON_SLURRY, CON_SLURRY_CC
+from ..shared.consolidation import (CON_GOMPERTZ, CON_SLURRY, CON_SLURRY_CC,
+                                    CON_SLURRY_KWA)
 
 use_cons_water = True
 CONVERT = False
@@ -92,7 +93,7 @@ class centrifuge_residual(IDA_RhsFunction):
 
             else:
                 # SLURRY, void ratio should not reduce too much from original !!
-                if CON.typeCON() in [CON_SLURRY, CON_SLURRY_CC]:
+                if CON.typeCON() in [CON_SLURRY, CON_SLURRY_CC, CON_SLURRY_KWA]:
                     mine = 0.0
                 if np.any(self.ecopy <= mine): # negative void ratio??
                     print ('ERROR: Almost negative void ratio found', self.ecopy, 'at t', t)
