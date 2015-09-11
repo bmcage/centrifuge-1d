@@ -63,21 +63,20 @@ PROVIDE_OPTIONS = []
 
 OPTIONS_ITERABLE_LISTS = ['porosity']
 
-def load_func(x, atimes, aloads):
+def load_func(x, atimes, aloads, duration_change=10):
     #print (x, atimes, aloads,aloads[x>=atimes])
-    offsettime = 10
     x_load = aloads[x>=atimes][-1]
     #10 sec later
-    x_offset_load = aloads[x+offsettime>=atimes][-1]
+    x_offset_load = aloads[x+duration_change>=atimes][-1]
     if (x_load == x_offset_load):
         return x_load
     else:
         #load will change, change smootly to the change
-        t_new_load = atimes[x+offsettime>=atimes][-1]
-        val= (x - (t_new_load-offsettime))/offsettime * (x_offset_load-x_load) + x_load
+        t_new_load = atimes[x+duration_change>=atimes][-1]
+        val= (x - (t_new_load-duration_change))/duration_change * (x_offset_load-x_load) + x_load
         return val
 
-def create_excess_load(times, loads):
+def create_excess_load(times, loads, duration_change=10):
     if (len(times) != len(loads)):
         print ("ERROR: excess loads and excess load times don't have same array sizes!")
         sys.exit(0)
@@ -87,7 +86,7 @@ def create_excess_load(times, loads):
     else:
         atimes = array(times)
         aloads = array(loads)
-        return lambda x: load_func(x, atimes, aloads)
+        return lambda x: load_func(x, atimes, aloads, duration_change)
         #return lambda x: aloads[x>=atimes][-1]
 
 def adjust_cfg(cfg):
@@ -146,7 +145,10 @@ def adjust_cfg(cfg):
     # Determine consolidation curve model used, all data is now available
     cfg.set_value('CON', create_CON(cfg))
 
-    cfg.set_value('excess_load_f', create_excess_load(cfg.get_value('excess_load_t'),cfg.get_value('excess_load')))
+    cfg.set_value('excess_load_f', create_excess_load(
+                        cfg.get_value('excess_load_t'),
+                        cfg.get_value('excess_load'),
+                        duration_change=10))
 
     cfg.set_value('y', y)
     cfg.set_value('y12', (y[1:]+y[:-1])/2.)
