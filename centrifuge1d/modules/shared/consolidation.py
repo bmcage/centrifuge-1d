@@ -648,6 +648,7 @@ class CON_Gompertz(CON_base):
 
     Typical values: Cc := 1.2; c=A := 3.1; e0 := 4.; m=B := log10(20000) = 4.301;
                     C := 0.1e-6; D := 0.13e-5
+    In above effstress in kPa !!
     """
     def __init__(self, e0 = None, Cc=None, A=None, B=None, C=None, D=None):
         CON_base.__init__(self)
@@ -705,6 +706,8 @@ class CON_Gompertz(CON_base):
         sigmaprime in unit g/(s^2 cm) = 0.1Pa
         sigprime(e) =
         """
+        import warnings
+        warnings.filterwarnings('error')
         einternal = np.empty(len(e), float)
         einternal[:] = e[:]
         #numerically, we can have values of e>e0, we correct for those
@@ -720,15 +723,26 @@ class CON_Gompertz(CON_base):
             einternal[fact*self._e0 < e] = self._e0*fact
         #note, einternal > a is required !!
         a = self._e0 - self._c
+        if len(e) == 1:
+            if einternal[0]< a+1e-8:
+                bade2 = np.asarray([True], bool)
+                einternal[0]=a+1e-8
+        else:
+            bade2 = einternal < a+1e-8
+            einternal[bade2] = a+1e-8
         b = np.exp(1)*self._Cc / self._c
         if not sigp is None:
-            sigp[:] = np.exp((np.exp(1)*self._Cc*self._m  \
+            sigp[:] = 1e4*np.exp((np.exp(1)*self._Cc*self._m  \
                               + np.log(np.log(self._c/(einternal-a)))*self._c) \
                              *np.log(10)/(self._Cc*np.exp(1)))
         else:
-            sigp = np.exp((np.exp(1)*self._Cc*self._m  \
-                              + np.log(np.log(self._c/(einternal-a)))*self._c) \
-                             *np.log(10)/(self._Cc*np.exp(1)))
+            tmp = np.log(self._c/(einternal-a))
+            tmp0 = tmp == 0
+            tmp[tmp0] = 1
+            sigp = 1e4*np.exp((np.exp(1)*self._Cc*self._m  \
+                          + np.log(tmp)*self._c) \
+                         *np.log(10)/(self._Cc*np.exp(1)))
+            sigp[tmp0] = 0
         #sigp[bade] = 1e-8
         sigp[bade] = 0.
         return sigp
@@ -736,14 +750,22 @@ class CON_Gompertz(CON_base):
     def sigmaprime2e(self, sigp, e = None):
         """
         For a given value of of sigma prime, what is the void ratio
+        Sigma prime in 0.1Pa, while curve fitting was done for kPa! So convert!
 
         """
         a = self._e0 - self._c
         b = np.exp(1)*self._Cc / self._c
         if not e is None:
-            e[:] = a+self._c*np.exp(-np.exp(b*(np.log(sigp)/np.log(10)-self._m)))
+            e[:] = a+self._c*np.exp(-np.exp(b*(np.log(sigp*1e-4)/np.log(10)-self._m)))
         else:
-            e = a+self._c*np.exp(-np.exp(b*(np.log(sigp)/np.log(10)-self._m)))
+            tmp0 = sigp <= 0
+            sigp[tmp0] = 1
+            try:
+                e = a+self._c*np.exp(-np.exp(b*(np.log(sigp*1e-4)/np.log(10)-self._m)))
+            except:
+                print ('inv val log', sigp)
+                raise Exception
+            e[tmp0] = a + self._c
         return e
 
     def dKsde(self, e, dKsde = None):
