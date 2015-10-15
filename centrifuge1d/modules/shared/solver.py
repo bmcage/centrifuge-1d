@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 import scikits.odes.sundials.ida as ida
+from scikits.odes.sundials.ida import StatusEnumIDA
 import numpy as np
 import sys
 from .show import show_inbetween_result
@@ -166,6 +167,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
     t_meas = measurements_times[i]
 
     solver = ida.IDA(residual_fn,
+                     old_api=False,
                      compute_initcond=model.compute_initcond,
                      first_step_size=model.first_step_size,
                      atol=model.atol, rtol=model.rtol,
@@ -232,12 +234,14 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                 print(out_s.format(i, t0, duration, t_end, phase.upper()))
 
             if not solver_initialized:
-                (flag, t_init) = solver.init_step(t0, z0, zp0)
-                if not flag:
+                solution = solver.init_step(t0, z0, zp0)
+                if solution.errors.t:
+                    print ('ERROR:', solution.message)
                     if truncate_results_on_stop:
                         return (False, t[:i+1], z[:i+1, :], i-1)
                     else:
                         return (False, t, z, i-1)
+                #t_init = solution.values.t
 
                 solver_initialized = True
 
@@ -249,18 +253,13 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
             perc_next=1;
             while True:
                 #print ( ' Step start', t_meas )
-                (flag, t_out) = solver.step(t_meas, z[i, :], zp0)
-                t[i] = t_out
-                perc_done = (t_out-model.t0) / (t_end-model.t0) * 100
-                if perc_done >= perc_next:
-                    if show_progress:
-                        print ('Finished %03d percent of computation' % int(perc_done))
-                    perc_next = int(perc_done+1)
+                #(flag, t_out) = solver.step(t_meas, z[i, :], zp0)
+                solution = solver.step(t_meas, z[i, :], zp0)
 
-                if flag < 0:     # error occured
+                if solution.errors.t:     # error occured
                     if verbosity > 1:
                         print('Error occured during computation. Solver failed '
-                              'at time\nt_err=', t_out,
+                              'at time\nt_err=', solution.errors.t,
                               '\nExpected value of t:', t)
                     if verbosity > 2:
                         print('Values at this time:\nz_err=', z[i, :])
@@ -268,10 +267,12 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                     if truncate_results_on_stop:
                         return (False, t[:i+1], z[:i+1, :], i)
                     else:
+                        t[i] = solution.errors.t
                         return (False, t, z, i)
-                elif flag == 2: # root found
+                elif solution.roots.t: # root found
+                    t[i] = solution.values.t
                     if ((not continue_on_root_found is None)
-                         and (continue_on_root_found(model, t_out, z[i, :]))):
+                         and (continue_on_root_found(model, t[i], z[i, :]))):
                         if verbosity > 1:
                              print('Root found: continuing computation')
                         if truncate_results_on_stop:
@@ -282,7 +283,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                         if verbosity > 1:
                              print('Root found: aborted further computation.')
                         if not on_measurement is None:
-                            on_measurement(t_out, z[i, :], model,
+                            on_measurement(t[i], z[i, :], model,
                                            measurements)
                         if truncate_results_on_stop:
                             return (True, t[:i+1], z[:i+1, :], i)
@@ -290,9 +291,10 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                             return (True, t, z, i)
 
                 else: # success or t_stop reached
-                    if (flag == 0) or (t_out == t_meas):
+                    t[i] = solution.values.t
+                    if (solution.flag == StatusEnumIDA.SUCCESS) or (t[i] == t_meas):
                         if not on_measurement is None:
-                            on_measurement(t_out, z[i, :], model,
+                            on_measurement(t[i], z[i, :], model,
                                            measurements)
 
                         i += 1
@@ -304,10 +306,16 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                             return (True, t, z, i-1)
 
                     # Assuming t_out is t_end+numerical_error
-                    if (flag == 1) or (t_end == t_out):
+                    if (solution.flag == StatusEnumIDA.TSTOP_RETURN) or (t_end == t[i]):
                         break
 
-            t0 = t_out
+                perc_done = (t[i-1]-model.t0) / (t_end-model.t0) * 100
+                if perc_done >= perc_next:
+                    if show_progress:
+                        print ('Finished %03d percent of computation' % int(perc_done))
+                    perc_next = int(perc_done+1)
+
+            t0 = t[i-1]
 
             if phase == 'a':
                 model.omega_start = model.omega
@@ -377,7 +385,7 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
 
     if when == 'out_of_bounds':
         tolerance = 0.15
-        a_max = 0.01
+        #a_max = 0.01
         for (name, values) in parameters.items():
             if not np.iterable(values):
                 values = [values]
@@ -409,7 +417,7 @@ def penalize(parameters, lbounds, ubounds, when='out_of_bounds'):
 
 def penalize_cond(parameters, conditions):
 
-    max_penalization = 1e5
+    #max_penalization = 1e5
     tolerance = 0.15
 
     penalization = 0.0
