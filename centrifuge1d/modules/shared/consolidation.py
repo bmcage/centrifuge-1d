@@ -737,11 +737,15 @@ class CON_Gompertz(CON_base):
                              *np.log(10)/(self._Cc*np.exp(1)))
         else:
             tmp = np.log(self._c/(einternal-a))
-            tmp0 = tmp == 0
+            tmp0 = tmp <= 0
             tmp[tmp0] = 1
-            sigp = 1e4*np.exp((np.exp(1)*self._Cc*self._m  \
-                          + np.log(tmp)*self._c) \
-                         *np.log(10)/(self._Cc*np.exp(1)))
+            try:
+                sigp = 1e4*np.exp((np.exp(1)*self._Cc*self._m  \
+                              + np.log(tmp)*self._c) \
+                             *np.log(10)/(self._Cc*np.exp(1)))
+            except:
+                print ('inv val log', tmp)
+                raise Exception
             sigp[tmp0] = 0
         #sigp[bade] = 1e-8
         sigp[bade] = 0.
@@ -753,6 +757,8 @@ class CON_Gompertz(CON_base):
         Sigma prime in 0.1Pa, while curve fitting was done for kPa! So convert!
 
         """
+        #required input is np array, as we do boolean access
+        assert(isinstance(sigp, np.ndarray))
         a = self._e0 - self._c
         b = np.exp(1)*self._Cc / self._c
         if not e is None:
