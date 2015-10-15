@@ -158,7 +158,7 @@ class centrifuge_residual(IDA_RhsFunction):
                 #print ('LOAD', t, load, result[first_idx])
             else:
                 # at top, the effective stress is the load
-                #print ('computed e from load is', CON.sigmaprime2e([load]), 'compared with current val', self.ecopy[0])
+                #print ('computed e from load is', CON.sigmaprime2e(np.array([load],float)), 'compared with current val', self.ecopy[0])
                 evalfromsig = CON.sigmaprime2e(np.array([load],float))
                 evalfromsig[evalfromsig>eorignumer] = eorignumer
                 result[first_idx] = evalfromsig - self.ecopy[0]
@@ -303,7 +303,7 @@ class centrifuge_residual(IDA_RhsFunction):
             elif rb_type == 1: #free outflow
                 #effective stress should be equal to total stress at BC
                 #print ('Test free outflow' , t, effstress_e[-1], totsig[-1], CON.sigmaprime2e(totsig[-1]), np.power(omega2g*model.g,.5))
-                result[last_idx]  = self.ecopy[-1] - CON.sigmaprime2e([totsig[-1]])
+                result[last_idx]  = self.ecopy[-1] - CON.sigmaprime2e(np.array([totsig[-1]],float))
                 #result[last_idx]  = effstress_e[-1] - totsig[-1]
             elif rb_type == 2:
                 return 1  #not yet programmed
