@@ -10,7 +10,7 @@ from ..shared.functions import y2x
 from ..shared.solver import simulate_direct
 from ..shared.show import show_results
 from ..shared.consolidation import (CON_GOMPERTZ, CON_SLURRY, CON_SLURRY_CC,
-                                    CON_SLURRY_KWA)
+                                    CON_SLURRY_KWA, CON_WEIBULL)
 
 use_cons_water = True
 CONVERT = False
@@ -90,7 +90,33 @@ class centrifuge_residual(IDA_RhsFunction):
                     self.ecopy[self.ecopy <= CON._e0 - CON._c] = \
                         np.max([np.max(t1),np.max(t2),1]) *  (CON._e0 - CON._c)
                     print ('Correcting, new value: ', self.ecopy)
-
+            elif CON.typeCON() == CON_WEIBULL:
+                if np.any(self.ecopy <= CON._e0 - CON._B): # negative void ratio possible if B>e0 !! ??
+                    print ('ERROR: Too low void ratio found', self.ecopy, '<', CON._e0 - CON._B)
+                    # added a regularization here. IMPORTANT
+                    t1 = 1+1e-3-1e-4*(CON._e0 - CON._B-self.ecopy[self.ecopy <= CON._e0 - CON._B])
+                    t2 = 1+1e-4-1e-7*(CON._e0 - CON._B-self.ecopy[self.ecopy <= CON._e0 - CON._B])
+                    t3 = 1+1e-7-1e-20*(CON._e0 - CON._B-self.ecopy[self.ecopy <= CON._e0 - CON._B])
+                    self.ecopy[self.ecopy <= CON._e0 - CON._B] = \
+                        np.max([np.max(t1),np.max(t2),np.max(t3),1]) *  (CON._e0 - CON._B)
+                    print ('Correcting, new value: ', self.ecopy)
+                    #FOLLOWING should not be needed if CON._B is consistent with conductivity value !!
+#                if np.any(self.ecopy <= 1e-20): # negative void ratio possible if B>e0 !! ??
+#                    print ('ERROR: Too low void ratio found', self.ecopy, '<', 1e-20)
+#                    # added a regularization here. IMPORTANT
+#                    t1 = 1.001 - 0.0001*(1e-20-self.ecopy[self.ecopy <= 1e-20])
+#                    t2 = 1.0001 - 0.0000001*(1e-20-self.ecopy[self.ecopy <= 1e-20] )
+#                    self.ecopy[self.ecopy <= 1e-20] = \
+#                        np.max([np.max(t1),np.max(t2),1]) *  1e-20
+#                    print ('Correcting, new value: ', self.ecopy)
+#                if np.any(self.ecopy <= CON._C): # at self._C, conductivity == 0 !
+#                    print ('ERROR: Too low void ratio found', self.ecopy, '<', CON._C)
+#                    # added a regularization here. IMPORTANT
+#                    t1 = 1.001 - 0.0001*(CON._C-self.ecopy[self.ecopy <= CON._C])
+#                    t2 = 1.0001 - 0.0000001*(CON._C-self.ecopy[self.ecopy <= CON._C] )
+#                    self.ecopy[self.ecopy <= CON._C] = \
+#                        np.max([np.max(t1),np.max(t2),1]) *  CON._C
+#                    print ('Correcting, new value: ', self.ecopy)
             else:
                 # SLURRY, void ratio should not reduce too much from original !!
                 if CON.typeCON() in [CON_SLURRY, CON_SLURRY_CC, CON_SLURRY_KWA]:
@@ -207,7 +233,7 @@ class centrifuge_residual(IDA_RhsFunction):
                 return 1  # not yet programmed, see run of direct_sat_drain
             elif rb_type == 0:  #no outflow!
                 dsigde = CON.dsigpde([self.ecopy[-1]],zeroval=-1e-20)
-                if CON.typeCON() == CON_GOMPERTZ:
+                if CON.typeCON() in [CON_GOMPERTZ, CON_WEIBULL]:
                     eatend = self.ecopy[-1]
                     if eatend>= CON._e0:
                         eatend=CON._e0

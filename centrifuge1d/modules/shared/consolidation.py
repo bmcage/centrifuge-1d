@@ -18,6 +18,7 @@ CON_GOMPERTZ   = 2
 CON_FREEFORM   = 3
 CON_SLURRY_CC  = 4
 CON_SLURRY_KWA = 5
+CON_WEIBULL    = 6
 
 REG_OVERSHOOT_IS_NONE = 0
 REG_OVERSHOOT_IS_E0   = 1
@@ -74,9 +75,12 @@ def create_CON(data):
     elif CON_type == CON_GOMPERTZ:
         (e0, A, B, Cc, C, D) = get_value(('e0', 'a', 'b', 'cc', 'c', 'd'))
         CON = CON_Gompertz(e0, Cc, A, B, C, D)
+    elif CON_type == CON_WEIBULL:
+        (e0, B, E, F, C, D) = get_value(('e0', 'b', 'e', 'f', 'c', 'd'))
+        CON = CON_Weibull(e0, B, E, F, C, D)
     else:
         print('Unknown value (or not yet implemented) of CON_type: ', CON_type)
-        print('available:', CON_SLURRY, CON_SLURRY_CC, CON_GOMPERTZ, CON_SLURRY_KWA)
+        print('available:', CON_SLURRY, CON_SLURRY_CC, CON_GOMPERTZ, CON_SLURRY_KWA, CON_WEIBULL)
         exit(1)
 
     return CON
@@ -337,6 +341,8 @@ class CON_Slurry_Cc(CON_base):
 
         if 'a' in params:
             self._A = params['a']
+        if 'cc' in params:
+            self._Cc = params['cc']
         if 'c' in params:
             self._C = params['c']
         if 'd' in params:
@@ -835,3 +841,218 @@ class CON_Gompertz(CON_base):
         Indication of the compatible types of CON
         """
         return CON_GOMPERTZ
+
+########################################################################
+#                       Reconsolidation based on Gompertz function     #
+########################################################################
+
+class CON_Weibull(CON_base):
+    """ Reconsolidation Weibull model.
+    We start consolidation with uniform void ratio e0
+    For loading (consolidation) we use Weibull, e0, B, E, F
+    This should be good model for many types of grounds
+
+    We have
+        effective stress
+         e = e0 - B exp(-E effstress^F); effstress = sigmaprime
+            B, E, F constants, e0 initial void ratio
+        hydraulic conductivity in cm/s
+         K(e)  =  ln(e/C) /D
+
+    Typical values: e0=2.242, B=2.70,  E=3.82  , F=-0.256
+    and C := 1.1672; D := 4e7 / 100
+    or e0=5.5, B=4.97,  E=1.03  , F=-0.67
+    and C := 1.1672; D := 4e7 / 100
+    Note if K(e) = C exp(D), then typical values C=6.51E-6 and D=3.824
+
+    In above effstress in kPa !!
+    """
+    def __init__(self, e0 = None, B=None, E=None, F=None, C=None, D=None):
+        CON_base.__init__(self)
+        self._e0 = e0
+        self._B = B
+        self._E = E
+        self._F = F
+        self._C = C
+        self._D = D
+        self.REGU_TYPE = REG_OVERSHOOT_IS_EXP
+
+    def set_parameters(self, params):
+        if 'e0' in params:
+            self._e0 = params['e0']
+
+        if 'b' in params:
+            self._B = params['b']
+        if 'e' in params:
+            self._E = params['e']
+        if 'f' in params:
+            self._F = params['f']
+        if 'c' in params:
+            self._C = params['c']
+        if 'd' in params:
+            self._D = params['d']
+
+    def e2Ks(self, e, Ks = None):
+        """
+        For a given void ratio e, what is the hydraulic conductivity
+        K(e)  =   ln(e/C) /D
+        """
+        bade = []
+        if len(e) == 1:
+            lene = 1
+            if e[0] > self._e0: bade = np.asarray([True], bool)
+        else:
+            lene = len(e)
+            bade = self._e0 < e
+        toosmalle = []
+        if len(e) == 1:
+            if e[0] < self._C*1.00001: toosmalle = np.asarray([True], bool)
+        else:
+            toosmalle = self._C*1.00001
+        ecopy = np.empty(lene, float)
+        ecopy[:] = e[:]
+        ecopy[toosmalle] = self._C*1.00001
+
+        if not Ks is None:
+            Ks[:] = np.log(e/self._C) / self._D
+        else:
+            Ks = np.log(e/self._C) / self._D
+        #now regularization
+        if self.REGU_TYPE == REG_OVERSHOOT_IS_E0:
+            Ks[bade] = np.log(self._e0/self._C) / self._D
+        elif self.REGU_TYPE == REG_OVERSHOOT_IS_EXP:
+            Ke0 =  np.log(self._e0/self._C) / self._D
+            Ks[bade] = Ke0 * np.exp(-OVERSHOOT_EXP_DECAY_FACTOR*(e[bade]-self._e0))
+        #fix negative
+        Ks[toosmalle] = 1e-100
+        return Ks
+
+    def e2sigmaprime(self, e, sigp = None):
+        """
+        For a given void ratio, what is the sigma prime (effective stress)
+        sigmaprime in unit g/(s^2 cm) = 0.1Pa
+        sigprime(e) = (1/(-E) ln((e0-e)/B) )**(1/F)
+        """
+        import warnings
+        warnings.filterwarnings('error')
+        einternal = np.empty(len(e), float)
+        einternal[:] = e[:]
+        #numerically, we can have values of e>e0, we correct for those
+        bade = []
+        fact = 0.9999
+        fact = 1
+        if len(e) == 1:
+            if einternal[0]> self._e0: bade = np.asarray([True], bool)
+            if einternal[0]> fact*self._e0:
+                einternal[0]=self._e0*fact
+        else:
+            bade = self._e0 < e
+            einternal[fact*self._e0 < e] = self._e0*fact
+
+        #note, einternal > a is required !!
+        a = self._e0 - self._B
+        if len(e) == 1:
+            if einternal[0]< a+1e-8:
+                bade2 = np.asarray([True], bool)
+                einternal[0]=a+1e-8
+        else:
+            bade2 = einternal < a+1e-8
+            einternal[bade2] = a+1e-8
+
+        if not sigp is None:
+            sigp[:] = 1e4*np.power(-1./self._E*np.log((self._e0-einternal)/self._B),
+                                   1./self._F)
+        else:
+            tmp = (self._e0-einternal)/self._B
+            tmp0 = tmp <= 0
+            tmp[tmp0] = 0.1
+            try:
+                sigp = 1e4*np.power(-1./self._E*np.log(tmp),
+                                   1./self._F)
+            except:
+                print ('inv val log', self._e0-einternal)
+                raise Exception
+            sigp[tmp0] = 0
+        #sigp[bade] = 1e-8
+        sigp[bade] = 0.
+        return sigp
+
+    def sigmaprime2e(self, sigp, e = None):
+        """
+        For a given value of of sigma prime, what is the void ratio
+        Sigma prime in 0.1Pa, while curve fitting was done for kPa! So convert!
+        """
+        #required input is np array, as we do boolean access
+        assert(isinstance(sigp, np.ndarray))
+        a = self._e0 - self._B
+        if not e is None:
+            e[:] = self._e0 - self._B * np.exp(-self._E*np.power(sigp*1e-4,self._F))
+        else:
+            tmp0 = sigp <= 0
+            sigp[tmp0] = 1
+            try:
+                e = self._e0 - self._B * np.exp(-self._E*np.power(sigp*1e-4,self._F))
+            except:
+                print ('inv val power log', sigp)
+                raise Exception
+            e[tmp0] = self._e0
+        return e
+
+    def dKsde(self, e, dKsde = None):
+        """
+        Return value of d Ks/ de in e:
+        """
+        if not dKsde is None:
+            dKsde[:] = self._C / e / self._D
+        else:
+            dKsde = self._C / e / self._D
+        return dKsde
+
+    def dKo1pede(self, e, dKo1pede=None):
+        """
+        Return value of d (K/(1+e)) / de in e: 1/D 1/(1+e) [C/e - ln(e/C)]
+        """
+        if not dKo1pede is None:
+            dKo1pede[:] = 1 / self._D / (1+e) * (self._C/e - np.log(e/self._C))
+        else:
+            dKo1pede = 1 / self._D / (1+e) * (self._C/e - np.log(e/self._C))
+        return dKo1pede
+
+    def dsigpde(self, e, dsigpde = None, zeroval=0.):
+        """
+        return value of d sigma' / de at e
+
+        zeroval not used!!
+        """
+        e = np.asarray(e)
+        einternal = np.empty(len(e), float)
+        einternal[:] = e[:]
+        #numerically, we can have values of e>e0, we correct for those
+        bade = []
+        if len(e) == 1:
+            if einternal[0]> self._e0: bade = np.asarray([True], bool)
+            if einternal[0]> 0.9999*self._e0:
+                einternal[0]=self._e0*0.9999
+        else:
+            bade = self._e0 < e
+            einternal[0.9999*self._e0 < e] = self._e0*0.9999
+
+        sigp = self.e2sigmaprime(e, None)
+        if not dsigpde is None:
+            dsigpde[:] = -1./(self._F * (self._e0-einternal)*
+                                np.log((self._e0-einternal)/self._B)
+                             ) * sigp
+        else:
+            dsigpde =  -1./(self._F * (self._e0-einternal)*
+                                np.log((self._e0-einternal)/self._B)
+                             ) * sigp
+        #dsigpde[bade] = 1e5 * (e[bade]-self._e0)
+        #if zeroval != 0:
+        #    dsigpde[dsigpde>-1e-8] = -1e-8
+        return dsigpde
+
+    def typeCON(self):
+        """
+        Indication of the compatible types of CON
+        """
+        return CON_WEIBULL

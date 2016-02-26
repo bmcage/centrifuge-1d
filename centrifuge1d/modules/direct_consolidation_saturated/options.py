@@ -4,7 +4,8 @@ import sys
 from ..shared.functions import lagrangian_derivative_coefs
 from numpy import linspace, power, empty, array, log
 from ..shared.consolidation import (create_CON, CON_SLURRY, CON_GOMPERTZ,
-                                    CON_FREEFORM, CON_SLURRY_CC, CON_SLURRY_KWA)
+                                    CON_FREEFORM, CON_SLURRY_CC, CON_SLURRY_KWA,
+                                    CON_WEIBULL)
 
 def dtype_deps(cfg):
     dtype = cfg.get_value('dtype')
@@ -21,8 +22,12 @@ CONFIG_OPTIONS = ['inner_points', 'dtype',
                   ('con_max_refine', 0),
                   (lambda cfg: cfg.get_value('con_type') == CON_SLURRY,
                    ['a', 'b', 'c', 'd']),
+                  (lambda cfg: cfg.get_value('con_type') == CON_SLURRY_CC,
+                   ['a', 'cc', 'c', 'd']),
                   (lambda cfg: cfg.get_value('con_type') in [CON_GOMPERTZ,],
                    ['a', 'b', 'c', 'd', 'cc']),
+                  (lambda cfg: cfg.get_value('con_type') in [CON_WEIBULL,CON_SLURRY_KWA],
+                   ['b', 'e', 'f', 'c', 'd']),
                   (lambda cfg: cfg.get_value('con_type') in [CON_FREEFORM],
                    [('ei', None), ('si', None), ('ki', None), ('eiadd', None)]),
                   'porosity',
@@ -132,7 +137,7 @@ def adjust_cfg(cfg):
     if cfg.get_value('con_type') in [CON_SLURRY, CON_GOMPERTZ]:
         ks = (1+e0)*(cfg.get_value('c')+cfg.get_value('d')*e0)
         cfg.set_value('ks', ks)
-    elif cfg.get_value('con_type') in [CON_SLURRY_CC, CON_SLURRY_KWA]:
+    elif cfg.get_value('con_type') in [CON_SLURRY_CC, CON_SLURRY_KWA, CON_WEIBULL]:
         ks = log(e0/cfg.get_value('c')) / cfg.get_value('d')
     else:
         print ("ERROR: cannot calculate the start ks as consolidation type is not known!")
