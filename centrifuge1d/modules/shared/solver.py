@@ -452,10 +452,12 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
     As long as refinements in approach are possible, restart inverse method
     """
     invrun =0;
+
     while True:
         (optim_params, cov) = run_inverse(direct_fn, model, measurements, optimfn)
         invrun += 1
         # make sure we work with optim parameters
+        print ('setting optim params for final run', optim_params)
         model.set_parameters(optim_params)
 
         # reset if previously stored values of measurements (it's re-set also
@@ -741,12 +743,12 @@ def run_inverse(direct_fn, model, measurements, optimfn='leastsq'):
     for (name, value) in results:
         if not value is None:
             out += ' |{:>8}'.format(name)
-    out += ' |'
+    out += ' |\n'
     for (name, value) in results:
         if not value is None:
             out += ' |{:8d}'.format(value)
     print(out, '|')
-    #print("Extra info:", opt_params, cov, infodic, msg, ier)
+    print("Extra info:", opt_params, cov, infodic, msg, ier)
 
     return (optim_params, cov)
 
