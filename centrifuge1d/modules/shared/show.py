@@ -506,7 +506,9 @@ def update_styles(styles, user_styles):
 
     # process 'lines' separately - just put missing values into
     # the default lines object
-    user_lines_styles = user_styles['lines']
+    user_lines_styles = {}
+    if user_styles:
+        user_lines_styles = user_styles['lines']
     lines_styles = styles['lines']
 
     for (line_id, data) in user_lines_styles.items():
@@ -529,7 +531,8 @@ def update_styles(styles, user_styles):
                 line_style['_base_'][name] = value
 
     # Don't update with the remaining values
-    del user_styles['lines']
+    if user_styles:
+        del user_styles['lines']
 
     # Update all the rest
     styles = deep_dictupdate(styles, user_styles)
@@ -941,6 +944,7 @@ class DataStorage:
                 #no sense continuing if computed does not work
                 raise Exception('Could not obtain computed data')
         else:
+            print (self._styles['lines'])
             line_style = self._styles['lines'][ID]
             data = {}
             if self.get('print_params') is None:
