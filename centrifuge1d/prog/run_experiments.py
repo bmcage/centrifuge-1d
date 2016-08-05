@@ -19,7 +19,7 @@ def compare_experiment_csv(exp_id, dataout_path=None):
     exp_info['exp_id'] = exp_id
     if dataout_path:
         exp_info['ini_dir'] = dataout_path + sep + 'datafiles'
-        exp_info['figs_dir'] = dataout_path + sep + 'datafiles' 
+        exp_info['figs_dir'] = dataout_path + sep + 'datafiles'
     else:
         exp_info['ini_dir'] = INI_DIR
         exp_info['figs_dir'] = FIGS_DIR
@@ -66,7 +66,7 @@ def list_experiments(args, verbose=True, dataout_path=None):
     exp_info = {key: getattr(args, key) for key in ['exp_id', 'exp_no', 'mask']}
     if dataout_path:
         exp_info['ini_dir'] = dataout_path + sep + 'datafiles'
-        exp_info['figs_dir'] = dataout_path + sep + 'datafiles' 
+        exp_info['figs_dir'] = dataout_path + sep + 'datafiles'
     else:
         exp_info['ini_dir'] = INI_DIR
         exp_info['figs_dir'] = FIGS_DIR
@@ -101,11 +101,11 @@ def list_modules(verbose=True):
 
 def parse_input(dataout_path=None, parse_arg=[]):
     """
-    Parse the calling sequence of the script. If run independent, 
+    Parse the calling sequence of the script. If run independent,
     don't pass parse_arg and sys.argv will be used.
     Otherwise, pass in the arguments as a list, eg
      parse_arg = ['gem-zwijnaarde2-drain', '1', '-m', 'f_mo_limit']
-    to run from folder gem-zwijnaarde2-drain, exp 1, with mast f_mo_limit.
+    to run from folder gem-zwijnaarde2-drain, exp 1, with mask f_mo_limit.
     """
     usage_str = '\n\t%(prog)s [options] [exp_ID] [exp_NO] [last_exp_NO]'
 
@@ -237,7 +237,7 @@ def run_experiments(options, dataout_path=None):
                             'mask': mask}
         if dataout_path:
             experiment_info['ini_dir'] = dataout_path + sep + 'datafiles'
-            experiment_info['figs_dir'] = dataout_path + sep + 'datafiles' 
+            experiment_info['figs_dir'] = dataout_path + sep + 'datafiles'
         else:
             experiment_info['ini_dir'] = INI_DIR
             experiment_info['figs_dir'] = FIGS_DIR
@@ -302,7 +302,7 @@ def compare2configs(options, dataout_path=None):
         exp_info1['figs_dir'] = FIGS_DIR
         exp_info2['ini_dir'] = INI_DIR
         exp_info2['figs_dir'] = FIGS_DIR
-        
+
     cfg1 = load_configuration(exp_info1)
     cfg2 = load_configuration(exp_info2)
 
@@ -345,10 +345,10 @@ def main(dataout_path=None, parse_arg=[]):
         experiment_info =  \
           {'exp_id': options.exp_id, 'exp_no': options.exp_no,
            'mask': options.mask}
-        
+
         if dataout_path:
             experiment_info['ini_dir'] = dataout_path + sep + 'datafiles'
-            experiment_info['figs_dir'] = dataout_path + sep + 'datafiles' 
+            experiment_info['figs_dir'] = dataout_path + sep + 'datafiles'
         else:
             experiment_info['ini_dir'] = INI_DIR
             experiment_info['figs_dir'] = FIGS_DIR
@@ -358,7 +358,7 @@ def main(dataout_path=None, parse_arg=[]):
     elif options.compare_p:
         compare2configs(options, dataout_path)
     else:
-        run_experiments(options, dataout_path)    
+        run_experiments(options, dataout_path)
 
 if __name__ == "__main__":
     main()
