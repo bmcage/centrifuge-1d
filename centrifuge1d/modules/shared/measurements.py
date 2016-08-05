@@ -15,11 +15,11 @@ from .functions import (rpm2radps, radps2rpm, compare_data,
 # MEASUREMENTS_NAMES are the mapping between the internal
 # denotation of measured data (used during computation and for
 # plotting) and corresponding options that are to be found in
-# configuration inifile(s).
+# configuration inifile(s) (typically measurements.ini.
 MEASUREMENTS_NAMES = {'MI': 'wl1', 'MO': 'wl_out', 'GC': 'gc1', 'RM': 'rm1',
                       'gF_MO': 'gf_mo', 'gF_MT': 'gf_mt',
                       'dgF_MO': None, 'dgF_MT': None,
-                      'SL': 'l1', 'theta': 'theta'}
+                      'L': 'l1', 'theta': 'theta'}
 
 MEASUREMENTS_TIME_INDEPENDENT = ('theta')
 
