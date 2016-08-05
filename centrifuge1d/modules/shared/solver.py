@@ -315,7 +315,7 @@ def simulate_direct(initialize_z0, model, measurements, residual_fn,
                         print ('Finished %03d percent of computation' % int(perc_done))
                     perc_next = int(perc_done+1)
 
-            t0 = t[i-1]
+            t0 = t_end
 
             if phase == 'a':
                 model.omega_start = model.omega
