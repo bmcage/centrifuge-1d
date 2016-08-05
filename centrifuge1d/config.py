@@ -144,6 +144,7 @@ class ModulesManager():
         if not modname_or_exptype in self._modules_names:
             print('\nFind module error: Unknown module name or experiment '
                   'type: "'+ modname_or_exptype + '".\tSkipping...')
+            print('Possible modules:', self._modules_names)
             return not_found
 
         if submodule:
