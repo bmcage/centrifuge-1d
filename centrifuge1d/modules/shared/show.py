@@ -476,9 +476,9 @@ def read_plotstyles_file(filename):
     except configparser.ParsingError as E:
         print('Plotstyles file ', filename,
               '\n could not be read because of the following error: ', E,
-              '\nDefault values are used.')
-
-        return result
+              '\nCorrect this error and retry.')
+        exit(0)
+        #return result
 
     # Write data from parser to configuration
     for psection in parser.sections():
