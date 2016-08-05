@@ -527,9 +527,9 @@ class CON_Slurry_kwa(CON_base):
         ecopy[toosmalle] = 0.01
 
         if not Ks is None:
-            Ks[:] = np.log(e/self._C) / self._D
+            Ks[:] = np.log(ecopy/self._C) / self._D
         else:
-            Ks = np.log(e/self._C) / self._D
+            Ks = np.log(ecopy/self._C) / self._D
         #now regularization
         if self.REGU_TYPE == REG_OVERSHOOT_IS_E0:
             Ks[bade] = np.log(self._e0/self._C) / self._D
@@ -908,15 +908,15 @@ class CON_Weibull(CON_base):
         if len(e) == 1:
             if e[0] < self._C*1.00001: toosmalle = np.asarray([True], bool)
         else:
-            toosmalle = self._C*1.00001
+            toosmalle = e < self._C*1.00001
         ecopy = np.empty(lene, float)
         ecopy[:] = e[:]
         ecopy[toosmalle] = self._C*1.00001
 
         if not Ks is None:
-            Ks[:] = np.log(e/self._C) / self._D
+            Ks[:] = np.log(ecopy/self._C) / self._D
         else:
-            Ks = np.log(e/self._C) / self._D
+            Ks = np.log(ecopy/self._C) / self._D
         #now regularization
         if self.REGU_TYPE == REG_OVERSHOOT_IS_E0:
             Ks[bade] = np.log(self._e0/self._C) / self._D
