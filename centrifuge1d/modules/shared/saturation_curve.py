@@ -4,6 +4,7 @@ from __future__ import division, print_function
   This modules contains saturation curve object(s) for single flow
 """
 import numpy as np
+from scipy.optimize import bisect
 from interpolate import (MonoCubicInterp, QuadraticBspline, PiecewiseLinear,
                          PiecewiseLinearMonotoneAsc)
 
@@ -18,6 +19,7 @@ SC_FF_CUB = 2
 SC_FF_BS  = 3
 SC_FF_LIN = 4
 SC_FF_LINCONV = 5
+SC_DURNER = 6
 
 def get_dict_value(dictionary, keys):
     if type(keys) is str:                 # single item
@@ -48,6 +50,10 @@ def create_SC(data):
             SC = SC_freeform_Linear(hi, ui, ki, max_refine, hiadd)
         elif SC_type == SC_FF_LINCONV:
             SC = SC_freeform_LinearConvex(hi, ui, ki, max_refine, hiadd)
+    elif SC_type == SC_DURNER:
+        SC = SC_Durner(get_value('n1'), get_value('gamma1'), get_value('n2'),
+                       get_value('gamma2'), get_value('w1'),
+                       get_value('a1'), get_value('a2'))
     else:
         print('Unknown value of ''SC_type'': ', SC_type)
         exit(1)
@@ -315,6 +321,10 @@ class SC_base():
 
 ########################################################################
 #                       van Genuchten model                            #
+
+# van Genuchten, M. (1980): A closed-form equation for predicting the
+#   hydraulic conductivity of unsaturated soils. Soil Sci. Soc. Am. J.
+#   44:892-898.
 ########################################################################
 
 class SC_vanGenuchten(SC_base):
@@ -474,6 +484,275 @@ class SC_vanGenuchten(SC_base):
         Indication of the compatible types of SC
         """
         return SC_vG
+
+########################################################################
+#                       Durner model                                   #
+
+# Durner, W. (1994): Hydraulic conductivity estimation for soils with
+#  heterogeneous pore structure. Water Resour. Res., 30(2): 211-223.
+#  doi:10.1029/93WR02676
+########################################################################
+
+class SC_Durner(SC_base):
+    """ Durner model.
+    This is given by writing effective saturation u (=S_e) in terms of
+    pressure head h, and relative permeability in terms of S_e using the same
+    parameters. Durner is a combination of 2 van Genuchten curves with a
+    specific weight
+
+    We have
+
+         S_e = u =  w1 (1 / (1 + (\gamma1 h)^n1)^m1)
+                   + (1-w1) (1 / (1 + (\gamma2 h)^n2)^m2) ,   m1 = 1 - 1/n1, m2 = 1 - 1/n2
+
+         k(u)  =  w1 u^a1 (1 - (1 - u^{1/m1})^m1 )^2
+                   + (1-w1) u^a2 (1 - (1 - u^{1/m2})^m2 )^2
+        Default a1,a2 is 0.5
+    """
+    def __init__(self, n1=None, gamma1=None, n2=None, gamma2=None, w1=None,
+                       a1=0.5, a2=0.5):
+        SC_base.__init__(self)
+        self._w1 = w1
+        self._n1 = n1
+        if n1 is None:
+            self._m1 = None
+        else:
+            self._m1 = 1. - 1./n1
+        self._gamma1 = gamma1
+        self._a1 = a1
+        self._n2 = n2
+        if n2 is None:
+            self._m2 = None
+        else:
+            self._m2 = 1. - 1./n2
+        self._gamma2 = gamma2
+        self._a2 = a2
+
+    def set_parameters(self, params):
+        if 'w1' in params:
+            w1 = params['w1']
+            self._w1 = w1
+
+        if 'n1' in params:
+            n1 = params['n1']
+            self._n1 = n1
+            if n1 is None:
+                self._m1 = None
+            else:
+                self._m1 = 1. - 1./n1
+
+        if 'gamma1' in params:
+            self._gamma1 = params['gamma1']
+        if 'a1' in params:
+            self._a1 = params['a1']
+
+        if 'n2' in params:
+            n2 = params['n2']
+            self._n2 = n2
+            if n2 is None:
+                self._m2 = None
+            else:
+                self._m2 = 1. - 1./n2
+
+        if 'gamma2' in params:
+            self._gamma2 = params['gamma2']
+        if 'a2' in params:
+            self._a2 = params['a2']
+
+    def h2Kh(self, h, Ks, Kh = None):
+        """
+        For a given head h and saturated hydraulic conductivity Ks, what is
+        K(h) = Ks k(u(h)).
+        If Kh given, it is used to store the result
+        """
+        w1 = self._w1
+        tmp11 = np.power(self._gamma1 * h, self._n1-1.)
+        tmp21 = np.power(1 + self._gamma1 * h * tmp11, self._m1*self._a1)
+        tmp12 = np.power(self._gamma2 * h, self._n2-1.)
+        tmp22 = np.power(1 + self._gamma2 * h * tmp12, self._m2*self._a2)
+
+        if not Kh is None:
+            Kh[:] = (w1 * Ks/tmp21 * np.power(1-tmp11/np.power(tmp21, 2), 2)
+                    + (1-w1) * Ks/tmp22 * np.power(1-tmp12/np.power(tmp22, 2), 2))
+        else:
+            Kh    = (w1 * Ks/tmp21 * np.power(1-tmp11/np.power(tmp21, 2), 2)
+                    + (1-w1) * Ks/tmp22 * np.power(1-tmp12/np.power(tmp22, 2), 2))
+
+        return Kh
+
+    def u2Ku(self, u, Ks, Ku = None):
+        """
+        For a given effective saturation u and saturated hydraulic conductivity
+        Ks, what is K(u) = Ks k(u)
+        """
+        w1 = self._w1
+        m1 = self._m1
+        m2 = self._m2
+        a1 = self._a1
+        a2 = self._a2
+
+        if not Ku is None:
+            Ku[:] = (w1 * (Ks * np.power(u, a1)
+                     * np.power(1 - np.power(1 - np.power(u, 1./m1), m1), 2))
+                    + (1-w1) * (Ks * np.power(u, a2)
+                     * np.power(1 - np.power(1 - np.power(u, 1./m2), m2), 2)) )
+        else:
+            Ku    = (w1 * (Ks * np.power(u, a1)
+                     * np.power(1 - np.power(1 - np.power(u, 1./m1), m1), 2))
+                    + (1-w1) * (Ks * np.power(u, a2)
+                     * np.power(1 - np.power(1 - np.power(u, 1./m2), m2), 2)) )
+
+        return Ku
+
+    def dudh(self, h, dudh = None):
+        """
+        Return value of du/dh in h
+        """
+        w1     = self._w1
+        n1     = self._n1
+        gamma1 = self._gamma1
+        m1 = self._m1
+        n2     = self._n2
+        gamma2 = self._gamma2
+        m2 = self._m2
+
+        tmp11 = np.power(gamma1*h, n1-1)
+        tmp21 = np.power(1 + gamma1*h * tmp11, m1+1)
+        tmp12 = np.power(gamma2*h, n2-1)
+        tmp22 = np.power(1 + gamma2*h * tmp12, m2+1)
+
+        if not dudh is None:
+            dudh[:] = (w1 * (-gamma1)*(n1-1) * tmp11 / tmp21
+                       + (1-w1)* (-gamma2)*(n2-1) * tmp12 / tmp22 )
+        else:
+            dudh    = (w1 * (-gamma1)*(n1-1) * tmp11 / tmp21
+                       + (1-w1)* (-gamma2)*(n2-1) * tmp12 / tmp22 )
+
+        return dudh
+
+    def dhdu(self, u, dhdu = None):
+        """
+        Return value dh/du in terms of u for the given n, m and gamma
+        """
+        w1     = self._w1
+        n1     = self._n1
+        gamma1 = self._gamma1
+        m1 = self._m1
+        n2     = self._n2
+        gamma2 = self._gamma2
+        m2 = self._m2
+
+        tmp11 = np.power(u, 1./m1)
+        tmp21 = np.power(1 - tmp11, m1)
+        tmp12 = np.power(u, 1./m2)
+        tmp22 = np.power(1 - tmp12, m2)
+
+        if not dhdu is None:
+            dhdu[:] = (w1 * (-1)/gamma1/(n1-1) / tmp11 / tmp21
+                        + (1-w1) * (-1)/gamma2/(n2-1) / tmp12 / tmp22 )
+        else:
+            dhdu    = (w1 * (-1)/gamma1/(n1-1) / tmp11 / tmp21
+                        + (1-w1) * (-1)/gamma2/(n2-1) / tmp12 / tmp22 )
+
+        return dhdu
+
+    def h2u(self, h, u = None):
+        """
+        Return the value of effective saturation u corresponding with h.
+        """
+        w1     = self._w1
+        n1     = self._n1
+        gamma1 = self._gamma1
+        m1 = self._m1
+        n2     = self._n2
+        gamma2 = self._gamma2
+        m2 = self._m2
+
+        if not u is None:
+            u[:] = (w1/np.power(1+ np.power(gamma1 * h, n1), m1)
+                    + (1-w1)/np.power(1+ np.power(gamma2 * h, n2), m2))
+        else:
+            u    = (w1/np.power(1+ np.power(gamma1 * h, n1), m1)
+                    + (1-w1)/np.power(1+ np.power(gamma2 * h, n2), m2))
+
+        return u
+
+    def u2h(self, u, h = None):
+        """
+        Return the value of h for the given effective saturation u and
+        parameters passed
+        """
+        w1     = self._w1
+        n1     = self._n1
+        gamma1 = self._gamma1
+        m1 = self._m1
+        n2     = self._n2
+        gamma2 = self._gamma2
+        m2 = self._m2
+
+        # via fsolve determine each root
+        sol = np.empty(len(u), float)
+        i=0
+        for uval in u:
+            rootfn = lambda unknown: (w1/np.power(1+ np.power(gamma1 * (-1)*np.power(10,unknown), n1), m1)
+                        + (1-w1)/np.power(1+ np.power(gamma2 * (-1)*np.power(10,unknown), n2), m2)) - uval
+            #starth = (w1 * np.power(np.power(uval, -1./m1) - 1., 1./n1) / gamma1 +
+            #        (1-w1) * np.power(np.power(uval, -1./m2) - 1., 1./n2) / gamma2 )
+            #resval = newton(rootfn, starth)
+            #fsolve fails, newten reaches nan values as it searches outside
+            # allowable zone, so use bisect instead:
+            resval = bisect(rootfn, 0, 10)
+            sol[i] = -np.power(10, resval)
+            i += 1
+
+        if not h is None:
+            h[:] =  sol
+        else:
+            h    =  sol
+
+        return h
+
+    def get_dyn_h_init(self, c_gammah, h_init_max):
+        """
+        Dynamically set 'h_init' value based on the 'gamma' parameter.
+        """
+        self.h_init_max = min(c_gammah / max(self._gamma1,self._gamma2), h_init_max)
+        #raw_input(' ok to use h init max {} instead of {}?'
+        #                .format(self.h_init_max, c_gammah / self._gamma))
+        return self.h_init_max
+
+    def add_transformations_fns(self, transform, untransform,
+                                lbounds, ubounds):
+        """
+        Transform/untransform methods for 'n' and 'gamma' parameters
+        """
+        max_value = TRANSFORM_MAX_VALUE
+
+        transform['n1']   = lambda n: max(np.log(n - 1.0), -max_value)
+        untransform['n1'] = lambda n_transf: 1+min(np.exp(n_transf), max_value)
+
+        transform['gamma1']   = lambda gamma: max(np.log(-gamma), -max_value)
+        untransform['gamma1'] = lambda gamma_transf: -min(np.exp(gamma_transf), max_value)
+
+        transform['n2']   = lambda n: max(np.log(n - 1.0), -max_value)
+        untransform['n2'] = lambda n_transf: 1+min(np.exp(n_transf), max_value)
+
+        transform['gamma2']   = lambda gamma: max(np.log(-gamma), -max_value)
+        untransform['gamma2'] = lambda gamma_transf: -min(np.exp(gamma_transf), max_value)
+
+        transform['w1']   = lambda w1: w1
+        untransform['w1'] = lambda w1_transf: w1_transf
+
+        transform['a1']   = lambda a1: a1
+        untransform['a1'] = lambda a1_transf: a1_transf
+        transform['a2']   = lambda a2: a2
+        untransform['a2'] = lambda a2_transf: a2_transf
+
+    def typeSC(self):
+        """
+        Indication of the compatible types of SC
+        """
+        return SC_DURNER
 
 ########################################################################
 #                           Free-form  model                           #
