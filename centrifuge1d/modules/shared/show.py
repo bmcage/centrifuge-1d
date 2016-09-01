@@ -944,7 +944,6 @@ class DataStorage:
                 #no sense continuing if computed does not work
                 raise Exception('Could not obtain computed data')
         else:
-            print (self._styles['lines'])
             line_style = self._styles['lines'][ID]
             data = {}
             if self.get('print_params') is None:
