@@ -21,7 +21,7 @@ import importlib
 from sys import modules as sysmodules
 from types import MethodType
 from .modules.shared.measurements import Measurements
-from .modules.shared.saturation_curve import create_SC
+from .modules.shared.saturation_curve import create_SC, SC_DURNER_FF
 
 ##################################################################
 #                   ModulesManager class                         #
@@ -712,9 +712,13 @@ class ModelParameters:
 
         if hasattr(self, 'SC'):
             if self.SC.canrefine_h():
-                if not 'ki' in self.init_values or not 'ui' in self.init_values:
-                    raise Exception("Refine of h only allowed if ki and ui "
-                                    "are parameters to determine inversely")
+                if not 'ki' in self.init_values:
+                    raise Exception("Refine of h only allowed if ki/ui is "
+                                    "a parameters to determine inversely")
+                if not 'ui' in self.init_values:
+                    if not self.SC.typeSC() == SC_DURNER_FF:
+                        raise Exception("Refine of h only allowed if ki/ui is "
+                                        "a parameters to determine inversely")
                 orighi = self.SC.refinable_h()
                 succ =  self.SC.refine(self.measurements, self._transform,
                                        self._untransform, self._lbounds,

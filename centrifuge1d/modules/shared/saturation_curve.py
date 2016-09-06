@@ -20,6 +20,7 @@ SC_FF_BS  = 3
 SC_FF_LIN = 4
 SC_FF_LINCONV = 5
 SC_DURNER = 6
+SC_DURNER_FF = 7
 
 def get_dict_value(dictionary, keys):
     if type(keys) is str:                 # single item
@@ -41,7 +42,8 @@ def create_SC(data):
     if SC_type == SC_vG:
         SC = SC_vanGenuchten(get_value('n'), get_value('gamma'))
     elif SC_type in (SC_FF_CUB, SC_FF_BS, SC_FF_LIN, SC_FF_LINCONV):
-        (hi, hiadd, ui, ki, max_refine) = get_value(('hi', 'hiadd', 'ui', 'ki', 'sc_max_refine'))
+        (hi, hiadd, ui, ki, max_refine) = get_value(('hi', 'hiadd', 'ui', 'ki',
+                                                     'sc_max_refine'))
         if SC_type == SC_FF_CUB:
             SC = SC_freeform_Cubic(hi, ui, ki, max_refine, hiadd)
         elif SC_type == SC_FF_BS:
@@ -54,6 +56,12 @@ def create_SC(data):
         SC = SC_Durner(get_value('n1'), get_value('gamma1'), get_value('n2'),
                        get_value('gamma2'), get_value('w1'),
                        get_value('a1'), get_value('a2'))
+    elif SC_type == SC_DURNER_FF:
+        (hi, hiadd, ki, max_refine) = get_value(('hi', 'hiadd', 'ki',
+                                                     'sc_max_refine'))
+        SC = SC_Durner_freeform(get_value('n1'), get_value('gamma1'), get_value('n2'),
+                       get_value('gamma2'), get_value('w1'),
+                       get_value('a1'), get_value('a2'), hi, ki, max_refine, hiadd)
     else:
         print('Unknown value of ''SC_type'': ', SC_type)
         exit(1)
@@ -694,6 +702,7 @@ class SC_Durner(SC_base):
         sol = np.empty(len(u), float)
         i=0
         for uval in u:
+            #h2u function
             rootfn = lambda unknown: (w1/np.power(1+ np.power(gamma1 * (-1)*np.power(10,unknown), n1), m1)
                         + (1-w1)/np.power(1+ np.power(gamma2 * (-1)*np.power(10,unknown), n2), m2)) - uval
             #starth = (w1 * np.power(np.power(uval, -1./m1) - 1., 1./n1) / gamma1 +
@@ -701,8 +710,12 @@ class SC_Durner(SC_base):
             #resval = newton(rootfn, starth)
             #fsolve fails, newten reaches nan values as it searches outside
             # allowable zone, so use bisect instead:
-            resval = bisect(rootfn, 0, 10)
-            sol[i] = -np.power(10, resval)
+            if np.allclose(rootfn(-4), 0.) :
+                sol[i] = -np.power(10, -4)
+            else:
+                #print ('u2h test', uval, rootfn(-10), rootfn(0), rootfn(10))
+                resval = bisect(rootfn, -4, 10)
+                sol[i] = -np.power(10, resval)
             i += 1
 
         if not h is None:
@@ -753,6 +766,410 @@ class SC_Durner(SC_base):
         Indication of the compatible types of SC
         """
         return SC_DURNER
+
+class SC_Durner_freeform(SC_Durner):
+    """ Durner model with freeform conductivity.
+    Durner is a combination of 2 van Genuchten curves with a
+    specific weight.
+
+    We have
+
+         S_e = u =  w1 (1 / (1 + (\gamma1 h)^n1)^m1)
+                   + (1-w1) (1 / (1 + (\gamma2 h)^n2)^m2) ,   m1 = 1 - 1/n1, m2 = 1 - 1/n2
+
+         k(u)  =  w1 u^a1 (1 - (1 - u^{1/m1})^m1 )^2
+                   + (1-w1) u^a2 (1 - (1 - u^{1/m2})^m2 )^2
+        Default a1,a2 is 0.5
+    """
+    def __init__(self, n1=None, gamma1=None, n2=None, gamma2=None, w1=None,
+                       a1=0.5, a2=0.5, hi=None, ki=None, refinemax=0, hiadd=None,
+                 compute_extra=False, issue_warning=False):
+        SC_Durner.__init__(self, n1, gamma1, n2, gamma2, w1, a1, a2)
+
+        self.compute_extra = compute_extra
+        self.extra = 0
+        self.refinenr=0
+        self.refinemax = refinemax
+        self.oncheck_warning_only = issue_warning
+
+        self.TRANSHIADD = True
+        self.KASCPOSCHECK = True
+
+        self.hiaddpos = None
+        truehi = []
+        if hi is not None and hiadd is not None:
+            assert type(hiadd) in [int, float]
+            truehi = [x for x in hi if x < hiadd]
+            self.hiaddpos = len(truehi)
+            truehi.append(hiadd)
+            truehi = truehi + [x for x in hi if x>hiadd]
+        else:
+            truehi = hi
+        print ('hiaddtest', hiadd, truehi, hi)
+
+        if hi is not None and ki is not None:
+            self.check_params(truehi, ki, issue_warning)
+            self._set_values(np.array(truehi, dtype=float),
+                              np.array(ki, dtype=float))
+        else:
+            self._hi = truehi
+            if np.iterable(hi):
+                self._hi = np.array(self._hi)
+            self._ki = ki
+
+    def _set_values(self, hi, ki):
+        #are internal parameters are such that all is monotone increasing
+        # in terms of h
+        self._hi = hi
+        self._ki = ki
+        hmax = -min(1e-28, -hi[-1]*1e-3)
+        if self.compute_extra:
+            self.extra = 0
+            if self.h_init_max > self._hi[-1] and self.h_init_max < hmax:
+                self.extra = 1
+        self._hnodes = np.empty(len(hi)+2+self.extra, float)
+        self._kvals = np.empty(len(hi)+2+self.extra, float)
+        #we use the log values  for head.
+        self._hnodes[1:-1-self.extra] = -1*np.log(-hi[:])
+        self._hnodes[0] = -1*np.log(-hi[0]*1e3)
+        self._hnodes[-1] = -1*np.log(-hmax)
+        self._hmax = -np.exp(-self._hnodes)
+        #with log for head, also rel perm should be log values
+        self._kvals[1:-1-self.extra] = np.log(ki[:])
+        self._kvals[0] = min(-50, self._kvals[1]-10 )
+        self._kvals[-1] = 0.
+        if self.compute_extra and (self.extra == 1):
+            self._hnodes[-2] = -1*np.log(-self.h_init_max)
+            self._kvals[-2]  = np.log(1-1e-5)
+            print ('Extra point', self.extra)
+            raw_input('Testing if extra point active. Continue?')
+        #now we reconstruct the interpolating functions
+        self._interpolate_values()
+
+    def _interpolate_values(self):
+        #self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
+        self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
+
+    def check_params(self, hi, ki, issue_warning=False):
+        if not np.iterable(hi) or not np.iterable(ki):
+            raise Exception ( 'Some parameters are not given: '\
+                    'hi:%s, ki:%s' % (str(hi), str(ki)))
+        if not (len(hi)==len(ki)):
+            raise Exception ('Parameters must have equal length: %s, %s' % (str(hi), str(ki)))
+        #hi must be monotone ascending > 0, and ui, ki monotone ascending
+        ho = hi[0]
+        ko = ki[0]
+        for h,k in zip(hi[1:],ki[1:]):
+            if not h>ho or not h<0.:
+                raise Exception('Hydraulic head h must be negative and a '
+                                'monotone ascending array, instead %s' % str(hi))
+            if self.KASCPOSCHECK and (not k>ko or not ko>0):
+                raise Exception('Relative permeability k must be positive and a '
+                                'monotone ascending array in terms of h, instead %s' % str(ki))
+            ho = h
+            ko = k
+
+        #The edges of ki are fixed and will not be optimized
+        if not (ki[0] > 0) or not (ki[-1] < 1):
+            raise Exception('Relative permeability k starts at 0, ends at 1, '
+                            'only pass values between these extremes!')
+
+    def set_parameters(self, params):
+        """
+        Setting the parameters. Only ki are parameters not set yet!
+        """
+        SC_Durner.set_parameters(self, params)
+        if 'ki' in params:
+            ki = params['ki']
+        else:
+            ki = self._ki
+        if 'hiadd' in params:
+            hiadd = params['hiadd']
+            if self.hiaddpos>0:
+                if hiadd <= self._hi[self.hiaddpos-1]:
+                    #problem, hi must be ascending, correct for this.
+                    print ('WARNING: hiadd less than previous known value', hiadd, self._hi, self.hiaddpos)
+                    hiadd = self._hi[self.hiaddpos-1]+1e-10
+            elif self.hiaddpos < len(self._hi)-1:
+                if hiadd >= self._hi[self.hiaddpos+1]:
+                    #problem, hi must be ascending, correct for this.
+                    print ('WARNING: hiadd more than following known value', hiadd, self._hi, self.hiaddpos)
+                    hiadd = self._hi[self.hiaddpos+1]-1e-10
+            self._hi[self.hiaddpos] = hiadd
+
+
+        self.check_params(self._hi, ki, self.oncheck_warning_only)
+        self._set_values(self._hi, ki)
+
+    def get_parameters(self):
+        """
+        return the current parameters
+        """
+        if self.hiaddpos is not None:
+            return None, self._ki, self._hi[self.hiaddpos]
+        else:
+            return None, self._ki
+
+    def h2Kh(self, h, Ks, Kh = None):
+        """
+        For a given head h and saturated hydraulic conductivity Ks, what is
+        K(h) = Ks k(u(h)).
+        If Kh given, it is used to store the result
+        """
+        ASARRAY = False
+        if isinstance(h, np.ndarray ):
+            ASARRAY = True
+
+        th = h
+        if ASARRAY:
+            th = h[0]
+
+        if ASARRAY and th == 0:
+            tmp1 = np.empty(len(h))
+            tmp1[1:] = np.exp( self.logh2logk(-np.log(-h[1:]) ))
+            tmp1[0] = 1.
+        elif th == 0 :
+            tmp1 = 1.
+        else:
+            tmp1 = np.exp( self.logh2logk(-np.log(-h) ))
+
+
+        if not Kh is None:
+            Kh[:] = Ks * tmp1
+        else:
+            Kh    = Ks * tmp1
+        return Kh
+
+    def u2Ku(self, u, Ks, Ku = None):
+        """
+        For a given effective saturation u and saturated hydraulic conductivity
+        Ks, what is K(u) = Ks k(u)
+        """
+        h = self.u2h(u)
+        return self.h2Kh(h, Ks, Ku)
+
+    def add_transformations_fns(self, transform, untransform,
+                                lbounds, ubounds):
+        """
+        Transform/untransform methods for 'ki' and 'ui' parameters
+        """
+        SC_Durner.add_transformations_fns(self, transform, untransform,
+                                lbounds, ubounds)
+
+        if self.TRANSHIADD == False:
+            transform['hiadd']   = lambda hi: hi
+            untransform['hiadd'] = lambda hi_transf: hi_transf
+        else:
+            #bound by self._hi[self.hiaddpos-1] and self._hi[self.hiaddpos+1]
+            print ('bounds hiadd', self._hi[self.hiaddpos-1], self._hi[self.hiaddpos],self._hi[self.hiaddpos+1])
+            himin = self._hi[self.hiaddpos-1]+1e-20
+            himax = self._hi[self.hiaddpos+1]-1e-20
+            transform['hiadd']   = lambda hi: np.arcsin(2*(hi-himin)/(himax-himin)-1)
+            untransform['hiadd'] = lambda hi_transf: himin + (np.sin(hi_transf)+1)*(himax-himin)/2
+
+        # Functions as used in MINUIT, see http://lmfit.github.io/lmfit-py/bounds.html
+        # for bounds keeping
+
+        #log ki is between -inf and 0
+        #TODO: for -inf we obtain ki=0, which we want to avoid. Investigate if
+        #      not better to have log ki bounded between 1e-100 and 0 !!
+        transform['ki']   = lambda ki: np.sqrt((0-np.log(ki)+1)**2-1)
+        untransform['ki'] = lambda ki_transf: np.exp(0+1-np.sqrt(ki_transf**2+1))
+
+    def refinable_h(self):
+        """
+        Obtain the current h values which are allowed to be refined
+        """
+        return -np.exp(-self._hnodes[1:-1])
+
+    def refine(self, prev_measurements, transform, untransform, lbounds, ubounds):
+        """
+        refine the parameters and reinit. Return if success
+        """
+        if self.refinenr >= self.refinemax:
+            return False
+        #we refine the parameter space. Here we add a h point, and hence
+        #add 2 new parameters: the ki and ui at that new hi.
+        # obtain (x, h) computed data and (x, u)
+        comph  = prev_measurements.get_computed_value('h')[1]
+        #compu  = prev_measurements.get_computed_value('u')[1]
+        #compui = self._ui
+        #compki = self._ki
+        if self.refinenr == 0:
+            #first refine. refine strategy must start from 2 points!
+            self._internalrefine = 1
+            if not len(self._hi) < 4:
+                raise Exception("Refinement must start from minimum amount "
+                                "of points: 2 or 3 given head values")
+
+        hn = self._hnodes[1:-1-self.extra]
+        minh = np.min(comph.flatten())
+
+        if self.hiaddpos is None:
+            #we selected a good insert position based on logaritmic bisection
+            while True:
+                if self._internalrefine > 32:
+                    #stop computation:
+                    print ("More than maximum number of internal refinements!")
+                    return False
+                curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
+                curintervalsize = 1/2**(curexp)
+                print ('intref', self._internalrefine, 'extra', self.extra)
+                possiblenewhnodes = np.array([hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
+                                                    for i in range(2**(curexp-1))], float)
+                print ('newhn 0', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)), ', hn=',hn)
+                possiblenewhnodes = [i for i in possiblenewhnodes if not i in hn]
+                tmp = []
+                for i in possiblenewhnodes:
+                    #if too close, also skip
+                    add = True
+                    for j in hn:
+                        if np.allclose(i,j):
+                            add = False
+                    if add:
+                        tmp += [i]
+                possiblenewhnodes = tmp
+                print ('newhn 1', possiblenewhnodes)
+                #we select only h > minh
+                possiblenewhnodes = np.array([i for i in possiblenewhnodes
+                                                if -np.exp(-i) > minh*2 and i < hn[-1]])
+                print ('newhn E', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)))
+                if len(possiblenewhnodes) == 0:
+                    self._internalrefine += 1
+                    continue
+                else:
+                    possiblenewh = -np.exp(-possiblenewhnodes)
+                    #start with the one in interval with largest u change
+                    uchange = 0;
+                    prevui = self._kvals[1]
+                    nexth = possiblenewh[0]
+                    nexthnode = possiblenewhnodes[0]
+                    for h, hnode in zip(possiblenewh, possiblenewhnodes):
+                        for hi, ui in zip(self._hi, self._ki):
+                            if hi > h:
+                                diffu = ui-prevui
+                                if diffu > uchange:
+                                    nexth = h
+                                    nexthnode = hnode
+                                    uchange = diffu
+                            prevui = ui
+                    break;
+        else:
+            #hi position will be nicely optimized. So, we only select the
+            #interval where to add a hi value, then take middle of this interval
+            while True:
+                if self._internalrefine > 32:
+                    #stop computation:
+                    print ("More than maximum number of internal refinements!")
+                    return False
+                curexp = 1+int(np.trunc(np.log2(self._internalrefine)))
+                curintervalsize = 1/2**(curexp)
+                print ('intref', self._internalrefine, 'extra', self.extra)
+                possiblenewhnodes = np.array([hn[0] + (2*i+1)*curintervalsize * (hn[-1]-hn[0])
+                                        for i in range(2**(curexp-1))], float)
+                tmp = []
+                for i in possiblenewhnodes:
+                    #if too close, also skip
+                    add = True
+                    for j in hn:
+                        if np.allclose(i,j):
+                            add = False
+                    if add:
+                        tmp += [i]
+                possiblenewhnodes = tmp
+                #we select only h > minh
+                possiblenewhnodes = np.array([i for i in possiblenewhnodes
+                                                if -np.exp(-i) > minh*2 and i < hn[-1]])
+                print ('newhn E', possiblenewhnodes, 'h=', -np.exp(-np.array(possiblenewhnodes)))
+                if len(possiblenewhnodes) == 0:
+                    self._internalrefine += 1
+                    continue
+                else:
+                    possiblenewh = -np.exp(-possiblenewhnodes)
+                    #start with the one in interval with largest u change
+                    uchange = 0;
+                    prevui = self._kvals[1]
+                    nexth = possiblenewh[0]
+                    nexthnode = possiblenewhnodes[0]
+                    for h, hnode in zip(possiblenewh, possiblenewhnodes):
+                        for hi, ui in zip(self._hi, self._ki):
+                            if hi > h:
+                                diffu = ui-prevui
+                                if diffu > uchange:
+                                    nexth = h
+                                    nexthnode = hnode
+                                    uchange = diffu
+                            prevui = ui
+                    break;
+
+        #we have a new h to add, we insert it, and update parameters
+        nu = self.h2u(np.array([nexth]))
+        #relative perm, so Ks=1
+        Ksrel = 1.
+        nk = self.h2Kh(np.array([nexth]), Ksrel)
+        print ('test nu nk', nu, nk)
+        ind = np.searchsorted(self._hnodes, nexthnode)
+        #we add new control points of the interpolations,
+        #this is not equal to interpolation points!!
+        # hence, we check if control point before after is still good
+        # as nu is computed as an interpolated value, using it as control point
+        # requires all remains monotone ascending
+#        if self._ui[ind-2] > nu[0]:
+#            print ('problem ui at', ind-2, self._ui[ind-2], nu[0], self._hi[ind-2],self.h2u(self._hi[ind-2]))
+#            self._ui[ind-2] = self.h2u(np.array([self._hi[ind-2]]))[0]
+#            self._uvals[ind-1] = self._ui[ind-2]
+#        elif self._ui[ind-1] < nu[0]:
+#            self._ui[ind-1] = self.h2u(np.array([self._hi[ind-1]]))[0]
+#            self._uvals[ind] = self._ui[ind-1]
+        if self._ki[ind-2] > nk[0]:
+            self._ki[ind-2] = self.h2Kh(np.array([self._hi[ind-2]]), Ksrel)[0]
+            self._kvals[ind-1] = np.log(self._ki[ind-2])
+        elif self._ki[ind-1] < nk[0]:
+            self._ki[ind-1] = self.h2Kh(np.array([self._hi[ind-1]]), Ksrel)[0]
+            self._kvals[ind] = np.log(self._ki[ind-1])
+
+        self._hnodes = np.insert(self._hnodes, ind, nexthnode)
+        self._hi     = np.insert(self._hi, ind-1, nexth)
+
+        if self.hiaddpos is not None:
+            self.hiaddpos = ind-1
+            print ("New hiaddpos is" , self.hiaddpos, ", value", self._hi[self.hiaddpos] )
+
+#        self._ui     = np.insert(self._ui, ind-1, nu)
+        self._ki     = np.insert(self._ki, ind-1, nk)
+#        self._uvals  = np.insert(self._uvals, ind, self._ui[ind-1])
+        self._kvals  = np.insert(self._kvals, ind, np.log(self._ki[ind-1]))
+
+        print ("*** refined SC curve  - new par ***")
+        print (" h  ", self._hi)
+#        print (" u  ", self._ui)
+        print (" k  ", self._ki)
+        print (" hn ", self._hnodes)
+#        print (" uv ", self._uvals)
+        print (" kv ", self._kvals)
+
+        self._interpolate_values()
+
+        self.refinenr += 1
+        self._internalrefine += 1
+        # set updated transformations in case it is needed
+        self.add_transformations_fns(transform, untransform,
+                                     lbounds, ubounds)
+        return True
+
+    def typeSC(self):
+        """
+        Indication of the compatible types of SC
+        """
+        return SC_DURNER_FF
+
+    def canrefine_h(self):
+        """
+        indicate if this SC allows refinement of h
+        """
+        if self.refinenr >= self.refinemax:
+            return False
+        return True
 
 ########################################################################
 #                           Free-form  model                           #
@@ -1051,6 +1468,24 @@ class SC_freeform_base(SC_base):
         Obtain the current h values which are allowed to be refined
         """
         return -np.exp(-self._hnodes[1:-1])
+
+    def get_dyn_h_init(self, c_gammah, h_init_max):
+        """
+        Initial values of h~0 can cause troubles to the solver to start
+        depending on parameters of the SC class. To ensure "smooth" start
+        we compute a dynamically obtained 'h_init' value based on
+        actual values. This may be important in the parameters
+        optimization process.
+        """
+        recreate = False
+        if self._hi is not None and self.h_init_max != h_init_max:
+            #we need to regenerate the bsplace!
+            recreate = True
+        self.h_init_max = h_init_max
+        if recreate and self._hi is not None and self._ki is not None:
+            self._set_values(self._hi, self._ki)
+
+        return self.h_init_max
 
     def refine(self, prev_measurements, transform, untransform, lbounds, ubounds):
         """

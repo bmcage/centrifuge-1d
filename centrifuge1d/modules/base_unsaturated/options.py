@@ -3,7 +3,8 @@ from __future__ import division
 from ..shared.functions import lagrangian_derivative_coefs
 from numpy import linspace, power, empty
 from ..shared.saturation_curve import (create_SC, SC_vG, SC_FF_CUB, SC_FF_BS,
-                                       SC_FF_LIN, SC_FF_LINCONV, SC_DURNER)
+                                       SC_FF_LIN, SC_FF_LINCONV, SC_DURNER,
+                                       SC_DURNER_FF)
 
 def dtype_deps(cfg):
     dtype = cfg.get_value('dtype')
@@ -25,6 +26,9 @@ CONFIG_OPTIONS = ['inner_points', 'dtype',
                    [('hi', None), ('ui', None), ('ki', None), ('hiadd', None)]),
                   (lambda cfg: cfg.get_value('sc_type') == SC_DURNER,
                    ['n1', 'gamma1', 'a1', 'n2', 'gamma2', 'a2', 'w1']),
+                  (lambda cfg: cfg.get_value('sc_type') == SC_DURNER_FF,
+                   ['n1', 'gamma1', 'a1', 'n2', 'gamma2', 'a2', 'w1',
+                    ('hi', None), ('ki', None), ('hiadd', None)]),
                   'porosity',
                   'estimate_zp0',
                   dtype_deps,
