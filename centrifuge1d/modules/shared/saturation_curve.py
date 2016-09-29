@@ -4,7 +4,14 @@ from __future__ import division, print_function
   This modules contains saturation curve object(s) for single flow
 """
 import numpy as np
-from scipy.optimize import bisect
+import copy
+from scipy.optimize import bisect, minimize
+NEW_LS = True
+try:
+    from scipy.optimize import least_squares
+except:
+    NEW_LS = False
+    from scipy.optimize import leastsq as least_squares
 from interpolate import (MonoCubicInterp, QuadraticBspline, PiecewiseLinear,
                          PiecewiseLinearMonotoneAsc)
 
@@ -61,7 +68,7 @@ def create_SC(data):
                                                      'sc_max_refine'))
         SC = SC_Durner_freeform(get_value('n1'), get_value('gamma1'), get_value('n2'),
                        get_value('gamma2'), get_value('w1'),
-                       get_value('a1'), get_value('a2'), hi, ki, max_refine, hiadd)
+                       hi, ki, max_refine, hiadd)
     else:
         print('Unknown value of ''SC_type'': ', SC_type)
         exit(1)
@@ -777,18 +784,19 @@ class SC_Durner_freeform(SC_Durner):
          S_e = u =  w1 (1 / (1 + (\gamma1 h)^n1)^m1)
                    + (1-w1) (1 / (1 + (\gamma2 h)^n2)^m2) ,   m1 = 1 - 1/n1, m2 = 1 - 1/n2
 
-         k(u)  =  w1 u^a1 (1 - (1 - u^{1/m1})^m1 )^2
-                   + (1-w1) u^a2 (1 - (1 - u^{1/m2})^m2 )^2
+         k(u)  = freeform monotonic cubic polynomial
         Default a1,a2 is 0.5
     """
     def __init__(self, n1=None, gamma1=None, n2=None, gamma2=None, w1=None,
-                       a1=0.5, a2=0.5, hi=None, ki=None, refinemax=0, hiadd=None,
+                       hi=None, ki=None, refinemax=0, hiadd=None,
                  compute_extra=False, issue_warning=False):
-        SC_Durner.__init__(self, n1, gamma1, n2, gamma2, w1, a1, a2)
+        self.__BADPARAM = False
+        SC_Durner.__init__(self, n1, gamma1, n2, gamma2, w1, 0., 0.)
 
         self.compute_extra = compute_extra
         self.extra = 0
         self.refinenr=0
+        self._REFINEERROR = False
         self.refinemax = refinemax
         self.oncheck_warning_only = issue_warning
 
@@ -848,9 +856,13 @@ class SC_Durner_freeform(SC_Durner):
 
     def _interpolate_values(self):
         #self.logh2u = MonoCubicInterp(self._hnodes, self._uvals)
-        self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
+        if self.__BADPARAM:
+            self.logh2logk = None
+        else:
+            self.logh2logk = MonoCubicInterp(self._hnodes, self._kvals)
 
     def check_params(self, hi, ki, issue_warning=False):
+        self.__BADPARAM = False
         if not np.iterable(hi) or not np.iterable(ki):
             raise Exception ( 'Some parameters are not given: '\
                     'hi:%s, ki:%s' % (str(hi), str(ki)))
@@ -861,9 +873,13 @@ class SC_Durner_freeform(SC_Durner):
         ko = ki[0]
         for h,k in zip(hi[1:],ki[1:]):
             if not h>ho or not h<0.:
-                raise Exception('Hydraulic head h must be negative and a '
-                                'monotone ascending array, instead %s' % str(hi))
-            if self.KASCPOSCHECK and (not k>ko or not ko>0):
+                error = 'ERROR: Hydraulic head h must be negative and a ' \
+                        'monotone ascending array, instead %s' % str(hi)
+                self.__BADPARAM = True
+                #raise Exception(error)
+                print (error)
+                print (' ... CONTINUING WITH DUMMY BAD DATA')
+            if self.KASCPOSCHECK and ((not k>ko) or not k>0):
                 raise Exception('Relative permeability k must be positive and a '
                                 'monotone ascending array in terms of h, instead %s' % str(ki))
             ho = h
@@ -920,6 +936,17 @@ class SC_Durner_freeform(SC_Durner):
         if isinstance(h, np.ndarray ):
             ASARRAY = True
 
+        if self.__BADPARAM:
+            #bad input, we return fixed conductivity, which should allow the
+            # inverse solver to recover
+            if not ASARRAY:
+                Kh = 1e-4
+            elif not Kh is None:
+                Kh[:] = 1e-4
+            else:
+                Kh = np.empty(len(h))
+                Kh[:] = 1e-4
+            return Kh
         th = h
         if ASARRAY:
             th = h[0]
@@ -955,6 +982,10 @@ class SC_Durner_freeform(SC_Durner):
         """
         SC_Durner.add_transformations_fns(self, transform, untransform,
                                 lbounds, ubounds)
+        del transform['a1']
+        del transform['a2']
+        del untransform['a1']
+        del untransform['a2']
 
         if self.TRANSHIADD == False:
             transform['hiadd']   = lambda hi: hi
@@ -1002,8 +1033,18 @@ class SC_Durner_freeform(SC_Durner):
                 raise Exception("Refinement must start from minimum amount "
                                 "of points: 2 or 3 given head values")
 
-        hn = self._hnodes[1:-1-self.extra]
         minh = np.min(comph.flatten())
+        self._refine(minh)
+
+        self.refinenr += 1
+        self._internalrefine += 1
+        # set updated transformations in case it is needed
+        self.add_transformations_fns(transform, untransform,
+                                     lbounds, ubounds)
+        return True
+
+    def _refine(self, minh):
+        hn = self._hnodes[1:-1-self.extra]
 
         if self.hiaddpos is None:
             #we selected a good insert position based on logaritmic bisection
@@ -1109,6 +1150,10 @@ class SC_Durner_freeform(SC_Durner):
         nk = self.h2Kh(np.array([nexth]), Ksrel)
         print ('test nu nk', nu, nk)
         ind = np.searchsorted(self._hnodes, nexthnode)
+        old_ki = copy.deepcopy(self._ki)
+        old_kvals = copy.deepcopy(self._kvals)
+        old_hi = copy.deepcopy(self._hi)
+        old_hnodes = copy.deepcopy(self._hnodes)
         #we add new control points of the interpolations,
         #this is not equal to interpolation points!!
         # hence, we check if control point before after is still good
@@ -1140,6 +1185,42 @@ class SC_Durner_freeform(SC_Durner):
 #        self._uvals  = np.insert(self._uvals, ind, self._ui[ind-1])
         self._kvals  = np.insert(self._kvals, ind, np.log(self._ki[ind-1]))
 
+        #initial new values assigned for ki and kvals.
+        #we now optimze them so new k value corresponds as good as possible to original
+        self.__old_logh2logk = MonoCubicInterp(old_hnodes, old_kvals)
+        p = P_DEFAULT[1:]
+        rho = 1.0
+        g = 981.
+        h = -10.0* p /rho / g
+        self.__test_logh =  -1*np.log(-h)
+        #res_minkval = minimize(self._mink_fun, self._kvals[1:-1-self.extra])
+        res_minkval = least_squares(self._mink_fun_res, self._kvals[1:-1-self.extra])
+        if NEW_LS:
+            if res_minkval.success:
+                print('Found optimial start after a refine in', res_minkval.x,
+                      'Startval was', self._kvals[1:-1-self.extra])
+            else:
+                logmessage = 'Refine FAILED, msg=' + res_minkval.message
+                print(logmessage)
+                raise Exception(res_minkval.message)
+            self._kvals[1:-1-self.extra] = res_minkval.x
+        else:
+            print ('Full output refine least_squares:', res_minkval)
+            self._kvals[1:-1-self.extra] = res_minkval[0]
+        #we test the result
+        ko = self._kvals[0]
+        self._REFINEERROR = False
+        for k in self._kvals[1:]:
+            if (not k>ko):
+                print ('ERROR in checking k>ko', k, ko)
+                self._REFINEERROR = True
+            ko = k
+        if self._REFINEERROR:
+            #resort to avoid problems ....
+            self._kvals = sorted(self._kvals)
+        #adapt ki based on determined kvals:
+        self._ki = np.exp(self._kvals[1:-1-self.extra] )
+
         print ("*** refined SC curve  - new par ***")
         print (" h  ", self._hi)
 #        print (" u  ", self._ui)
@@ -1150,12 +1231,45 @@ class SC_Durner_freeform(SC_Durner):
 
         self._interpolate_values()
 
-        self.refinenr += 1
-        self._internalrefine += 1
-        # set updated transformations in case it is needed
-        self.add_transformations_fns(transform, untransform,
-                                     lbounds, ubounds)
-        return True
+    def _mink_fun_res(self, x):
+        """ internally used function to minimize in order to find new kval
+            after refine. This function computes the residuals"""
+        new_kvals = copy.deepcopy(self._kvals)
+        new_kvals[1:-1-self.extra] = x[:]
+        # kvals must be monotone increasing, check this:
+        ko = x[0]
+        error =0.
+        for k in x[1:]:
+            if (not k>ko):
+                print ('ERROR in checking k>ko', k, ko)
+                error += (ko*1.001 - k)*1e5
+            ko = k
+
+        #The edges of ki are fixed and will not be optimized
+        if not (x[0] > 0):
+            error += (-x[0]+1e-3)*1e5
+        if not (x[-1] < 1):
+            error +=  (x[-1]-1+1e-3)*1e5
+
+        new_logh2logk = MonoCubicInterp(self._hnodes, new_kvals)
+        return np.abs(new_logh2logk(self.__test_logh)
+                - self.__old_logh2logk(self.__test_logh)) + error/len(x)
+
+    def _mink_fun(self, x):
+        """ internally used function to minimize in order to find new kval
+            after refine"""
+        new_kvals = copy.deepcopy(self._kvals)
+        new_kvals[1:-1-self.extra] = x[:]
+        new_logh2logk = MonoCubicInterp(self._hnodes, new_kvals)
+
+        #The edges of ki are fixed and will not be optimized
+        if not (x[0] > 0):
+            error += (-x[0]+1e-3)*1e5
+        if not (x[-1] < 1):
+            error +=  (x[-1]-1+1e-3)*1e5
+
+        return np.sqrt(np.mean(np.square(new_logh2logk(self.__test_logh) -
+                                self.__old_logh2logk(self.__test_logh) ))) + error
 
     def typeSC(self):
         """
@@ -1896,3 +2010,14 @@ if __name__ == "__main__":
     pylab.plot(haxis, duaxl, 'r-', label="LI")
     pylab.legend()
     pylab.show()
+
+    #test of refine
+    DFF = SC_Durner_freeform(n1=1.43355895, gamma1=-2.19743662,
+                             n2=1.70669307, gamma2=-0.0080683,
+                             w1=0.26724804,
+                             hi=[-800, -1],
+                             ki=[ 0.00206712,  0.00684837,  0.08664011],
+                             refinemax=8, hiadd=-179.86743019,
+                             compute_extra=False, issue_warning=False)
+    DFF._internalrefine = 1
+    DFF._refine(-800)
