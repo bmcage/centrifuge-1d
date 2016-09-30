@@ -1210,8 +1210,8 @@ class SC_Durner_freeform(SC_Durner):
         #we test the result
         ko = self._kvals[0]
         self._REFINEERROR = False
-        for k in self._kvals[1:]:
-            if (not k>ko):
+        for k in self._kvals[1:-1]:
+            if ((not k>ko) and k<0):
                 print ('ERROR in checking k>ko', k, ko)
                 self._REFINEERROR = True
             ko = k
@@ -1240,7 +1240,7 @@ class SC_Durner_freeform(SC_Durner):
         ko = x[0]
         error =0.
         for k in x[1:]:
-            if (not k>ko):
+            if ((not k>ko) and k<0):
                 print ('ERROR in checking k>ko', k, ko)
                 error += (ko*1.001 - k)*1e5
             ko = k
