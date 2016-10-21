@@ -1245,8 +1245,8 @@ class SC_Durner_freeform(SC_Durner):
                 error += (ko*1.001 - k)*1e5
             ko = k
 
-        #The edges of ki are fixed and will not be optimized
-        if not (x[0] > 0):
+        ##The edges of ki are fixed and will not be optimized
+        if not (x[0] > new_kvals[0]):
             error += (-x[0]+1e-3)*1e5
         if not (x[-1] < 1):
             error +=  (x[-1]-1+1e-3)*1e5
@@ -1284,6 +1284,7 @@ class SC_Durner_freeform(SC_Durner):
         if self.refinenr >= self.refinemax:
             return False
         return True
+
 
 ########################################################################
 #                           Free-form  model                           #
@@ -2021,3 +2022,31 @@ if __name__ == "__main__":
                              compute_extra=False, issue_warning=False)
     DFF._internalrefine = 1
     DFF._refine(-800)
+
+
+    #test of refine
+    Ks = 5.28261841e-06
+    DFF = SC_Durner_freeform(n1=2.62950966, gamma1=-0.73224533,
+                             n2=1.98347727, gamma2=-0.03665971,
+                             w1= 0.29013331,
+                             hi=[-800.,         -184.69972153,   -1.  ],
+                             ki=[ 2.31274331e-04,   2.30158159e-03,   4.88048218e-01],
+                             refinemax=8, hiadd=-184.69972153,
+                             compute_extra=False, issue_warning=False)
+
+    kaxf = DFF.h2Kh(haxis, Ks)
+
+    pylab.figure(7)
+    pylab.title("relative permeability")
+    pylab.plot(haxis, kaxf, 'b-', label="before refine")
+    #pylab.ylim(ymax=1.1)
+
+    DFF._internalrefine = 1
+    DFF._refine(-800)
+
+    kaxf2 = DFF.h2Kh(haxis, Ks)
+    pylab.plot(haxis, kaxf2, 'r-', label="after refine")
+
+    pylab.legend()
+    pylab.show()
+    print (P_DEFAULT)
