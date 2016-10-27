@@ -480,7 +480,8 @@ def simulate_inverse(direct_fn, model, measurements, optimfn='leastsq'):
                 break;
             else:
                 #refine was success, we update the params
-                model.get_parameters(optim_params)
+                print ('Refinement success, current par')
+                print (model.get_parameters(optim_params))
         else:
             break;
 
