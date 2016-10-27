@@ -725,6 +725,11 @@ class ModelParameters:
                                        self._ubounds )
                 if succ:
                     #update model init values
+                    print ('Setting initial parameters after refine from ', self.init_values)
+                    newpar = self.get_parameters(self.init_values)
+                    for key in self.init_values:
+                        if key not in ['hiadd', 'hi', 'ki', 'ui']:
+                            self.init_values[key] = newpar[key]
                     if 'hiadd' in self.init_values:
                         hi = orighi
                         ui, ki, hiadd = self.SC.get_parameters()
@@ -738,6 +743,8 @@ class ModelParameters:
                         self.init_values['ki'] = ki
                     if 'ui' in self.init_values:
                         self.init_values['ui'] = ui
+                    print (' ... into new initial values', self.init_values)
+
         return succ
 
 
