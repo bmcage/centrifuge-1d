@@ -956,7 +956,7 @@ class DataStorage:
                         val = val[name]
                     else:
                         val = None
-                    if val in [None, '']:
+                    if val is None or val == '':
                         val = getattr(model, name, None)
                     self._data[name] = val
 
