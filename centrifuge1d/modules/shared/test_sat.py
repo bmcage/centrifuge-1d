@@ -67,30 +67,30 @@ We determine ki values at the same h values
 
 REFINE = False
 #TESTS = ['20pNPF_DurnerFF_try4', '20% NP fines', '10% fines']
-TESTS = ['galaa-20pNPfines-dr_DurnerFF_try5-002', '20% NP fines',
-         'galaa-20pfines-dr_DurnerFF_try6-002',
+TESTS = ['galaa-20pNPfines-dr_DurnerFF_try5-004', '20% NP fines',
+         'galaa-20pfines-dr_DurnerFF_try7-004',
          '30% NP fines', '20% fines', '10% NP fines',
-         'galaa-10pfines-dr_DurnerFF_try6-006',
+         'galaa-10pfines-dr_DurnerFF_try7-002',
          '10% fines', 'galaa-15pfines-dr_DurnerFF_try7-002',
-         '20pNPF_DurnerFF_try4', 'galaa-30pNPfines-dr_DurnerFF_try6-002',
-         '15% fines', 'galaa-10pNPfines-dr_DurnerFF_try6-004',
+         '20pNPF_DurnerFF_try4', 'galaa-30pNPfines-dr_DurnerFF_try7-003',
+         '15% fines', 'galaa-10pNPfines-dr_DurnerFF_try7-003',
          'PresPlate-10%PF','PresPlate-15%PF','PresPlate-20%PF','PresPlate-30%PF']
-TESTSETS = [['10% fines'   , 'galaa-10pfines-dr_DurnerFF_try6-006'],
+TESTSETS = [['10% fines'   , 'galaa-10pfines-dr_DurnerFF_try7-002'],
             ['15% fines'   , 'galaa-15pfines-dr_DurnerFF_try7-002'],
-            ['20% fines'   , 'galaa-20pfines-dr_DurnerFF_try6-002'],
-            ['10% NP fines', 'galaa-10pNPfines-dr_DurnerFF_try6-004'],
-            ['20% NP fines', 'galaa-20pNPfines-dr_DurnerFF_try5-002'],
-            ['30% NP fines', 'galaa-30pNPfines-dr_DurnerFF_try6-002'],
+            ['20% fines'   , 'galaa-20pfines-dr_DurnerFF_try7-004'],
+            ['10% NP fines', 'galaa-10pNPfines-dr_DurnerFF_try7-003'],
+            ['20% NP fines', 'galaa-20pNPfines-dr_DurnerFF_try5-004'],
+            ['30% NP fines', 'galaa-30pNPfines-dr_DurnerFF_try7-003'],
            ]
-TESTSETS = [['galaa-10pfines-dr_DurnerFF_try6-006',
+TESTSETS = [['galaa-10pfines-dr_DurnerFF_try7-002',
              'galaa-15pfines-dr_DurnerFF_try7-002',
-             'galaa-20pfines-dr_DurnerFF_try6-002',
-             'galaa-10pNPfines-dr_DurnerFF_try6-004',
-             'galaa-20pNPfines-dr_DurnerFF_try5-002',
-             'galaa-30pNPfines-dr_DurnerFF_try6-002'],
-            ['PresPlate-10%PF', 'galaa-10pfines-dr_DurnerFF_try6-006'],
+             'galaa-20pfines-dr_DurnerFF_try7-004',
+             'galaa-10pNPfines-dr_DurnerFF_try7-003',
+             'galaa-20pNPfines-dr_DurnerFF_try5-004',
+             'galaa-30pNPfines-dr_DurnerFF_try7-003'],
+            ['PresPlate-10%PF', 'galaa-10pfines-dr_DurnerFF_try7-002'],
             ['PresPlate-15%PF', 'galaa-15pfines-dr_DurnerFF_try7-002'],
-            ['PresPlate-20%PF', 'galaa-20pfines-dr_DurnerFF_try6-002'],
+            ['PresPlate-20%PF', 'galaa-20pfines-dr_DurnerFF_try7-004'],
            ]
 #TESTSETS = [
 #            ['PresPlate-10%PF', 'galaa-10pfines-dr_DurnerFF_try6-006'],
@@ -184,26 +184,22 @@ expdone['20pNPF_DurnerFF_try4'] = {
     'hinew' : [-1198.8, -885.5, -498.7, -124.9, -110, -90, -70, -55.6, -14.0, -1.6, -0.01],
 }
 
-expdone['galaa-10pfines-dr_DurnerFF_try6-006'] = {
+expdone['galaa-10pfines-dr_DurnerFF_try7-002'] = {
     'type' : 'DurnerFF',
     'label': '10% PF',
     'ls': '-',
     'color': 'k',
-    'gamma2'   : -0.024,
-    'gamma1'   : -0.631,
-    'Ks'       :  5.82000000e-05,
-    'w1'       : 0.165,
-    'n1'       : 29.497,
-    'n2'       : 1.187,
+    'gamma2'   : -0.019,
+    'gamma1'   : -0.719,
+    'Ks'       :  0.00020465,
+    'w1'       : 0.16195862,
+    'n1'       : 27.98017488,
+    'n2'       : 1.19558495,
     #hiorig =  [-800.,  -184.69972153,  -69.04066976,  -84.88393601,  -25.55339634, -1.]
-    'hiorig' : [-800.,         -353.78609229, -346.89955171,
-                -194.86321058, -150.43565068, -144.52534243,
-                -29.77738806 ,  -1.],
+    'hiorig' : [-800.,         -194.86321058,  -28.14254402,   -1.],
     #kiorig = [  2.55592585e-177, 8.37197116e-084, 2.45017122e-077,   2.41964065e-004,
     #            1.89611978e-003,   4.73289371e-001]
-    'kiorig' : [0.00031817,  0.00101114,  0.00101148,
-                0.001011484,  0.00637593,  0.01008568,
-                0.01740192,  0.28190157],
+    'kiorig' : [0.0051802,   0.01224695,  0.02929035,  0.1114143],
 }
 expdone['galaa-15pfines-dr_DurnerFF_try7-002'] = {
     'type' : 'DurnerFF',
@@ -224,81 +220,81 @@ expdone['galaa-15pfines-dr_DurnerFF_try7-002'] = {
                 7.81000648e-02,   2.84713766e-01],
 
 }
-expdone['galaa-20pfines-dr_DurnerFF_try6-002'] = {
+expdone['galaa-20pfines-dr_DurnerFF_try7-004'] = {
     'type' : 'DurnerFF',
     'label': '20% PF',
     'ls': '--', #'r-', 'c-', 'g-'
     'color': 'k',
-    'gamma2'   : -0.04214436,
-    'gamma1'   : -0.05749302,
-    'Ks'       :  5.26936643e-05,
-    'w1'       : 0.01242649,
-    'n1'       : 1.19134601,
-    'n2'       : 1.17209924,
+    'gamma2'   : -0.06276855,
+    'gamma1'   : -0.13596275,
+    'Ks'       :  7.55024516e-05,
+    'w1'       : 0.01905973,
+    'n1'       : 1.08211205,
+    'n2'       : 1.14834775,
     #hiorig =  [-800.,  -184.69972153,  -69.04066976,  -84.88393601,  -25.55339634, -1.]
-    'hiorig' : [-800.,         -234.09078708,
-                -37.81858234,   -1.],
+    'hiorig' : [-800.,         -234.09078708, -150.39373996,
+                -146.94649641, -32.26812248,   -1.      ],
     #kiorig = [  2.55592585e-177, 8.37197116e-084, 2.45017122e-077,   2.41964065e-004,
     #            1.89611978e-003,   4.73289371e-001]
-    'kiorig' : [0.00326819,  0.00373306,  0.14241173,
-                0.65473989],
+    'kiorig' : [ 0.00153666,  0.00253499,  0.00331672,
+                0.00331688,  0.07066095,  0.51755684],
 }
-expdone['galaa-10pNPfines-dr_DurnerFF_try6-004'] = {
+expdone['galaa-10pNPfines-dr_DurnerFF_try7-003'] = {
     'type' : 'DurnerFF',
     'label': '10% NPF',
     'ls': '-', #'r-', 'c-', 'g-'
     'color': 'silver',
-    'gamma2'   : -0.03936794,
-    'gamma1'   : -0.58575879,
-    'Ks'       :  8.80728887e-06,
-    'w1'       : 0.22588523,
-    'n1'       : 1.29315969,
-    'n2'       : 1.8561588,
+    'gamma2'   : -0.05111974,
+    'gamma1'   : -0.67604817,
+    'Ks'       :  1.07036456e-05,
+    'w1'       : 0.36197512,
+    'n1'       : 1.35237892,
+    'n2'       : 1.75923939,
     #hiorig =  [-800.,  -184.69972153,  -69.04066976,  -84.88393601,  -25.55339634, -1.]
-    'hiorig' : [-800.,    -347.49526585, -151.299384,
-                -150.74744048,  -35.49824755,   -1.],
+    'hiorig' : [-800.,         -347.49526585, -147.15257167,
+                -22.87783996,   -1.],
     #kiorig = [  2.55592585e-177, 8.37197116e-084, 2.45017122e-077,   2.41964065e-004,
     #            1.89611978e-003,   4.73289371e-001]
-    'kiorig' : [0.02422905,  0.05657715,  0.05953699,
-                0.05965733,  0.42722635,  0.87357708],
+    'kiorig' : [0.00254408,  0.0072132,   0.00790288,
+                0.10592392,  0.58513405],
 }
-expdone['galaa-20pNPfines-dr_DurnerFF_try5-002'] = {
+expdone['galaa-20pNPfines-dr_DurnerFF_try5-004'] = {
     'type' : 'DurnerFF',
     'label': '20% NPF',
     'ls': '--', #'r-', 'c-', 'g-'
     'color': 'silver',
-    'gamma2'   : -0.01493587,
-    'gamma1'   : -0.63955538,
-    'Ks'       :  3.75972604e-05,
-    'w1'       : 0.17469983,
-    'n1'       : 46.02351962,
-    'n2'       : 2.01108216,
+    'gamma2'   : -0.02504457,
+    'gamma1'   : -0.84158123,
+    'Ks'       :  2.68925002e-05,
+    'w1'       : 0.18841812,
+    'n1'       : 2.14140304,
+    'n2'       : 2.04692162,
     #hiorig =  [-800.,  -184.69972153,  -69.04066976,  -84.88393601,  -25.55339634, -1.]
-    'hiorig' : [-800.,         -184.69972153,
-                -30.01083991,   -1.],
+    'hiorig' : [-800. ,        -184.69972153, -150.41503239,
+                -150.36737042,  -29.69588287,   -1.],
     #kiorig = [  2.55592585e-177, 8.37197116e-084, 2.45017122e-077,   2.41964065e-004,
     #            1.89611978e-003,   4.73289371e-001]
-    'kiorig' : [2.82850568e-04,   3.80381402e-03,
-                4.03184581e-02,   6.49784135e-01],
+    'kiorig' : [ 2.14643499e-04,   5.94831414e-04,   1.54899707e-03,
+                1.55199755e-03,    1.81813155e-02,   9.99407600e-01],
 }
-expdone['galaa-30pNPfines-dr_DurnerFF_try6-002'] = {
+expdone['galaa-30pNPfines-dr_DurnerFF_try7-003'] = {
     'type' : 'DurnerFF',
     'label': '30% NPF',
     'ls': '-.', #'r-', 'c-', 'g-'
     'color': 'silver',
-    'gamma2'   : -0.06495382,
-    'gamma1'   : -0.03686251,
-    'Ks'       : 1.79724123e-06,
-    'w1'       : 0.03948866,
-    'n1'       : 2.30222211,
-    'n2'       : 1.56687515,
+    'gamma2'   : -0.12478035,
+    'gamma1'   : -0.0231985,
+    'Ks'       : 1.47315259e-06,
+    'w1'       : 0.1740414,
+    'n1'       : 2.53252691,
+    'n2'       : 1.49312915,
     #hiorig =  [-800.,  -184.69972153,  -69.04066976,  -84.88393601,  -25.55339634, -1.]
-    'hiorig' : [-800.,         -273.57063589,
-                -60.92499156,   -1.],
+    'hiorig' : [-800.,         -273.57063589, -150.63836548,
+                -28.09774343,   -1.],
     #kiorig = [  2.55592585e-177, 8.37197116e-084, 2.45017122e-077,   2.41964065e-004,
     #            1.89611978e-003,   4.73289371e-001]
-    'kiorig' : [0.00102784,  0.04231832,
-                0.05591445,  0.75044259],
+    'kiorig' : [ 0.00752292,  0.00760714,  0.00968199,
+                 0.07472191,  0.61867427],
 }
 expdone['PresPlate-20%PF'] = {
     'type': 'SWRCpoints',
