@@ -170,16 +170,27 @@ class ExperimentData():
         self.delete(*delete_items)
 
     def save(self, save_dir, filename=DEFAULTS_ININAME,
-             section_name='experiment'):
+             section_name='experiment', newlines=True):
 
         def _princ(key, value, stream):
+            newlinecounter = 1
+            addnewline = False
             if type(value) in (list, tuple, np.ndarray):
                 if np.alen(value) == 0:
                     value_str = value
                 else:
                     value_str = '[' + str(value[0])
                     for item in value[1:]:
-                        value_str += ', ' + str(item)
+                        if not addnewline:
+                            value_str += ', ' + str(item)
+                        else:
+                            value_str += ',\n' + str(item)
+                            addnewline = False
+                        if newlines:
+                            newlinecounter += 1
+                            if newlinecounter > 9:
+                                addnewline = True
+                                newlinecounter = 0
                     value_str += ']'
             else:
                 value_str = value
@@ -407,6 +418,12 @@ def CSV2data(csv_dir, csv_filebasename):
 
         csv_type = 'scanned_data'
         data = ExperimentData(csv_type)
+    elif ((len(csv_fields) > 10) and (csv_fields[0] == 'nr')
+        and (csv_fields[5] == 'ADC0')):
+
+        csv_type = 'scanned_data_2017'
+        data = ExperimentData(csv_type)
+
     else:
         csv_type = 'regular_ini'
         required_fields = ('exp_type', 'exp_id', 'exp_no')
@@ -622,43 +639,47 @@ def process_scanned_data(experiment, experiment_info):
     scans  = np.asarray(experiment.get_value('scan'), dtype=int)
     scan_span = float(experiment.get_value('scan_span', not_found=1.0))
 
-    scanned_inflow_weights  = scanned_data.get_value('s102')
+    if scanned_data.get_datatype() == 'scanned_data':
 
-    if scans[-1] == '':
-        scans[-1] = len(measurement_data) - 1
+        scanned_inflow_weights  = scanned_data.get_value('s102')
+        if scans[-1] == '':
+            scans[-1] = len(measurement_data) - 1
+        (scan_first, scan_last) = (scans[0], scans[-1])
 
-    (scan_first, scan_last) = (scans[0], scans[-1])
+        if not omegas:
+            print('Rotational speed ''omega'' not specified: ', omegas,
+                  '\nExiting...')
+            exit(1)
+        (omega_cen, a_duration, d_duration, g_duration) = \
+          determine_duration_and_omega(scanned_inflow_weights, omegas, scans,
+                                       scan_span)
+        include_acceleration = (not d_duration == 0.0)
 
-    if not omegas:
-        print('Rotational speed ''omega'' not specified: ', omegas,
-              '\nExiting...')
-        exit(1)
+        experiment.set_value('omega', omega_cen)
+        experiment.set_value('include_acceleration', include_acceleration)
+        experiment.set_value('duration', a_duration)
+        experiment.set_value('deceleration_duration', d_duration)
+        experiment.set_value('fh_duration', g_duration)
 
-    (omega_cen, a_duration, d_duration, g_duration) = \
-      determine_duration_and_omega(scanned_inflow_weights, omegas, scans,
-                                   scan_span)
+        # Truncate unused values and store xvalues
+        times = scan_span * np.arange(1, scan_last-scan_first+1)
+        for (csv_name, ini_name) in CSV2INI_NAMES.items():
+            # store xvalue
+            scanned_data.set_value(ini_name + '_xvalues', times)
 
-    include_acceleration = (not d_duration == 0.0)
+            # truncate
+            scanned_force_weights = scanned_data.get_value(csv_name)
+            scanned_force_weights = \
+              multiply_list(scanned_force_weights, 1000.) # kg -> g
+            scanned_data.set_value(ini_name,
+                                   scanned_force_weights[scan_first: scan_last])
+            scanned_data.delete(csv_name)
 
-    experiment.set_value('omega', omega_cen)
-    experiment.set_value('include_acceleration', include_acceleration)
-    experiment.set_value('duration', a_duration)
-    experiment.set_value('deceleration_duration', d_duration)
-    experiment.set_value('fh_duration', g_duration)
-
-    # Truncate unused values and store xvalues
-    times = scan_span * np.arange(1, scan_last-scan_first+1)
-    for (csv_name, ini_name) in CSV2INI_NAMES.items():
-        # store xvalue
-        scanned_data.set_value(ini_name + '_xvalues', times)
-
-        # truncate
-        scanned_force_weights = scanned_data.get_value(csv_name)
-        scanned_force_weights = \
-          multiply_list(scanned_force_weights, 1000.) # kg -> g
-        scanned_data.set_value(ini_name,
-                               scanned_force_weights[scan_first: scan_last])
-        scanned_data.delete(csv_name)
+    elif scanned_data.get_datatype() == 'scanned_data_2017':
+        pass
+    else:
+        raise ValueError('CSV file of type', scanned_data.get_datatype(),
+                         'which is an unknown data type')
 
     # Remove unused data
     experiment.delete('scan')
