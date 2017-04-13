@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 from os import sep
 from os.path import dirname, normpath
 from pickle import HIGHEST_PROTOCOL
@@ -9,7 +10,7 @@ from pickle import HIGHEST_PROTOCOL
 PROGRAM_DIR = dirname(__file__)  # location of const.py !
 PROTO_DIR   = PROGRAM_DIR + sep + 'proto' + sep
 DATA_DIR    = normpath(PROGRAM_DIR + sep + '..' + sep + 'data')
-print(PROGRAM_DIR, DATA_DIR)
+print('Program and data directory set to:', PROGRAM_DIR, DATA_DIR)
 CSV_DIR     = DATA_DIR    + sep + 'csv'
 INI_DIR     = DATA_DIR    + sep + 'datafiles'
 FIGS_DIR    = DATA_DIR    + sep + 'datafiles'
