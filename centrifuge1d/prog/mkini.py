@@ -215,10 +215,14 @@ class ExperimentData():
 
         fout.close()
 
-    def echo(self):
+    def echo(self, short=False):
         print()
-        for (name, value) in sorted(self._data.items()):
-            print('%-12s = %s' % (name, value))
+        if short:
+            for (name, value) in sorted(self._data.items()):
+                print('%-12s = %s' % ('key', name))
+        else:
+            for (name, value) in sorted(self._data.items()):
+                print('%-12s = %s' % (name, value))
 
     def get_datatype(self):
         return self._data_type
@@ -488,7 +492,14 @@ def CSV2data(csv_dir, csv_filebasename):
                 # remove useless columns from data structure
                 data.delete(name)
 
-    if csv_type == 'scan_ini':
+    elif csv_type == 'scanned_data_2017':
+        for name in csv_fields:
+            if name in ('epochtime', 'kg_bottom', 'kg_hanging', 'RPM'):
+                pass
+            else:
+                # remove useless columns from data structure
+                data.delete(name)
+    elif csv_type == 'scan_ini':
         # if needed, add quotes to values in csv_file field
         data.on_modify(quote_csv_file_string)
 
@@ -501,6 +512,10 @@ ITERABLE_LISTS = {}
 
 def multiply_list(lst, coef):
     return [str(float(value) * coef) for value in lst]
+
+
+def subtract_list(lst, term):
+    return [str(float(value) - term) for value in lst]
 
 def get_iterables_list(exp_type, modman):
 
@@ -617,7 +632,8 @@ def determine_duration_and_omega(measurement_data, omegas_ini, scans, scan_span)
 
     return (omega_cen, a_duration, d_duration, g_duration)
 
-CSV2INI_NAMES = {'s102': 'gf_mt', 's103': 'gf_mo'}
+CSV2INI_NAMES = {'s102': 'gf_mt', 's103': 'gf_mo', 'kg_bottom': 'gf_mo',
+                 'kg_hanging': 'gf_mt', }
 
 def process_scanned_data(experiment, experiment_info):
     csv_files = experiment.get_value('csv_file')
@@ -643,7 +659,7 @@ def process_scanned_data(experiment, experiment_info):
 
         scanned_inflow_weights  = scanned_data.get_value('s102')
         if scans[-1] == '':
-            scans[-1] = len(measurement_data) - 1
+            scans[-1] = len(scanned_inflow_weights) - 1
         (scan_first, scan_last) = (scans[0], scans[-1])
 
         if not omegas:
@@ -664,19 +680,95 @@ def process_scanned_data(experiment, experiment_info):
         # Truncate unused values and store xvalues
         times = scan_span * np.arange(1, scan_last-scan_first+1)
         for (csv_name, ini_name) in CSV2INI_NAMES.items():
-            # store xvalue
-            scanned_data.set_value(ini_name + '_xvalues', times)
 
             # truncate
             scanned_force_weights = scanned_data.get_value(csv_name)
-            scanned_force_weights = \
-              multiply_list(scanned_force_weights, 1000.) # kg -> g
-            scanned_data.set_value(ini_name,
-                                   scanned_force_weights[scan_first: scan_last])
-            scanned_data.delete(csv_name)
+            if scanned_force_weights:
+                # store xvalue
+                scanned_data.set_value(ini_name + '_xvalues', times)
+                scanned_force_weights = \
+                  multiply_list(scanned_force_weights, 1000.) # kg -> g
+                scanned_data.set_value(ini_name,
+                                       scanned_force_weights[scan_first: scan_last])
+                scanned_data.delete(csv_name)
 
     elif scanned_data.get_datatype() == 'scanned_data_2017':
-        pass
+
+        scanned_inflow_weights  = scanned_data.get_value('kg_hanging')
+        if scans[-1] == '':
+            scans[-1] = len(scanned_inflow_weights) - 1
+        (scan_first, scan_last) = (scans[0], scans[-1])
+
+        # deterime time of experiments
+        times = scanned_data.get_value('epochtime')
+        times = times[scan_first: scan_last]
+        starttime = float(times[0])
+        times = subtract_list(times, starttime)
+        scanned_data.delete('epochtime')
+
+        # Truncate unused values and store xvalues
+        for (csv_name, ini_name) in CSV2INI_NAMES.items():
+            # truncate
+            scanned_force_weights = scanned_data.get_value(csv_name)
+            if scanned_force_weights:
+                # store xvalue
+                scanned_data.set_value(ini_name + '_xvalues', times)
+                scanned_force_weights = \
+                  multiply_list(scanned_force_weights, 1000.) # kg -> g
+                scanned_data.set_value(ini_name,
+                                       scanned_force_weights[scan_first: scan_last])
+                scanned_data.delete(csv_name)
+#
+#        #remove unneeded data that was scanned
+#        for scanheader in ['nr', 'date', 'time', 'gain', 'ADC0', 'ADC1', 'ADC2',
+#                           'ADC3', 'V0', 'V1', 'V2', 'V3', 'frqHz',
+#                           'frqRPM' ]:
+#            scanned_data.delete(scanheader)
+
+        if not omegas:
+            print('Rotational speed ''omega'' not specified: ', omegas,
+                  '\nExiting...')
+            exit(1)
+
+        c_omega = compress_seq(omegas)
+
+        if np.isscalar(c_omega): # omega is constant
+            omega_cen = [omegas]
+
+        else: # omega is variable
+            omega_cen = np.asarray(omegas, dtype=float)
+            if '-1' in omega_cen:
+                print('Rotational speed ''omega'' -1 present, but not -1 for sublines. All -1 or None! ', omegas,
+                     '\nExiting...')
+            exit(1)
+
+        if omega_cen[0] != '-1':
+            # use generated omega data
+            (omega_cen, a_duration, d_duration, g_duration) = \
+              determine_duration_and_omega(scanned_inflow_weights, omegas, scans,
+                                           scan_span)
+            include_acceleration = (not d_duration == 0.0)
+
+            experiment.set_value('omega', omega_cen)
+            experiment.set_value('include_acceleration', include_acceleration)
+            experiment.set_value('duration', a_duration)
+            experiment.set_value('deceleration_duration', d_duration)
+            experiment.set_value('fh_duration', g_duration)
+        else:
+            #use omega as measured by rpm sensor
+            scanned_omega = scanned_data.get_value('RPM')
+            if scanned_omega:
+                # store xvalue
+                scanned_data.set_value('radps' + '_xvalues', times)
+                scanned_omega = \
+                  multiply_list(scanned_omega, 2*np.pi / 60.) # rpm -> rad/s
+                scanned_data.set_value('radps',
+                                       scanned_omega[scan_first: scan_last])
+                scanned_data.delete('RPM')
+            else:
+                print (scanned_data.echo(short=True))
+                raise ValueError('RPM data not present in scanned data, but required.')
+
     else:
         raise ValueError('CSV file of type', scanned_data.get_datatype(),
                          'which is an unknown data type')
